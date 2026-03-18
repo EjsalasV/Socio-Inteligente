@@ -1,0 +1,163 @@
+cliente:
+  nombre_legal: "BF-HOLDING S.A.S."
+  nombre_corto: "BF-Holding"
+  ruc: "1793190873001"
+  tipo_entidad: "SAS"
+  sector: "holding"
+  subsector: "sociedad_cartera"
+  domicilio: "Quito"
+  pais: "Ecuador"
+  moneda_funcional: "USD"
+
+encargo:
+  anio_activo: 2025
+  periodo_inicio: "2025-01-01"
+  periodo_fin: "2025-12-31"
+  marco_referencial: "NIIF_PYMES"
+  tipo_encargo: "auditoria_externa"
+
+  tuvo_preliminar: false
+  fase_actual: "planificacion"
+
+  primera_auditoria: false
+  cliente_recurrente: true
+  auditor_previo: "mismo_equipo"
+
+  socio_asignado: "Maria del Carmen Torres"
+  gerente_asignado: ""
+  encargado_asignado: "Erick Salas"
+
+
+materialidad:
+  base_utilizada: "activos"
+  estado_materialidad: "final"
+
+  preliminar:
+    materialidad_global: null
+    materialidad_desempeno: null
+    error_trivial: null
+    fecha_calculo: null
+
+  final:
+    materialidad_planeacion: 5090.0
+    materialidad_ejecucion: 3818.0
+    umbral_trivialidad: 250.0
+    fecha_calculo: "2025-12-31"
+
+  comentario_base: >
+    Materialidad calculada sobre activos. Materialidad de ejecución al 75%
+    y error trivial conforme política de firma. Encargo realizado en una
+    sola visita sin fase preliminar separada.
+
+
+riesgo_global:
+  nivel: "medio_alto"
+  justificacion_corta: "Holding recurrente con uso de VPP, consolidación, subsidiarias y partes relacionadas, bajo enfoque sustantivo."
+  requiere_enfoque_reforzado: true
+  riesgo_fraude_presunto: false
+  riesgo_negocio_en_marcha: false
+
+
+contexto_negocio:
+  actividad_principal: "holding_sociedad_cartera"
+
+  descripcion_breve_negocio: >
+    Sociedad de cartera dedicada a la tenencia de participaciones en empresas
+    filiales del grupo. Su actividad principal consiste en la propiedad de
+    inversiones y control del capital social de entidades participadas.
+
+  pertenece_a_grupo: true
+  tiene_partes_relacionadas: true
+  tiene_operaciones_extranjero: false
+
+  regulador_principal: "SUPERCIAS"
+
+
+operacion:
+  tiene_empleados: false
+  numero_empleados_aprox: 0
+
+  usa_efectivo_intensivo: false
+  tiene_caja: false
+
+  tiene_cartera_significativa: false
+  tiene_provision_cartera: false
+
+  tiene_inventarios_significativos: false
+
+  tiene_prestamos_socios: false
+  tiene_anticipos_proveedores: false
+  maneja_reembolsos_gastos: false
+
+
+tesoreria:
+  numero_bancos_nacionales: 2
+  numero_bancos_exterior: 0
+
+
+nomina:
+  tiene_empleados: false
+  numero_empleados_aprox: 0
+  tiene_beneficios_empleados: false
+
+
+infraestructura:
+  sistema_contable: "contabilidad_externa"
+  tiene_manual_politicas_formal: false
+  observacion_politicas: "No se dispone de manual formal de políticas contables."
+
+
+banderas_generales:
+  documentacion_debil: false
+  notas_eeff_debiles: false
+  politicas_contables_genericas: false
+  ajustes_cierre_frecuentes: false
+  problemas_partes_relacionadas: true
+  contingencias_legales_identificadas: false
+  riesgo_tributario_general: true
+  observaciones_calidad_previas: false
+
+
+notas_generales:
+  resumen_cliente: >
+    Cliente recurrente tipo holding bajo NIIF para PYMES. Presenta inversiones
+    relevantes, aplicación del método de participación patrimonial (VPP),
+    subsidiarias y operaciones con partes relacionadas. No mantiene inventarios,
+    producción ni nómina.
+
+  asuntos_clave_planeacion:
+    - "Revisar correcta aplicación del método de participación patrimonial (VPP)."
+    - "Evaluar soporte financiero de subsidiarias y participadas."
+    - "Revisar operaciones y revelaciones con partes relacionadas."
+    - "Analizar consistencia entre inversiones, resultados asociados y patrimonio."
+    - "Validar tratamiento de consolidación y presentación en estados financieros."
+
+  informacion_pendiente:
+    - "Notas finales a los estados financieros."
+    - "Detalle actualizado de partes relacionadas."
+    - "Soporte financiero de subsidiarias y participadas."
+    - "Políticas contables vigentes del período 2025."
+
+
+administracion:
+  gerente_general: "FABARA VERA MARIA ROSA"
+  presidente: "BUSTAMANTE ESPINOSA JOSE RAFAEL"
+
+
+propiedad:
+  accionistas:
+    - nombre: "FIDEICOMISO BF"
+      capital: 200.0
+
+
+industria_inteligente:
+  sector_base: "holding"
+  subtipo_negocio: "sociedad_cartera"
+  tags:
+    - "usa_vpp"
+    - "consolidacion"
+    - "partes_relacionadas"
+
+
+reguladores_secundarios:
+  - "SRI"

@@ -1,0 +1,173 @@
+cliente:
+  nombre_legal: "BUSTAMANTE FABARA IP C.L."
+  nombre_corto: "BUSTAMANTE FABARA IP"
+  ruc: "1791432037001"
+  tipo_entidad: "C.L."
+  sector: "servicios_profesionales"
+  subsector: "servicios_legales_propiedad_intelectual"
+  domicilio: "Quito"
+  pais: "Ecuador"
+  moneda_funcional: "USD"
+
+encargo:
+  anio_activo: 2025
+  periodo_inicio: "2025-01-01"
+  periodo_fin: "2025-12-31"
+  marco_referencial: "NIIF_PYMES"
+  tipo_encargo: "auditoria_externa"
+
+  tuvo_preliminar: true
+  fase_actual: "visita_final"
+
+  primera_auditoria: false
+  cliente_recurrente: true
+  auditor_previo: "mismo_equipo"
+
+  socio_asignado: "Maria del Carmen Torres"
+  gerente_asignado: ""
+  encargado_asignado: "Erick Salas"
+
+materialidad:
+  base_utilizada: "ingresos"
+  estado_materialidad: "preliminar"
+
+  preliminar:
+    materialidad_global: 37000.0
+    materialidad_desempeno: 28000.0
+    error_trivial: 2000.0
+    fecha_calculo: "2025-11-30"
+
+  final:
+    materialidad_planeacion: null
+    materialidad_ejecucion: null
+    umbral_trivialidad: null
+    fecha_calculo: null
+
+  comentario_base: >
+    Materialidad determinada sobre ingresos dada la naturaleza de servicios
+    profesionales. Valores preliminares definidos en fase de planificación
+    de noviembre.
+
+riesgo_global:
+  nivel: "bajo"
+  justificacion_corta: >
+    Firma legal consolidada, cliente recurrente, con operaciones
+    principalmente de prestación de servicios profesionales.
+  requiere_enfoque_reforzado: false
+  riesgo_fraude_presunto: false
+  riesgo_negocio_en_marcha: false
+
+contexto_negocio:
+  actividad_principal: "servicios_legales_propiedad_intelectual"
+
+  descripcion_breve_negocio: >
+    Firma dedicada a la prestación de servicios jurídicos y asesoría legal,
+    especialmente en propiedad intelectual e industrial, incluyendo marcas,
+    patentes, nombres comerciales y asesoría legal especializada.
+
+  pertenece_a_grupo: false
+  tiene_partes_relacionadas: true
+  tiene_operaciones_extranjero: true
+
+  regulador_principal: "SUPERCIAS"
+
+operacion:
+  tiene_cartera_significativa: true
+  tiene_provision_cartera: true
+
+  tiene_inventarios_significativos: false
+
+  tiene_prestamos_socios: true
+  tiene_anticipos_proveedores: true
+  maneja_reembolsos_gastos: true
+
+  observaciones_operativas: >
+    La operación se concentra principalmente en ingresos por honorarios
+    profesionales, cuentas por cobrar a clientes, provisión de cartera,
+    préstamos a socios, anticipos a proveedores y reembolsos de gastos.
+
+infraestructura:
+  sistema_contable: "SAP"
+  tiene_manual_politicas_formal: false
+  observacion_politicas: "No se dispone de manual formal de políticas contables."
+
+tesoreria:
+  tiene_caja: false
+  usa_efectivo_intensivo: false
+  numero_bancos_nacionales: 3
+  numero_bancos_exterior: 1
+
+nomina:
+  tiene_empleados: true
+  numero_empleados_aprox: 23
+  usa_roles_pago: null
+  pagos_por_transferencia: null
+  beneficios_sociales_relevantes: null
+  observaciones: ""
+
+banderas_generales:
+  documentacion_debil: true
+  notas_eeff_debiles: false
+  politicas_contables_genericas: true
+  ajustes_cierre_frecuentes: false
+  problemas_partes_relacionadas: false
+  contingencias_legales_identificadas: false
+  riesgo_tributario_general: true
+  observaciones_calidad_previas: false
+
+notas_generales:
+  resumen_cliente: >
+    Cliente recurrente dedicado a servicios legales especializados en
+    propiedad intelectual. Opera bajo NIIF para PYMES. La auditoría se
+    enfoca principalmente en ingresos por honorarios, cuentas por cobrar,
+    provisiones de cartera, préstamos a socios y cumplimiento tributario.
+
+  asuntos_clave_planeacion:
+    - "Reconocimiento de ingresos por honorarios profesionales."
+    - "Existencia y recuperabilidad de cuentas por cobrar."
+    - "Revisión de provisión de cartera."
+    - "Revisión de préstamos a socios."
+    - "Análisis de anticipos a proveedores."
+    - "Revisión de reembolsos de gastos."
+
+  informacion_pendiente:
+    - "Notas finales a los estados financieros."
+    - "Detalle de cuentas por cobrar por cliente."
+    - "Detalle de préstamos a socios."
+    - "Soporte de provisión de cartera."
+    - "Detalle de anticipos a proveedores."
+
+administracion:
+  gerente_general: "BUSTAMANTE ZALDUMBIDE MARIA CLARA"
+  presidente_ejecutivo: "BUSTAMANTE ESPINOSA JOSE RAFAEL"
+  vicepresidente: "BUSTAMANTE ZALDUMBIDE MARIA CLARA"
+
+propiedad:
+  accionistas:
+    - nombre: "BUSTAMANTE CALISTO JUAN CARLOS"
+      capital: 33154.08
+
+    - nombre: "BUSTAMANTE ESPINOSA JOSE RAFAEL"
+      capital: 49750.36
+
+    - nombre: "BUSTAMANTE ZALDUMBIDE MARIA CLARA"
+      capital: 33154.08
+
+    - nombre: "FABARA VERA MARIA ROSA"
+      capital: 69155.64
+
+industria_inteligente:
+  sector_base: "servicios"
+  subtipo_negocio: "firma_legal_propiedad_intelectual"
+  tags:
+    - "honorarios_profesionales"
+    - "cuentas_por_cobrar"
+    - "provision_cartera"
+    - "prestamos_socios"
+    - "anticipos_proveedores"
+    - "reembolsos_gastos"
+    - "servicios_legales"
+    - "propiedad_intelectual"
+
+reguladores_secundarios:
+  - "SRI"

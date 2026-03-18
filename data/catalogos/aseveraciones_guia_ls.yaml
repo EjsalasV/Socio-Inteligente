@@ -1,0 +1,223 @@
+"140":
+  titulo_ls: "Efectivo y Equivalentes a Efectivo"
+  aseveraciones_sugeridas:
+    - "Existencia"
+    - "Integridad"
+    - "Derechos"
+  nota: "Guia referencial, no exhaustiva."
+
+"130.1":
+  titulo_ls: "Cuentas por Cobrar Corrientes"
+  aseveraciones_sugeridas:
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  nota: "Guia referencial, no exhaustiva."
+
+"35":
+  titulo_ls: "Cuentas por Cobrar No Corrientes"
+  aseveraciones_sugeridas:
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  nota: "Guia referencial, no exhaustiva."
+
+"130.2":
+  titulo_ls: "Otras Cuentas por Cobrar"
+  aseveraciones_sugeridas:
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  nota: "Guia referencial, no exhaustiva."
+
+"110":
+  titulo_ls: "Inventarios"
+  aseveraciones_sugeridas:
+    - "Existencia"
+    - "Valuacion"
+    - "Integridad"
+  nota: "Guia referencial, no exhaustiva."
+
+"1":
+  titulo_ls: "Propiedad, Planta y Equipo"
+  aseveraciones_sugeridas:
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  nota: "Guia referencial, no exhaustiva."
+
+"5":
+  titulo_ls: "Propiedades para Inversion"
+  aseveraciones_sugeridas:
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  nota: "Guia referencial, no exhaustiva."
+
+"11":
+  titulo_ls: "Activo por derecho de uso"
+  aseveraciones_sugeridas:
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  nota: "Guia referencial, no exhaustiva."
+
+"425":
+  titulo_ls: "Cuentas a pagar"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"425.1":
+  titulo_ls: "Cuentas a pagar no corriente"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"425.2":
+  titulo_ls: "Otras Cuentas por Pagar"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"410":
+  titulo_ls: "Obligaciones por beneficios a empleados"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"415":
+  titulo_ls: "Obligaciones por beneficios definidos"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"300.1":
+  titulo_ls: "Prestamos corrientes"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"300.2":
+  titulo_ls: "Prestamos no corrientes"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"310":
+  titulo_ls: "Obligaciones emitidas corriente"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"310.1":
+  titulo_ls: "Obligaciones emitidas no corriente"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"200":
+  titulo_ls: "Patrimonio"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Presentacion"
+    - "Derechos"
+  nota: "Guia referencial, no exhaustiva."
+
+"1500":
+  titulo_ls: "Ingresos"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Existencia"
+    - "Corte"
+  nota: "Guia referencial, no exhaustiva."
+
+"1600.5":
+  titulo_ls: "Costo de Ventas"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Valuacion"
+    - "Corte"
+  nota: "Guia referencial, no exhaustiva."
+
+"1600":
+  titulo_ls: "Gastos Administrativos"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Valuacion"
+    - "Presentacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"1700":
+  titulo_ls: "Gastos Ventas"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Valuacion"
+    - "Presentacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"1700_ALT":
+  titulo_ls: "Otros Ingresos"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Existencia"
+    - "Presentacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"324":
+  titulo_ls: "Pasivos por impuestos corrientes"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Valuacion"
+    - "Presentacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"325":
+  titulo_ls: "Pasivos de impuestos diferidos"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Valuacion"
+    - "Presentacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"136":
+  titulo_ls: "Activos por impuestos corrientes"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Valuacion"
+    - "Presentacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"15":
+  titulo_ls: "Activos por impuestos diferidos"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Valuacion"
+    - "Presentacion"
+  nota: "Guia referencial, no exhaustiva."
+
+"1900":
+  titulo_ls: "Gasto impuesto a la renta"
+  aseveraciones_sugeridas:
+    - "Integridad"
+    - "Valuacion"
+    - "Presentacion"
+  nota: "Guia referencial, no exhaustiva."

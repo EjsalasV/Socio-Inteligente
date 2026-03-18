@@ -1,0 +1,13 @@
+codigo: '200'
+nombre: ''
+estado_area: ''
+riesgo: ''
+procedimientos: []
+hallazgos_abiertos: []
+notas:
+- nota test
+pendientes:
+- pendiente test
+conclusion_preliminar: ok
+decision_cierre: requiere_revision
+fecha_actualizacion: '2026-03-17T12:07:35'

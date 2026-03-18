@@ -1,0 +1,13 @@
+# Perfil del Cliente Demo para Pruebas SocioAI
+
+nombre: "ABC Corporation S.A."
+ruc: "1234567890001"
+sector: "comerciales"
+estado: "ACTIVA"
+tipo_entidad: "SOCIEDAD ANONIMA"
+moneda: "USD"
+cierre_fiscal: "31/12/2025"
+ciudad: "Quito"
+pais: "Ecuador"
+actividad_economica: "Comercio al por mayor y menor"
+empleados: 150

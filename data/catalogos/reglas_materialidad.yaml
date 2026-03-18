@@ -1,0 +1,108 @@
+# Reglas de Materialidad por Tipo de Entidad/Sector
+# Las reglas siguen NIAs 320 y normativas de auditoría de Ecuador
+
+# Estructura:
+# - tipo_entidad o sector: nombre del tipo
+#   base: qué base usar (activos, patrimonio, ingresos)
+#   porcentaje_min: mínimo recomendado
+#   porcentaje_max: máximo recomendado
+#   descripcion: notas sobre cuándo usar
+
+reglas_por_entidad:
+  SOCIEDAD_ANONIMA:
+    base: "activos"
+    porcentaje_min: 0.03
+    porcentaje_max: 0.05
+    descripcion: "Empresas mercantiles - usa 3-5% de activos"
+
+  COMPANIA_LIMITADA:
+    base: "activos"
+    porcentaje_min: 0.03
+    porcentaje_max: 0.05
+    descripcion: "Pymes - usa 3-5% de activos"
+
+  PERSONA_NATURAL_NEGOCIOS:
+    base: "activos"
+    porcentaje_min: 0.05
+    porcentaje_max: 0.10
+    descripcion: "Personas naturales - usa 5-10% de activos"
+
+  COOPERATIVA:
+    base: "patrimonio"
+    porcentaje_min: 0.02
+    porcentaje_max: 0.05
+    descripcion: "Cooperativas - usa 2-5% del patrimonio"
+
+  ONG:
+    base: "patrimonio"
+    porcentaje_min: 0.02
+    porcentaje_max: 0.05
+    descripcion: "ONGs - usa 2-5% del patrimonio"
+
+  FUNERARIA:
+    base: "activos"
+    porcentaje_min: 0.05
+    porcentaje_max: 0.10
+    descripcion: "Servicios fúnebres - usa 5-10% de activos"
+
+reglas_por_sector:
+  comerciales:
+    base: "activos"
+    porcentaje_min: 0.03
+    porcentaje_max: 0.05
+    descripcion: "Comercio - usa 3-5% de activos"
+
+  servicios:
+    base: "ingresos"
+    porcentaje_min: 0.05
+    porcentaje_max: 0.10
+    descripcion: "Servicios - usa 5-10% de ingresos"
+
+  manufactura:
+    base: "activos"
+    porcentaje_min: 0.03
+    porcentaje_max: 0.05
+    descripcion: "Manufactura - usa 3-5% de activos"
+
+  financiero:
+    base: "activos"
+    porcentaje_min: 0.01
+    porcentaje_max: 0.03
+    descripcion: "Sector financiero - usa 1-3% de activos (más restrictivo)"
+
+  agricultura:
+    base: "activos"
+    porcentaje_min: 0.05
+    porcentaje_max: 0.10
+    descripcion: "Agricultura - usa 5-10% de activos"
+
+  sin_fines_de_lucro:
+    base: "patrimonio"
+    porcentaje_min: 0.02
+    porcentaje_max: 0.05
+    descripcion: "Sin fines de lucro - usa 2-5% del patrimonio"
+
+# Regla por defecto (si no coincide con arriba)
+regla_defecto:
+  base: "activos"
+  porcentaje_min: 0.03
+  porcentaje_max: 0.05
+  descripcion: "Regla por defecto cuando no se encuentra clasificación"
+
+# Benchmark por tipo de cliente
+# Usado cuando no tenemos datos del TB
+benchmark:
+  pyme:
+    activos_promedio: 500000
+    patrimonio_promedio: 250000
+    ingresos_promedio: 1000000
+
+  mediana_empresa:
+    activos_promedio: 5000000
+    patrimonio_promedio: 2000000
+    ingresos_promedio: 10000000
+
+  gran_empresa:
+    activos_promedio: 50000000
+    patrimonio_promedio: 20000000
+    ingresos_promedio: 100000000

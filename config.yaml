@@ -1,0 +1,141 @@
+# ====================================================================
+# SOCIO AI - CONFIGURACIÓN UNIFICADA FINAL
+# ====================================================================
+
+# Aplicación
+app:
+  name: "SocioAI"
+  version: "1.0.0"
+  environment: "development"
+  debug: true
+
+# Configuración de LLM
+llm:
+  provider: "openai"
+  model: "gpt-4-turbo-preview"
+  temperature: 0.7
+  max_tokens: 2000
+  timeout: 30
+
+llm_models:
+  - "gpt-4-turbo-preview"
+  - "gpt-4"
+  - "gpt-3.5-turbo"
+
+# Materialidad
+materialidad:
+  benchmarks:
+    revenue: 0.05
+    profit: 0.10
+    assets: 0.05
+    equity: 0.01
+  minimum_threshold: 100000
+
+# Vector Store (RAG)
+vector_store:
+  type: "chromadb"
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  chunk_size: 1000
+  chunk_overlap: 100
+
+# Rutas
+paths:
+  data_root: "data"
+  clients: "data/clientes"
+  catalogs: "data/catalogos"
+  knowledge: "data/conocimiento_normativo"
+  expert_criteria: "data/criterio_experto"
+  uploads: "data/uploads"
+  processed: "data/processed"
+  exports: "data/exports"
+
+# Logging (NUEVO + COMPATIBLE)
+logging:
+  level: "INFO"
+  nivel: "INFO"
+  format: "json"
+  timestamp_format: "%Y-%m-%d %H:%M:%S"
+  file: "logs/socio_ai.log"
+  archivo: "logs/socio_ai.log"
+  max_size: "100MB"
+  max_bytes: 10485760
+  retention: 30
+  backup_count: 5
+
+# Variaciones
+variaciones:
+  umbral_absoluto: 1000.0
+  umbral_porcentual: 20.0
+  umbral_para_porcentaje: 500.0
+
+# Scoring
+scoring:
+  variacion_absoluta:
+    - [100000, 5]
+    - [50000, 4]
+    - [10000, 3]
+    - [1000, 2]
+    - [500, 1]
+
+  saldo_actual:
+    - [1000000, 5]
+    - [500000, 4]
+    - [100000, 3]
+    - [10000, 2]
+    - [1000, 1]
+
+  variacion_porcentual:
+    - [100, 5]
+    - [50, 4]
+    - [20, 3]
+    - [10, 2]
+    - [1, 1]
+
+# Riesgos
+riesgos:
+  materialidad_relativa:
+    alto: 0.75
+    medio: 0.50
+    bajo: 0.25
+
+  cuentas_relevantes:
+    alto: 5
+    medio: 3
+
+# Validación
+validacion:
+  tolerancia_cuadre: 5.0
+  año_minimo: 1900
+  año_maximo: 2100
+
+# Formato
+formato:
+  decimales_default: 2
+  divisa_default: "USD"
+
+# Áreas de auditoría
+audit_areas:
+  - code: "130"
+    name: "Cuentas por Cobrar"
+  - code: "140"
+    name: "Efectivo"
+  - code: "145"
+    name: "Impuestos - Activos"
+  - code: "170"
+    name: "Propiedad e Inversión"
+  - code: "200"
+    name: "Patrimonio"
+
+# Sectores
+sectors:
+  - "comerciales"
+  - "servicios"
+  - "cooperativas"
+  - "funerarias"
+  - "sin_fines_de_lucro"
+
+# RAG
+rag:
+  retrieval_method: "similarity"
+  top_k: 5
+  min_score: 0.6

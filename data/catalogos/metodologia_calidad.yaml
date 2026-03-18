@@ -1,0 +1,161 @@
+version: 1
+fuente: "Reglas internas de metodologia de auditoria"
+
+fraude_presunto:
+  ingresos:
+    - "reconocimiento de ingresos"
+    - "fraude en ingresos"
+  gerencia:
+    - "evasion de controles por parte de la gerencia"
+    - "override de controles de gerencia"
+
+palabras_clave:
+  rebuttal:
+    - "rebatido"
+    - "refutado"
+    - "no aplica"
+    - "descartado"
+    - "documentado"
+  control_walkthrough:
+    - "prueba de control"
+    - "control test"
+    - "recorrido"
+    - "walkthrough"
+  soporte_control_walkthrough:
+    - "muestra"
+    - "seleccion"
+    - "criterio"
+    - "transaccion"
+    - "documento fuente"
+    - "muestreo"
+  ingresos_niif_completas:
+    - "contrato"
+    - "obligaciones de desempeno"
+    - "precio de transaccion"
+    - "asignacion del precio"
+    - "reconocimiento del ingreso"
+  ingresos_pymes:
+    - "transferencia de bienes o servicios"
+    - "reconocimiento de ingresos"
+  gastos:
+    - "gasto"
+    - "gastos"
+    - "costo"
+    - "costos"
+  resumen_gastos:
+    - "cruce"
+    - "resumen"
+    - "otras cuentas"
+    - "otros ciclos"
+    - "reclasificacion"
+  estimaciones:
+    - "provision"
+    - "deterioro"
+    - "estimacion"
+    - "incobrable"
+    - "actuarial"
+    - "impuesto diferido"
+  nia540_enfoques:
+    - "proceso de la gerencia"
+    - "estimacion del auditor"
+    - "rango del auditor"
+    - "hechos posteriores"
+
+grupos_area:
+  ingresos_codigos: ["1500", "1501", "1700_ALT"]
+  gastos_codigos: ["1600", "1600.5", "1601", "1700", "1701", "1800", "1900"]
+  estimaciones_codigos: ["130.1", "110", "15", "325", "415", "420"]
+
+aseveraciones_guia:
+  "140":
+    - "Existencia"
+    - "Integridad"
+    - "Derechos"
+  "130.1":
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  "130.2":
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  "35":
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  "110":
+    - "Existencia"
+    - "Valuacion"
+    - "Integridad"
+  "1":
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  "5":
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  "11":
+    - "Existencia"
+    - "Valuacion"
+    - "Derechos"
+  "425":
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  "425.1":
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  "425.2":
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  "410":
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  "415":
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  "300.1":
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  "300.2":
+    - "Integridad"
+    - "Obligaciones"
+    - "Valuacion"
+  "200":
+    - "Integridad"
+    - "Presentacion"
+    - "Derechos"
+  "1500":
+    - "Integridad"
+    - "Existencia"
+    - "Corte"
+  "1501":
+    - "Integridad"
+    - "Existencia"
+    - "Presentacion"
+  "1600.5":
+    - "Integridad"
+    - "Valuacion"
+    - "Corte"
+  "1600":
+    - "Integridad"
+    - "Valuacion"
+    - "Presentacion"
+  "1700":
+    - "Integridad"
+    - "Valuacion"
+    - "Presentacion"
+  "1700_ALT":
+    - "Integridad"
+    - "Existencia"
+    - "Presentacion"
+  "1900":
+    - "Integridad"
+    - "Valuacion"
+    - "Presentacion"

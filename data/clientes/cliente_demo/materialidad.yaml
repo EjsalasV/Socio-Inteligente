@@ -1,0 +1,47 @@
+# Materialidad del Cliente Demo
+# Generado por: materialidad_service.py
+# Fecha: 2026-03-16
+
+cliente: "cliente_demo"
+nombre_cliente: "ABC Corporation S.A."
+
+# Sugerencia del sistema
+materialidad_sugerida: 416250.00
+
+# Materialidad elegida por el auditor
+materialidad_elegida: 420000.00
+
+# Derivadas (NIA 320)
+materialidad_desempeno: 315000.00
+error_trivial: 21000.00
+
+# Base utilizada
+base_utilizada: "activos"
+valor_base: 8325000.00
+porcentaje_aplicado: 5.05
+
+# Trazabilidad
+origen_regla: "tipo_entidad: SOCIEDAD_ANONIMA"
+descripcion_regla: "Empresas mercantiles - usa 3-5% de activos"
+
+# Rango aceptable (según NIAs)
+materialidad_minima: 249750.00
+materialidad_maxima: 416250.00
+
+# Estados de aprobación
+estado: "REVISADA"
+aprobada_por: "Auditor Senior"
+fecha_aprobacion: "2026-03-16"
+
+# Notas
+notas:
+  - "Materialidad establecida según NIA 320"
+  - "Base: 5% de Activos Totales"
+  - "Dentro del rango recomendado"
+  - "Sector: comerciales (regla estándar aplicada)"
+
+# Próximos pasos
+proximos_pasos:
+  - "Establecer materialidad de área por cada cuenta significativa"
+  - "Comunicar niveles de materialidad al equipo de auditoría"
+  - "Evaluar cambios significativos en cifras clave"

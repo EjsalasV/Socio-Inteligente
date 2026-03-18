@@ -1,0 +1,25 @@
+﻿version: 1
+fuente: "Catalogo de correspondencia provisto por usuario"
+
+con_inventario:
+  "Activo corriente": "1.1.2.10.100"
+  "Inventarios": "1.1.2.80"
+  "Activo no corriente": "1.1.1.10.100"
+  "Pasivo corriente": "1.5.2.10"
+  "Pasivo no corriente": "1.5.1.40"
+  "Patrimonio": "1.5.0.10"
+  "Ingresos": "2.1.1.10"
+  "Gastos": "2.5.5.10"
+  "Costos": "2.5.6.10.100"
+  "Gasto impuesto a la renta": "2.9.0.70.100"
+
+sin_inventario:
+  "Activo corriente": "1.1.2.80"
+  "Activo no corriente": "1.1.1.10.100"
+  "Pasivo corriente": "1.5.2.10"
+  "Pasivo no corriente": "1.5.1.40"
+  "Patrimonio": "1.5.0.10"
+  "Ingresos": "2.1.1.10"
+  "Gastos": "2.5.5.10"
+  "Costos": "2.5.6.10.100"
+  "Gasto impuesto a la renta": "2.9.0.70.100"
