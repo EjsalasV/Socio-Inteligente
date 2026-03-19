@@ -12,7 +12,9 @@ from openai import OpenAI
 
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    from pathlib import Path as _Path
+    _env_path = _Path(__file__).resolve().parents[1] / ".env"
+    load_dotenv(dotenv_path=_env_path, override=True)
 except ImportError:
     pass  # dotenv optional, env vars may be set externally
 
