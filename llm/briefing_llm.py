@@ -2,10 +2,13 @@
 
 from typing import Any, List
 
+import pandas as pd
+
 from domain.services.area_briefing import construir_foco_auditoria, obtener_nombre_area_ls
 from domain.context.contexto_auditoria import construir_contexto_auditoria
 from domain.services.leer_perfil import cargar_perfil, ruta_tb_cliente
 from analysis.lector_tb import leer_trial_balance
+from analysis.lector_tb import leer_tb
 from domain.services.riesgos_area import detectar_riesgos_area, obtener_area
 from analysis.variaciones import calcular_variaciones, marcar_movimientos_relevantes
 
@@ -153,10 +156,25 @@ def generar_briefing_area_llm(
     )
 
     perfil = cargar_perfil(nombre_cliente)
-    ruta_tb = ruta_tb_cliente(nombre_cliente)
-    df_tb = leer_trial_balance(ruta_tb)
-    df_var = marcar_movimientos_relevantes(calcular_variaciones(df_tb))
-    area_df = obtener_area(df_var, str(codigo_ls))
+    try:
+        df_tb = leer_tb(nombre_cliente)
+        if df_tb is None:
+            df_tb = pd.DataFrame()
+    except Exception:
+        df_tb = pd.DataFrame()
+
+    try:
+        if df_tb is not None and not df_tb.empty:
+            df_var = marcar_movimientos_relevantes(calcular_variaciones(df_tb))
+        else:
+            df_var = pd.DataFrame()
+    except Exception:
+        df_var = pd.DataFrame()
+
+    if df_var is not None and not df_var.empty and "ls" in df_var.columns:
+        area_df = obtener_area(df_var, str(codigo_ls))
+    else:
+        area_df = pd.DataFrame()
 
     focos_base = construir_foco_auditoria(str(codigo_ls), perfil, area_df)
     riesgos_area = detectar_riesgos_area(area_df, str(codigo_ls), perfil) if not area_df.empty else []
@@ -238,4 +256,5 @@ def generar_briefing_area_llm(
     texto.append(criterio_llm)
 
     return "\n".join(texto)
+
 

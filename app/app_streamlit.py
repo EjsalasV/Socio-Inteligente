@@ -1736,10 +1736,14 @@ with tab7:
                 )
                 st.text_area("Criterio del socio (IA)", value=resultado, height=400)
             except ValueError as ve:
-                st.error(
-                    f"Falta configuración: {ve}. "
-                    "Agrega DEEPSEEK_API_KEY a tu archivo .env y reinicia la app."
-                )
+                msg = str(ve)
+                if "DEEPSEEK_API_KEY" in msg or "OPENAI_API_KEY" in msg:
+                    st.error(
+                        f"Falta API key: {ve}. "
+                        "Agrega DEEPSEEK_API_KEY a tu archivo .env y reinicia la app."
+                    )
+                else:
+                    st.error(f"Error de configuración interna: {ve}")
             except Exception as ex:
                 st.error(f"Error al generar briefing: {ex}")
 

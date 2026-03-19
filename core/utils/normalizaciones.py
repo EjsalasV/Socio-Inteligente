@@ -50,20 +50,13 @@ def normalizar_ls_dataframe(
 ) -> pd.DataFrame:
     """
     Normaliza la columna L/S en un DataFrame.
-
-    Args:
-        df: DataFrame de entrada
-        columna_ls: Nombre de la columna L/S
-
-    Returns:
-        DataFrame con L/S normalizado
+    Si la columna no existe, retorna el DataFrame sin cambios.
     """
     if columna_ls not in df.columns:
-        raise ValueError(f"La columna '{columna_ls}' no existe en el DataFrame.")
+        return df  # columna ausente: no-op seguro
 
     df = df.copy()
     df[columna_ls] = df[columna_ls].apply(normalizar_ls)
-
     return df
 
 
