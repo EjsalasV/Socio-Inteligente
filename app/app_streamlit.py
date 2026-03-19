@@ -128,6 +128,41 @@ except Exception:
     obtener_area_por_codigo = None
 
 
+@st.cache_data(ttl=300)
+def cached_leer_tb(cliente: str):
+    return leer_tb(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_ranking_areas(cliente: str):
+    return calcular_ranking_areas(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_variaciones(cliente: str):
+    return calcular_variaciones(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_resumen_tb(cliente: str):
+    return obtener_resumen_tb(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_indicadores(cliente: str):
+    return obtener_indicadores_clave(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_leer_perfil(cliente: str):
+    return leer_perfil(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_datos_clave(cliente: str):
+    return obtener_datos_clave(cliente)
+
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 if hasattr(sys.stderr, "reconfigure"):
@@ -781,7 +816,7 @@ def render_export_block(
 
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("Exportar resumen del área (Markdown)", key=f"save_resumen_{cliente}_{code}", use_container_width=True):
+        if st.button("Exportar resumen del área (Markdown)", key=f"save_resumen_{cliente}_{code}", width="stretch"):
             out = safe_call(save_area_markdown, cliente, resumen_filename, resumen_md, default=None)
             if out is None:
                 st.error("No se pudo guardar el resumen del área.")
@@ -793,11 +828,11 @@ def render_export_block(
             file_name=resumen_filename,
             mime="text/markdown",
             key=f"dl_resumen_{cliente}_{code}",
-            use_container_width=True,
+            width="stretch",
         )
 
     with c2:
-        if st.button("Exportar cierre del área (Markdown)", key=f"save_cierre_{cliente}_{code}", use_container_width=True):
+        if st.button("Exportar cierre del área (Markdown)", key=f"save_cierre_{cliente}_{code}", width="stretch"):
             out = safe_call(save_area_markdown, cliente, cierre_filename, cierre_md, default=None)
             if out is None:
                 st.error("No se pudo guardar el cierre del área.")
@@ -809,7 +844,7 @@ def render_export_block(
             file_name=cierre_filename,
             mime="text/markdown",
             key=f"dl_cierre_{cliente}_{code}",
-            use_container_width=True,
+            width="stretch",
         )
 
 
@@ -851,7 +886,7 @@ def render_seguimiento_tab(ws: dict[str, Any], cliente: str) -> None:
             height=120,
         )
 
-        submit = st.form_submit_button("Guardar estado del área", use_container_width=True)
+        submit = st.form_submit_button("Guardar estado del área", width="stretch")
 
     if manual.get("fecha_actualizacion"):
         st.caption(f"Última actualización: {manual['fecha_actualizacion']}")
@@ -971,9 +1006,9 @@ def render_contexto_tab(ws: dict[str, Any]) -> None:
                 show["saldo_actual"] = show["saldo_actual"].apply(fmt_money)
             if "variacion_absoluta" in show.columns:
                 show["variacion_absoluta"] = show["variacion_absoluta"].apply(fmt_money)
-            st.dataframe(show, use_container_width=True, hide_index=True)
+            st.dataframe(show, width="stretch", hide_index=True)
         else:
-            st.dataframe(top_df.head(8), use_container_width=True, hide_index=True)
+            st.dataframe(top_df.head(8), width="stretch", hide_index=True)
     else:
         st.info("No hay cuentas principales disponibles para esta area.")
 
@@ -1102,7 +1137,7 @@ def render_procedimientos_tab(ws: dict[str, Any]) -> None:
 
     st.dataframe(
         view_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "Estado": st.column_config.TextColumn(
@@ -1384,7 +1419,7 @@ etapa_seleccionada = st.sidebar.selectbox(
     index=2,
 )
 
-if st.sidebar.button("Cargar cliente", use_container_width=True):
+if st.sidebar.button("Cargar cliente", width="stretch"):
     st.session_state.cliente_cargado = cliente_seleccionado
 
 if "cliente_cargado" not in st.session_state:
@@ -1396,14 +1431,14 @@ cliente = st.session_state.cliente_cargado
 # ============================================================
 # Carga de datos base
 # ============================================================
-perfil = safe_call(leer_perfil, cliente, default={}) or {}
-datos_clave = safe_call(obtener_datos_clave, cliente, default={}) or {}
-tb = safe_call(leer_tb, cliente, default=pd.DataFrame())
-resumen_tb = safe_call(obtener_resumen_tb, cliente, default={}) or {}
+perfil = safe_call(cached_leer_perfil, cliente, default={}) or {}
+datos_clave = safe_call(cached_datos_clave, cliente, default={}) or {}
+tb = safe_call(cached_leer_tb, cliente, default=pd.DataFrame())
+resumen_tb = safe_call(cached_resumen_tb, cliente, default={}) or {}
 diag_tb = safe_call(obtener_diagnostico_tb, cliente, default={}) or {}
-ranking_areas = safe_call(calcular_ranking_areas, cliente, default=pd.DataFrame())
-indicadores = safe_call(obtener_indicadores_clave, cliente, default={}) or {}
-variaciones = safe_call(calcular_variaciones, cliente, default=pd.DataFrame())
+ranking_areas = safe_call(cached_ranking_areas, cliente, default=pd.DataFrame())
+indicadores = safe_call(cached_indicadores, cliente, default={}) or {}
+variaciones = safe_call(cached_variaciones, cliente, default=pd.DataFrame())
 
 if isinstance(diag_tb, dict):
     rows_loaded = int(diag_tb.get("rows_loaded", 0) or 0)
@@ -1425,6 +1460,10 @@ selected_area_code = st.sidebar.selectbox(
     format_func=lambda v: dict(area_options).get(v, v),
 )
 
+if st.sidebar.button("Limpiar cache", width="stretch"):
+    st.cache_data.clear()
+    st.rerun()
+
 render_sidebar_summary(cliente, perfil, datos_clave, ranking_areas)
 
 
@@ -1445,7 +1484,7 @@ st.divider()
 # ============================================================
 # Tabs principales
 # ============================================================
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "Resumen",
     "Ranking de áreas",
     "Vista por área",
@@ -1453,6 +1492,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "Trial Balance",
     "Hallazgos",
     "Briefing IA",
+    "Chat con IA",
 ])
 
 
@@ -1506,7 +1546,7 @@ with tab2:
         if "estado_presencia" in rank_view.columns:
             rank_view["estado_presencia"] = rank_view["estado_presencia"].astype(str).str.upper()
 
-        st.dataframe(rank_view, use_container_width=True, hide_index=True)
+        st.dataframe(rank_view, width="stretch", hide_index=True)
     else:
         st.info("No se pudo construir el ranking enriquecido para este cliente.")
 
@@ -1579,7 +1619,7 @@ with tab4:
             show["saldo"] = show["saldo"].apply(fmt_money)
         if "impacto" in show.columns:
             show["impacto"] = show["impacto"].apply(fmt_money)
-        st.dataframe(show, use_container_width=True, hide_index=True)
+        st.dataframe(show, width="stretch", hide_index=True)
     else:
         st.info("No hay variaciones significativas detectadas.")
 
@@ -1598,7 +1638,7 @@ with tab5:
             if sel_tipos:
                 tb_filtrado = tb_filtrado[tb_filtrado["tipo_cuenta"].astype(str).isin(sel_tipos)]
 
-        st.dataframe(tb_filtrado, use_container_width=True, hide_index=True)
+        st.dataframe(tb_filtrado, width="stretch", hide_index=True)
 
         num_col = None
         for c in ["saldo", "saldo_2025", "saldo_actual", "saldo_preliminar"]:
@@ -1734,7 +1774,8 @@ with tab7:
                     codigo_ls=area_briefing_input,
                     etapa=etapa_input,
                 )
-                st.text_area("Criterio del socio (IA)", value=resultado, height=400)
+                st.markdown("**Criterio del socio (IA)**")
+                st.markdown(resultado)
             except ValueError as ve:
                 msg = str(ve)
                 if "DEEPSEEK_API_KEY" in msg or "OPENAI_API_KEY" in msg:
@@ -1753,8 +1794,86 @@ with tab7:
     )
 
 
+with tab8:
+    st.subheader("Chat libre con IA sobre el cliente")
+    st.caption(
+        f"Contexto activo: {cliente} | "
+        "La IA conoce el perfil y datos del cliente."
+    )
+
+    from llm.llm_client import llamar_llm_seguro
+
+    # ── Build client context for system prompt ───────────────────
+    _perfil_chat = cached_leer_perfil(cliente) or {}
+    _nombre_chat = _perfil_chat.get("cliente", {}).get("nombre_legal", cliente)
+    _sector_chat = _perfil_chat.get("cliente", {}).get("sector", "N/A")
+    _periodo_chat = _perfil_chat.get("encargo", {}).get("anio_activo", "N/A")
+    _riesgo_chat = _perfil_chat.get("riesgo_global", {}).get("nivel", "N/A")
+    _mat_chat = _perfil_chat.get("materialidad", {}).get("preliminar", {}).get("materialidad_global", "N/A")
+
+    system_chat = (
+        f"Eres un socio senior de auditoría financiera especializado en NIAs y NIIF. "
+        f"Estás trabajando en el encargo de auditoría del cliente: {_nombre_chat}, "
+        f"sector {_sector_chat}, periodo {_periodo_chat}. "
+        f"Riesgo global del cliente: {_riesgo_chat}. "
+        f"Materialidad global: {_mat_chat}. "
+        f"Responde siempre en español con criterio técnico, concreto y accionable. "
+        f"Usa formato Markdown para estructurar tus respuestas."
+    )
+
+    # ── Chat history in session state ────────────────────────────
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
+    # Display chat history
+    for msg in st.session_state.chat_history:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    # Chat input
+    user_input = st.chat_input(
+        "Pregunta algo sobre el cliente, áreas, riesgos, NIAs..."
+    )
+
+    if user_input:
+        st.session_state.chat_history.append(
+            {"role": "user", "content": user_input}
+        )
+        with st.chat_message("user"):
+            st.markdown(user_input)
+
+        history_text = "\n".join(
+            [f"{m['role'].upper()}: {m['content']}"
+             for m in st.session_state.chat_history[-6:]]
+        )
+        full_prompt = (
+            f"Historial de conversación:\n{history_text}"
+            f"\n\nPregunta actual: {user_input}"
+        )
+
+        with st.chat_message("assistant"):
+            with st.spinner("Consultando a DeepSeek..."):
+                response = llamar_llm_seguro(
+                    full_prompt,
+                    system=system_chat,
+                    fallback="No se pudo obtener respuesta. Verifica tu DEEPSEEK_API_KEY.",
+                )
+            st.markdown(response)
+
+        st.session_state.chat_history.append(
+            {"role": "assistant", "content": response}
+        )
+
+    # Clear chat button
+    if st.session_state.chat_history:
+        if st.button("Limpiar conversación", key="clear_chat"):
+            st.session_state.chat_history = []
+            st.rerun()
+
+
 st.divider()
 f1, f2, f3 = st.columns(3)
 f1.caption("SocioAI - Auditoria Inteligente con IA")
 f2.caption("Ultima actualizacion: 2026-03-17")
 f3.caption("Modo: analisis + workspace por area")
+

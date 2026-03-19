@@ -55,6 +55,8 @@ def _normalizar_ls_val(v: Any) -> str:
 
 
 def leer_tb(cliente: str) -> Optional[pd.DataFrame]:
+    if not cliente or not isinstance(cliente, str):
+        return None
     """
     Lee y procesa el Trial Balance de un cliente.
 
@@ -269,4 +271,3 @@ def obtener_cuentas_por_area(cliente: str, area_codigo: str) -> Optional[pd.Data
 def leer_trial_balance(cliente: str) -> Optional[pd.DataFrame]:
     """Compatibilidad con nombre legacy tras refactor."""
     return leer_tb(cliente)
-
