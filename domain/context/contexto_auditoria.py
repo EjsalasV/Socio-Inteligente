@@ -2,6 +2,8 @@
 
 from typing import Any, Dict
 
+import pandas as pd
+
 from domain.services.area_briefing import obtener_nombre_area_ls
 from domain.services.leer_perfil import (
     cargar_perfil,
@@ -57,9 +59,9 @@ def obtener_senal_area(nombre_cliente: str, codigo_area: str) -> Dict[str, Any]:
     Obtiene senales cuantitativas reales de un area L/S.
     """
     codigo_area = normalizar_ls(codigo_area)
-    perfil = cargar_perfil(nombre_cliente)
-
-    df_rank_areas, _, _ = obtener_ranking_areas_cliente(nombre_cliente)
+    df_rank_areas = obtener_ranking_areas_cliente(nombre_cliente)
+    if df_rank_areas is None:
+        df_rank_areas = pd.DataFrame()
     if df_rank_areas.empty:
         return {
             "riesgo_score": 0,
@@ -71,7 +73,7 @@ def obtener_senal_area(nombre_cliente: str, codigo_area: str) -> Dict[str, Any]:
             "tendencia": "sin_datos",
         }
 
-    fila_area = df_rank_areas[df_rank_areas["ls"].astype(str) == codigo_area]
+    fila_area = df_rank_areas[df_rank_areas["area"].astype(str) == codigo_area]
     if fila_area.empty:
         return {
             "riesgo_score": 0,
@@ -84,65 +86,14 @@ def obtener_senal_area(nombre_cliente: str, codigo_area: str) -> Dict[str, Any]:
         }
 
     fila = fila_area.iloc[0]
-    score_hibrido = float(fila.get("score_total_hibrido", 0.0) or 0.0)
-    variacion_neta = float(fila.get("variacion_total", 0.0) or 0.0)
-    variacion_abs = float(fila.get("abs_variacion_total", 0.0) or 0.0)
-    variacion_pct = float(fila.get("variacion_porcentual", 0.0) or 0.0)
-    cuentas_relevantes = int(fila.get("cuentas_relevantes", 0) or 0)
-    cuentas_sin_base = int(fila.get("cuentas_sin_base", 0) or 0)
-
-    max_score = float(df_rank_areas["score_total_hibrido"].max() or 0.0)
-    if max_score <= 0:
-        riesgo_score = 0
-    else:
-        riesgo_score = int(round((score_hibrido / max_score) * 100))
-
-    materialidad_ejecucion = float(obtener_materialidad_ejecucion(perfil) or 0.0)
-    es_material = materialidad_ejecucion > 0 and variacion_abs >= materialidad_ejecucion
-
-    tendencia = "estable"
-    if variacion_neta > 0:
-        tendencia = "creciente"
-    elif variacion_neta < 0:
-        tendencia = "decreciente"
-
-    ruta_tb = ruta_tb_cliente(nombre_cliente)
-    df_tb = leer_trial_balance(ruta_tb)
-    df_var = marcar_movimientos_relevantes(calcular_variaciones(df_tb))
-    area_df = obtener_area(df_var, codigo_area)
-    riesgos = detectar_riesgos_area(area_df, codigo_area, perfil) if not area_df.empty else []
-
-    banderas: list[str] = []
-    if abs(variacion_pct) >= 30:
-        if variacion_neta >= 0:
-            banderas.append("crecimiento superior al 30%")
-        else:
-            banderas.append("caida superior al 30%")
-    if es_material:
-        banderas.append("variacion material frente a materialidad de ejecucion")
-    if cuentas_relevantes >= 3:
-        banderas.append(f"{cuentas_relevantes} cuentas con movimiento relevante")
-    if cuentas_sin_base > 0:
-        banderas.append(f"{cuentas_sin_base} cuentas sin base comparativa")
-
-    for riesgo in riesgos:
-        if str(riesgo.get("nivel", "")).upper() == "ALTO":
-            titulo = str(riesgo.get("titulo", "")).strip()
-            if titulo:
-                banderas.append(titulo)
-
-    # deduplicar conservando orden
-    banderas = list(dict.fromkeys(banderas))
-
     return {
-        "riesgo_score": riesgo_score,
-        "nivel_riesgo": _nivel_riesgo_desde_score(riesgo_score),
-        "variacion_absoluta": variacion_abs,
-        "variacion_porcentual": variacion_pct,
-        "material": es_material,
-        "banderas": banderas,
-        "tendencia": tendencia,
-        "score_total_hibrido": score_hibrido,
+        "riesgo_score": float(fila.get("score_riesgo", 0.0) or 0.0),
+        "nivel_riesgo": _nivel_riesgo_desde_score(float(fila.get("score_riesgo", 0.0) or 0.0)),
+        "variacion_absoluta": float(fila.get("variacion_abs_total", 0.0) or 0.0),
+        "variacion_porcentual": float(fila.get("pct_total", 0.0) or 0.0),
+        "material": bool(float(fila.get("materialidad_relativa", 0.0) or 0.0) >= 1.0),
+        "banderas": fila.get("expert_flags", []) if isinstance(fila.get("expert_flags", []), list) else [],
+        "tendencia": "positiva" if float(fila.get("variacion_abs_total", 0.0) or 0.0) > 0 else "negativa",
     }
 
 
@@ -205,4 +156,3 @@ def construir_contexto_auditoria(
         },
         "senales_cuantitativas": senal_area,
     }
-

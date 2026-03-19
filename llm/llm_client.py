@@ -10,6 +10,12 @@ from typing import Any
 import yaml
 from openai import OpenAI
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv optional, env vars may be set externally
+
 
 def _load_config() -> dict[str, Any]:
     try:
