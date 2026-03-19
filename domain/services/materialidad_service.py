@@ -79,7 +79,7 @@ def obtener_regla_materialidad(cliente: str) -> Optional[Dict]:
         regla_defecto = reglas.get('regla_defecto', {})
         
         # 1. Buscar por tipo_entidad (normalizado)
-        tipo_entidad = perfil.get('tipo_entidad', '').upper().replace(' ', '_')
+        tipo_entidad = perfil.get('cliente', {}).get('tipo_entidad', '').upper().replace(' ', '_')
         
         if tipo_entidad in reglas_entidad:
             regla = reglas_entidad[tipo_entidad].copy()
@@ -88,7 +88,7 @@ def obtener_regla_materialidad(cliente: str) -> Optional[Dict]:
             return regla
         
         # 2. Buscar por sector (normalizado)
-        sector = perfil.get('sector', '').lower().replace(' ', '_')
+        sector = perfil.get('cliente', {}).get('sector', '').lower().replace(' ', '_')
         
         if sector in reglas_sector:
             regla = reglas_sector[sector].copy()
@@ -258,7 +258,7 @@ def sugerir_materialidad(cliente: str) -> Optional[Dict]:
         
         # Generar recomendación
         recomendacion = (
-            f"Para {perfil.get('nombre', 'Cliente')}, "
+            f"Para {perfil.get('cliente', {}).get('nombre_legal', 'Cliente')}, "
             f"se sugiere usar materialidad de ${calculo['materialidad_sugerida']:,.0f} "
             f"({calculo['porcentaje_maximo']}% de {calculo['base_utilizada']}). "
             f"Rango aceptable: ${calculo['materialidad_minima']:,.0f} - ${calculo['materialidad_maxima']:,.0f}"
@@ -266,8 +266,8 @@ def sugerir_materialidad(cliente: str) -> Optional[Dict]:
         
         sugerencia = {
             'cliente': cliente,
-            'nombre_cliente': perfil.get('nombre', 'N/A'),
-            'sector': perfil.get('sector', 'N/A'),
+            'nombre_cliente': perfil.get('cliente', {}).get('nombre_legal', 'N/A'),
+            'sector': perfil.get('cliente', {}).get('sector', 'N/A'),
             'calculo': calculo,
             'recomendacion': recomendacion,
             'proximos_pasos': [
@@ -355,7 +355,6 @@ def obtener_materialidad_guardada(cliente: str) -> Optional[Dict]:
         dict: Datos de materialidad guardada o None
     """
     try:
-        from infra.repositories.cliente_repository import cargar_perfil as repo_cargar
         
         # Intentar cargar materialidad desde repositorio
         # Nota: usamos cargar_perfil como demo, en producción usaríamos una función específica
@@ -401,7 +400,7 @@ def resumen_materialidad(cliente: str) -> Optional[Dict]:
             'nombre_cliente': sugerencia['nombre_cliente'],
             'materialidad_sugerida': calculo['materialidad_sugerida'],
             'materialidad_elegida': guardada['materialidad_elegida'] if guardada else None,
-            'materialidad_desempeno': calc['materialidad_desempeno'],
+            'materialidad_desempeno': calculo['materialidad_desempeno'],
             'error_trivial': calculo['error_trivial'],
             'base': f"{calculo['porcentaje_maximo']}% de {calculo['base_utilizada']}",
             'estado': 'ESTABLECIDA' if guardada else 'PENDIENTE'

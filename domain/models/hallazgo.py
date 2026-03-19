@@ -28,7 +28,9 @@ def _afirmaciones_por_area(codigo_ls: str) -> list[str]:
         return ["Valuacion", "Existencia", "Presentacion"]
     if codigo in {"14", "15"}:
         return ["Valuacion", "Existencia", "Revelacion"]
-    if codigo.startswith("42") or codigo.startswith("425"):
+    if codigo.startswith("425"):
+        return ["Integridad", "Corte", "Presentacion"]
+    if codigo.startswith("42"):
         return ["Integridad", "Corte", "Presentacion"]
     if codigo.startswith("15") or codigo.startswith("16") or codigo.startswith("17"):
         return ["Ocurrencia", "Corte", "Clasificacion"]

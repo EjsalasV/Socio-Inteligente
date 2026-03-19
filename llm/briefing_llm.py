@@ -14,9 +14,9 @@ def _normalizar_etapa(etapa: str | None) -> str:
     valor = str(etapa or "").strip().lower()
     aliases = {
         "planificacion": "planificacion",
-        "planificaciÃ³n": "planificacion",
+        "planificación": "planificacion",
         "ejecucion": "ejecucion",
-        "ejecuciÃ³n": "ejecucion",
+        "ejecución": "ejecucion",
         "cierre": "cierre",
     }
     return aliases.get(valor, "planificacion")
@@ -221,6 +221,21 @@ def generar_briefing_area_llm(
             f"Materialidad de ejecucion de referencia: {float(auditoria.get('materialidad_ejecucion') or 0):,.2f}."
         )
 
-    return "\n".join(texto)
+    prompt_final = "\n".join(texto)
 
+    system_auditor = (
+        "Eres un socio de auditoría senior especializado en NIAs. "
+        "Tu rol es dar criterio profesional claro, accionable y técnico. "
+        "Responde en español. Sé directo y conciso."
+    )
+
+    from llm.llm_client import llamar_llm_seguro
+
+    criterio_llm = llamar_llm_seguro(prompt_final, system=system_auditor)
+
+    texto.append("")
+    texto.append("Criterio del socio (IA)")
+    texto.append(criterio_llm)
+
+    return "\n".join(texto)
 

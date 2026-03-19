@@ -27,9 +27,9 @@ BASE_INDUSTRIAS = {
             "areas_prioritarias": ["14", "200", "1500", "1501", "425.2"],
             "areas_secundarias": ["136", "140"],
             "riesgos_esperados": [
-                "ValuaciÃ³n de inversiones",
-                "AplicaciÃ³n de mÃ©todo VPP",
-                "PresentaciÃ³n de resultados por inversiones",
+                "Valuación de inversiones",
+                "Aplicación de método VPP",
+                "Presentación de resultados por inversiones",
                 "Partes relacionadas",
                 "Consistencia entre inversiones, ingresos y patrimonio",
             ],
@@ -39,8 +39,8 @@ BASE_INDUSTRIAS = {
                 "Debe evaluarse soporte financiero de subsidiarias o participadas.",
             ],
             "alertas_profesionales": [
-                "No asumir que el principal riesgo estÃ¡ en ingresos solo por variaciÃ³n matemÃ¡tica si estos provienen de inversiones.",
-                "Revisar si la sustancia econÃ³mica del negocio estÃ¡ correctamente reflejada en la presentaciÃ³n de estados financieros.",
+                "No asumir que el principal riesgo está en ingresos solo por variación matemática si estos provienen de inversiones.",
+                "Revisar si la sustancia económica del negocio está correctamente reflejada en la presentación de estados financieros.",
             ],
             "supuestos_a_validar": [
                 "Si las inversiones corresponden realmente a subsidiarias, asociadas o simples participaciones.",
@@ -54,7 +54,7 @@ BASE_INDUSTRIAS = {
             "areas_prioritarias": ["110", "130.1", "1500", "425", "140"],
             "areas_secundarias": ["1600", "136"],
             "riesgos_esperados": [
-                "ValuaciÃ³n de inventarios",
+                "Valuación de inventarios",
                 "Deterioro de cartera",
                 "Reconocimiento de ingresos",
                 "Corte de compras y ventas",
@@ -63,15 +63,15 @@ BASE_INDUSTRIAS = {
             "observaciones": [
                 "En empresas comerciales, el foco suele estar en inventarios, cartera e ingresos.",
                 "Las variaciones en inventarios e ingresos deben analizarse en conjunto.",
-                "La rotaciÃ³n de cartera e inventarios es clave para interpretar riesgos.",
+                "La rotación de cartera e inventarios es clave para interpretar riesgos.",
             ],
             "alertas_profesionales": [
                 "No revisar inventarios aislados del comportamiento de ventas y margen.",
-                "Evaluar si el crecimiento de ingresos estÃ¡ acompaÃ±ado por crecimiento razonable en cartera y compras.",
+                "Evaluar si el crecimiento de ingresos está acompañado por crecimiento razonable en cartera y compras.",
             ],
             "supuestos_a_validar": [
                 "Si la empresa realmente mantiene inventarios materiales o funciona como intermediaria.",
-                "Si existen productos obsoletos o de baja rotaciÃ³n.",
+                "Si existen productos obsoletos o de baja rotación.",
             ],
         },
 
@@ -82,16 +82,16 @@ BASE_INDUSTRIAS = {
                 "Inventarios obsoletos",
                 "Corte de ventas",
                 "Faltantes de caja",
-                "Diferencias entre sistema y conteo fÃ­sico",
+                "Diferencias entre sistema y conteo físico",
             ],
             "observaciones": [
-                "En retail suele ser crÃ­tico revisar inventario, efectivo y corte de ventas.",
+                "En retail suele ser crítico revisar inventario, efectivo y corte de ventas.",
             ],
             "alertas_profesionales": [
-                "El volumen de operaciones puede ocultar errores pequeÃ±os repetitivos pero acumulativos.",
+                "El volumen de operaciones puede ocultar errores pequeños repetitivos pero acumulativos.",
             ],
             "supuestos_a_validar": [
-                "Si el sistema de facturaciÃ³n y el control fÃ­sico son consistentes.",
+                "Si el sistema de facturación y el control físico son consistentes.",
             ],
         },
 
@@ -99,7 +99,7 @@ BASE_INDUSTRIAS = {
             "areas_prioritarias": ["110", "130.1", "1500", "425"],
             "areas_secundarias": ["140", "136"],
             "riesgos_esperados": [
-                "ValuaciÃ³n de inventarios",
+                "Valuación de inventarios",
                 "Cartera concentrada",
                 "Descuentos y devoluciones",
                 "Corte de compras y ventas",
@@ -111,7 +111,7 @@ BASE_INDUSTRIAS = {
                 "No evaluar ingresos sin revisar devoluciones, descuentos y cartera.",
             ],
             "supuestos_a_validar": [
-                "Si la polÃ­tica de provisiÃ³n de cartera es consistente con la antigÃ¼edad real.",
+                "Si la política de provisión de cartera es consistente con la antigüedad real.",
             ],
         },
     },
@@ -123,21 +123,21 @@ BASE_INDUSTRIAS = {
             "riesgos_esperados": [
                 "Reconocimiento de ingresos",
                 "Recuperabilidad de cuentas por cobrar",
-                "ClasificaciÃ³n de gastos",
+                "Clasificación de gastos",
                 "Flujos de efectivo",
                 "Soporte de costos y gastos operativos",
             ],
             "observaciones": [
-                "En empresas de servicios, el Ã¡rea crÃ­tica suele ser ingresos y cartera.",
-                "Si no existen inventarios, el Ã©nfasis se traslada a ingresos, gastos y liquidez.",
-                "Debe revisarse si los ingresos estÃ¡n correctamente devengados y soportados.",
+                "En empresas de servicios, el área crítica suele ser ingresos y cartera.",
+                "Si no existen inventarios, el énfasis se traslada a ingresos, gastos y liquidez.",
+                "Debe revisarse si los ingresos están correctamente devengados y soportados.",
             ],
             "alertas_profesionales": [
                 "No sobrevalorar riesgos de inventario si el negocio realmente no depende de ellos.",
-                "Revisar si los ingresos estÃ¡n ligados a contratos, eventos o prestaciÃ³n continua.",
+                "Revisar si los ingresos están ligados a contratos, eventos o prestación continua.",
             ],
             "supuestos_a_validar": [
-                "Si la polÃ­tica de reconocimiento de ingresos refleja el servicio realmente prestado.",
+                "Si la política de reconocimiento de ingresos refleja el servicio realmente prestado.",
             ],
         },
 
@@ -145,23 +145,23 @@ BASE_INDUSTRIAS = {
             "areas_prioritarias": ["5", "1500", "140", "425", "1600"],
             "areas_secundarias": ["110", "136"],
             "riesgos_esperados": [
-                "ClasificaciÃ³n y mediciÃ³n de propiedades de inversiÃ³n",
+                "Clasificación y medición de propiedades de inversión",
                 "Reconocimiento de ingresos por servicios funerarios",
                 "Soporte de cobros y anticipos",
-                "RevelaciÃ³n de activos de naturaleza especial",
+                "Revelación de activos de naturaleza especial",
             ],
             "observaciones": [
-                "En una funeraria, el entendimiento del negocio es clave para interpretar correctamente propiedades de inversiÃ³n y servicios funerarios.",
-                "No todas las propiedades vinculadas al negocio funerario deben analizarse con la misma lÃ³gica que un activo industrial o comercial.",
-                "La naturaleza del servicio puede hacer que ciertos activos mantengan su utilidad y valor econÃ³mico por perÃ­odos prolongados.",
+                "En una funeraria, el entendimiento del negocio es clave para interpretar correctamente propiedades de inversión y servicios funerarios.",
+                "No todas las propiedades vinculadas al negocio funerario deben analizarse con la misma lógica que un activo industrial o comercial.",
+                "La naturaleza del servicio puede hacer que ciertos activos mantengan su utilidad y valor económico por períodos prolongados.",
             ],
             "alertas_profesionales": [
-                "No asumir deterioro automÃ¡tico de propiedades de inversiÃ³n solo por antigÃ¼edad o falta de movimiento.",
-                "Primero entender cÃ³mo se utiliza el activo en el modelo de negocio funerario.",
+                "No asumir deterioro automático de propiedades de inversión solo por antigüedad o falta de movimiento.",
+                "Primero entender cómo se utiliza el activo en el modelo de negocio funerario.",
             ],
             "supuestos_a_validar": [
-                "Si las propiedades estÃ¡n clasificadas correctamente como propiedades de inversiÃ³n, PPE u otro tipo de activo.",
-                "Si la ausencia de deterioro estÃ¡ soportada por la naturaleza econÃ³mica del activo y del negocio.",
+                "Si las propiedades están clasificadas correctamente como propiedades de inversión, PPE u otro tipo de activo.",
+                "Si la ausencia de deterioro está soportada por la naturaleza económica del activo y del negocio.",
             ],
         },
 
@@ -169,10 +169,10 @@ BASE_INDUSTRIAS = {
             "areas_prioritarias": ["1500", "130.1", "1", "1600", "425"],
             "areas_secundarias": ["110", "136"],
             "riesgos_esperados": [
-                "Reconocimiento de ingresos por servicios mÃ©dicos",
+                "Reconocimiento de ingresos por servicios médicos",
                 "Cartera a aseguradoras o convenios",
-                "ValuaciÃ³n de PPE mÃ©dico",
-                "ClasificaciÃ³n de gastos operativos",
+                "Valuación de PPE médico",
+                "Clasificación de gastos operativos",
             ],
             "observaciones": [
                 "En hospitales y salud, cartera e ingresos suelen depender de convenios, aseguradoras y tratamientos.",
@@ -194,13 +194,13 @@ BASE_INDUSTRIAS = {
                 "Gastos operativos y honorarios",
             ],
             "observaciones": [
-                "En consultorÃ­a suele ser crÃ­tico el reconocimiento correcto del ingreso y la recuperaciÃ³n de cartera.",
+                "En consultoría suele ser crítico el reconocimiento correcto del ingreso y la recuperación de cartera.",
             ],
             "alertas_profesionales": [
-                "Ingresos altos sin cartera o efectivo consistente pueden requerir revisiÃ³n.",
+                "Ingresos altos sin cartera o efectivo consistente pueden requerir revisión.",
             ],
             "supuestos_a_validar": [
-                "Si el ingreso se reconoce por contrato, hito o prestaciÃ³n completada.",
+                "Si el ingreso se reconoce por contrato, hito o prestación completada.",
             ],
         },
 
@@ -210,27 +210,27 @@ BASE_INDUSTRIAS = {
             "riesgos_esperados": [
                 "Reconocimiento de ingresos por honorarios profesionales",
                 "Recuperabilidad de cuentas por cobrar",
-                "AdecuaciÃ³n de la provisiÃ³n de cartera",
-                "PrÃ©stamos a socios",
-                "Reembolsos de gastos y su clasificaciÃ³n",
+                "Adecuación de la provisión de cartera",
+                "Préstamos a socios",
+                "Reembolsos de gastos y su clasificación",
                 "Anticipos a proveedores",
                 "Operaciones con partes relacionadas",
             ],
             "observaciones": [
-                "En firmas legales o de servicios profesionales especializados, el foco principal suele estar en ingresos, cartera, provisiÃ³n de cartera y cuentas relacionadas con socios.",
-                "La ausencia de inventarios desplaza el anÃ¡lisis hacia ingresos, cuentas por cobrar, gastos y cumplimiento tributario.",
-                "Las operaciones internacionales y reembolsos pueden generar riesgos de clasificaciÃ³n y soporte.",
+                "En firmas legales o de servicios profesionales especializados, el foco principal suele estar en ingresos, cartera, provisión de cartera y cuentas relacionadas con socios.",
+                "La ausencia de inventarios desplaza el análisis hacia ingresos, cuentas por cobrar, gastos y cumplimiento tributario.",
+                "Las operaciones internacionales y reembolsos pueden generar riesgos de clasificación y soporte.",
             ],
             "alertas_profesionales": [
                 "No asumir que ingresos altos implican bajo riesgo si la cartera no es recuperable.",
-                "PrÃ©stamos a socios y reembolsos deben analizarse con especial cuidado por sustancia y presentaciÃ³n.",
-                "La provisiÃ³n de cartera debe revisarse frente a antigÃ¼edad real y evidencia de recuperabilidad.",
+                "Préstamos a socios y reembolsos deben analizarse con especial cuidado por sustancia y presentación.",
+                "La provisión de cartera debe revisarse frente a antigüedad real y evidencia de recuperabilidad.",
             ],
             "supuestos_a_validar": [
-                "Si la polÃ­tica de reconocimiento de ingresos refleja adecuadamente los servicios efectivamente prestados.",
-                "Si los prÃ©stamos a socios estÃ¡n adecuadamente aprobados, soportados y presentados.",
-                "Si la provisiÃ³n de cartera responde al riesgo real de incobrabilidad.",
-                "Si los reembolsos de gastos estÃ¡n correctamente documentados y clasificados.",
+                "Si la política de reconocimiento de ingresos refleja adecuadamente los servicios efectivamente prestados.",
+                "Si los préstamos a socios están adecuadamente aprobados, soportados y presentados.",
+                "Si la provisión de cartera responde al riesgo real de incobrabilidad.",
+                "Si los reembolsos de gastos están correctamente documentados y clasificados.",
             ],
         },
     },
@@ -240,22 +240,22 @@ BASE_INDUSTRIAS = {
             "areas_prioritarias": ["110", "1", "1500", "1600", "425"],
             "areas_secundarias": ["140", "136"],
             "riesgos_esperados": [
-                "ValuaciÃ³n de inventarios",
-                "Costeo y absorciÃ³n",
-                "Existencia y depreciaciÃ³n de PPE",
+                "Valuación de inventarios",
+                "Costeo y absorción",
+                "Existencia y depreciación de PPE",
                 "Reconocimiento de ingresos",
-                "Corte y clasificaciÃ³n de pasivos",
+                "Corte y clasificación de pasivos",
             ],
             "observaciones": [
-                "En entidades industriales, inventarios y propiedad planta y equipo suelen ser Ã¡reas crÃ­ticas.",
-                "La relaciÃ³n entre inventarios, producciÃ³n, costo y ventas debe mantenerse consistente.",
-                "Es importante revisar la razonabilidad de costos y gastos de producciÃ³n.",
+                "En entidades industriales, inventarios y propiedad planta y equipo suelen ser áreas críticas.",
+                "La relación entre inventarios, producción, costo y ventas debe mantenerse consistente.",
+                "Es importante revisar la razonabilidad de costos y gastos de producción.",
             ],
             "alertas_profesionales": [
-                "No analizar inventarios sin revisar costeo y PPE asociado a producciÃ³n.",
+                "No analizar inventarios sin revisar costeo y PPE asociado a producción.",
             ],
             "supuestos_a_validar": [
-                "Si el sistema de costeo refleja adecuadamente la operaciÃ³n real.",
+                "Si el sistema de costeo refleja adecuadamente la operación real.",
             ],
         },
 
@@ -263,19 +263,19 @@ BASE_INDUSTRIAS = {
             "areas_prioritarias": ["110", "1", "1500", "1600", "425"],
             "areas_secundarias": ["140", "136"],
             "riesgos_esperados": [
-                "Costo estÃ¡ndar vs real",
+                "Costo estándar vs real",
                 "Obsolescencia de inventario",
                 "Capacidad ociosa",
-                "DepreciaciÃ³n de maquinaria",
+                "Depreciación de maquinaria",
             ],
             "observaciones": [
                 "En manufactura, el riesgo suele estar en inventarios, costeo y maquinaria.",
             ],
             "alertas_profesionales": [
-                "Una variaciÃ³n baja en inventarios no elimina el riesgo de valuaciÃ³n si el costeo es deficiente.",
+                "Una variación baja en inventarios no elimina el riesgo de valuación si el costeo es deficiente.",
             ],
             "supuestos_a_validar": [
-                "Si existe producciÃ³n en proceso y cÃ³mo se valÃºa.",
+                "Si existe producción en proceso y cómo se valúa.",
             ],
         },
     },
@@ -448,7 +448,7 @@ def construir_contexto_industrial(perfil: Dict[str, Any]) -> Dict[str, Any]:
         areas_prioritarias.append("1600")
 
     if "operaciones_extranjero" in tags:
-        riesgos_esperados.append("Operaciones del exterior y su correcta presentaciÃ³n o soporte")
+        riesgos_esperados.append("Operaciones del exterior y su correcta presentación o soporte")
         alertas_profesionales.append("Revisar si existen efectos contables, tributarios o documentales derivados de operaciones internacionales.")
 
     if "tiene_empleados" in tags:
@@ -501,11 +501,11 @@ def imprimir_contexto_industrial(nombre_cliente: str) -> None:
     print(f"Subtipo de negocio detectado: {contexto['subtipo_negocio']}")
     print(f"Tags del negocio: {', '.join(contexto['tags']) if contexto['tags'] else 'N/A'}\n")
 
-    print("Ãreas prioritarias por naturaleza del negocio:")
+    print("Áreas prioritarias por naturaleza del negocio:")
     for area in contexto["areas_prioritarias"]:
         print(f"- {area}")
 
-    print("\nÃreas secundarias:")
+    print("\nÁreas secundarias:")
     for area in contexto["areas_secundarias"]:
         print(f"- {area}")
 

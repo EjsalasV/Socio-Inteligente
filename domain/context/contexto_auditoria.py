@@ -33,7 +33,7 @@ def _normalizar_etapa(etapa: str | None) -> str:
         return "planificacion"
 
     aliases = {
-        "planificaciÃ³n": "planificacion",
+        "planificación": "planificacion",
         "planning": "planificacion",
         "execution": "ejecucion",
     }

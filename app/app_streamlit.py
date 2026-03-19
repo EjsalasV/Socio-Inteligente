@@ -62,6 +62,11 @@ except Exception:
     detectar_riesgos_area = None
 
 try:
+    from domain.services.riesgos_automaticos_service import detectar_riesgos_area as detectar_riesgos_area_auto
+except Exception:
+    detectar_riesgos_area_auto = None
+
+try:
     from domain.services.procedimientos_area import (
         procedimientos_por_area,
         procedimientos_por_area_estructurados,
@@ -74,6 +79,11 @@ try:
     from llm.cierre_area_llm import revisar_cierre_area_llm
 except Exception:
     revisar_cierre_area_llm = None
+
+try:
+    from llm.chat_area_service import consultar_socio
+except Exception:
+    consultar_socio = None
 
 try:
     from domain.catalogos_python.aseveraciones_ls import ASEVERACIONES_LS
@@ -134,22 +144,24 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown(
-    """
-    <style>
-    .header-title {
-        color: #1f77b4;
-        font-size: 28px;
-        font-weight: 700;
-        margin-bottom: 10px;
+st.markdown("""
+<style>
+    .header-title { font-size: 1.8rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.5rem; }
+    [data-testid="metric-container"] {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 12px;
     }
-    .subtle {
-        color: #6b7280;
+    [data-testid="stExpander"] { border: 1px solid #e0e0e0; border-radius: 8px; }
+    .stButton button {
+        border-radius: 6px;
+        font-weight: 600;
     }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+    div[data-testid="stSidebar"] { background: #1a1a2e; }
+    div[data-testid="stSidebar"] * { color: #ffffff !important; }
+</style>
+""", unsafe_allow_html=True)
 
 
 # ============================================================
@@ -520,6 +532,34 @@ def prepare_area_workspace(
         "perfil": perfil,
         "contexto": perfil,
     }
+
+    area_info = {
+        "nombre": area_name,
+        "codigo_ls": str(codigo_ls),
+        "saldo": saldo_total,
+        "variacion_pct": float(pct_total / 100.0) if pct_total else 0.0,
+        "score_riesgo": float(area_score or 0.0) if area_score is not None else 0.0,
+        "cobertura": float(cobertura.get("cobertura_porcentaje", 0) or 0),
+        "estado": str(ws_base.get("estado_presencia", "NO_PRESENTE")).upper(),
+    }
+    ws_base["area_info"] = area_info
+    ws_base["materialidad_desempeno"] = materialidad_ejecucion
+    ws_base["sector"] = normalize_text(
+        perfil.get("cliente", {}).get("sector", perfil.get("sector", ""))
+        if isinstance(perfil, dict)
+        else ""
+    ).lower()
+    ws_base["marco_niif"] = normalize_text(
+        perfil.get("encargo", {}).get("marco_referencial", "")
+        if isinstance(perfil, dict)
+        else ""
+    )
+    ws_base["cliente"] = cliente
+
+    riesgos_automaticos = safe_call(detectar_riesgos_area_auto, ws_base, default=[]) or []
+    if not isinstance(riesgos_automaticos, list):
+        riesgos_automaticos = []
+    ws_base["riesgos_automaticos"] = riesgos_automaticos
 
     calidad_eval = safe_call(
         evaluar_alertas_metodologia,
@@ -948,7 +988,21 @@ def render_contexto_tab(ws: dict[str, Any]) -> None:
         for r in ws["riesgos"]:
             st.markdown(f"- [{normalize_text(r.get('nivel', 'N/A'))}] {normalize_text(r.get('titulo', ''))}: {normalize_text(r.get('descripcion', ''))}")
     else:
-        st.info("No se detectaron riesgos automaticos para esta area.")
+        st.info("No se detectaron riesgos del motor base para esta area.")
+
+    riesgos = ws.get("riesgos_automaticos", []) if isinstance(ws.get("riesgos_automaticos", []), list) else []
+    st.subheader("Riesgos automaticos")
+    if riesgos:
+        for r in riesgos:
+            nivel = normalize_text(r.get("nivel", ""))
+            color = {"ALTO": "RED", "MEDIO": "ORANGE", "BAJO": "GREEN"}.get(nivel.upper(), "GRAY")
+            st.markdown(
+                f"- `{color}` **{normalize_text(r.get('tipo', 'RIESGO'))} ({nivel.upper() or 'N/A'})**  \n"
+                f"  - {normalize_text(r.get('descripcion', 'Sin descripcion'))}  \n"
+                f"  - Accion: {normalize_text(r.get('accion_sugerida', 'Sin accion sugerida'))}"
+            )
+    else:
+        st.success("No se detectaron riesgos automáticos para esta área.")
 
     st.markdown("**Aseveraciones esperadas**")
     esperadas = ws["cobertura"].get("esperadas", [])
@@ -1279,6 +1333,31 @@ def render_cierre_tab(ws: dict[str, Any]) -> None:
         st.markdown(f"- {a}")
 
 
+def render_consultar_socio_tab(ws: dict[str, Any], cliente: str) -> None:
+    st.subheader("Consulta al Socio")
+
+    if consultar_socio is None:
+        st.info("Servicio de chat no disponible en este entorno.")
+        return
+
+    chat_key = f"chat_area_{cliente}_{ws.get('codigo_ls', 'na')}"
+    if chat_key not in st.session_state:
+        st.session_state[chat_key] = []
+
+    pregunta = st.text_input("Haz una pregunta sobre esta area", key=f"q_{chat_key}")
+
+    if st.button("Consultar", key=f"b_{chat_key}"):
+        respuesta = safe_call(consultar_socio, pregunta, ws, default="No se pudo obtener respuesta.")
+        st.session_state[chat_key].append(("Usuario", pregunta))
+        st.session_state[chat_key].append(("Socio", respuesta))
+
+    for rol, msg in st.session_state[chat_key]:
+        if rol == "Usuario":
+            st.markdown(f"**Tu:** {msg}")
+        else:
+            st.markdown(f"**Socio:** {msg}")
+
+
 # ============================================================
 # Sidebar
 # ============================================================
@@ -1366,12 +1445,14 @@ st.divider()
 # ============================================================
 # Tabs principales
 # ============================================================
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "Resumen",
     "Ranking de áreas",
-    "Vista por area",
+    "Vista por área",
     "Variaciones",
     "Trial Balance",
+    "Hallazgos",
+    "Briefing IA",
 ])
 
 
@@ -1447,7 +1528,7 @@ with tab3:
     render_export_block(ws, cliente, datos_clave, perfil)
     st.divider()
 
-    t_ctx, t_brf, t_proc, t_cov, t_hal, t_seg, t_his, t_cal, t_cie = st.tabs([
+    t_ctx, t_brf, t_proc, t_cov, t_hal, t_seg, t_his, t_cal, t_cie, t_soc = st.tabs([
         "Contexto",
         "Briefing",
         "Procedimientos",
@@ -1457,6 +1538,7 @@ with tab3:
         "Historial",
         "Revision de calidad",
         "Cierre",
+        "Consultar Socio",
     ])
 
     with t_ctx:
@@ -1477,6 +1559,8 @@ with tab3:
         render_calidad_tab(ws)
     with t_cie:
         render_cierre_tab(ws)
+    with t_soc:
+        render_consultar_socio_tab(ws, cliente)
 
 
 with tab4:
@@ -1529,6 +1613,140 @@ with tab5:
             c2.metric("Suma de saldos", fmt_money(vals.sum()))
             c3.metric("Mayor saldo", fmt_money(vals.max()))
             c4.metric("Menor saldo", fmt_money(vals.min()))
+
+
+with tab6:
+    st.subheader("Gestión de Hallazgos")
+
+    from domain.services.hallazgos_service import (
+        cargar_hallazgos_gestion,
+        crear_hallazgo,
+        actualizar_estado_hallazgo,
+        resumen_hallazgos,
+    )
+    from domain.services.export_service import exportar_hallazgos_excel, exportar_resumen_txt
+
+    resumen_h = resumen_hallazgos(cliente)
+    h1, h2, h3, h4 = st.columns(4)
+    h1.metric("Total", resumen_h["total"])
+    h2.metric("Abiertos", resumen_h["abiertos"])
+    h3.metric("Cerrados", resumen_h["cerrados"])
+    h4.metric("Alto riesgo abiertos", resumen_h["alto_riesgo_abiertos"])
+
+    st.divider()
+
+    with st.expander("Registrar nuevo hallazgo"):
+        col_a, col_b = st.columns(2)
+        with col_a:
+            desc_input = st.text_area("Descripción del hallazgo")
+            area_input = st.text_input("Código área L/S (ej: 14, 130.1)")
+        with col_b:
+            asev_input = st.text_input("Aseveración afectada")
+            nivel_input = st.selectbox("Nivel", ["alto", "medio", "bajo"])
+            resp_input = st.text_input("Responsable")
+
+        if st.button("Guardar hallazgo"):
+            if desc_input and area_input:
+                nuevo = crear_hallazgo(
+                    cliente=cliente,
+                    codigo_area=area_input,
+                    descripcion=desc_input,
+                    aseveracion=asev_input,
+                    nivel=nivel_input,
+                    responsable=resp_input,
+                )
+                st.success(f"Hallazgo {nuevo['id']} creado.")
+                st.rerun()
+            else:
+                st.warning("Descripción y área son obligatorios.")
+
+    st.divider()
+    st.subheader("Hallazgos registrados")
+
+    todos = cargar_hallazgos_gestion(cliente)
+    if todos:
+        filtro_estado = st.selectbox(
+            "Filtrar por estado", ["todos", "abierto", "cerrado"]
+        )
+        lista = todos if filtro_estado == "todos" else [
+            h for h in todos if h.get("estado") == filtro_estado
+        ]
+        for h in lista:
+            nivel_color = {"alto": "🔴", "medio": "🟡", "bajo": "🟢"}.get(
+                h.get("nivel", ""), "⚪"
+            )
+            with st.expander(
+                f"{nivel_color} {h.get('id')} | {h.get('codigo_area')} | {h.get('estado')} | {h.get('descripcion','')[:60]}"
+            ):
+                st.json(h)
+                if h.get("estado") == "abierto":
+                    nota_cierre = st.text_input(
+                        "Nota de cierre", key=f"nota_{h['id']}"
+                    )
+                    if st.button("Cerrar hallazgo", key=f"cerrar_{h['id']}"):
+                        actualizar_estado_hallazgo(
+                            cliente, h["id"], "cerrado", nota_cierre
+                        )
+                        st.rerun()
+    else:
+        st.info("Sin hallazgos registrados para este cliente.")
+
+    st.divider()
+    st.subheader("Exportar")
+    col_e1, col_e2 = st.columns(2)
+    with col_e1:
+        if st.button("Exportar hallazgos a Excel"):
+            ruta = exportar_hallazgos_excel(cliente)
+            if ruta:
+                st.success(f"Exportado: {ruta}")
+            else:
+                st.warning("Sin hallazgos para exportar.")
+    with col_e2:
+        if st.button("Exportar resumen ejecutivo"):
+            ruta = exportar_resumen_txt(cliente, ranking_areas if isinstance(ranking_areas, pd.DataFrame) else None)
+            if ruta:
+                st.success(f"Exportado: {ruta}")
+            else:
+                st.error("Error al exportar.")
+
+
+with tab7:
+    st.subheader("Briefing de Área con IA (DeepSeek)")
+
+    from llm.llm_client import llamar_llm_seguro
+
+    col_b1, col_b2 = st.columns(2)
+    with col_b1:
+        area_briefing_input = st.text_input(
+            "Código área L/S para briefing", value=selected_area_code or "14"
+        )
+    with col_b2:
+        etapa_input = st.selectbox(
+            "Etapa de auditoría", ["planificacion", "ejecucion", "cierre"]
+        )
+
+    if st.button("Generar Briefing con IA"):
+        with st.spinner("Consultando al modelo..."):
+            try:
+                from llm.briefing_llm import generar_briefing_area_llm
+                resultado = generar_briefing_area_llm(
+                    nombre_cliente=cliente,
+                    codigo_ls=area_briefing_input,
+                    etapa=etapa_input,
+                )
+                st.text_area("Criterio del socio (IA)", value=resultado, height=400)
+            except ValueError as ve:
+                st.error(
+                    f"Falta configuración: {ve}. "
+                    "Agrega DEEPSEEK_API_KEY a tu archivo .env y reinicia la app."
+                )
+            except Exception as ex:
+                st.error(f"Error al generar briefing: {ex}")
+
+    st.info(
+        "Requiere DEEPSEEK_API_KEY en el archivo .env del proyecto. "
+        "Si no tienes clave, el resto de la app funciona sin IA."
+    )
 
 
 st.divider()

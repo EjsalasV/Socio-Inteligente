@@ -8,6 +8,7 @@ from domain.services.leer_perfil import (
     obtener_contexto_negocio,
     obtener_materialidad_final,
 )
+from domain.catalogos_python.estructura_ls import obtener_nombre_area_ls  # noqa: F401
 
 
 def _sum_col(df: pd.DataFrame, col: str) -> float:
@@ -225,4 +226,3 @@ def construir_foco_auditoria(codigo_ls: str, perfil: dict, area_df: pd.DataFrame
     # Integra foco holding de forma incremental.
     focos.extend(construir_foco_holding(code, perfil, area_df))
     return list(dict.fromkeys([f for f in focos if str(f).strip()]))
-

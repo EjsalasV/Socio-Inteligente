@@ -17,69 +17,69 @@ from domain.services.riesgos_area import obtener_area, detectar_riesgos_area
 
 def procedimientos_por_area(codigo_ls: str, perfil: dict, riesgos: list[dict]) -> List[str]:
     """
-    Devuelve procedimientos sugeridos por Ã¡rea.
+    Devuelve procedimientos sugeridos por área.
     """
     contexto = obtener_contexto_negocio(perfil)
     procedimientos: List[str] = []
 
     if codigo_ls == "14":
         procedimientos.extend([
-            "Obtener el detalle de inversiones mantenidas al cierre del perÃ­odo.",
-            "Verificar el porcentaje de participaciÃ³n en cada entidad participada o subsidiaria.",
-            "Solicitar y revisar los estados financieros de las participadas utilizados para el cÃ¡lculo.",
+            "Obtener el detalle de inversiones mantenidas al cierre del período.",
+            "Verificar el porcentaje de participación en cada entidad participada o subsidiaria.",
+            "Solicitar y revisar los estados financieros de las participadas utilizados para el cálculo.",
             "Recalcular el valor patrimonial proporcional (VPP) cuando corresponda.",
-            "Conciliar los movimientos de inversiones con los resultados reconocidos en el perÃ­odo.",
+            "Conciliar los movimientos de inversiones con los resultados reconocidos en el período.",
             "Verificar soporte documental de adquisiciones, aportes, bajas o reclasificaciones.",
-            "Evaluar la adecuada presentaciÃ³n y revelaciÃ³n de inversiones en estados financieros.",
+            "Evaluar la adecuada presentación y revelación de inversiones en estados financieros.",
         ])
 
         if contexto.get("tiene_partes_relacionadas"):
             procedimientos.append(
-                "Revisar si las inversiones involucran partes relacionadas y validar la adecuada revelaciÃ³n."
+                "Revisar si las inversiones involucran partes relacionadas y validar la adecuada revelación."
             )
 
         if contexto.get("pertenece_a_grupo"):
             procedimientos.append(
-                "Revisar consistencia entre inversiones, subsidiarias, consolidaciÃ³n y patrimonio."
+                "Revisar consistencia entre inversiones, subsidiarias, consolidación y patrimonio."
             )
 
     elif codigo_ls in {"1500", "1501"}:
         procedimientos.extend([
-            "Obtener el detalle de ingresos del perÃ­odo por naturaleza y cuenta contable.",
-            "Revisar la razonabilidad de variaciones frente al perÃ­odo anterior.",
+            "Obtener el detalle de ingresos del período por naturaleza y cuenta contable.",
+            "Revisar la razonabilidad de variaciones frente al período anterior.",
             "Validar soporte de ingresos significativos o inusuales.",
             "Evaluar si existen ingresos no operativos o asociados a inversiones.",
-            "Verificar adecuada clasificaciÃ³n y presentaciÃ³n de ingresos en estados financieros.",
-            "Aplicar procedimientos analÃ­ticos y pruebas de detalle sobre partidas relevantes.",
+            "Verificar adecuada clasificación y presentación de ingresos en estados financieros.",
+            "Aplicar procedimientos analíticos y pruebas de detalle sobre partidas relevantes.",
         ])
 
     elif codigo_ls == "200":
         procedimientos.extend([
-            "Obtener el detalle de movimientos patrimoniales del perÃ­odo.",
-            "Verificar la composiciÃ³n del patrimonio y su conciliaciÃ³n con el perÃ­odo anterior.",
-            "Revisar el tratamiento de utilidad o pÃ©rdida del ejercicio y su reclasificaciÃ³n.",
+            "Obtener el detalle de movimientos patrimoniales del período.",
+            "Verificar la composición del patrimonio y su conciliación con el período anterior.",
+            "Revisar el tratamiento de utilidad o pérdida del ejercicio y su reclasificación.",
             "Validar si existieron capitalizaciones, dividendos o ajustes patrimoniales.",
-            "Evaluar la adecuada presentaciÃ³n y revelaciÃ³n del patrimonio.",
+            "Evaluar la adecuada presentación y revelación del patrimonio.",
         ])
 
         if contexto.get("pertenece_a_grupo"):
             procedimientos.append(
-                "Analizar si existen efectos patrimoniales vinculados a inversiones o consolidaciÃ³n."
+                "Analizar si existen efectos patrimoniales vinculados a inversiones o consolidación."
             )
 
     elif codigo_ls in {"425", "425.1", "425.2"}:
         procedimientos.extend([
-            "Obtener el detalle de cuentas por pagar al cierre del perÃ­odo.",
+            "Obtener el detalle de cuentas por pagar al cierre del período.",
             "Verificar soporte de saldos significativos o inusuales.",
-            "Evaluar la clasificaciÃ³n entre corriente y no corriente.",
+            "Evaluar la clasificación entre corriente y no corriente.",
             "Revisar pagos posteriores cuando sea aplicable.",
             "Analizar saldos con partes relacionadas, si existen.",
-            "Evaluar integridad y revelaciÃ³n del rubro.",
+            "Evaluar integridad y revelación del rubro.",
         ])
 
     elif codigo_ls == "140":
         procedimientos.extend([
-            "Obtener conciliaciones bancarias al cierre del perÃ­odo.",
+            "Obtener conciliaciones bancarias al cierre del período.",
             "Verificar partidas conciliatorias significativas.",
             "Revisar movimientos inusuales de efectivo y sus soportes.",
             "Comparar saldos bancarios con extractos y confirmaciones, si aplica.",
@@ -88,35 +88,35 @@ def procedimientos_por_area(codigo_ls: str, perfil: dict, riesgos: list[dict]) -
 
     elif codigo_ls in {"136", "324", "325", "1900"}:
         procedimientos.extend([
-            "Obtener conciliaciÃ³n tributaria y auxiliares tributarios del perÃ­odo.",
-            "Verificar la composiciÃ³n y soporte de activos/pasivos tributarios.",
-            "Revisar cÃ¡lculo del impuesto corriente o diferido, segÃºn aplique.",
+            "Obtener conciliación tributaria y auxiliares tributarios del período.",
+            "Verificar la composición y soporte de activos/pasivos tributarios.",
+            "Revisar cálculo del impuesto corriente o diferido, según aplique.",
             "Evaluar consistencia entre tratamiento contable y tributario.",
-            "Verificar adecuada presentaciÃ³n y revelaciÃ³n de rubros tributarios.",
+            "Verificar adecuada presentación y revelación de rubros tributarios.",
         ])
 
     elif codigo_ls in {"1600", "1601", "1700", "1701", "1800"}:
         procedimientos.extend([
             "Obtener detalle de gastos por naturaleza.",
-            "Revisar variaciones relevantes frente al perÃ­odo anterior.",
+            "Revisar variaciones relevantes frente al período anterior.",
             "Verificar soporte documental de gastos significativos o inusuales.",
-            "Evaluar clasificaciÃ³n contable de gastos.",
+            "Evaluar clasificación contable de gastos.",
             "Analizar posibles partidas no deducibles tributariamente.",
         ])
 
     else:
         procedimientos.extend([
-            "Obtener el detalle del Ã¡rea y conciliarlo con el TB.",
-            "Analizar variaciones significativas frente al perÃ­odo anterior.",
+            "Obtener el detalle del área y conciliarlo con el TB.",
+            "Analizar variaciones significativas frente al período anterior.",
             "Verificar soporte de cuentas relevantes.",
-            "Evaluar clasificaciÃ³n, presentaciÃ³n y revelaciÃ³n del Ã¡rea.",
+            "Evaluar clasificación, presentación y revelación del área.",
         ])
 
     titulos_riesgo = {r.get("titulo", "").lower() for r in riesgos}
 
     if any("partes relacionadas" in t for t in titulos_riesgo):
         procedimientos.append(
-            "Revisar condiciones, soporte y revelaciÃ³n de transacciones con partes relacionadas."
+            "Revisar condiciones, soporte y revelación de transacciones con partes relacionadas."
         )
 
     if any("cuentas nuevas" in t or "sin comparativo" in t for t in titulos_riesgo):
@@ -126,7 +126,7 @@ def procedimientos_por_area(codigo_ls: str, perfil: dict, riesgos: list[dict]) -
 
     if any("materialidad" in t for t in titulos_riesgo):
         procedimientos.append(
-            "Priorizar pruebas sobre cuentas que explican la mayor parte de la variaciÃ³n del Ã¡rea."
+            "Priorizar pruebas sobre cuentas que explican la mayor parte de la variación del área."
         )
 
     procedimientos_finales = list(dict.fromkeys(procedimientos))
@@ -180,7 +180,7 @@ def imprimir_procedimientos_area(nombre_cliente: str, codigo_ls: str) -> None:
 
     df_tb = leer_trial_balance(ruta_tb)
     if df_tb.empty:
-        print("El TB estÃ¡ vacÃ­o.")
+        print("El TB está vacío.")
         return
 
     df_var = calcular_variaciones(df_tb)
@@ -188,7 +188,7 @@ def imprimir_procedimientos_area(nombre_cliente: str, codigo_ls: str) -> None:
 
     area_df = obtener_area(df_var, codigo_ls)
     if area_df.empty:
-        print("Ãrea no encontrada.")
+        print("Área no encontrada.")
         return
 
     riesgos = detectar_riesgos_area(area_df, codigo_ls, perfil)
@@ -216,4 +216,4 @@ if __name__ == "__main__":
         imprimir_procedimientos_area(cliente, codigo_ls)
 
     except Exception as e:
-        print(f"\nError generando procedimientos del Ã¡rea: {e}")
+        print(f"\nError generando procedimientos del área: {e}")
