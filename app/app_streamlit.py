@@ -19,6 +19,28 @@ from analysis.ranking_areas import calcular_ranking_areas, obtener_indicadores_c
 from analysis.variaciones import calcular_variaciones, resumen_variaciones
 from analysis.expert_flags import detectar_expert_flags
 from domain.services.leer_perfil import leer_perfil, obtener_datos_clave
+from app.views.view_cliente import (
+    render_sidebar_summary,
+    render_area_header,
+    render_area_kpis,
+    render_por_que_importa,
+)
+from app.views.view_ranking import (
+    render_contexto_tab,
+    render_briefing_tab,
+    render_procedimientos_tab,
+    render_cobertura_tab,
+    render_hallazgos_tab,
+)
+from app.views.view_area import (
+    render_cierre_tab,
+    render_decision_cierre_helper,
+    render_seguimiento_tab,
+    render_historial_tab,
+    render_export_block,
+)
+from app.views.view_materialidad import render_calidad_tab
+from app.views.view_chat import render_briefing_ia_tab, render_chat_tab
 
 # Servicios opcionales (degradacion segura)
 try:
@@ -181,20 +203,163 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    .header-title { font-size: 1.8rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.5rem; }
-    [data-testid="metric-container"] {
-        background: #f8f9fa;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 12px;
-    }
-    [data-testid="stExpander"] { border: 1px solid #e0e0e0; border-radius: 8px; }
-    .stButton button {
-        border-radius: 6px;
-        font-weight: 600;
-    }
-    div[data-testid="stSidebar"] { background: #1a1a2e; }
-    div[data-testid="stSidebar"] * { color: #ffffff !important; }
+  /* ── Global ── */
+  html, body, [class*="css"] {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #172B4D;
+  }
+  .main { background-color: #FFFFFF; }
+  .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
+
+  /* ── Sidebar ── */
+  [data-testid="stSidebar"] {
+      background: linear-gradient(180deg, #003366 0%, #0066CC 100%);
+      border-right: none;
+  }
+  [data-testid="stSidebar"] * {
+      color: #FFFFFF !important;
+  }
+  [data-testid="stSidebar"] label,
+  [data-testid="stSidebar"] .stSelectbox label,
+  [data-testid="stSidebar"] .stTextInput label,
+  [data-testid="stSidebar"] p,
+  [data-testid="stSidebar"] span,
+  [data-testid="stSidebar"] small,
+  [data-testid="stSidebar"] .stCaption {
+      color: #FFFFFF !important;
+  }
+  [data-testid="stSidebar"] input,
+  [data-testid="stSidebar"] [data-baseweb="select"] div,
+  [data-testid="stSidebar"] [data-baseweb="input"] input {
+      color: #172B4D !important;
+      background-color: #FFFFFF !important;
+  }
+  [data-testid="stSidebar"] [data-baseweb="select"] svg {
+      fill: #003366 !important;
+  }
+  [data-testid="stSidebar"] hr {
+      border-color: rgba(255,255,255,0.25) !important;
+  }
+  [data-testid="stSidebar"] .stButton button {
+      background: rgba(255,255,255,0.15) !important;
+      color: #FFFFFF !important;
+      border: 1px solid rgba(255,255,255,0.35) !important;
+      border-radius: 6px;
+  }
+  [data-testid="stSidebar"] .stButton button:hover {
+      background: rgba(255,255,255,0.28) !important;
+  }
+
+  /* ── Header banner ── */
+  .socioai-header {
+      background: linear-gradient(135deg, #003366 0%, #0066CC 60%, #00A3E0 100%);
+      padding: 1.5rem 2rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 4px 16px rgba(0,51,102,0.18);
+  }
+  .socioai-header h1 {
+      color: #FFFFFF !important;
+      font-size: 2rem !important;
+      font-weight: 800 !important;
+      margin: 0 !important;
+      letter-spacing: -0.5px;
+  }
+  .socioai-header p {
+      color: #A8C8F0 !important;
+      margin: 0 !important;
+      font-size: 0.95rem;
+  }
+  .socioai-logo {
+      font-size: 2.8rem;
+      line-height: 1;
+  }
+
+  /* ── Metric cards ── */
+  [data-testid="metric-container"] {
+      background: #F4F5F7;
+      border: 1px solid #DFE1E6;
+      border-radius: 10px;
+      padding: 1rem;
+      transition: box-shadow 0.2s;
+  }
+  [data-testid="metric-container"]:hover {
+      box-shadow: 0 4px 12px rgba(0,51,102,0.10);
+  }
+  [data-testid="metric-container"] [data-testid="stMetricLabel"] {
+      color: #6B778C !important;
+      font-size: 0.8rem !important;
+      font-weight: 600 !important;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+  }
+  [data-testid="metric-container"] [data-testid="stMetricValue"] {
+      color: #003366 !important;
+      font-weight: 700 !important;
+  }
+
+  /* ── Tabs ── */
+  [data-testid="stTabs"] [role="tab"] {
+      font-weight: 600;
+      color: #6B778C;
+      border-bottom: 3px solid transparent;
+      padding: 0.5rem 1rem;
+  }
+  [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+      color: #003366 !important;
+      border-bottom: 3px solid #003366 !important;
+  }
+
+  /* ── Buttons ── */
+  .stButton button {
+      background: #003366 !important;
+      color: #FFFFFF !important;
+      border: none !important;
+      border-radius: 6px !important;
+      font-weight: 600 !important;
+      padding: 0.4rem 1.2rem !important;
+      transition: background 0.2s !important;
+  }
+  .stButton button:hover {
+      background: #0066CC !important;
+  }
+
+  /* ── DataFrames ── */
+  [data-testid="stDataFrame"] {
+      border: 1px solid #DFE1E6;
+      border-radius: 8px;
+      overflow: hidden;
+  }
+
+  /* ── Expanders ── */
+  [data-testid="stExpander"] {
+      border: 1px solid #DFE1E6 !important;
+      border-radius: 8px !important;
+      margin-bottom: 0.5rem;
+  }
+
+  /* ── Alerts ── */
+  .stSuccess { background: #E3FCEF !important; border-left: 4px solid #00875A !important; }
+  .stWarning { background: #FFFAE6 !important; border-left: 4px solid #FF8B00 !important; }
+  .stError   { background: #FFEBE6 !important; border-left: 4px solid #DE350B !important; }
+  .stInfo    { background: #E6F0FF !important; border-left: 4px solid #0066CC !important; }
+
+  /* ── Risk badge ── */
+  .badge-alto   { background:#DE350B; color:#fff; padding:2px 10px; border-radius:12px; font-size:0.78rem; font-weight:700; }
+  .badge-medio  { background:#FF8B00; color:#fff; padding:2px 10px; border-radius:12px; font-size:0.78rem; font-weight:700; }
+  .badge-bajo   { background:#00875A; color:#fff; padding:2px 10px; border-radius:12px; font-size:0.78rem; font-weight:700; }
+
+  /* ── Divider ── */
+  hr { border-color: #DFE1E6 !important; margin: 1.2rem 0 !important; }
+
+  /* ── Chat messages ── */
+  [data-testid="stChatMessage"] {
+      border-radius: 10px;
+      margin-bottom: 0.5rem;
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -608,764 +773,6 @@ def prepare_area_workspace(
     return ws_base
 
 
-def render_sidebar_summary(
-    cliente: str,
-    perfil: dict[str, Any] | None,
-    datos_clave: dict[str, Any] | None,
-    ranking_areas: pd.DataFrame | None,
-) -> None:
-    st.sidebar.divider()
-    st.sidebar.subheader("Resumen rapido")
-
-    perfil = perfil or {}
-    datos_clave = datos_clave or {}
-
-    periodo = get_first(datos_clave, ["periodo"], perfil.get("encargo", {}).get("anio_activo", "N/A"))
-    marco = get_first(datos_clave, ["marco_referencial"], perfil.get("encargo", {}).get("marco_referencial", "N/A"))
-    riesgo_global = normalize_text(perfil.get("riesgo_global", {}).get("nivel", "N/A")) or "N/A"
-
-    top_area = "N/A"
-    if ranking_areas is not None and not ranking_areas.empty:
-        row0 = ranking_areas.iloc[0]
-        top_area = f"{normalize_text(row0.get('area', ''))} ({fmt_num(row0.get('score_riesgo', 0), 1)})"
-
-    st.sidebar.caption(f"Cliente: {cliente}")
-    st.sidebar.caption(f"Periodo: {periodo}")
-    st.sidebar.caption(f"Marco: {marco}")
-    st.sidebar.caption(f"Riesgo global: {riesgo_global}")
-    st.sidebar.caption(f"Top area score: {top_area}")
-
-
-def render_area_header(ws: dict[str, Any]) -> None:
-    st.subheader(f"{ws['area_name']} (L/S {ws['codigo_ls']})")
-
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("Etapa", ws["etapa"].capitalize())
-    c2.metric("Riesgo", ws["riesgo"])
-    c3.metric("Cobertura", f"{fmt_num(ws['coverage'], 1)}%")
-    c4.metric("Hallazgos abiertos", ws["hallazgos_count"])
-    c5.metric("Procedimientos pendientes", ws["pending_count"])
-    c6.metric("Score area", fmt_num(ws["area_score"], 1) if ws["area_score"] is not None else "N/A")
-
-
-def render_area_kpis(ws: dict[str, Any]) -> None:
-    s = ws["area_summary"]
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("Saldo actual", fmt_money(s.get("saldo_actual", 0)))
-    c2.metric("Variacion neta", fmt_money(s.get("variacion_neta", 0)))
-    c3.metric("Variacion acumulada", fmt_money(s.get("variacion_acumulada", 0)))
-    c4.metric("Cuentas relevantes", int(s.get("cuentas_relevantes", 0) or 0))
-    c5.metric("Cobertura %", f"{fmt_num(ws['coverage'], 1)}%")
-    c6.metric("Hallazgos abiertos", ws["hallazgos_count"])
-
-
-def render_por_que_importa(ws: dict[str, Any]) -> None:
-    st.markdown("### Por qué importa esta área")
-    st.markdown(
-        f"- **Saldo / materialidad de ejecución:** {fmt_money(ws['area_summary'].get('saldo_actual', 0))} / {fmt_money(ws.get('materialidad_ejecucion', 0))} "
-        f"({fmt_num(ws.get('materialidad_relativa', 0), 1)}%)"
-    )
-    st.markdown(f"- **Cobertura de aseveraciones:** {fmt_num(ws.get('coverage', 0), 1)}%")
-    st.markdown(f"- **Hallazgos previos abiertos:** {ws.get('hallazgos_count', 0)}")
-    st.markdown(f"- **Prioridad sugerida:** {normalize_text(ws.get('prioridad', 'media')).upper()}")
-
-    if ws.get("expert_flags"):
-        st.markdown("**Principales señales expertas**")
-        for flag in ws["expert_flags"][:3]:
-            st.markdown(
-                f"- [{normalize_text(flag.get('nivel', 'medio')).upper()}] "
-                f"{normalize_text(flag.get('titulo', 'Bandera experta'))}: "
-                f"{normalize_text(flag.get('mensaje', 'Sin detalle'))}"
-            )
-    else:
-        st.info("No se detectaron señales expertas adicionales para esta área.")
-
-    if ws.get("es_holding") and str(ws.get("codigo_ls", "")).strip() in {"14", "200", "425.2", "1600", "1500"}:
-        st.markdown("**Foco holding**")
-        st.markdown(
-            "- Esta area se interpreta con enfoque holding: inversiones, patrimonio, relacionadas y consistencia de presentacion."
-        )
-        if str(ws.get("codigo_ls", "")).strip() in {"14", "200"}:
-            st.caption("Prioridad consistente con naturaleza holding.")
-
-    st.caption(normalize_text(ws.get("justificacion", "")) or "Sin justificación automática disponible.")
-
-
-def _lines_to_list(text: str) -> list[str]:
-    return [x.strip() for x in str(text or "").splitlines() if x.strip()]
-
-
-def _manual_state_from_ws(ws: dict[str, Any]) -> dict[str, Any]:
-    estado = ws.get("estado_area", {}) or {}
-    notas = estado.get("notas", []) if isinstance(estado.get("notas", []), list) else []
-    pendientes = estado.get("pendientes", []) if isinstance(estado.get("pendientes", []), list) else []
-    return {
-        "estado_area": normalize_text(estado.get("estado_area", "")) or "no_iniciada",
-        "notas": [normalize_text(x) for x in notas if normalize_text(x)],
-        "pendientes": [normalize_text(x) for x in pendientes if normalize_text(x)],
-        "conclusion_preliminar": normalize_text(estado.get("conclusion_preliminar", "")),
-        "decision_cierre": normalize_text(estado.get("decision_cierre", "")) or "requiere_revision",
-        "fecha_actualizacion": normalize_text(estado.get("fecha_actualizacion", "")),
-    }
-
-
-def _pending_procedures_details(ws: dict[str, Any]) -> list[str]:
-    proc_df = ws.get("proc_df", pd.DataFrame())
-    if not isinstance(proc_df, pd.DataFrame) or proc_df.empty:
-        return []
-    if "estado" not in proc_df.columns:
-        return []
-    done_states = {"ejecutado", "completado", "cerrado", "no_aplicable", "no_aplica"}
-    mask = ~proc_df["estado"].astype(str).str.lower().isin(done_states)
-    pending = proc_df[mask].copy()
-    desc_col = "descripcion" if "descripcion" in pending.columns else None
-    if desc_col is None:
-        return []
-    return [normalize_text(x) for x in pending[desc_col].tolist() if normalize_text(x)]
-
-
-def _closure_readiness(ws: dict[str, Any]) -> tuple[bool, list[str]]:
-    manual = _manual_state_from_ws(ws)
-    hallazgos_abiertos = int(ws.get("hallazgos_count", 0) or 0)
-    pendientes = len(manual.get("pendientes", []))
-    conclusion_cobertura = normalize_text(ws.get("cobertura", {}).get("conclusion", "sin_mapeo"))
-    calidad = ws.get("calidad_metodologia", {}) if isinstance(ws.get("calidad_metodologia", {}), dict) else {}
-    alertas_criticas = int(calidad.get("resumen", {}).get("alertas_criticas", 0) or 0)
-
-    lista_para_cerrar = True
-    razones = []
-    if hallazgos_abiertos > 0:
-        lista_para_cerrar = False
-        razones.append("Existen hallazgos abiertos.")
-    if pendientes > 0:
-        lista_para_cerrar = False
-        razones.append("Existen pendientes operativos.")
-    if conclusion_cobertura == "incompleta":
-        lista_para_cerrar = False
-        razones.append("La cobertura de aseveraciones está incompleta.")
-    if alertas_criticas > 0:
-        lista_para_cerrar = False
-        razones.append("Existen alertas metodológicas críticas de calidad.")
-
-    return lista_para_cerrar, razones
-
-
-def _build_export_payload(
-    ws: dict[str, Any],
-    cliente: str,
-    datos_clave: dict[str, Any] | None,
-    perfil: dict[str, Any] | None,
-) -> dict[str, Any]:
-    datos_clave = datos_clave or {}
-    perfil = perfil or {}
-    manual = _manual_state_from_ws(ws)
-    lista_para_cerrar, razones = _closure_readiness(ws)
-
-    objetivo_area = ws["focos"][0] if ws.get("focos") else "No disponible"
-    period = get_first(datos_clave, ["periodo"], perfil.get("encargo", {}).get("anio_activo", "No disponible"))
-    recommendation = (
-        "Lista para cerrar. Documentar conclusión final y referencias de evidencia."
-        if lista_para_cerrar
-        else "No lista para cerrar. " + " ".join(razones)
-    )
-
-    return {
-        "cliente": cliente,
-        "periodo": period,
-        "area_nombre": ws.get("area_name", "No disponible"),
-        "codigo_ls": ws.get("codigo_ls", "No disponible"),
-        "etapa": ws.get("etapa", "No disponible"),
-        "estado_area": manual.get("estado_area", "no_iniciada"),
-        "riesgo": ws.get("riesgo", "No disponible"),
-        "score_riesgo": ws.get("area_score", "No disponible"),
-        "prioridad": ws.get("prioridad", "media"),
-        "materialidad_relativa": float(ws.get("materialidad_relativa", 0) or 0),
-        "senales_expertas": ws.get("expert_flags", []) or [],
-        "objetivo_area": objetivo_area,
-        "riesgos_area": ws.get("riesgos", []) or [],
-        "procedimientos_pendientes": manual.get("pendientes", []) + _pending_procedures_details(ws),
-        "cobertura": ws.get("cobertura", {}) or {},
-        "hallazgos_abiertos": ws.get("hallazgos", []) or [],
-        "conclusion_preliminar": manual.get("conclusion_preliminar", "No definida"),
-        "decision_cierre": manual.get("decision_cierre", "requiere_revision"),
-        "recomendacion_final": recommendation,
-        "texto_cierre": ws.get("cierre_texto", "No disponible"),
-    }
-
-
-def render_export_block(
-    ws: dict[str, Any],
-    cliente: str,
-    datos_clave: dict[str, Any] | None,
-    perfil: dict[str, Any] | None,
-) -> None:
-    st.markdown("### Exportación del área")
-    payload = _build_export_payload(ws, cliente, datos_clave, perfil)
-
-    resumen_md = safe_call(build_area_resumen_markdown, payload, default="")
-    cierre_md = safe_call(build_area_cierre_markdown, payload, default="")
-
-    if not resumen_md:
-        resumen_md = f"# Resumen de área\n\nCliente: {cliente}\nÁrea: {ws.get('codigo_ls', 'N/A')}\n"
-    if not cierre_md:
-        cierre_md = resumen_md
-
-    code = str(ws.get("codigo_ls", "area")).replace("/", "_")
-    resumen_filename = f"area_{code}_resumen.md"
-    cierre_filename = f"area_{code}_cierre.md"
-
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("Exportar resumen del área (Markdown)", key=f"save_resumen_{cliente}_{code}", width="stretch"):
-            out = safe_call(save_area_markdown, cliente, resumen_filename, resumen_md, default=None)
-            if out is None:
-                st.error("No se pudo guardar el resumen del área.")
-            else:
-                st.success(f"Resumen guardado en: {out}")
-        st.download_button(
-            "Descargar resumen (.md)",
-            data=resumen_md,
-            file_name=resumen_filename,
-            mime="text/markdown",
-            key=f"dl_resumen_{cliente}_{code}",
-            width="stretch",
-        )
-
-    with c2:
-        if st.button("Exportar cierre del área (Markdown)", key=f"save_cierre_{cliente}_{code}", width="stretch"):
-            out = safe_call(save_area_markdown, cliente, cierre_filename, cierre_md, default=None)
-            if out is None:
-                st.error("No se pudo guardar el cierre del área.")
-            else:
-                st.success(f"Cierre guardado en: {out}")
-        st.download_button(
-            "Descargar cierre (.md)",
-            data=cierre_md,
-            file_name=cierre_filename,
-            mime="text/markdown",
-            key=f"dl_cierre_{cliente}_{code}",
-            width="stretch",
-        )
-
-
-def render_seguimiento_tab(ws: dict[str, Any], cliente: str) -> None:
-    st.markdown("**Seguimiento operativo del área**")
-    manual = _manual_state_from_ws(ws)
-
-    key_base = f"seg_{cliente}_{ws['codigo_ls']}"
-    with st.form(f"{key_base}_form", clear_on_submit=False):
-        estado_area = st.selectbox(
-            "Estado del área",
-            options=["no_iniciada", "en_revision", "pendiente_cliente", "lista_para_cierre", "cerrada"],
-            index=["no_iniciada", "en_revision", "pendiente_cliente", "lista_para_cierre", "cerrada"].index(
-                manual["estado_area"] if manual["estado_area"] in {"no_iniciada", "en_revision", "pendiente_cliente", "lista_para_cierre", "cerrada"} else "no_iniciada"
-            ),
-        )
-        decision_cierre = st.selectbox(
-            "Decisión de cierre",
-            options=["requiere_revision", "cerrar", "no_cerrar"],
-            index=["requiere_revision", "cerrar", "no_cerrar"].index(
-                manual["decision_cierre"] if manual["decision_cierre"] in {"requiere_revision", "cerrar", "no_cerrar"} else "requiere_revision"
-            ),
-        )
-        notas_txt = st.text_area(
-            "Notas",
-            value="\n".join(manual["notas"]),
-            height=140,
-            help="Una nota por línea.",
-        )
-        pendientes_txt = st.text_area(
-            "Pendientes",
-            value="\n".join(manual["pendientes"]),
-            height=120,
-            help="Un pendiente por línea.",
-        )
-        conclusion_preliminar = st.text_area(
-            "Conclusión preliminar",
-            value=manual["conclusion_preliminar"],
-            height=120,
-        )
-
-        submit = st.form_submit_button("Guardar estado del área", width="stretch")
-
-    if manual.get("fecha_actualizacion"):
-        st.caption(f"Última actualización: {manual['fecha_actualizacion']}")
-
-    if submit:
-        payload = {
-            "codigo": str(ws["codigo_ls"]),
-            "nombre": ws.get("area_name", ""),
-            "estado_area": estado_area,
-            "riesgo": ws.get("riesgo", ""),
-            "notas": _lines_to_list(notas_txt),
-            "pendientes": _lines_to_list(pendientes_txt),
-            "hallazgos_abiertos": ws.get("estado_area", {}).get("hallazgos_abiertos", []) or [],
-            "conclusion_preliminar": normalize_text(conclusion_preliminar),
-            "decision_cierre": decision_cierre,
-        }
-        _ = safe_call(guardar_estado_area, cliente, str(ws["codigo_ls"]), payload, default=None)
-        if _ is None:
-            st.error("No se pudo guardar el estado del área.")
-        else:
-            hist_event = safe_call(
-                agregar_evento_historial_area,
-                cliente,
-                str(ws["codigo_ls"]),
-                payload,
-                origen="manual",
-                default=None,
-            )
-            st.success("Estado del área guardado correctamente.")
-            if hist_event is None:
-                st.caption("Sin cambios significativos: no se agregó nuevo evento al historial.")
-
-
-def render_decision_cierre_helper(ws: dict[str, Any]) -> None:
-    st.markdown("### Asistente de decisión de cierre")
-    manual = _manual_state_from_ws(ws)
-    hallazgos_abiertos = int(ws.get("hallazgos_count", 0) or 0)
-    pendientes = len(manual.get("pendientes", []))
-    conclusion_cobertura = normalize_text(ws.get("cobertura", {}).get("conclusion", "sin_mapeo"))
-    cobertura_actual = float(ws.get("coverage", 0) or 0)
-    calidad = ws.get("calidad_metodologia", {}) if isinstance(ws.get("calidad_metodologia", {}), dict) else {}
-    alertas_criticas = int(calidad.get("resumen", {}).get("alertas_criticas", 0) or 0)
-
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Cobertura actual", f"{fmt_num(cobertura_actual, 1)}%")
-    c2.metric("Hallazgos abiertos", hallazgos_abiertos)
-    c3.metric("Pendientes", pendientes)
-    c4.metric("Conclusión cobertura", conclusion_cobertura or "sin_mapeo")
-    c5.metric("Alertas calidad criticas", alertas_criticas)
-
-    lista_para_cerrar, razones = _closure_readiness(ws)
-
-    if lista_para_cerrar:
-        st.success("Estado sugerido: lista para cerrar")
-    else:
-        st.warning("Estado sugerido: no lista para cerrar")
-        for r in razones:
-            st.markdown(f"- {r}")
-
-
-def render_historial_tab(ws: dict[str, Any], cliente: str) -> None:
-    st.markdown("**Historial del área**")
-    historial = safe_call(cargar_historial_area, cliente, str(ws["codigo_ls"]), default=[]) or []
-
-    if not historial:
-        st.info("Sin historial registrado todavía")
-        return
-
-    resumen = safe_call(resumir_historial_area, historial, default={}) or {}
-    if resumen:
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Eventos", int(resumen.get("total_eventos", 0) or 0))
-        c2.metric("Último estado", normalize_text(resumen.get("ultimo_estado", "N/A")) or "N/A")
-        c3.metric("Última decisión", normalize_text(resumen.get("ultima_decision", "N/A")) or "N/A")
-
-    latest = historial[0]
-    highlight = normalize_text(latest.get("decision_cierre", ""))
-    if highlight in {"cerrar", "requiere_revision", "no_cerrar"}:
-        st.caption(f"Última decisión destacada: {highlight}")
-    elif normalize_text(latest.get("estado_area", "")) in {"cerrada", "lista_para_cierre"}:
-        st.caption(f"Último estado destacado: {normalize_text(latest.get('estado_area', ''))}")
-
-    st.divider()
-    st.markdown("**Timeline (más reciente primero)**")
-    for ev in historial:
-        ts = normalize_text(ev.get("timestamp", "N/A")) or "N/A"
-        estado = normalize_text(ev.get("estado_area", "N/A")) or "N/A"
-        decision = normalize_text(ev.get("decision_cierre", "N/A")) or "N/A"
-        concl = normalize_text(ev.get("conclusion_preliminar", ""))
-        notas_res = normalize_text(ev.get("notas_resumen", ""))
-        pendientes_res = normalize_text(ev.get("pendientes_resumen", ""))
-        notas_count = int(ev.get("notas_count", 0) or 0)
-        pendientes_count = int(ev.get("pendientes_count", 0) or 0)
-
-        with st.container(border=True):
-            st.markdown(f"**{ts}**")
-            st.markdown(f"- Estado: `{estado}`")
-            st.markdown(f"- Decisión: `{decision}`")
-            st.markdown(f"- Conclusión: {concl[:180] + ('...' if len(concl) > 180 else '') if concl else 'No disponible'}")
-            st.markdown(f"- Notas ({notas_count}): {notas_res if notas_res else 'Sin notas'}")
-            st.markdown(f"- Pendientes ({pendientes_count}): {pendientes_res if pendientes_res else 'Sin pendientes'}")
-
-
-def render_contexto_tab(ws: dict[str, Any]) -> None:
-    area_df = ws["area_df"]
-
-    st.markdown("**Top cuentas principales del area**")
-    top_df = safe_call(top_cuentas_significativas, area_df, 8, default=pd.DataFrame())
-    if top_df is None or top_df.empty:
-        top_df = area_df.head(8) if isinstance(area_df, pd.DataFrame) else pd.DataFrame()
-
-    if top_df is not None and not top_df.empty:
-        cols = [c for c in ["numero_cuenta", "nombre_cuenta", "saldo_actual", "variacion_absoluta"] if c in top_df.columns]
-        if cols:
-            show = top_df[cols].copy()
-            if "saldo_actual" in show.columns:
-                show["saldo_actual"] = show["saldo_actual"].apply(fmt_money)
-            if "variacion_absoluta" in show.columns:
-                show["variacion_absoluta"] = show["variacion_absoluta"].apply(fmt_money)
-            st.dataframe(show, width="stretch", hide_index=True)
-        else:
-            st.dataframe(top_df.head(8), width="stretch", hide_index=True)
-    else:
-        st.info("No hay cuentas principales disponibles para esta area.")
-
-    st.markdown("**Objetivo del area**")
-    if ws["focos"]:
-        st.write(ws["focos"][0])
-    else:
-        st.write("Objetivo no disponible. Revisar mapeo de area y reglas de negocio.")
-
-    st.markdown("**Riesgos del area**")
-    if ws["riesgos"]:
-        for r in ws["riesgos"]:
-            st.markdown(f"- [{normalize_text(r.get('nivel', 'N/A'))}] {normalize_text(r.get('titulo', ''))}: {normalize_text(r.get('descripcion', ''))}")
-    else:
-        st.info("No se detectaron riesgos del motor base para esta area.")
-
-    riesgos = ws.get("riesgos_automaticos", []) if isinstance(ws.get("riesgos_automaticos", []), list) else []
-    st.subheader("Riesgos automaticos")
-    if riesgos:
-        for r in riesgos:
-            nivel = normalize_text(r.get("nivel", ""))
-            color = {"ALTO": "RED", "MEDIO": "ORANGE", "BAJO": "GREEN"}.get(nivel.upper(), "GRAY")
-            st.markdown(
-                f"- `{color}` **{normalize_text(r.get('tipo', 'RIESGO'))} ({nivel.upper() or 'N/A'})**  \n"
-                f"  - {normalize_text(r.get('descripcion', 'Sin descripcion'))}  \n"
-                f"  - Accion: {normalize_text(r.get('accion_sugerida', 'Sin accion sugerida'))}"
-            )
-    else:
-        st.success("No se detectaron riesgos automáticos para esta área.")
-
-    st.markdown("**Aseveraciones esperadas**")
-    esperadas = ws["cobertura"].get("esperadas", [])
-    if esperadas:
-        st.write(", ".join(esperadas))
-    else:
-        st.info("No existe mapeo de aseveraciones esperadas para esta area.")
-
-    st.markdown("**Alertas contextuales**")
-    alertas = []
-    if ws["hallazgos_count"] > 0:
-        alertas.append(f"Hay {ws['hallazgos_count']} hallazgo(s) abierto(s).")
-    if ws["pending_count"] > 0:
-        alertas.append(f"Hay {ws['pending_count']} procedimiento(s) pendiente(s).")
-    if ws["coverage"] < 60:
-        alertas.append("Cobertura menor al 60%.")
-
-    if alertas:
-        for a in alertas:
-            st.warning(a)
-    else:
-        st.success("Sin alertas contextuales relevantes.")
-
-
-def render_briefing_tab(ws: dict[str, Any]) -> None:
-    st.markdown("**Briefing ejecutivo del area**")
-    st.write(ws["lectura"])
-
-    st.markdown("**Resumen practico**")
-    s = ws["area_summary"]
-    st.write(
-        f"Cuentas: {int(s.get('cuentas', 0) or 0)} | "
-        f"Saldo actual: {fmt_money(s.get('saldo_actual', 0))} | "
-        f"Variacion acumulada: {fmt_money(s.get('variacion_acumulada', 0))}"
-    )
-
-    st.markdown("**Foco de auditoria**")
-    if ws["focos"]:
-        for foco in ws["focos"]:
-            st.markdown(f"- {foco}")
-    else:
-        st.info("No hay foco de auditoria definido para esta area.")
-
-    if ws.get("es_holding"):
-        st.markdown("**Foco holding**")
-        foco_holding = ws.get("foco_holding", []) if isinstance(ws.get("foco_holding", []), list) else []
-        if foco_holding:
-            for foco in foco_holding:
-                st.markdown(f"- {foco}")
-        else:
-            st.info("Sin foco holding específico para esta area.")
-
-    st.markdown("**Why this area matters**")
-    if ws["coverage"] < 80 or ws["hallazgos_count"] > 0:
-        st.write("Esta area importa porque puede concentrar riesgo residual por cobertura parcial y/o hallazgos abiertos.")
-    else:
-        st.write("Esta area importa por su relevancia en el cierre, aun con cobertura favorable.")
-
-
-def render_procedimientos_tab(ws: dict[str, Any]) -> None:
-    st.markdown("**Procedimientos del area**")
-    proc_df = ws["proc_df"].copy()
-
-    if proc_df.empty:
-        st.info("No existen procedimientos cargados para esta area.")
-        return
-
-    if "id" not in proc_df.columns:
-        proc_df["id"] = ""
-    if "descripcion" not in proc_df.columns:
-        proc_df["descripcion"] = ""
-    if "estado" not in proc_df.columns:
-        proc_df["estado"] = "planificado"
-
-    proc_df["estado"] = proc_df["estado"].astype(str).str.lower()
-
-    estado_labels = {
-        "ejecutado": "Ejecutado",
-        "completado": "Completado",
-        "cerrado": "Cerrado",
-        "en_proceso": "En proceso",
-        "planificado": "Planificado",
-        "pendiente": "Pendiente",
-        "no_aplicable": "No aplicable",
-        "no_aplica": "No aplica",
-    }
-    proc_df["estado_legible"] = proc_df["estado"].map(estado_labels).fillna(proc_df["estado"])
-
-    resumen = proc_df["estado_legible"].value_counts().to_dict()
-    resumen_txt = " | ".join([f"{k}: {v}" for k, v in resumen.items()])
-    st.caption(f"Resumen estados: {resumen_txt}")
-    st.caption(f"Pendientes: {ws['pending_count']}")
-
-    view_df = proc_df[["id", "descripcion", "estado_legible"]].rename(
-        columns={"id": "ID", "descripcion": "Procedimiento", "estado_legible": "Estado"}
-    )
-
-    st.dataframe(
-        view_df,
-        width="stretch",
-        hide_index=True,
-        column_config={
-            "Estado": st.column_config.TextColumn(
-                "Estado",
-                help="Estado actual del procedimiento",
-            )
-        },
-    )
-
-
-def render_cobertura_tab(ws: dict[str, Any]) -> None:
-    cobertura = ws["cobertura"]
-    codigo_ls = normalize_text(ws.get("codigo_ls", ""))
-    area_oficial = safe_call(obtener_area_por_codigo, codigo_ls, default=None)
-    titulo_ls = normalize_text(area_oficial.get("titulo", "")) if isinstance(area_oficial, dict) else ""
-    calidad = ws.get("calidad_metodologia", {}) if isinstance(ws.get("calidad_metodologia", {}), dict) else {}
-    guia_det = calidad.get("aseveraciones_guia_detalle", {}) if isinstance(calidad.get("aseveraciones_guia_detalle", {}), dict) else {}
-    guia_ls = guia_det.get("aseveraciones_sugeridas", []) if isinstance(guia_det.get("aseveraciones_sugeridas", []), list) else []
-    guia_nota = normalize_text(guia_det.get("nota", "")) or "Guia referencial, no exhaustiva."
-
-    st.markdown("**Resumen de cobertura**")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Cobertura", f"{fmt_num(cobertura.get('cobertura_porcentaje', 0), 1)}%")
-    c2.metric("Aseveraciones cubiertas", len(cobertura.get("cubiertas", [])))
-    c3.metric("Aseveraciones no cubiertas", len(cobertura.get("no_cubiertas", [])))
-
-    if codigo_ls:
-        st.caption(f"LS {codigo_ls} - {titulo_ls or ws.get('area_name', 'Sin título oficial')}")
-
-    st.markdown("**Aseveraciones esperadas**")
-    st.write(", ".join(cobertura.get("esperadas", [])) or "Sin datos")
-
-    st.markdown("**Aseveraciones guía sugeridas (referencial)**")
-    if guia_ls:
-        st.write(", ".join([str(x) for x in guia_ls]))
-    else:
-        st.info("Sin guía específica disponible")
-    st.caption(
-        "Esta guía es referencial y puede complementarse según el juicio profesional y la naturaleza del saldo."
-    )
-    if guia_nota and guia_nota.lower() != "guia referencial, no exhaustiva.":
-        st.caption(guia_nota)
-
-    st.markdown("**Aseveraciones cubiertas**")
-    st.write(", ".join(cobertura.get("cubiertas", [])) or "Sin cobertura fuerte")
-
-    st.markdown("**Aseveraciones debiles**")
-    st.write(", ".join(cobertura.get("debiles", [])) or "Sin aseveraciones debiles")
-
-    st.markdown("**Aseveraciones no cubiertas**")
-    st.write(", ".join(cobertura.get("no_cubiertas", [])) or "Sin aseveraciones no cubiertas")
-
-    st.markdown("**Conclusion**")
-    conclusion = normalize_text(cobertura.get("conclusion", "sin_mapeo")) or "sin_mapeo"
-    if conclusion == "completa":
-        st.success("Cobertura completa")
-    elif conclusion == "con_reservas":
-        st.warning("Cobertura con reservas")
-    elif conclusion == "incompleta":
-        st.error("Cobertura incompleta")
-    else:
-        st.info("Cobertura sin mapeo")
-
-
-def render_hallazgos_tab(ws: dict[str, Any]) -> None:
-    st.markdown("**Hallazgos abiertos**")
-    hallazgos = ws["hallazgos"]
-
-    if not hallazgos:
-        st.info("No existen hallazgos abiertos para esta area.")
-        return
-
-    for idx, h in enumerate(hallazgos, start=1):
-        st.markdown(f"{idx}. {h}")
-
-
-def render_calidad_tab(ws: dict[str, Any]) -> None:
-    st.markdown("**Revision de calidad metodologica**")
-    calidad = ws.get("calidad_metodologia", {}) if isinstance(ws.get("calidad_metodologia", {}), dict) else {}
-    if not calidad:
-        st.info("No evaluado: servicio de metodologia no disponible.")
-        return
-
-    codigo_ls = normalize_text(ws.get("codigo_ls", ""))
-    area_oficial = safe_call(obtener_area_por_codigo, codigo_ls, default=None)
-    titulo_oficial = normalize_text(area_oficial.get("titulo", "")) if isinstance(area_oficial, dict) else ""
-    st.caption(f"LS {codigo_ls} - {titulo_oficial or ws.get('area_name', 'Sin título oficial')}")
-
-    resumen = calidad.get("resumen", {}) if isinstance(calidad.get("resumen", {}), dict) else {}
-    total_alertas = int(resumen.get("total_alertas", 0) or 0)
-    alertas_criticas = int(resumen.get("alertas_criticas", 0) or 0)
-    estado_general = normalize_text(resumen.get("estado_general", "no_evaluado")) or "no_evaluado"
-
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Alertas totales", total_alertas)
-    c2.metric("Alertas criticas", alertas_criticas)
-    c3.metric("Estado", estado_general.upper())
-
-    rim = calidad.get("rim_fraude", {}) if isinstance(calidad.get("rim_fraude", {}), dict) else {}
-    st.markdown("**RIM / fraude presunto**")
-    st.markdown(f"- Riesgo fraude en ingresos presente: {'Si' if rim.get('ingresos_presente') else 'No'}")
-    st.markdown(f"- Riesgo override gerencia presente: {'Si' if rim.get('gerencia_presente') else 'No'}")
-    st.markdown(
-        f"- Rebuttal documentado: ingresos={'Si' if rim.get('rebuttal_ingresos') else 'No'} | gerencia={'Si' if rim.get('rebuttal_gerencia') else 'No'}"
-    )
-
-    req = calidad.get("procedimientos_materialidad", {}) if isinstance(calidad.get("procedimientos_materialidad", {}), dict) else {}
-    st.markdown("**Requerimiento de procedimientos por materialidad/fraude**")
-    st.markdown(f"- Area material: {'Si' if req.get('es_material') else 'No'}")
-    st.markdown(f"- Procedimientos registrados: {int(req.get('procedimientos_count', 0) or 0)}")
-    st.markdown(f"- Relacionada a fraude en ingresos: {'Si' if req.get('riesgo_fraude_relacionado') else 'No'}")
-
-    ctrl = calidad.get("pruebas_control_walkthrough", {}) if isinstance(calidad.get("pruebas_control_walkthrough", {}), dict) else {}
-    st.markdown("**Pruebas de control / walkthrough**")
-    st.markdown(f"- Hay pruebas control/recorrido: {'Si' if ctrl.get('hay_control_o_walkthrough') else 'No'}")
-    st.markdown(f"- Soporte de base de muestra/transaccion: {'Si' if ctrl.get('tiene_soporte_base') else 'No'}")
-
-    ing = calidad.get("ingresos_metodologia", {}) if isinstance(calidad.get("ingresos_metodologia", {}), dict) else {}
-    st.markdown("**Metodologia de ingresos**")
-    if ing.get("aplica"):
-        st.markdown(f"- Marco aplicado: {normalize_text(ing.get('marco', 'no_disponible')) or 'no_disponible'}")
-        checklist = ing.get("checklist", []) if isinstance(ing.get("checklist", []), list) else []
-        faltantes = ing.get("faltantes", []) if isinstance(ing.get("faltantes", []), list) else []
-        st.markdown(f"- Checklist: {', '.join([str(x) for x in checklist]) if checklist else 'No disponible'}")
-        st.markdown(f"- Faltantes: {', '.join([str(x) for x in faltantes]) if faltantes else 'Ninguno'}")
-    else:
-        st.info("No aplica para esta area.")
-
-    gas = calidad.get("gastos_metodologia", {}) if isinstance(calidad.get("gastos_metodologia", {}), dict) else {}
-    st.markdown("**Metodologia de gastos**")
-    if gas.get("aplica"):
-        st.markdown(f"- Existe resumen/cruce: {'Si' if gas.get('tiene_resumen_cruce') else 'No'}")
-    else:
-        st.info("No aplica para esta area.")
-
-    est = calidad.get("estimaciones_nia540", {}) if isinstance(calidad.get("estimaciones_nia540", {}), dict) else {}
-    st.markdown("**NIA 540 - estimaciones contables**")
-    if est.get("aplica"):
-        enfoques = est.get("enfoques_detectados", []) if isinstance(est.get("enfoques_detectados", []), list) else []
-        st.markdown(f"- Enfoques detectados: {', '.join([str(x) for x in enfoques]) if enfoques else 'Ninguno'}")
-        sugerencias = est.get("sugerencias", []) if isinstance(est.get("sugerencias", []), list) else []
-        for s in sugerencias:
-            st.markdown(f"- {s}")
-    else:
-        st.info("No aplica para esta area.")
-
-    hold = calidad.get("holding_sensibilidad", {}) if isinstance(calidad.get("holding_sensibilidad", {}), dict) else {}
-    if hold.get("aplica"):
-        st.markdown("**Sensibilidad de calidad para holding**")
-        obs = hold.get("observaciones", []) if isinstance(hold.get("observaciones", []), list) else []
-        if obs:
-            for o in obs:
-                st.markdown(f"- {o}")
-        else:
-            st.info("Sin observaciones holding adicionales para esta area.")
-
-    st.markdown("**Aseveraciones guia para conclusion de papeles**")
-    guia_det = calidad.get("aseveraciones_guia_detalle", {}) if isinstance(calidad.get("aseveraciones_guia_detalle", {}), dict) else {}
-    asev = guia_det.get("aseveraciones_sugeridas", []) if isinstance(guia_det.get("aseveraciones_sugeridas", []), list) else []
-    nota = normalize_text(guia_det.get("nota", "")) or "Guia referencial, no exhaustiva."
-    st.write(", ".join([str(x) for x in asev]) if asev else "Sin guía específica disponible")
-    st.caption(
-        "Esta guía es referencial y puede complementarse según el juicio profesional y la naturaleza del saldo."
-    )
-    if nota and nota.lower() != "guia referencial, no exhaustiva.":
-        st.caption(nota)
-
-    st.markdown("**Alertas de calidad**")
-    alertas = calidad.get("alertas", []) if isinstance(calidad.get("alertas", []), list) else []
-    if not alertas:
-        st.success("Sin alertas de calidad metodologica.")
-    else:
-        for a in alertas:
-            nivel = normalize_text(a.get("nivel", "medio")) or "medio"
-            msg = normalize_text(a.get("mensaje", "Alerta metodologica")) or "Alerta metodologica"
-            det = normalize_text(a.get("detalle", ""))
-            critica = bool(a.get("critica", False))
-            prefix = "[CRITICA]" if critica else f"[{nivel.upper()}]"
-            if critica:
-                st.error(f"{prefix} {msg}")
-            elif nivel == "alto":
-                st.warning(f"{prefix} {msg}")
-            else:
-                st.info(f"{prefix} {msg}")
-            if det:
-                st.caption(det)
-
-
-def render_cierre_tab(ws: dict[str, Any]) -> None:
-    render_decision_cierre_helper(ws)
-    st.divider()
-    st.markdown("**Revision de cierre**")
-    st.text_area("Texto de revision", value=ws["cierre_texto"], height=240)
-
-    st.markdown("**Pendientes clave antes del cierre**")
-    if ws["pendientes"]:
-        for p in ws["pendientes"]:
-            st.markdown(f"- {p}")
-    elif ws["pending_count"] > 0:
-        st.markdown(f"- Existen {ws['pending_count']} procedimientos pendientes.")
-    else:
-        st.markdown("- No se registran pendientes criticos.")
-
-    st.markdown("**Conclusion sugerida**")
-    lista_para_cerrar, razones = _closure_readiness(ws)
-    if lista_para_cerrar:
-        st.success("Se puede avanzar al cierre del area.")
-    else:
-        st.warning("No se recomienda cerrar el area aun.")
-        for r in razones:
-            st.markdown(f"- {r}")
-
-    st.markdown("**Proximas acciones recomendadas**")
-    actions = []
-    if ws["pending_count"] > 0:
-        actions.append("Completar procedimientos pendientes con evidencia.")
-    if ws["hallazgos_count"] > 0:
-        actions.append("Resolver hallazgos abiertos o documentar plan de remediacion.")
-    if ws["coverage"] < 80:
-        actions.append("Fortalecer cobertura en aseveraciones debiles/no cubiertas.")
-    calidad = ws.get("calidad_metodologia", {}) if isinstance(ws.get("calidad_metodologia", {}), dict) else {}
-    if int(calidad.get("resumen", {}).get("alertas_criticas", 0) or 0) > 0:
-        actions.append("Resolver alertas metodologicas criticas de la pestana Revision de calidad.")
-    if not actions:
-        actions.append("Documentar conclusion final del area y referencias de soporte.")
-
-    for a in actions:
-        st.markdown(f"- {a}")
 
 
 def render_consultar_socio_tab(ws: dict[str, Any], cliente: str) -> None:
@@ -1470,7 +877,15 @@ render_sidebar_summary(cliente, perfil, datos_clave, ranking_areas)
 # ============================================================
 # Header principal
 # ============================================================
-st.markdown("<div class='header-title'>SocioAI - Analisis de Auditoria</div>", unsafe_allow_html=True)
+st.markdown("""
+    <div class="socioai-header">
+        <div class="socioai-logo">📊</div>
+        <div>
+            <h1>SocioAI</h1>
+            <p>Plataforma Inteligente de Auditoría Financiera</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Cliente", normalize_text(get_first(datos_clave, ["nombre"], perfil.get("cliente", {}).get("nombre_legal", "N/A"))) or "N/A")
@@ -1484,7 +899,7 @@ st.divider()
 # ============================================================
 # Tabs principales
 # ============================================================
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "Resumen",
     "Ranking de áreas",
     "Vista por área",
@@ -1493,6 +908,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "Hallazgos",
     "Briefing IA",
     "Chat con IA",
+    "Análisis Financiero",
 ])
 
 
@@ -1513,8 +929,59 @@ with tab1:
     r3.metric("Areas bajo riesgo", indicadores.get("areas_bajo_riesgo", 0))
 
     concentracion = float(indicadores.get("concentracion_principal_area", 0) or 0)
-    st.write(f"Concentracion principal area: {fmt_num(concentracion, 1)}%")
-    st.progress(max(0.0, min(concentracion / 100.0, 1.0)))
+    st.markdown("**Concentración principal área**")
+    conc_value = max(0.0, min(concentracion / 100.0, 1.0))
+    color_conc = (
+        "#DE350B" if concentracion >= 50
+        else "#FF8B00" if concentracion >= 30
+        else "#00875A"
+    )
+    st.markdown(f"""
+    <div style="background:#F4F5F7; border-radius:8px; padding:4px; margin-bottom:4px;">
+        <div style="background:{color_conc}; width:{min(concentracion,100):.1f}%;
+                    height:18px; border-radius:6px; transition:width 0.5s;
+                    display:flex; align-items:center; padding-left:8px;">
+            <span style="color:white; font-size:0.75rem; font-weight:700;">
+                {concentracion:.1f}%
+            </span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    try:
+        import plotly.express as px
+        alto   = indicadores.get("areas_alto_riesgo", 0)
+        medio  = indicadores.get("areas_medio_riesgo", 0)
+        bajo   = indicadores.get("areas_bajo_riesgo", 0)
+        if alto + medio + bajo > 0:
+            fig_pie = px.pie(
+                names=["Alto", "Medio", "Bajo"],
+                values=[alto, medio, bajo],
+                color=["Alto", "Medio", "Bajo"],
+                color_discrete_map={
+                    "Alto": "#DE350B",
+                    "Medio": "#FF8B00",
+                    "Bajo": "#00875A",
+                },
+                title="Distribución de riesgo por áreas",
+                hole=0.45,
+            )
+            fig_pie.update_layout(
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font_color="#172B4D",
+                title_font_color="#003366",
+                title_font_size=15,
+                height=300,
+                margin=dict(l=10, r=10, t=40, b=10),
+                legend=dict(orientation="h", y=-0.1),
+            )
+            fig_pie.update_traces(
+                textposition="inside",
+                textinfo="percent+label",
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+    except ImportError:
+        pass
 
 
 with tab2:
@@ -1546,7 +1013,59 @@ with tab2:
         if "estado_presencia" in rank_view.columns:
             rank_view["estado_presencia"] = rank_view["estado_presencia"].astype(str).str.upper()
 
-        st.dataframe(rank_view, width="stretch", hide_index=True)
+        def _color_score(val):
+            try:
+                v = float(str(val).replace("%",""))
+                if v >= 70: return "background-color: #FFEBE6; color: #DE350B; font-weight: 700"
+                if v >= 40: return "background-color: #FFFAE6; color: #FF8B00; font-weight: 700"
+                return "background-color: #E3FCEF; color: #00875A; font-weight: 700"
+            except Exception:
+                return ""
+
+        if "score_riesgo" in rank_view.columns:
+            st.dataframe(
+                rank_view.style.applymap(_color_score, subset=["score_riesgo"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.dataframe(rank_view, use_container_width=True, hide_index=True)
+        try:
+            import plotly.express as px
+            if isinstance(ranking_areas, pd.DataFrame) and not ranking_areas.empty:
+                chart_df = ranking_areas.head(8).copy()
+                chart_df["nombre_corto"] = chart_df["nombre"].str[:25]
+                chart_df["color"] = chart_df["score_riesgo"].apply(
+                    lambda x: "#DE350B" if x >= 70
+                    else "#FF8B00" if x >= 40
+                    else "#00875A"
+                )
+                fig = px.bar(
+                    chart_df,
+                    x="score_riesgo",
+                    y="nombre_corto",
+                    orientation="h",
+                    title="Score de riesgo por área",
+                    labels={"score_riesgo": "Score", "nombre_corto": "Área"},
+                    color="score_riesgo",
+                    color_continuous_scale=["#00875A", "#FF8B00", "#DE350B"],
+                )
+                fig.update_layout(
+                    plot_bgcolor="white",
+                    paper_bgcolor="white",
+                    font_color="#172B4D",
+                    title_font_color="#003366",
+                    title_font_size=16,
+                    showlegend=False,
+                    height=350,
+                    margin=dict(l=10, r=10, t=40, b=10),
+                    coloraxis_showscale=False,
+                )
+                fig.update_xaxes(showgrid=True, gridcolor="#DFE1E6")
+                fig.update_yaxes(showgrid=False)
+                st.plotly_chart(fig, use_container_width=True)
+        except ImportError:
+            pass
     else:
         st.info("No se pudo construir el ranking enriquecido para este cliente.")
 
@@ -1751,124 +1270,69 @@ with tab6:
 
 
 with tab7:
-    st.subheader("Briefing de Área con IA (DeepSeek)")
-
-    from llm.llm_client import llamar_llm_seguro
-
-    col_b1, col_b2 = st.columns(2)
-    with col_b1:
-        area_briefing_input = st.text_input(
-            "Código área L/S para briefing", value=selected_area_code or "14"
-        )
-    with col_b2:
-        etapa_input = st.selectbox(
-            "Etapa de auditoría", ["planificacion", "ejecucion", "cierre"]
-        )
-
-    if st.button("Generar Briefing con IA"):
-        with st.spinner("Consultando al modelo..."):
-            try:
-                from llm.briefing_llm import generar_briefing_area_llm
-                resultado = generar_briefing_area_llm(
-                    nombre_cliente=cliente,
-                    codigo_ls=area_briefing_input,
-                    etapa=etapa_input,
-                )
-                st.markdown("**Criterio del socio (IA)**")
-                st.markdown(resultado)
-            except ValueError as ve:
-                msg = str(ve)
-                if "DEEPSEEK_API_KEY" in msg or "OPENAI_API_KEY" in msg:
-                    st.error(
-                        f"Falta API key: {ve}. "
-                        "Agrega DEEPSEEK_API_KEY a tu archivo .env y reinicia la app."
-                    )
-                else:
-                    st.error(f"Error de configuración interna: {ve}")
-            except Exception as ex:
-                st.error(f"Error al generar briefing: {ex}")
-
-    st.info(
-        "Requiere DEEPSEEK_API_KEY en el archivo .env del proyecto. "
-        "Si no tienes clave, el resto de la app funciona sin IA."
-    )
+    render_briefing_ia_tab(cliente, selected_area_code)
 
 
 with tab8:
-    st.subheader("Chat libre con IA sobre el cliente")
-    st.caption(
-        f"Contexto activo: {cliente} | "
-        "La IA conoce el perfil y datos del cliente."
-    )
-
     from llm.llm_client import llamar_llm_seguro
+    render_chat_tab(cliente, cached_leer_perfil, llamar_llm_seguro)
 
-    # ── Build client context for system prompt ───────────────────
-    _perfil_chat = cached_leer_perfil(cliente) or {}
-    _nombre_chat = _perfil_chat.get("cliente", {}).get("nombre_legal", cliente)
-    _sector_chat = _perfil_chat.get("cliente", {}).get("sector", "N/A")
-    _periodo_chat = _perfil_chat.get("encargo", {}).get("anio_activo", "N/A")
-    _riesgo_chat = _perfil_chat.get("riesgo_global", {}).get("nivel", "N/A")
-    _mat_chat = _perfil_chat.get("materialidad", {}).get("preliminar", {}).get("materialidad_global", "N/A")
+with tab9:
+    st.subheader("Análisis Financiero")
 
-    system_chat = (
-        f"Eres un socio senior de auditoría financiera especializado en NIAs y NIIF. "
-        f"Estás trabajando en el encargo de auditoría del cliente: {_nombre_chat}, "
-        f"sector {_sector_chat}, periodo {_periodo_chat}. "
-        f"Riesgo global del cliente: {_riesgo_chat}. "
-        f"Materialidad global: {_mat_chat}. "
-        f"Responde siempre en español con criterio técnico, concreto y accionable. "
-        f"Usa formato Markdown para estructurar tus respuestas."
-    )
+    from analysis.ratios import resumen_ratios, calcular_ratios
+    from analysis.benchmark import resumen_benchmark
+    from analysis.tendencias import resumen_tendencias, alertas_tendencias
 
-    # ── Chat history in session state ────────────────────────────
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
+    col_r, col_b = st.columns(2)
 
-    # Display chat history
-    for msg in st.session_state.chat_history:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+    with col_r:
+        st.markdown("#### Ratios financieros")
+        ratios_data = resumen_ratios(cliente)
+        if ratios_data:
+            df_ratios = pd.DataFrame(ratios_data)
+            show_cols = ["categoria", "ratio", "valor", "interpretacion"]
+            show_cols = [c for c in show_cols if c in df_ratios.columns]
+            st.dataframe(df_ratios[show_cols], use_container_width=True, hide_index=True)
+        else:
+            st.info("Sin datos suficientes para calcular ratios.")
 
-    # Chat input
-    user_input = st.chat_input(
-        "Pregunta algo sobre el cliente, áreas, riesgos, NIAs..."
-    )
+    with col_b:
+        st.markdown("#### Benchmark sectorial")
+        bench = resumen_benchmark(cliente)
+        if bench.get("total", 0) > 0:
+            b1, b2, b3 = st.columns(3)
+            b1.metric("OK", bench["ok"])
+            b2.metric("Alerta", bench["alerta"])
+            b3.metric("Crítico", bench["critico"])
+            df_bench = pd.DataFrame(bench["detalle"])
+            show_b = ["ratio", "valor_cliente", "benchmark_optimo", "estado"]
+            show_b = [c for c in show_b if c in df_bench.columns]
+            st.dataframe(df_bench[show_b], use_container_width=True, hide_index=True)
+        else:
+            st.info("Sin benchmark disponible para este cliente.")
 
-    if user_input:
-        st.session_state.chat_history.append(
-            {"role": "user", "content": user_input}
+    st.divider()
+    st.markdown("#### Tendencias de cuentas")
+    res_tend = resumen_tendencias(cliente)
+    if res_tend:
+        t1, t2, t3 = st.columns(3)
+        t1.metric("Total cuentas", res_tend.get("total_cuentas", 0))
+        t2.metric("Cuentas en alerta", res_tend.get("cuentas_alerta", 0))
+        t3.metric("Mayor crecimiento", 
+            res_tend.get("mayor_crecimiento", {}).get("nombre", "N/A")
+            if res_tend.get("mayor_crecimiento") else "N/A"
         )
-        with st.chat_message("user"):
-            st.markdown(user_input)
-
-        history_text = "\n".join(
-            [f"{m['role'].upper()}: {m['content']}"
-             for m in st.session_state.chat_history[-6:]]
-        )
-        full_prompt = (
-            f"Historial de conversación:\n{history_text}"
-            f"\n\nPregunta actual: {user_input}"
-        )
-
-        with st.chat_message("assistant"):
-            with st.spinner("Consultando a DeepSeek..."):
-                response = llamar_llm_seguro(
-                    full_prompt,
-                    system=system_chat,
-                    fallback="No se pudo obtener respuesta. Verifica tu DEEPSEEK_API_KEY.",
-                )
-            st.markdown(response)
-
-        st.session_state.chat_history.append(
-            {"role": "assistant", "content": response}
-        )
-
-    # Clear chat button
-    if st.session_state.chat_history:
-        if st.button("Limpiar conversación", key="clear_chat"):
-            st.session_state.chat_history = []
-            st.rerun()
+        alertas = alertas_tendencias(cliente)
+        if alertas:
+            st.markdown("**Cuentas que requieren atención**")
+            df_alertas = pd.DataFrame(alertas[:15])
+            show_t = ["codigo", "nombre", "saldo_actual",
+                      "variacion_absoluta", "variacion_porcentual", "tendencia"]
+            show_t = [c for c in show_t if c in df_alertas.columns]
+            st.dataframe(df_alertas[show_t], use_container_width=True, hide_index=True)
+    else:
+        st.info("Sin datos de tendencias disponibles.")
 
 
 st.divider()
@@ -1876,4 +1340,3 @@ f1, f2, f3 = st.columns(3)
 f1.caption("SocioAI - Auditoria Inteligente con IA")
 f2.caption("Ultima actualizacion: 2026-03-17")
 f3.caption("Modo: analisis + workspace por area")
-
