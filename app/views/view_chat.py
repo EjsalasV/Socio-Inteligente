@@ -108,8 +108,22 @@ def render_chat_tab(
             [f"{m['role'].upper()}: {m['content']}"
              for m in st.session_state.chat_history[-6:]]
         )
+
+        # RAG: recuperar contexto normativo relevante
+        contexto_normativo = ""
+        try:
+            from infra.rag.retriever import recuperar_contexto_normativo
+            from infra.rag.vector_store import esta_indexado
+            if esta_indexado():
+                contexto_normativo = recuperar_contexto_normativo(
+                    user_input, n_resultados=3
+                )
+        except Exception:
+            pass
+
         full_prompt = (
             f"Historial de conversación:\n{history_text}"
+            f"{chr(10) + contexto_normativo if contexto_normativo else ''}"
             f"\n\nPregunta actual: {user_input}"
         )
 

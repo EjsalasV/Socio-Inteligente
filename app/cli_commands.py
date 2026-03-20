@@ -167,5 +167,43 @@ def cmd_briefing(cliente: str, codigo_ls: str, etapa: str) -> None:
         sys.exit(1)
 
 
+@main.command("indexar")
+@click.option("--forzar", is_flag=True, default=False,
+              help="Re-indexar aunque ya exista contenido.")
+def cmd_indexar(forzar: bool) -> None:
+    """Indexa la base de conocimiento normativo en ChromaDB."""
+    click.echo("\nIniciando indexacion de base normativa...")
+    try:
+        from infra.rag.retriever import inicializar_rag
+        resultado = inicializar_rag(forzar=forzar)
+        estado = resultado.get("estado", "desconocido")
+        total = resultado.get("total_chunks", 0)
+        if estado == "ya_indexado":
+            click.echo(f"Ya indexado: {total} chunks. Usa --forzar para re-indexar.")
+        elif estado == "indexado":
+            click.echo(f"Indexacion completa: {total} chunks indexados.")
+        else:
+            click.echo(f"Estado: {estado}")
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
+
+
+@main.command("buscar")
+@click.argument("consulta")
+@click.option("--n", default=3, help="Numero de resultados (default: 3)")
+def cmd_buscar(consulta: str, n: int) -> None:
+    """Busca en la base normativa indexada."""
+    try:
+        from infra.rag.retriever import recuperar_contexto_normativo
+        contexto = recuperar_contexto_normativo(consulta, n_resultados=n)
+        if contexto:
+            click.echo(contexto)
+        else:
+            click.echo("Sin resultados. Ejecuta primero: python -m app.cli_commands indexar")
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+
+
 if __name__ == "__main__":
     main()

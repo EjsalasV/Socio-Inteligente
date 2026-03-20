@@ -1,0 +1,75 @@
+﻿# Catálogo de sectores económicos para SocioAI
+# Usado para benchmark, materialidad y motor de industria
+
+version: 1
+
+sectores:
+  - codigo: "comerciales"
+    nombre: "Comercial / Retail"
+    descripcion: "Empresas de compraventa de bienes."
+    areas_criticas: ["110", "130.1", "1500", "425", "140"]
+    riesgo_tipico: "medio"
+    base_materialidad: "activos"
+
+  - codigo: "servicios"
+    nombre: "Servicios"
+    descripcion: "Empresas de prestación de servicios."
+    areas_criticas: ["1500", "130.1", "1600", "140", "425"]
+    riesgo_tipico: "medio"
+    base_materialidad: "ingresos"
+
+  - codigo: "servicios_profesionales"
+    nombre: "Servicios Profesionales"
+    descripcion: "Firmas legales, contables, consultoras."
+    areas_criticas: ["1500", "130.1", "1600", "130.2", "136"]
+    riesgo_tipico: "medio"
+    base_materialidad: "ingresos"
+
+  - codigo: "holding"
+    nombre: "Holding / Sociedad de Cartera"
+    descripcion: "Sociedades de control y tenencia de participaciones."
+    areas_criticas: ["14", "200", "425.2", "1500", "136"]
+    riesgo_tipico: "medio_alto"
+    base_materialidad: "activos"
+
+  - codigo: "manufactura"
+    nombre: "Manufactura / Industrial"
+    descripcion: "Empresas de producción y transformación."
+    areas_criticas: ["110", "1", "1500", "1600", "425"]
+    riesgo_tipico: "medio"
+    base_materialidad: "activos"
+
+  - codigo: "financiero"
+    nombre: "Sector Financiero"
+    descripcion: "Bancos, cooperativas, financieras."
+    areas_criticas: ["130.1", "14", "425", "1500", "15"]
+    riesgo_tipico: "alto"
+    base_materialidad: "activos"
+
+  - codigo: "cooperativas"
+    nombre: "Cooperativas"
+    descripcion: "Cooperativas de ahorro, crédito y servicios."
+    areas_criticas: ["130.1", "140", "200", "425", "1900"]
+    riesgo_tipico: "medio"
+    base_materialidad: "patrimonio"
+
+  - codigo: "sin_fines_de_lucro"
+    nombre: "Sin Fines de Lucro / ONG"
+    descripcion: "Organizaciones sin fines de lucro."
+    areas_criticas: ["200", "140", "1500", "1600", "136"]
+    riesgo_tipico: "bajo"
+    base_materialidad: "patrimonio"
+
+  - codigo: "funerarias"
+    nombre: "Servicios Funerarios"
+    descripcion: "Empresas de servicios funerarios."
+    areas_criticas: ["5", "1500", "140", "425", "1600"]
+    riesgo_tipico: "medio"
+    base_materialidad: "activos"
+
+  - codigo: "agricultura"
+    nombre: "Agricultura / Agroindustria"
+    descripcion: "Empresas agropecuarias y agroindustriales."
+    areas_criticas: ["110", "12", "1", "1500", "425"]
+    riesgo_tipico: "medio"
+    base_materialidad: "activos"

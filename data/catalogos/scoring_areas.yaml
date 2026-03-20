@@ -1,0 +1,55 @@
+﻿# Configuración de scoring de áreas de auditoría
+# Define pesos y criterios para el ranking de riesgo por área
+
+version: 1
+
+pesos_scoring:
+  variacion_absoluta: 0.30
+  materialidad_relativa: 0.25
+  riesgo_inherente: 0.20
+  complejidad: 0.15
+  flags_expertas: 0.10
+
+umbrales_riesgo:
+  alto: 70
+  medio: 40
+  bajo: 0
+
+umbrales_variacion:
+  muy_significativa: 100000
+  significativa: 50000
+  moderada: 10000
+  menor: 1000
+
+riesgo_inherente_por_area:
+  "140": 0.8
+  "130.1": 0.9
+  "130.2": 0.8
+  "110": 0.9
+  "14": 1.0
+  "1": 0.7
+  "5": 0.8
+  "15": 0.8
+  "136": 0.7
+  "425": 0.8
+  "425.1": 0.7
+  "425.2": 0.9
+  "200": 0.8
+  "1500": 1.0
+  "1600": 0.7
+  "1900": 0.9
+  "default": 0.7
+
+complejidad_por_area:
+  "14":   "alta"
+  "15":   "alta"
+  "1900": "alta"
+  "1500": "media"
+  "425.2": "alta"
+  "200":  "media"
+  "130.1": "media"
+  "110":  "media"
+  "140":  "baja"
+  "425":  "baja"
+  "1600": "baja"
+  "default": "baja"

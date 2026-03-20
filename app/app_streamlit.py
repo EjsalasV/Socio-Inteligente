@@ -871,6 +871,20 @@ if st.sidebar.button("Limpiar cache", width="stretch"):
     st.cache_data.clear()
     st.rerun()
 
+# RAG status
+st.sidebar.divider()
+try:
+    from infra.rag.vector_store import esta_indexado, total_indexado
+    if esta_indexado():
+        st.sidebar.caption(
+            f"Base normativa: {total_indexado()} chunks indexados"
+        )
+    else:
+        st.sidebar.caption("Base normativa: no indexada")
+        st.sidebar.caption("Ejecuta: python -m app.cli_commands indexar")
+except Exception:
+    pass
+
 render_sidebar_summary(cliente, perfil, datos_clave, ranking_areas)
 
 

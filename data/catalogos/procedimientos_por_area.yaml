@@ -1,0 +1,288 @@
+﻿# Procedimientos de auditoría por área L/S
+# Basado en NIAs 330, 500, 505, 520, 530
+# Estructura: codigo_ls -> lista de procedimientos con tipo y afirmación
+
+"140":
+  nombre: "Efectivo y Equivalentes a Efectivo"
+  procedimientos:
+    - id: "EFE-01"
+      descripcion: "Obtener y revisar conciliaciones bancarias al cierre del período."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Existencia"
+      obligatorio: true
+    - id: "EFE-02"
+      descripcion: "Confirmar saldos directamente con las entidades bancarias."
+      tipo: "confirmacion_externa"
+      afirmacion: "Existencia"
+      obligatorio: true
+    - id: "EFE-03"
+      descripcion: "Revisar partidas conciliatorias pendientes y obtener soporte."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Integridad"
+      obligatorio: true
+    - id: "EFE-04"
+      descripcion: "Revisar movimientos inusuales o de montos significativos."
+      tipo: "analitico"
+      afirmacion: "Existencia"
+      obligatorio: false
+    - id: "EFE-05"
+      descripcion: "Verificar restricciones sobre cuentas bancarias."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Derechos"
+      obligatorio: false
+
+"130.1":
+  nombre: "Cuentas por Cobrar Corrientes"
+  procedimientos:
+    - id: "CXC-01"
+      descripcion: "Circularizar clientes que representen >70% del saldo total."
+      tipo: "confirmacion_externa"
+      afirmacion: "Existencia"
+      obligatorio: true
+    - id: "CXC-02"
+      descripcion: "Analizar antigüedad de cartera y evaluar suficiencia de la provisión."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Valuacion"
+      obligatorio: true
+    - id: "CXC-03"
+      descripcion: "Revisar cobranzas posteriores al cierre como evidencia de existencia."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Existencia"
+      obligatorio: true
+    - id: "CXC-04"
+      descripcion: "Realizar prueba de corte de ventas (últimas 10 facturas del período y primeras 10 del siguiente)."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Corte"
+      obligatorio: true
+    - id: "CXC-05"
+      descripcion: "Identificar y analizar saldos con partes relacionadas."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Presentacion"
+      obligatorio: false
+    - id: "CXC-06"
+      descripcion: "Aplicar procedimientos analíticos sobre evolución de cartera vs ingresos."
+      tipo: "analitico"
+      afirmacion: "Integridad"
+      obligatorio: false
+
+"110":
+  nombre: "Inventarios"
+  procedimientos:
+    - id: "INV-01"
+      descripcion: "Asistir y observar el conteo físico de inventarios."
+      tipo: "observacion"
+      afirmacion: "Existencia"
+      obligatorio: true
+    - id: "INV-02"
+      descripcion: "Realizar prueba de corte de recepciones y despachos."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Corte"
+      obligatorio: true
+    - id: "INV-03"
+      descripcion: "Verificar valorización de inventarios (costo vs VNR)."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Valuacion"
+      obligatorio: true
+    - id: "INV-04"
+      descripcion: "Identificar inventarios obsoletos o de baja rotación."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Valuacion"
+      obligatorio: true
+    - id: "INV-05"
+      descripcion: "Recalcular provisión por deterioro de inventarios."
+      tipo: "recalculo"
+      afirmacion: "Valuacion"
+      obligatorio: false
+
+"14":
+  nombre: "Inversiones No Corrientes"
+  procedimientos:
+    - id: "INV-NC-01"
+      descripcion: "Obtener detalle de inversiones y conciliar con libros."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Existencia"
+      obligatorio: true
+    - id: "INV-NC-02"
+      descripcion: "Obtener estados financieros de participadas para cálculo de VPP."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Valuacion"
+      obligatorio: true
+    - id: "INV-NC-03"
+      descripcion: "Recalcular el Valor Patrimonial Proporcional (VPP)."
+      tipo: "recalculo"
+      afirmacion: "Valuacion"
+      obligatorio: true
+    - id: "INV-NC-04"
+      descripcion: "Revisar documentos legales de propiedad (escrituras, actas, certificados)."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Derechos"
+      obligatorio: true
+    - id: "INV-NC-05"
+      descripcion: "Evaluar deterioro de inversiones según indicadores."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Valuacion"
+      obligatorio: false
+    - id: "INV-NC-06"
+      descripcion: "Revisar revelaciones de inversiones en partes relacionadas."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Presentacion"
+      obligatorio: true
+
+"1":
+  nombre: "Propiedad Planta y Equipo"
+  procedimientos:
+    - id: "PPE-01"
+      descripcion: "Inspeccionar físicamente activos de mayor valor."
+      tipo: "inspeccion"
+      afirmacion: "Existencia"
+      obligatorio: true
+    - id: "PPE-02"
+      descripcion: "Recalcular depreciación del período."
+      tipo: "recalculo"
+      afirmacion: "Valuacion"
+      obligatorio: true
+    - id: "PPE-03"
+      descripcion: "Revisar adquisiciones y bajas del período."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Existencia"
+      obligatorio: true
+    - id: "PPE-04"
+      descripcion: "Evaluar indicadores de deterioro de activos."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Valuacion"
+      obligatorio: false
+    - id: "PPE-05"
+      descripcion: "Revisar títulos de propiedad de activos significativos."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Derechos"
+      obligatorio: false
+
+"425":
+  nombre: "Cuentas por Pagar"
+  procedimientos:
+    - id: "CXP-01"
+      descripcion: "Circularizar proveedores principales (>70% del saldo)."
+      tipo: "confirmacion_externa"
+      afirmacion: "Integridad"
+      obligatorio: true
+    - id: "CXP-02"
+      descripcion: "Realizar búsqueda de pasivos no registrados (facturas posteriores)."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Integridad"
+      obligatorio: true
+    - id: "CXP-03"
+      descripcion: "Realizar prueba de corte de compras."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Corte"
+      obligatorio: true
+    - id: "CXP-04"
+      descripcion: "Conciliar saldos con estados de cuenta de proveedores."
+      tipo: "conciliacion"
+      afirmacion: "Valuacion"
+      obligatorio: false
+    - id: "CXP-05"
+      descripcion: "Revisar pagos posteriores al cierre."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Integridad"
+      obligatorio: false
+
+"200":
+  nombre: "Patrimonio"
+  procedimientos:
+    - id: "PAT-01"
+      descripcion: "Reconciliar movimientos del patrimonio del período."
+      tipo: "conciliacion"
+      afirmacion: "Integridad"
+      obligatorio: true
+    - id: "PAT-02"
+      descripcion: "Revisar actas de asamblea y resoluciones del período."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Integridad"
+      obligatorio: true
+    - id: "PAT-03"
+      descripcion: "Verificar cálculo de efecto VPP en patrimonio."
+      tipo: "recalculo"
+      afirmacion: "Valuacion"
+      obligatorio: false
+    - id: "PAT-04"
+      descripcion: "Revisar registro de accionistas y cambios de participación."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Derechos"
+      obligatorio: true
+    - id: "PAT-05"
+      descripcion: "Verificar revelaciones del patrimonio en EEFF."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Presentacion"
+      obligatorio: true
+
+"1500":
+  nombre: "Ingresos"
+  procedimientos:
+    - id: "ING-01"
+      descripcion: "Aplicar procedimientos analíticos sobre evolución de ingresos."
+      tipo: "analitico"
+      afirmacion: "Ocurrencia"
+      obligatorio: true
+    - id: "ING-02"
+      descripcion: "Realizar prueba de corte de ventas."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Corte"
+      obligatorio: true
+    - id: "ING-03"
+      descripcion: "Seleccionar muestra de transacciones y verificar soporte."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Ocurrencia"
+      obligatorio: true
+    - id: "ING-04"
+      descripcion: "Verificar reconocimiento de ingresos según política contable."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Presentacion"
+      obligatorio: true
+    - id: "ING-05"
+      descripcion: "Revisar ingresos inusuales o de fin de período."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Ocurrencia"
+      obligatorio: false
+
+"136":
+  nombre: "Activos por Impuestos Corrientes"
+  procedimientos:
+    - id: "IMP-C-01"
+      descripcion: "Conciliar créditos tributarios con declaraciones del SRI."
+      tipo: "conciliacion"
+      afirmacion: "Existencia"
+      obligatorio: true
+    - id: "IMP-C-02"
+      descripcion: "Verificar cálculo de retenciones en la fuente e IVA."
+      tipo: "recalculo"
+      afirmacion: "Valuacion"
+      obligatorio: true
+    - id: "IMP-C-03"
+      descripcion: "Evaluar recuperabilidad de créditos tributarios."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Valuacion"
+      obligatorio: true
+
+"1900":
+  nombre: "Gasto Impuesto a la Renta"
+  procedimientos:
+    - id: "IR-01"
+      descripcion: "Recalcular la conciliación tributaria del período."
+      tipo: "recalculo"
+      afirmacion: "Valuacion"
+      obligatorio: true
+    - id: "IR-02"
+      descripcion: "Verificar cálculo de impuesto corriente."
+      tipo: "recalculo"
+      afirmacion: "Valuacion"
+      obligatorio: true
+    - id: "IR-03"
+      descripcion: "Revisar cálculo de impuesto diferido."
+      tipo: "recalculo"
+      afirmacion: "Integridad"
+      obligatorio: false
+    - id: "IR-04"
+      descripcion: "Verificar revelaciones tributarias en notas."
+      tipo: "sustantivo_detalle"
+      afirmacion: "Presentacion"
+      obligatorio: true
