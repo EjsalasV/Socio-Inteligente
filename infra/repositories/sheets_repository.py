@@ -10,11 +10,23 @@ from typing import Any
 
 import pandas as pd
 
+_LAST_SHEETS_ERROR = ""
+
 
 # Sheet tab names
 SHEET_CLIENTES = "Clientes"
 SHEET_TB_META = "tb_metadata"
 SHEET_ESTADOS = "estados_areas"
+
+
+def _set_last_error(msg: str) -> None:
+    global _LAST_SHEETS_ERROR
+    _LAST_SHEETS_ERROR = str(msg or "").strip()
+
+
+def obtener_ultimo_error_sheets() -> str:
+    """Returns last Sheets error captured by this repository."""
+    return _LAST_SHEETS_ERROR
 
 
 def _get_client():
@@ -65,6 +77,7 @@ def _get_client():
         )
         return gspread.authorize(creds)
     except Exception as e:
+        _set_last_error(f"Error connecting: {e}")
         print(f"[SHEETS] Error connecting: {e}")
         return None
 
@@ -82,6 +95,7 @@ def _get_sheet(tab_name: str):
             or st.secrets.get("google_sheets_id", "")
         )
         if not sheet_id:
+            _set_last_error("Missing GOOGLE_SHEETS_ID in secrets.")
             return None
 
         spreadsheet = client.open_by_key(sheet_id)
@@ -101,6 +115,7 @@ def _get_sheet(tab_name: str):
             _init_headers(ws, tab_name)
             return ws
     except Exception as e:
+        _set_last_error(f"Error getting sheet {tab_name}: {e}")
         print(f"[SHEETS] Error getting sheet {tab_name}: {e}")
         return None
 
@@ -199,6 +214,7 @@ def guardar_cliente_sheets(
         return True
 
     except Exception as e:
+        _set_last_error(f"Error saving client: {e}")
         print(f"[SHEETS] Error saving client: {e}")
         return False
 
@@ -234,6 +250,7 @@ def cargar_clientes_sheets() -> list[dict[str, Any]]:
             })
         return clientes
     except Exception as e:
+        _set_last_error(f"Error loading clients: {e}")
         print(f"[SHEETS] Error loading clients: {e}")
         return []
 
@@ -253,6 +270,7 @@ def eliminar_cliente_sheets(cliente_id: str) -> bool:
                 return True
         return False
     except Exception as e:
+        _set_last_error(f"Error deleting client: {e}")
         print(f"[SHEETS] Error deleting client: {e}")
         return False
 

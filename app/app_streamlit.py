@@ -184,6 +184,7 @@ try:
         cargar_clientes_sheets,
         eliminar_cliente_sheets,
         sheets_disponible,
+        obtener_ultimo_error_sheets,
     )
     _sheets_ok = True
 except Exception:
@@ -191,6 +192,7 @@ except Exception:
     cargar_clientes_sheets = None
     eliminar_cliente_sheets = None
     sheets_disponible = None
+    obtener_ultimo_error_sheets = None
     _sheets_ok = False
 
 
@@ -2080,11 +2082,17 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         "✅ Cliente guardado en Google Sheets."
                     )
                 else:
+                    _err = safe_call(
+                        obtener_ultimo_error_sheets,
+                        default="",
+                    ) if obtener_ultimo_error_sheets else ""
                     st.warning(
                         "⚠️ No se pudo guardar en Google Sheets. "
                         "Verifica `GOOGLE_SHEETS_ID`, credenciales "
                         "y permisos de edición para la service account."
                     )
+                    if _err:
+                        st.error(f"Detalle Sheets: {_err}")
 
             # Process mayor
             if uploaded_mayor:
@@ -2520,9 +2528,15 @@ if _sheets_ok and safe_call(
         use_container_width=True,
     ):
         _rows = safe_call(cargar_clientes_sheets, default=[]) or []
+        _err = safe_call(
+            obtener_ultimo_error_sheets,
+            default="",
+        ) if obtener_ultimo_error_sheets else ""
         st.sidebar.success(
             f"Conexión OK. Clientes en Sheets: {len(_rows)}"
         )
+        if _err:
+            st.sidebar.caption(f"Detalle: {_err}")
 else:
     st.sidebar.caption("💾 Modo local (sin persistencia)")
 
