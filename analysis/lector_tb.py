@@ -191,16 +191,52 @@ def _clasificar_cuenta(codigo: str) -> str:
     return clasificacion.get(first, "OTRA")
 
 
-def obtener_resumen_tb(cliente: str) -> Optional[dict]:
-    tb = leer_tb(cliente)
-    if tb is None:
+def obtener_resumen_tb(
+    cliente: str,
+    df: Optional[pd.DataFrame] = None,
+) -> Optional[dict]:
+    """
+    Accepts optional df parameter so Streamlit can
+    pass an already-loaded DataFrame directly,
+    bypassing the file lookup.
+    """
+    tb = df if isinstance(df, pd.DataFrame) else leer_tb(cliente)
+    if tb is None or tb.empty:
         return None
 
-    resumen = {}
+    resumen: dict = {}
+
     if "tipo_cuenta" in tb.columns and "saldo" in tb.columns:
-        resumen = tb.groupby("tipo_cuenta")["saldo"].sum().to_dict()
+        # Normalize tipo_cuenta to uppercase for grouping
+        tb2 = tb.copy()
+        tb2["tipo_cuenta_norm"] = (
+            tb2["tipo_cuenta"].astype(str).str.strip().str.upper()
+        )
+        grouped = (
+            tb2.groupby("tipo_cuenta_norm")["saldo"]
+            .sum()
+            .to_dict()
+        )
+        # Map common variants to canonical names
+        mapping = {
+            "ACTIVO": ["ACTIVO", "ACTIVOS", "ASSET", "ASSETS"],
+            "PASIVO": ["PASIVO", "PASIVOS", "LIABILITY", "LIABILITIES"],
+            "PATRIMONIO": ["PATRIMONIO", "EQUITY", "CAPITAL"],
+            "INGRESOS": ["INGRESOS", "INGRESO", "REVENUE", "INCOME", "VENTAS"],
+            "GASTOS": ["GASTOS", "GASTO", "EXPENSE", "EXPENSES", "COSTOS"],
+        }
+        for canonical, variants in mapping.items():
+            total = sum(
+                abs(float(grouped.get(v, 0)))
+                for v in variants
+                if v in grouped
+            )
+            if total > 0:
+                resumen[canonical] = total
+
     if "saldo" in tb.columns:
         resumen["TOTAL"] = float(tb["saldo"].sum())
+
     return resumen
 
 

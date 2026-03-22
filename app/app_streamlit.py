@@ -661,16 +661,58 @@ def _obtener_admin_password() -> str:
 
 def _limpiar_cliente_session(cliente_id: str) -> int:
     """
-    Removes ALL session_state keys related to a client.
-    Returns count of keys removed.
+    Removes ALL session data related to a client:
+    - All keys containing the client name
+    - Active client references if they match
+    - Upload keys, perfil, mayor, TB tipo
     """
-    keys_to_delete = [
-        k for k in st.session_state.keys()
-        if cliente_id in str(k)
+    keys_to_delete = []
+
+    # Keys containing client name
+    for k in list(st.session_state.keys()):
+        if cliente_id in str(k):
+            keys_to_delete.append(k)
+
+    # Active client keys if they point to this client
+    active_keys = [
+        "cliente_activo", "etapa_activa",
+        "setup_cliente_sel", "auditor_nombre",
     ]
+    for k in active_keys:
+        if st.session_state.get(k) == cliente_id:
+            keys_to_delete.append(k)
+
+    # Remove duplicates
+    keys_to_delete = list(set(keys_to_delete))
+
     for k in keys_to_delete:
-        del st.session_state[k]
+        try:
+            del st.session_state[k]
+        except KeyError:
+            pass
     return len(keys_to_delete)
+
+
+def _get_clientes_dinamicos() -> list[str]:
+    """
+    Returns base clients from repo PLUS any new clients
+    created this session.
+    """
+    _base_path = Path("data/clientes")
+    _base = sorted([
+        d.name for d in _base_path.iterdir()
+        if d.is_dir()
+    ]) if _base_path.exists() else []
+
+    _nuevos = st.session_state.get(
+        "clientes_creados_sesion", []
+    )
+    _ocultos = st.session_state.get(
+        "clientes_ocultos", []
+    )
+
+    _todos = list(dict.fromkeys(_base + _nuevos))
+    return [c for c in _todos if c not in _ocultos]
 
 
 def fmt_num(value: Any, decimals: int = 2) -> str:
@@ -1739,6 +1781,17 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     f"mayor_upload_{cliente_elegido}"
                 ] = df_mayor_up
 
+            # Register new client in session list
+            if modo == "Crear cliente nuevo" and cliente_elegido:
+                _creados = st.session_state.get(
+                    "clientes_creados_sesion", []
+                )
+                if cliente_elegido not in _creados:
+                    _creados.append(cliente_elegido)
+                    st.session_state[
+                        "clientes_creados_sesion"
+                    ] = _creados
+
             st.session_state["app_screen"] = "dashboard"
             st.rerun()
 
@@ -1759,13 +1812,7 @@ if st.session_state["app_screen"] == "welcome":
     st.stop()
 
 if st.session_state["app_screen"] == "setup":
-    # Need clientes_disponibles for the setup screen
-    _clientes_path = Path("data/clientes")
-    _clientes_disp = sorted([
-        d.name for d in _clientes_path.iterdir()
-        if d.is_dir()
-    ]) if _clientes_path.exists() else []
-    render_setup_screen(_clientes_disp)
+    render_setup_screen(_get_clientes_dinamicos())
     st.stop()
 
 # ── From here: dashboard screen ────────────────────────────────
@@ -1781,10 +1828,7 @@ if "etapa_activa" in st.session_state:
 # ============================================================
 st.sidebar.title("Configuracion")
 
-clientes_disponibles: list[str] = []
-data_path = Path("data/clientes")
-if data_path.exists():
-    clientes_disponibles = sorted([d.name for d in data_path.iterdir() if d.is_dir()])
+clientes_disponibles = _get_clientes_dinamicos()
 
 if not clientes_disponibles:
     st.sidebar.warning("No hay clientes disponibles en data/clientes/. Usando modo carga manual.")
@@ -1969,7 +2013,21 @@ else:
     print(f"[WARN] Sin TB para {cliente} — keys disponibles: "
           f"{[k for k in st.session_state.keys() if 'tb_upload' in str(k)]}")
 
-resumen_tb = safe_call(cached_resumen_tb, cliente, default={}) or {}
+# Pass the already-loaded tb DataFrame directly
+# so uploaded TBs are used, not just file-based ones
+if isinstance(tb, pd.DataFrame) and not tb.empty:
+    from analysis.lector_tb import obtener_resumen_tb as _get_resumen
+    try:
+        resumen_tb = _get_resumen(cliente, df=tb) or {}
+    except TypeError:
+        # Fallback if signature doesn't match yet
+        resumen_tb = safe_call(
+            obtener_resumen_tb, cliente, default={}
+        ) or {}
+else:
+    resumen_tb = safe_call(
+        obtener_resumen_tb, cliente, default={}
+    ) or {}
 diag_tb = safe_call(obtener_diagnostico_tb, cliente, default={}) or {}
 ranking_areas = safe_call(cached_ranking_areas, cliente, default=pd.DataFrame())
 indicadores = safe_call(cached_indicadores, cliente, default={}) or {}
@@ -2616,7 +2674,94 @@ with tab3:
     with ia_tab1:
         st.markdown("<div class='section-header'>Briefing de Área</div>",
                     unsafe_allow_html=True)
-        render_briefing_ia_tab(cliente, selected_area_code)
+        col_b1, col_b2 = st.columns(2)
+        with col_b1:
+            area_briefing = st.text_input(
+                "Área L/S",
+                value=selected_area_code or "14",
+                key="briefing_area_input",
+            )
+        with col_b2:
+            etapa_briefing = st.selectbox(
+                "Etapa",
+                ["planificacion", "ejecucion", "cierre"],
+                key="briefing_etapa_input",
+            )
+
+        if st.button(
+            "🤖 Generar Briefing con IA",
+            key="btn_briefing_ia",
+            type="primary",
+        ):
+            try:
+                from llm.llm_client import _get_deepseek_key as _sdk
+                _key_check = _sdk()
+            except Exception:
+                _key_check = ""
+
+            if not _key_check:
+                st.warning(
+                    "⚠️ Sin DEEPSEEK_API_KEY. "
+                    "Agrégala en Streamlit Cloud → "
+                    "Settings → Secrets."
+                )
+            else:
+                with st.spinner("Generando briefing..."):
+                    try:
+                        # Inject uploaded TB into the
+                        # module-level reader so briefing
+                        # functions find data
+                        _tb_for_brief = tb if (
+                            isinstance(tb, pd.DataFrame)
+                            and not tb.empty
+                        ) else None
+
+                        if _tb_for_brief is None:
+                            st.warning(
+                                "Sube el Trial Balance "
+                                "primero para un briefing "
+                                "con datos reales."
+                            )
+                        else:
+                            from llm.briefing_llm import (
+                                generar_briefing_area_llm,
+                            )
+                            # Build minimal context for briefing
+                            _perfil_brief = perfil if (
+                                isinstance(perfil, dict)
+                                and perfil
+                            ) else {}
+                            _ = _perfil_brief
+
+                            briefing_txt = (
+                                generar_briefing_area_llm(
+                                    nombre_cliente=cliente,
+                                    codigo_ls=area_briefing,
+                                    etapa=etapa_briefing,
+                                )
+                            )
+                            if briefing_txt:
+                                st.markdown(
+                                    "<div class='ai-response'>"
+                                    + briefing_txt.replace(
+                                        "\n", "<br>"
+                                    )
+                                    + "</div>",
+                                    unsafe_allow_html=True,
+                                )
+                            else:
+                                st.info(
+                                    "El modelo no devolvió "
+                                    "respuesta. Verifica la "
+                                    "API key."
+                                )
+                    except Exception as e:
+                        st.error(f"Error en briefing: {e}")
+
+        st.caption(
+            "Requiere DEEPSEEK_API_KEY en "
+            "Streamlit Cloud → Settings → Secrets."
+        )
 
     with ia_tab2:
         st.markdown("<div class='section-header'>Programa de Auditoría</div>",
