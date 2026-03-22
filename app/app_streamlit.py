@@ -1260,7 +1260,44 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     )
                 ]
 
-                for c in clientes_disponibles:
+                _ocultos = st.session_state.get(
+                    "clientes_ocultos", []
+                )
+                clientes_visibles = [
+                    c for c in clientes_disponibles
+                    if c not in _ocultos
+                ]
+
+                # Show hidden clients with restore option
+                if _ocultos:
+                    with st.expander(
+                        f"🗂️ {len(_ocultos)} cliente(s) oculto(s) "
+                        f"en esta sesión"
+                    ):
+                        for oc in _ocultos:
+                            oc_col1, oc_col2 = st.columns([3, 1])
+                            with oc_col1:
+                                st.caption(
+                                    f"🏢 {oc.replace('_',' ').title()}"
+                                )
+                            with oc_col2:
+                                if st.button(
+                                    "↩️ Restaurar",
+                                    key=f"restore_{oc}",
+                                    use_container_width=True,
+                                ):
+                                    hidden = st.session_state.get(
+                                        "clientes_ocultos", []
+                                    )
+                                    hidden = [
+                                        x for x in hidden if x != oc
+                                    ]
+                                    st.session_state[
+                                        "clientes_ocultos"
+                                    ] = hidden
+                                    st.rerun()
+
+                for c in clientes_visibles:
                     label = c.replace("_", " ").title()
                     is_selected = (
                         st.session_state.get("setup_cliente_sel") == c
@@ -1358,6 +1395,13 @@ def render_setup_screen(clientes_disponibles: list[str]):
                                 n = _limpiar_cliente_session(
                                     cliente_a_borrar
                                 )
+                                # Hide from list this session
+                                hidden = st.session_state.get(
+                                    "clientes_ocultos", []
+                                )
+                                if cliente_a_borrar not in hidden:
+                                    hidden.append(cliente_a_borrar)
+                                st.session_state["clientes_ocultos"] = hidden
                                 # Also clear selection if deleted
                                 if st.session_state.get(
                                     "setup_cliente_sel"
@@ -1503,110 +1547,113 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 key="setup_mayor",
             )
 
-        st.markdown("<div style='margin-top:1rem;'></div>",
-                    unsafe_allow_html=True)
-        st.markdown(
-            "<div class='section-header'>"
-            "📋 Datos del cliente</div>",
-            unsafe_allow_html=True,
-        )
-        st.caption(
-            "Completa los datos para un análisis más preciso. "
-            "Todos son opcionales excepto el nombre."
-        )
-
-        p1, p2 = st.columns(2)
-        with p1:
-            perfil_nombre = st.text_input(
-                "Nombre legal del cliente *",
-                placeholder="ABC Corporation S.A.",
-                key="pf_nombre",
+        if modo == "Crear cliente nuevo":
+            st.markdown(
+                "<div style='margin-top:1rem;'></div>",
+                unsafe_allow_html=True,
             )
-            perfil_ruc = st.text_input(
-                "RUC / NIT",
-                placeholder="1234567890001",
-                key="pf_ruc",
+            st.markdown(
+                "<div class='section-header'>"
+                "📋 Datos del cliente</div>",
+                unsafe_allow_html=True,
             )
-            perfil_sector = st.selectbox(
-                "Sector",
-                [
-                    "comerciales", "servicios",
-                    "holding", "manufactura",
-                    "financiero", "agricultura",
-                    "sin_fines_de_lucro", "otro",
-                ],
-                key="pf_sector",
-            )
-            perfil_tipo = st.selectbox(
-                "Tipo de entidad",
-                [
-                    "SOCIEDAD_ANONIMA",
-                    "COMPANIA_LIMITADA",
-                    "SAS",
-                    "COOPERATIVA",
-                    "ONG",
-                    "PERSONA_NATURAL",
-                    "otro",
-                ],
-                key="pf_tipo",
-            )
-        with p2:
-            perfil_periodo = st.number_input(
-                "Año del encargo",
-                min_value=2020,
-                max_value=2030,
-                value=2025,
-                key="pf_periodo",
-            )
-            perfil_marco = st.selectbox(
-                "Marco referencial",
-                ["NIIF_PYMES", "NIIF_COMPLETAS", "otro"],
-                key="pf_marco",
-            )
-            perfil_riesgo = st.selectbox(
-                "Riesgo global estimado",
-                ["bajo", "medio", "medio_alto", "alto"],
-                key="pf_riesgo",
-            )
-            perfil_moneda = st.selectbox(
-                "Moneda funcional",
-                ["USD", "EUR", "COP", "PEN", "MXN", "otro"],
-                key="pf_moneda",
+            st.caption(
+                "Completa los datos para un análisis "
+                "más preciso. Todos son opcionales "
+                "excepto el nombre."
             )
 
-        # Build perfil dict from form
-        perfil_form = {
-            "cliente": {
-                "nombre_legal": perfil_nombre or "Cliente",
-                "nombre_corto": perfil_nombre or "Cliente",
-                "ruc": perfil_ruc,
-                "tipo_entidad": perfil_tipo,
-                "sector": perfil_sector,
-                "moneda_funcional": perfil_moneda,
-                "pais": "Ecuador",
-                "domicilio": "",
-            },
-            "encargo": {
-                "anio_activo": int(perfil_periodo),
-                "marco_referencial": perfil_marco,
-                "tipo_encargo": "auditoria_externa",
-                "fase_actual": etapa_setup,
-            },
-            "riesgo_global": {
-                "nivel": perfil_riesgo,
-            },
-            "contexto_negocio": {
-                "tiene_partes_relacionadas": False,
-            },
-            "materialidad": {
-                "estado_materialidad": "preliminar",
-                "preliminar": {},
-                "final": {},
-            },
-            "industria_inteligente": {
-                "sector_base": perfil_sector,
-            },
-        }
+            p1, p2 = st.columns(2)
+            with p1:
+                perfil_nombre = st.text_input(
+                    "Nombre legal del cliente *",
+                    placeholder="ABC Corporation S.A.",
+                    key="pf_nombre",
+                )
+                perfil_ruc = st.text_input(
+                    "RUC / NIT",
+                    placeholder="1234567890001",
+                    key="pf_ruc",
+                )
+                perfil_sector = st.selectbox(
+                    "Sector",
+                    [
+                        "comerciales", "servicios",
+                        "holding", "manufactura",
+                        "financiero", "agricultura",
+                        "sin_fines_de_lucro", "otro",
+                    ],
+                    key="pf_sector",
+                )
+                perfil_tipo = st.selectbox(
+                    "Tipo de entidad",
+                    [
+                        "SOCIEDAD_ANONIMA",
+                        "COMPANIA_LIMITADA",
+                        "SAS", "COOPERATIVA",
+                        "ONG", "PERSONA_NATURAL",
+                        "otro",
+                    ],
+                    key="pf_tipo",
+                )
+            with p2:
+                perfil_periodo = st.number_input(
+                    "Año del encargo",
+                    min_value=2020, max_value=2030,
+                    value=2025, key="pf_periodo",
+                )
+                perfil_marco = st.selectbox(
+                    "Marco referencial",
+                    ["NIIF_PYMES", "NIIF_COMPLETAS", "otro"],
+                    key="pf_marco",
+                )
+                perfil_riesgo = st.selectbox(
+                    "Riesgo global estimado",
+                    ["bajo", "medio", "medio_alto", "alto"],
+                    key="pf_riesgo",
+                )
+                perfil_moneda = st.selectbox(
+                    "Moneda funcional",
+                    ["USD", "EUR", "COP", "PEN", "MXN", "otro"],
+                    key="pf_moneda",
+                )
+
+            perfil_form = {
+                "cliente": {
+                    "nombre_legal": perfil_nombre or "Cliente",
+                    "nombre_corto": perfil_nombre or "Cliente",
+                    "ruc": perfil_ruc,
+                    "tipo_entidad": perfil_tipo,
+                    "sector": perfil_sector,
+                    "moneda_funcional": perfil_moneda,
+                    "pais": "Ecuador",
+                    "domicilio": "",
+                },
+                "encargo": {
+                    "anio_activo": int(perfil_periodo),
+                    "marco_referencial": perfil_marco,
+                    "tipo_encargo": "auditoria_externa",
+                    "fase_actual": etapa_setup,
+                },
+                "riesgo_global": {
+                    "nivel": perfil_riesgo,
+                },
+                "contexto_negocio": {
+                    "tiene_partes_relacionadas": False,
+                },
+                "materialidad": {
+                    "estado_materialidad": "preliminar",
+                    "preliminar": {},
+                    "final": {},
+                },
+                "industria_inteligente": {
+                    "sector_base": perfil_sector,
+                },
+            }
+        else:
+            # Existing client — use defaults
+            perfil_nombre = cliente_elegido
+            perfil_form = None
 
         st.markdown("<div style='margin-top:1.5rem;'></div>",
                     unsafe_allow_html=True)
@@ -1675,7 +1722,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 ] = tb_tipo
 
             # Save form-built perfil
-            if perfil_nombre:
+            if perfil_form is not None and perfil_nombre:
                 st.session_state[
                     f"perfil_upload_{cliente_elegido}"
                 ] = perfil_form
