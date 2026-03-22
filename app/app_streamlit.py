@@ -587,6 +587,50 @@ st.markdown("""
       margin-right: 6px;
       margin-top: 8px;
   }
+  /* ── Sidebar buttons ── */
+  [data-testid="stSidebar"] .stButton > button {
+      background-color: #FFFFFF !important;
+      color: #003366 !important;
+      border: 2px solid #003366 !important;
+      border-radius: 8px !important;
+      font-weight: 600 !important;
+  }
+  [data-testid="stSidebar"] .stButton > button:hover {
+      background-color: #003366 !important;
+      color: #FFFFFF !important;
+  }
+  [data-testid="stSidebar"] .stFileUploader label {
+      color: #172B4D !important;
+      font-weight: 600 !important;
+  }
+  [data-testid="stSidebar"] .stFileUploader
+      [data-testid="stFileUploaderDropzone"] {
+      background-color: #F4F5F7 !important;
+      border: 2px dashed #003366 !important;
+      border-radius: 8px !important;
+  }
+  [data-testid="stSidebar"] .stFileUploader
+      [data-testid="stFileUploaderDropzone"] p {
+      color: #003366 !important;
+      font-weight: 600 !important;
+  }
+  [data-testid="stSidebar"] .stSelectbox label,
+  [data-testid="stSidebar"] .stTextInput label,
+  [data-testid="stSidebar"] .stRadio label,
+  [data-testid="stSidebar"] p,
+  [data-testid="stSidebar"] .stCaption {
+      color: #172B4D !important;
+  }
+  /* File uploader button inside sidebar */
+  [data-testid="stSidebar"]
+      [data-testid="stFileUploaderDropzoneInstructions"] {
+      color: #003366 !important;
+  }
+  [data-testid="stSidebar"] .stFileUploader button {
+      background-color: #003366 !important;
+      color: #FFFFFF !important;
+      border-radius: 6px !important;
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1226,34 +1270,6 @@ def render_setup_screen(clientes_disponibles: list[str]):
         st.markdown("<div style='margin-top:1.2rem;'></div>",
                     unsafe_allow_html=True)
 
-        # ── File uploads ──────────────────────────────────────
-        st.markdown(
-            "<div class='section-header'>📂 Archivos</div>",
-            unsafe_allow_html=True,
-        )
-
-        up_col1, up_col2 = st.columns(2)
-        with up_col1:
-            uploaded_tb = st.file_uploader(
-                "Trial Balance (.xlsx) *",
-                type=["xlsx"],
-                key="setup_tb",
-                help="Obligatorio para el análisis",
-            )
-        with up_col2:
-            uploaded_perfil = st.file_uploader(
-                "Perfil del cliente (.yaml)",
-                type=["yaml", "yml"],
-                key="setup_perfil",
-                help="Opcional — mejora el análisis",
-            )
-
-        uploaded_mayor = st.file_uploader(
-            "Libro Mayor (.xlsx) — opcional",
-            type=["xlsx"],
-            key="setup_mayor",
-        )
-
         # ── Stage selection ───────────────────────────────────
         st.markdown("<div style='margin-top:1.2rem;'></div>",
                     unsafe_allow_html=True)
@@ -1268,17 +1284,190 @@ def render_setup_screen(clientes_disponibles: list[str]):
             label_visibility="collapsed",
         )
 
+        # ── File uploads ──────────────────────────────────────
+        st.markdown(
+            "<div class='section-header'>📂 Archivos</div>",
+            unsafe_allow_html=True,
+        )
+        # ── Check if client already has data ─────────────────
+        _tiene_tb_repo = (
+            (Path("data/clientes") / cliente_elegido / "tb.xlsx")
+            .exists()
+            if cliente_elegido else False
+        )
+        _tiene_tb_session = (
+            f"tb_upload_{cliente_elegido}"
+            in st.session_state
+            if cliente_elegido else False
+        )
+        _tiene_tb = _tiene_tb_repo or _tiene_tb_session
+
+        if _tiene_tb and cliente_elegido:
+            st.markdown(
+                f"<div class='check-item check-ok'>"
+                f"<span class='check-icon'>✅</span>"
+                f"<span>Trial Balance ya disponible para "
+                f"<b>{cliente_elegido}</b>. "
+                f"Puedes subir uno nuevo para actualizarlo.</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+        up_col1, up_col2 = st.columns(2)
+        with up_col1:
+            tb_label = (
+                "Trial Balance (.xlsx) — actualizar"
+                if _tiene_tb
+                else "Trial Balance (.xlsx) *"
+            )
+            uploaded_tb = st.file_uploader(
+                tb_label,
+                type=["xlsx"],
+                key="setup_tb",
+                help=(
+                    "Opcional — ya tienes TB cargado"
+                    if _tiene_tb
+                    else "Obligatorio para el análisis"
+                ),
+            )
+
+            # TB type selector (preliminar vs final)
+            tb_tipo = st.radio(
+                "Tipo de TB",
+                ["preliminar", "final"],
+                key="setup_tb_tipo",
+                horizontal=True,
+                help=(
+                    "Preliminar: saldos de avance. "
+                    "Final: saldos definitivos al cierre."
+                ),
+            )
+
+        with up_col2:
+            uploaded_mayor = st.file_uploader(
+                "Libro Mayor (.xlsx) — opcional",
+                type=["xlsx"],
+                key="setup_mayor",
+            )
+
+        st.markdown("<div style='margin-top:1rem;'></div>",
+                    unsafe_allow_html=True)
+        st.markdown(
+            "<div class='section-header'>"
+            "📋 Datos del cliente</div>",
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            "Completa los datos para un análisis más preciso. "
+            "Todos son opcionales excepto el nombre."
+        )
+
+        p1, p2 = st.columns(2)
+        with p1:
+            perfil_nombre = st.text_input(
+                "Nombre legal del cliente *",
+                placeholder="ABC Corporation S.A.",
+                key="pf_nombre",
+            )
+            perfil_ruc = st.text_input(
+                "RUC / NIT",
+                placeholder="1234567890001",
+                key="pf_ruc",
+            )
+            perfil_sector = st.selectbox(
+                "Sector",
+                [
+                    "comerciales", "servicios",
+                    "holding", "manufactura",
+                    "financiero", "agricultura",
+                    "sin_fines_de_lucro", "otro",
+                ],
+                key="pf_sector",
+            )
+            perfil_tipo = st.selectbox(
+                "Tipo de entidad",
+                [
+                    "SOCIEDAD_ANONIMA",
+                    "COMPANIA_LIMITADA",
+                    "SAS",
+                    "COOPERATIVA",
+                    "ONG",
+                    "PERSONA_NATURAL",
+                    "otro",
+                ],
+                key="pf_tipo",
+            )
+        with p2:
+            perfil_periodo = st.number_input(
+                "Año del encargo",
+                min_value=2020,
+                max_value=2030,
+                value=2025,
+                key="pf_periodo",
+            )
+            perfil_marco = st.selectbox(
+                "Marco referencial",
+                ["NIIF_PYMES", "NIIF_COMPLETAS", "otro"],
+                key="pf_marco",
+            )
+            perfil_riesgo = st.selectbox(
+                "Riesgo global estimado",
+                ["bajo", "medio", "medio_alto", "alto"],
+                key="pf_riesgo",
+            )
+            perfil_moneda = st.selectbox(
+                "Moneda funcional",
+                ["USD", "EUR", "COP", "PEN", "MXN", "otro"],
+                key="pf_moneda",
+            )
+
+        # Build perfil dict from form
+        perfil_form = {
+            "cliente": {
+                "nombre_legal": perfil_nombre or "Cliente",
+                "nombre_corto": perfil_nombre or "Cliente",
+                "ruc": perfil_ruc,
+                "tipo_entidad": perfil_tipo,
+                "sector": perfil_sector,
+                "moneda_funcional": perfil_moneda,
+                "pais": "Ecuador",
+                "domicilio": "",
+            },
+            "encargo": {
+                "anio_activo": int(perfil_periodo),
+                "marco_referencial": perfil_marco,
+                "tipo_encargo": "auditoria_externa",
+                "fase_actual": etapa_setup,
+            },
+            "riesgo_global": {
+                "nivel": perfil_riesgo,
+            },
+            "contexto_negocio": {
+                "tiene_partes_relacionadas": False,
+            },
+            "materialidad": {
+                "estado_materialidad": "preliminar",
+                "preliminar": {},
+                "final": {},
+            },
+            "industria_inteligente": {
+                "sector_base": perfil_sector,
+            },
+        }
+
         st.markdown("<div style='margin-top:1.5rem;'></div>",
                     unsafe_allow_html=True)
 
         # ── Validation & Enter ────────────────────────────────
-        puede_entrar = bool(cliente_elegido and uploaded_tb)
+        puede_entrar = bool(
+            cliente_elegido and (_tiene_tb or uploaded_tb)
+        )
 
         if not puede_entrar:
             faltante = []
             if not cliente_elegido:
                 faltante.append("seleccionar o crear un cliente")
-            if not uploaded_tb:
+            if not (_tiene_tb or uploaded_tb):
                 faltante.append("subir el Trial Balance (.xlsx)")
             st.warning(
                 "Para continuar debes: "
@@ -1299,26 +1488,44 @@ def render_setup_screen(clientes_disponibles: list[str]):
 
             # Process TB
             if uploaded_tb:
-                import io
+                try:
+                    import io
+                    from analysis.lector_tb import (
+                        _normalizar_columnas,
+                        _mapear_columnas_canonicas,
+                        _validar_tb,
+                        _enriquecer_tb,
+                    )
 
-                df_tb_up = pd.read_excel(
-                    io.BytesIO(uploaded_tb.read()),
-                    sheet_name=0, engine="openpyxl",
-                )
+                    raw = pd.read_excel(
+                        io.BytesIO(uploaded_tb.read()),
+                        sheet_name=0,
+                        engine="openpyxl",
+                    )
+                    raw = raw.dropna(how="all").reset_index(drop=True)
+                    raw = _normalizar_columnas(raw)
+                    raw = _mapear_columnas_canonicas(raw)
+                    raw = _validar_tb(raw)
+                    raw = _enriquecer_tb(raw)
+                    st.session_state[
+                        f"tb_upload_{cliente_elegido}"
+                    ] = raw
+                    st.session_state[
+                        f"tb_tipo_{cliente_elegido}"
+                    ] = tb_tipo
+                except Exception as e:
+                    st.error(f"Error procesando TB: {e}")
+            elif _tiene_tb_session:
+                # Keep existing, just update tipo
                 st.session_state[
-                    f"tb_upload_{cliente_elegido}"
-                ] = df_tb_up
+                    f"tb_tipo_{cliente_elegido}"
+                ] = tb_tipo
 
-            # Process perfil
-            if uploaded_perfil:
-                import yaml as _yaml
-
-                perfil_up = _yaml.safe_load(
-                    uploaded_perfil.read().decode("utf-8")
-                )
+            # Save form-built perfil
+            if perfil_nombre:
                 st.session_state[
                     f"perfil_upload_{cliente_elegido}"
-                ] = perfil_up
+                ] = perfil_form
 
             # Process mayor
             if uploaded_mayor:
@@ -1439,20 +1646,31 @@ uploaded_tb = st.sidebar.file_uploader(
 if uploaded_tb is not None:
     try:
         import io
+        from analysis.lector_tb import (
+            _normalizar_columnas,
+            _mapear_columnas_canonicas,
+            _validar_tb,
+            _enriquecer_tb,
+        )
 
-        df_uploaded = pd.read_excel(
+        raw = pd.read_excel(
             io.BytesIO(uploaded_tb.read()),
             sheet_name=0,
             engine="openpyxl",
         )
-        st.session_state[f"tb_upload_{cliente_seleccionado}"] = (
-            df_uploaded
-        )
+        raw = raw.dropna(how="all").reset_index(drop=True)
+        raw = _normalizar_columnas(raw)
+        raw = _mapear_columnas_canonicas(raw)
+        raw = _validar_tb(raw)
+        raw = _enriquecer_tb(raw)
+        st.session_state[
+            f"tb_upload_{cliente_seleccionado}"
+        ] = raw
         st.sidebar.success(
-            f"✅ TB cargado: {len(df_uploaded)} filas"
+            f"✅ TB cargado: {len(raw)} filas"
         )
     except Exception as e:
-        st.sidebar.error(f"Error leyendo TB: {e}")
+        st.sidebar.error(f"Error procesando TB: {e}")
 
 # Perfil uploader
 uploaded_perfil = st.sidebar.file_uploader(
@@ -2143,6 +2361,31 @@ with tab2:
 
 
 with tab3:
+    # ── API key check ─────────────────────────────────────
+    try:
+        import streamlit as st
+        _api_key_ok = bool(
+            st.secrets.get("DEEPSEEK_API_KEY", "")
+            or __import__("os").environ.get(
+                "DEEPSEEK_API_KEY", ""
+            )
+        )
+    except Exception:
+        _api_key_ok = bool(
+            __import__("os").environ.get(
+                "DEEPSEEK_API_KEY", ""
+            )
+        )
+
+    if not _api_key_ok:
+        st.warning(
+            "⚠️ **Sin API key configurada.** "
+            "Para usar la IA, agrega `DEEPSEEK_API_KEY` "
+            "en Streamlit Cloud → tu app → "
+            "Settings → Secrets.",
+            icon="🔑",
+        )
+
     ia_tab1, ia_tab2, ia_tab3 = st.tabs([
         "💡 Briefing", "📝 Programa", "💬 Chat"
     ])

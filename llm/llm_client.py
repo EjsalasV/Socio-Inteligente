@@ -29,34 +29,36 @@ def _load_config() -> dict[str, Any]:
 
 def _obtener_api_key(nombre: str) -> str:
     """
-    Loads API key from:
-    1. Streamlit secrets (production on Streamlit Cloud)
-    2. Environment variable (local with .env)
-    3. Empty string (graceful degradation)
+    Load API key with priority:
+    1. st.secrets (Streamlit Cloud)
+    2. os.environ (any environment)
+    3. .env file (local dev)
     """
-    # Try Streamlit secrets first (Streamlit Cloud)
+    import os
+
+    # 1. Streamlit secrets
     try:
         import streamlit as st
-
-        val = st.secrets.get(nombre, "")
-        if val:
-            return str(val)
+        # Try direct access first
+        if hasattr(st, "secrets"):
+            val = st.secrets.get(nombre, "")
+            if val and str(val).strip():
+                return str(val).strip()
     except Exception:
         pass
 
-    # Fallback to environment variable (local)
-    val = os.environ.get(nombre, "")
+    # 2. Environment variable
+    val = os.environ.get(nombre, "").strip()
     if val:
-        return str(val)
+        return val
 
-    # Fallback to .env file (local dev)
+    # 3. .env file
     try:
         from dotenv import load_dotenv
-
-        load_dotenv()
-        val = os.environ.get(nombre, "")
+        load_dotenv(override=False)
+        val = os.environ.get(nombre, "").strip()
         if val:
-            return str(val)
+            return val
     except Exception:
         pass
 
