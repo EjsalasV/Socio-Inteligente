@@ -647,6 +647,32 @@ def safe_call(func: Any, *args: Any, default: Any = None, **kwargs: Any) -> Any:
         return default
 
 
+def _obtener_admin_password() -> str:
+    """Load admin password from secrets or env."""
+    try:
+        import streamlit as st
+        val = st.secrets.get("ADMIN_PASSWORD", "")
+        if val and str(val).strip():
+            return str(val).strip()
+    except Exception:
+        pass
+    return os.environ.get("ADMIN_PASSWORD", "socioai2025")
+
+
+def _limpiar_cliente_session(cliente_id: str) -> int:
+    """
+    Removes ALL session_state keys related to a client.
+    Returns count of keys removed.
+    """
+    keys_to_delete = [
+        k for k in st.session_state.keys()
+        if cliente_id in str(k)
+    ]
+    for k in keys_to_delete:
+        del st.session_state[k]
+    return len(keys_to_delete)
+
+
 def fmt_num(value: Any, decimals: int = 2) -> str:
     try:
         return f"{float(value):,.{decimals}f}"
@@ -1218,32 +1244,159 @@ def render_setup_screen(clientes_disponibles: list[str]):
         if modo == "Seleccionar cliente existente":
             if clientes_disponibles:
                 st.markdown("**Clientes disponibles:**")
+                # Check if any client has session data loaded
+                clientes_con_datos = [
+                    c for c in clientes_disponibles
+                    if any(
+                        c in str(k)
+                        for k in st.session_state.keys()
+                        if any(
+                            prefix in str(k)
+                            for prefix in [
+                                "tb_upload_", "perfil_upload_",
+                                "mayor_upload_",
+                            ]
+                        )
+                    )
+                ]
+
                 for c in clientes_disponibles:
-                    # Build label from folder name
                     label = c.replace("_", " ").title()
                     is_selected = (
                         st.session_state.get("setup_cliente_sel") == c
                     )
+                    has_data = c in clientes_con_datos
+
                     card_class = (
                         "client-card client-card-selected"
                         if is_selected
                         else "client-card"
                     )
-                    st.markdown(f"""
-                    <div class="{card_class}">
-                        <div class="client-card-title">
-                            🏢 {label}
-                        </div>
-                        <div class="client-card-sub">{c}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    if st.button(
-                        f"Seleccionar {label}",
-                        key=f"sel_{c}",
-                        use_container_width=True,
-                    ):
-                        st.session_state["setup_cliente_sel"] = c
-                        st.rerun()
+
+                    # Data badge
+                    data_badge = (
+                        "<span style='background:#E3FCEF; color:#006644;"
+                        " padding:2px 8px; border-radius:10px;"
+                        " font-size:0.75rem; font-weight:700;"
+                        " margin-left:8px;'>✅ Con datos</span>"
+                        if has_data else
+                        "<span style='background:#F4F5F7; color:#6B778C;"
+                        " padding:2px 8px; border-radius:10px;"
+                        " font-size:0.75rem;'>Sin datos</span>"
+                    )
+
+                    st.markdown(
+                        f"""<div class="{card_class}">
+                            <div class="client-card-title">
+                                🏢 {label} {data_badge}
+                            </div>
+                            <div class="client-card-sub">{c}</div>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+
+                    btn_col1, btn_col2 = st.columns([3, 1])
+                    with btn_col1:
+                        if st.button(
+                            "Seleccionar",
+                            key=f"sel_{c}",
+                            use_container_width=True,
+                        ):
+                            st.session_state["setup_cliente_sel"] = c
+                            st.rerun()
+
+                    with btn_col2:
+                        if st.button(
+                            "🗑️ Borrar",
+                            key=f"del_{c}",
+                            use_container_width=True,
+                            help="Borra los datos cargados de este cliente",
+                        ):
+                            # Open delete confirmation for this client
+                            st.session_state[
+                                "delete_confirm_cliente"
+                            ] = c
+                            st.rerun()
+
+                # ── Delete confirmation dialog ────────────────────────
+                cliente_a_borrar = st.session_state.get(
+                    "delete_confirm_cliente", ""
+                )
+                if cliente_a_borrar:
+                    st.markdown("<div style='margin-top:1rem;'></div>",
+                                unsafe_allow_html=True)
+                    st.markdown(
+                        f"<div class='check-item check-fail'>"
+                        f"<span class='check-icon'>⚠️</span>"
+                        f"<span>Vas a borrar los datos de "
+                        f"<b>{cliente_a_borrar}</b> "
+                        f"de esta sesión. "
+                        f"Ingresa la contraseña para confirmar."
+                        f"</span></div>",
+                        unsafe_allow_html=True,
+                    )
+
+                    conf_col1, conf_col2, conf_col3 = st.columns(
+                        [2, 1, 1]
+                    )
+                    with conf_col1:
+                        pwd_input = st.text_input(
+                            "Contraseña de administrador",
+                            type="password",
+                            key="delete_pwd_input",
+                            label_visibility="collapsed",
+                            placeholder="Contraseña...",
+                        )
+                    with conf_col2:
+                        if st.button(
+                            "✅ Confirmar borrado",
+                            key="btn_confirm_delete",
+                            use_container_width=True,
+                        ):
+                            admin_pwd = _obtener_admin_password()
+                            if pwd_input == admin_pwd:
+                                n = _limpiar_cliente_session(
+                                    cliente_a_borrar
+                                )
+                                # Also clear selection if deleted
+                                if st.session_state.get(
+                                    "setup_cliente_sel"
+                                ) == cliente_a_borrar:
+                                    del st.session_state[
+                                        "setup_cliente_sel"
+                                    ]
+                                del st.session_state[
+                                    "delete_confirm_cliente"
+                                ]
+                                if "delete_pwd_input" in st.session_state:
+                                    del st.session_state[
+                                        "delete_pwd_input"
+                                    ]
+                                st.success(
+                                    f"✅ Datos de "
+                                    f"**{cliente_a_borrar}** "
+                                    f"borrados ({n} entradas "
+                                    f"eliminadas). "
+                                    f"Puedes cargarlo de nuevo."
+                                )
+                                st.rerun()
+                            else:
+                                st.error(
+                                    "❌ Contraseña incorrecta."
+                                )
+
+                    with conf_col3:
+                        if st.button(
+                            "✗ Cancelar",
+                            key="btn_cancel_delete",
+                            use_container_width=True,
+                        ):
+                            del st.session_state[
+                                "delete_confirm_cliente"
+                            ]
+                            if "delete_pwd_input" in st.session_state:
+                                del st.session_state["delete_pwd_input"]
+                            st.rerun()
 
                 cliente_elegido = st.session_state.get(
                     "setup_cliente_sel", ""
