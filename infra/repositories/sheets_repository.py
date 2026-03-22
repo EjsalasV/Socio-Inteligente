@@ -1,0 +1,233 @@
+"""
+Google Sheets repository for SocioAI client persistence.
+Stores client profiles and TB metadata across sessions.
+"""
+from __future__ import annotations
+
+import json
+from datetime import datetime
+from typing import Any
+
+import pandas as pd
+
+
+# Sheet tab names
+SHEET_CLIENTES = "clientes"
+SHEET_TB_META = "tb_metadata"
+SHEET_ESTADOS = "estados_areas"
+
+
+def _get_client():
+    """Returns authenticated gspread client."""
+    try:
+        import gspread
+        import streamlit as st
+        from google.oauth2.service_account import Credentials
+
+        scopes = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive",
+        ]
+
+        # Load from Streamlit secrets
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(
+            creds_dict, scopes=scopes
+        )
+        return gspread.authorize(creds)
+    except Exception as e:
+        print(f"[SHEETS] Error connecting: {e}")
+        return None
+
+
+def _get_sheet(tab_name: str):
+    """Returns a specific worksheet, creates it if missing."""
+    try:
+        import streamlit as st
+        client = _get_client()
+        if not client:
+            return None
+
+        sheet_id = st.secrets.get("GOOGLE_SHEETS_ID", "")
+        if not sheet_id:
+            return None
+
+        spreadsheet = client.open_by_key(sheet_id)
+
+        # Get or create tab
+        try:
+            return spreadsheet.worksheet(tab_name)
+        except Exception:
+            # Create tab with headers
+            ws = spreadsheet.add_worksheet(
+                title=tab_name, rows=1000, cols=20
+            )
+            _init_headers(ws, tab_name)
+            return ws
+    except Exception as e:
+        print(f"[SHEETS] Error getting sheet {tab_name}: {e}")
+        return None
+
+
+def _init_headers(ws: Any, tab_name: str) -> None:
+    """Initialize headers for each sheet tab."""
+    headers = {
+        SHEET_CLIENTES: [
+            "cliente_id", "nombre_legal", "ruc",
+            "sector", "tipo_entidad", "periodo",
+            "marco", "riesgo_global", "moneda",
+            "partes_relacionadas", "inventarios",
+            "cartera", "prestamos_socios",
+            "anticipos", "empleados",
+            "doc_debil", "riesgo_tributario",
+            "fecha_creacion", "fecha_actualizacion",
+            "perfil_json",
+        ],
+        SHEET_TB_META: [
+            "cliente_id", "tipo_tb", "filas",
+            "columnas", "fecha_carga",
+            "tiene_saldo_2024", "tiene_saldo_2025",
+            "total_activos", "total_pasivos",
+            "total_patrimonio",
+        ],
+        SHEET_ESTADOS: [
+            "cliente_id", "codigo_area",
+            "nombre_area", "estado_area",
+            "decision_cierre", "conclusion",
+            "notas", "pendientes",
+            "fecha_actualizacion",
+        ],
+    }
+    if tab_name in headers:
+        ws.append_row(headers[tab_name])
+
+
+# ── Client CRUD ───────────────────────────────────────────────
+def guardar_cliente_sheets(
+    cliente_id: str,
+    perfil: dict[str, Any],
+) -> bool:
+    """Save or update a client profile in Google Sheets."""
+    try:
+        ws = _get_sheet(SHEET_CLIENTES)
+        if not ws:
+            return False
+
+        c = perfil.get("cliente", {})
+        enc = perfil.get("encargo", {})
+        rg = perfil.get("riesgo_global", {})
+        op = perfil.get("operacion", {})
+        banderas = perfil.get("banderas_generales", {})
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+        perfil_json = json.dumps(perfil, ensure_ascii=False)
+
+        row = [
+            cliente_id,
+            c.get("nombre_legal", ""),
+            c.get("ruc", ""),
+            c.get("sector", ""),
+            c.get("tipo_entidad", ""),
+            str(enc.get("anio_activo", "")),
+            enc.get("marco_referencial", ""),
+            rg.get("nivel", ""),
+            c.get("moneda_funcional", "USD"),
+            str(bool(perfil.get("contexto_negocio", {})
+                     .get("tiene_partes_relacionadas"))),
+            str(bool(op.get("tiene_inventarios_significativos"))),
+            str(bool(op.get("tiene_cartera_significativa"))),
+            str(bool(op.get("tiene_prestamos_socios"))),
+            str(bool(op.get("tiene_anticipos_proveedores"))),
+            str(bool(perfil.get("nomina", {})
+                     .get("tiene_empleados"))),
+            str(bool(banderas.get("documentacion_debil"))),
+            str(bool(banderas.get("riesgo_tributario_general"))),
+            now,
+            now,
+            perfil_json,
+        ]
+
+        # Check if client already exists → update row
+        existing = ws.get_all_values()
+        for i, existing_row in enumerate(existing[1:], start=2):
+            if existing_row and existing_row[0] == cliente_id:
+                # Update existing row
+                row[-2] = existing_row[-2]  # keep created date
+                ws.update(f"A{i}:T{i}", [row])
+                print(f"[SHEETS] Updated client: {cliente_id}")
+                return True
+
+        # New client → append
+        ws.append_row(row)
+        print(f"[SHEETS] Saved new client: {cliente_id}")
+        return True
+
+    except Exception as e:
+        print(f"[SHEETS] Error saving client: {e}")
+        return False
+
+
+def cargar_clientes_sheets() -> list[dict[str, Any]]:
+    """Load all clients from Google Sheets."""
+    try:
+        ws = _get_sheet(SHEET_CLIENTES)
+        if not ws:
+            return []
+
+        rows = ws.get_all_records()
+        clientes = []
+        for row in rows:
+            if not row.get("cliente_id"):
+                continue
+            # Try to restore full perfil from JSON
+            perfil_json = row.get("perfil_json", "")
+            try:
+                perfil = json.loads(perfil_json) if perfil_json else {}
+            except Exception:
+                perfil = {}
+
+            clientes.append({
+                "cliente_id": str(row["cliente_id"]),
+                "nombre_legal": str(row.get("nombre_legal", "")),
+                "sector": str(row.get("sector", "")),
+                "periodo": str(row.get("periodo", "")),
+                "fecha_creacion": str(
+                    row.get("fecha_creacion", "")
+                ),
+                "perfil": perfil,
+            })
+        return clientes
+    except Exception as e:
+        print(f"[SHEETS] Error loading clients: {e}")
+        return []
+
+
+def eliminar_cliente_sheets(cliente_id: str) -> bool:
+    """Delete a client row from Google Sheets."""
+    try:
+        ws = _get_sheet(SHEET_CLIENTES)
+        if not ws:
+            return False
+
+        rows = ws.get_all_values()
+        for i, row in enumerate(rows[1:], start=2):
+            if row and row[0] == cliente_id:
+                ws.delete_rows(i)
+                print(f"[SHEETS] Deleted client: {cliente_id}")
+                return True
+        return False
+    except Exception as e:
+        print(f"[SHEETS] Error deleting client: {e}")
+        return False
+
+
+def sheets_disponible() -> bool:
+    """Check if Google Sheets connection works."""
+    try:
+        import streamlit as st
+        return bool(
+            st.secrets.get("GOOGLE_SHEETS_ID")
+            and st.secrets.get("gcp_service_account")
+        )
+    except Exception:
+        return False

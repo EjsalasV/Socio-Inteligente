@@ -178,6 +178,21 @@ try:
 except Exception:
     _get_deepseek_key = None
 
+try:
+    from infra.repositories.sheets_repository import (
+        guardar_cliente_sheets,
+        cargar_clientes_sheets,
+        eliminar_cliente_sheets,
+        sheets_disponible,
+    )
+    _sheets_ok = True
+except Exception:
+    guardar_cliente_sheets = None
+    cargar_clientes_sheets = None
+    eliminar_cliente_sheets = None
+    sheets_disponible = None
+    _sheets_ok = False
+
 
 @st.cache_data(ttl=300)
 def cached_leer_tb(cliente: str):
@@ -636,26 +651,6 @@ st.markdown("""
       color: #FFFFFF !important;
       border-radius: 6px !important;
   }
-  /* ── Area selector buttons in ranking ── */
-  [data-testid="stButton"] button[kind="secondary"]:has(
-    div > p
-  ) {
-      opacity: 0 !important;
-      height: 0px !important;
-      padding: 0 !important;
-      margin: -0.4rem 0 0 0 !important;
-      border: none !important;
-      min-height: 0 !important;
-  }
-
-  /* Simpler fallback for all ranking sel buttons */
-  button[data-testid*="sel_area_"] {
-      opacity: 0 !important;
-      height: 4px !important;
-      padding: 0 !important;
-      margin-top: -0.5rem !important;
-      border: none !important;
-  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -728,25 +723,90 @@ def _limpiar_cliente_session(cliente_id: str) -> int:
     except Exception:
         pass
 
+    # Also delete from Google Sheets
+    if _sheets_ok and eliminar_cliente_sheets:
+        safe_call(
+            eliminar_cliente_sheets,
+            cliente_id,
+            default=False,
+        )
+        # Invalidate cache
+        if "sheets_clientes_cache" in st.session_state:
+            del st.session_state["sheets_clientes_cache"]
+
     return len(keys_to_delete)
 
 
 def _get_clientes_dinamicos() -> list[str]:
+    """
+    Returns clients from:
+    1. Google Sheets (persistent, cross-session)
+    2. Local repo folders (demo clients)
+    3. Session-created clients (this session only)
+    Excludes deleted clients.
+    """
+    _borrados = st.session_state.get(
+        "clientes_borrados_sesion", []
+    )
+
+    # 1. From Google Sheets (persistent)
+    _sheets_clientes: list[str] = []
+    if _sheets_ok and sheets_disponible and \
+            safe_call(sheets_disponible, default=False):
+        _cache_key = "sheets_clientes_cache"
+        # Cache for 60 seconds to avoid too many API calls
+        _cache_time_key = "sheets_clientes_cache_time"
+        import time
+        _now = time.time()
+        _last = st.session_state.get(
+            _cache_time_key, 0
+        )
+        if _now - _last > 60 or \
+                _cache_key not in st.session_state:
+            _raw = safe_call(
+                cargar_clientes_sheets, default=[]
+            ) or []
+            _ids = [
+                c["cliente_id"] for c in _raw
+                if c.get("cliente_id")
+            ]
+            st.session_state[_cache_key] = _ids
+            st.session_state[_cache_time_key] = _now
+
+            # Also restore perfil cache for each client
+            for c in _raw:
+                _cid = c.get("cliente_id", "")
+                _pf = c.get("perfil", {})
+                if _cid and _pf:
+                    try:
+                        from domain.services.leer_perfil \
+                            import set_perfil_cache
+                        set_perfil_cache(_cid, _pf)
+                    except Exception:
+                        pass
+                    st.session_state[
+                        f"perfil_upload_{_cid}"
+                    ] = _pf
+
+        _sheets_clientes = st.session_state.get(
+            _cache_key, []
+        )
+
+    # 2. From repo folders
     _base_path = Path("data/clientes")
     _base = sorted([
         d.name for d in _base_path.iterdir()
         if d.is_dir()
     ]) if _base_path.exists() else []
 
+    # 3. Session-created
     _nuevos = st.session_state.get(
         "clientes_creados_sesion", []
     )
-    # Clients explicitly deleted this session
-    _borrados = st.session_state.get(
-        "clientes_borrados_sesion", []
-    )
 
-    _todos = list(dict.fromkeys(_base + _nuevos))
+    _todos = list(dict.fromkeys(
+        _sheets_clientes + _base + _nuevos
+    ))
     return [c for c in _todos if c not in _borrados]
 
 
@@ -1931,6 +1991,20 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 st.session_state[
                     f"perfil_upload_{cliente_elegido}"
                 ] = perfil_form
+                # Save to Google Sheets for persistence
+                if _sheets_ok and guardar_cliente_sheets:
+                    _saved = safe_call(
+                        guardar_cliente_sheets,
+                        cliente_elegido,
+                        perfil_form,
+                        default=False,
+                    )
+                    if _saved:
+                        # Invalidate cache so new client appears
+                        if "sheets_clientes_cache" in st.session_state:
+                            del st.session_state[
+                                "sheets_clientes_cache"
+                            ]
 
             # Process mayor
             if uploaded_mayor:
@@ -2331,6 +2405,14 @@ except Exception:
     pass
 
 render_sidebar_summary(cliente, perfil, datos_clave, ranking_areas)
+# Sheets connection indicator
+st.sidebar.divider()
+if _sheets_ok and safe_call(
+    sheets_disponible, default=False
+):
+    st.sidebar.caption("☁️ Google Sheets conectado")
+else:
+    st.sidebar.caption("💾 Modo local (sin persistencia)")
 
 
 # ============================================================
@@ -3369,11 +3451,9 @@ with tab2:
                     f"""
                     <div style="background:{_bg};
                         border:{_border};
-                        border-radius:10px;
-                        padding:0.7rem 1rem;
-                        margin-bottom:0.4rem;
-                        cursor:pointer;
-                        transition:all 0.15s;">
+                        border-radius:10px 10px 0 0;
+                        padding:0.7rem 1rem 0.4rem 1rem;
+                        margin-bottom:0;">
                       <div style="display:flex;
                           justify-content:space-between;
                           align-items:center;">
@@ -3413,21 +3493,33 @@ with tab2:
                     """,
                     unsafe_allow_html=True,
                 )
-
-                # Invisible button overlays the card
-                if st.button(
-                    f"📂 {_cod} — {_area['nombre'][:20]}",
+                # Button sits flush below the card
+                st.markdown(
+                    "<div style='margin-top:0; "
+                    "margin-bottom:0.5rem;'>",
+                    unsafe_allow_html=True,
+                )
+                _btn = st.button(
+                    "▶ Abrir área" if not _is_sel
+                    else "✅ Área activa",
                     key=f"sel_area_{cliente}_{_cod}",
                     use_container_width=True,
-                ):
+                    type="primary" if _is_sel else "secondary",
+                )
+                st.markdown("</div>", unsafe_allow_html=True)
+                if _btn:
                     st.session_state[_area_key] = _cod
                     st.rerun()
 
         with col_ws2:
-            # Reload selected_area_code from session
+            # Always read fresh from session after rerun
             selected_area_code = st.session_state.get(
-                _area_key, _areas_list[0]["codigo"]
+                _area_key,
+                _areas_list[0]["codigo"] if _areas_list else "14",
             )
+            # Update global selected_area_code for other tabs
+            st.session_state[f"selected_area_{cliente}"] = \
+                selected_area_code
 
             ws = prepare_area_workspace(
                 cliente=cliente,
