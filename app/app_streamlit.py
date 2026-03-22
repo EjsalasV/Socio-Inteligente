@@ -467,6 +467,96 @@ st.markdown("""
   .badge-ok   { background:#E3FCEF; color:#006644; }
   .badge-warn { background:#FFFAE6; color:#974F0C; }
   .badge-fail { background:#FFEBE6; color:#BF2600; }
+
+  /* ── Fix buttons visibility ── */
+  .stButton > button {
+      background-color: #003366 !important;
+      color: #FFFFFF !important;
+      border: 2px solid #003366 !important;
+      border-radius: 8px !important;
+      font-weight: 700 !important;
+      padding: 0.5rem 1.2rem !important;
+      transition: all 0.2s !important;
+  }
+  .stButton > button:hover {
+      background-color: #0066CC !important;
+      border-color: #0066CC !important;
+      color: #FFFFFF !important;
+  }
+  .stButton > button[kind="primary"] {
+      background-color: #003366 !important;
+      color: #FFFFFF !important;
+  }
+  .stDownloadButton > button {
+      background-color: #00875A !important;
+      color: #FFFFFF !important;
+      border: 2px solid #00875A !important;
+      border-radius: 8px !important;
+      font-weight: 700 !important;
+  }
+  .stDownloadButton > button:hover {
+      background-color: #006644 !important;
+      border-color: #006644 !important;
+  }
+
+  /* ── Welcome screen ── */
+  .welcome-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 80vh;
+      text-align: center;
+      padding: 2rem;
+  }
+  .welcome-logo {
+      font-size: 3.5rem;
+      font-weight: 900;
+      color: #FFFFFF;
+      letter-spacing: -1px;
+      margin-bottom: 0.5rem;
+  }
+  .welcome-sub {
+      font-size: 1.1rem;
+      color: #A8C4E0;
+      margin-bottom: 2.5rem;
+  }
+  .welcome-bg {
+      background: linear-gradient(135deg, #001a40 0%, #003366 60%, #0055A5 100%);
+      border-radius: 20px;
+      padding: 4rem 3rem;
+      margin: 2rem auto;
+      max-width: 700px;
+      box-shadow: 0 20px 60px rgba(0,51,102,0.3);
+  }
+  .client-card {
+      background: #FFFFFF;
+      border: 2px solid #DFE1E6;
+      border-radius: 12px;
+      padding: 1.2rem 1.5rem;
+      margin-bottom: 0.6rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+  }
+  .client-card:hover {
+      border-color: #003366;
+      box-shadow: 0 4px 16px rgba(0,51,102,0.15);
+  }
+  .client-card-selected {
+      border-color: #003366 !important;
+      background: #EBF2FF !important;
+  }
+  .client-card-title {
+      font-weight: 700;
+      color: #003366;
+      font-size: 1rem;
+  }
+  .client-card-sub {
+      color: #6B778C;
+      font-size: 0.82rem;
+      margin-top: 2px;
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -944,6 +1034,301 @@ def render_consultar_socio_tab(ws: dict[str, Any], cliente: str) -> None:
             st.markdown(f"**Socio:** {msg}")
 
 
+def render_welcome_screen():
+    """Full-page welcome screen."""
+    # Hide sidebar on welcome screen
+    st.markdown("""
+    <style>
+    [data-testid="stSidebar"] { display: none; }
+    [data-testid="collapsedControl"] { display: none; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="display:flex; justify-content:center;
+                align-items:center; min-height:80vh;">
+      <div class="welcome-bg">
+        <div style="text-align:center;">
+          <div style="font-size:4rem; margin-bottom:0.5rem;">📊</div>
+          <div class="welcome-logo">SocioAI</div>
+          <div class="welcome-sub">
+            Plataforma Inteligente de Auditoría Financiera
+          </div>
+          <div style="color:#A8C4E0; font-size:0.9rem;
+                      margin-bottom:2.5rem; line-height:1.6;">
+            Análisis de riesgo · Briefings con IA · Programas de auditoría<br>
+            Ranking de áreas · Reporte PDF ejecutivo
+          </div>
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button(
+            "🚀 Comenzar",
+            key="btn_welcome_start",
+            use_container_width=True,
+            type="primary",
+        ):
+            st.session_state["app_screen"] = "setup"
+            st.rerun()
+
+
+def render_setup_screen(clientes_disponibles: list[str]):
+    """Client setup screen: auditor + client + upload."""
+    # Hide sidebar on setup screen
+    st.markdown("""
+    <style>
+    [data-testid="stSidebar"] { display: none; }
+    [data-testid="collapsedControl"] { display: none; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="text-align:center; padding:2rem 0 1rem 0;">
+      <span style="font-size:1.8rem; font-weight:900;
+                   color:#003366;">📊 SocioAI</span>
+      <div style="color:#6B778C; font-size:0.95rem;
+                  margin-top:0.3rem;">
+        Configura tu sesión de auditoría
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    main_col, _ = st.columns([2, 1])
+    with main_col:
+
+        # ── Auditor name ──────────────────────────────────────
+        st.markdown(
+            "<div class='section-header'>👤 Auditor</div>",
+            unsafe_allow_html=True,
+        )
+        nombre_auditor = st.text_input(
+            "Nombre del auditor",
+            placeholder="ej: María Torres",
+            key="setup_auditor",
+            label_visibility="collapsed",
+        )
+
+        st.markdown("<div style='margin-top:1.2rem;'></div>",
+                    unsafe_allow_html=True)
+
+        # ── Client selection ──────────────────────────────────
+        st.markdown(
+            "<div class='section-header'>🏢 Cliente</div>",
+            unsafe_allow_html=True,
+        )
+
+        modo = st.radio(
+            "Modo",
+            ["Seleccionar cliente existente", "Crear cliente nuevo"],
+            key="setup_modo",
+            horizontal=True,
+            label_visibility="collapsed",
+        )
+
+        cliente_elegido = ""
+
+        if modo == "Seleccionar cliente existente":
+            if clientes_disponibles:
+                st.markdown("**Clientes disponibles:**")
+                for c in clientes_disponibles:
+                    # Build label from folder name
+                    label = c.replace("_", " ").title()
+                    is_selected = (
+                        st.session_state.get("setup_cliente_sel") == c
+                    )
+                    card_class = (
+                        "client-card client-card-selected"
+                        if is_selected
+                        else "client-card"
+                    )
+                    st.markdown(f"""
+                    <div class="{card_class}">
+                        <div class="client-card-title">
+                            🏢 {label}
+                        </div>
+                        <div class="client-card-sub">{c}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    if st.button(
+                        f"Seleccionar {label}",
+                        key=f"sel_{c}",
+                        use_container_width=True,
+                    ):
+                        st.session_state["setup_cliente_sel"] = c
+                        st.rerun()
+
+                cliente_elegido = st.session_state.get(
+                    "setup_cliente_sel", ""
+                )
+            else:
+                st.info(
+                    "No hay clientes guardados. "
+                    "Crea uno nuevo."
+                )
+        else:
+            cliente_nuevo = st.text_input(
+                "Nombre del cliente nuevo",
+                placeholder="ej: empresa_abc_2025",
+                key="setup_cliente_nuevo",
+            )
+            if cliente_nuevo.strip():
+                cliente_elegido = (
+                    cliente_nuevo.strip()
+                    .lower()
+                    .replace(" ", "_")
+                )
+                st.caption(f"ID: `{cliente_elegido}`")
+
+        st.markdown("<div style='margin-top:1.2rem;'></div>",
+                    unsafe_allow_html=True)
+
+        # ── File uploads ──────────────────────────────────────
+        st.markdown(
+            "<div class='section-header'>📂 Archivos</div>",
+            unsafe_allow_html=True,
+        )
+
+        up_col1, up_col2 = st.columns(2)
+        with up_col1:
+            uploaded_tb = st.file_uploader(
+                "Trial Balance (.xlsx) *",
+                type=["xlsx"],
+                key="setup_tb",
+                help="Obligatorio para el análisis",
+            )
+        with up_col2:
+            uploaded_perfil = st.file_uploader(
+                "Perfil del cliente (.yaml)",
+                type=["yaml", "yml"],
+                key="setup_perfil",
+                help="Opcional — mejora el análisis",
+            )
+
+        uploaded_mayor = st.file_uploader(
+            "Libro Mayor (.xlsx) — opcional",
+            type=["xlsx"],
+            key="setup_mayor",
+        )
+
+        # ── Stage selection ───────────────────────────────────
+        st.markdown("<div style='margin-top:1.2rem;'></div>",
+                    unsafe_allow_html=True)
+        st.markdown(
+            "<div class='section-header'>📋 Etapa</div>",
+            unsafe_allow_html=True,
+        )
+        etapa_setup = st.selectbox(
+            "Etapa de auditoría",
+            ["planificacion", "ejecucion", "cierre"],
+            key="setup_etapa",
+            label_visibility="collapsed",
+        )
+
+        st.markdown("<div style='margin-top:1.5rem;'></div>",
+                    unsafe_allow_html=True)
+
+        # ── Validation & Enter ────────────────────────────────
+        puede_entrar = bool(cliente_elegido and uploaded_tb)
+
+        if not puede_entrar:
+            faltante = []
+            if not cliente_elegido:
+                faltante.append("seleccionar o crear un cliente")
+            if not uploaded_tb:
+                faltante.append("subir el Trial Balance (.xlsx)")
+            st.warning(
+                "Para continuar debes: "
+                + " y ".join(faltante) + "."
+            )
+
+        if st.button(
+            "✅ Entrar al análisis",
+            key="btn_setup_enter",
+            use_container_width=True,
+            type="primary",
+            disabled=not puede_entrar,
+        ):
+            # Save everything to session state
+            st.session_state["cliente_activo"] = cliente_elegido
+            st.session_state["etapa_activa"] = etapa_setup
+            st.session_state["auditor_nombre"] = nombre_auditor
+
+            # Process TB
+            if uploaded_tb:
+                import io
+
+                df_tb_up = pd.read_excel(
+                    io.BytesIO(uploaded_tb.read()),
+                    sheet_name=0, engine="openpyxl",
+                )
+                st.session_state[
+                    f"tb_upload_{cliente_elegido}"
+                ] = df_tb_up
+
+            # Process perfil
+            if uploaded_perfil:
+                import yaml as _yaml
+
+                perfil_up = _yaml.safe_load(
+                    uploaded_perfil.read().decode("utf-8")
+                )
+                st.session_state[
+                    f"perfil_upload_{cliente_elegido}"
+                ] = perfil_up
+
+            # Process mayor
+            if uploaded_mayor:
+                import io
+
+                df_mayor_up = pd.read_excel(
+                    io.BytesIO(uploaded_mayor.read()),
+                    sheet_name=0, engine="openpyxl",
+                )
+                st.session_state[
+                    f"mayor_upload_{cliente_elegido}"
+                ] = df_mayor_up
+
+            st.session_state["app_screen"] = "dashboard"
+            st.rerun()
+
+    # Back button
+    st.markdown("<div style='margin-top:1rem;'></div>",
+                unsafe_allow_html=True)
+    if st.button("← Volver", key="btn_setup_back"):
+        st.session_state["app_screen"] = "welcome"
+        st.rerun()
+
+
+# ══ Screen router ══════════════════════════════════════════════
+if "app_screen" not in st.session_state:
+    st.session_state["app_screen"] = "welcome"
+
+if st.session_state["app_screen"] == "welcome":
+    render_welcome_screen()
+    st.stop()
+
+if st.session_state["app_screen"] == "setup":
+    # Need clientes_disponibles for the setup screen
+    _clientes_path = Path("data/clientes")
+    _clientes_disp = sorted([
+        d.name for d in _clientes_path.iterdir()
+        if d.is_dir()
+    ]) if _clientes_path.exists() else []
+    render_setup_screen(_clientes_disp)
+    st.stop()
+
+# ── From here: dashboard screen ────────────────────────────────
+# Override sidebar defaults with setup values
+if "cliente_activo" in st.session_state:
+    _cliente_override = st.session_state["cliente_activo"]
+if "etapa_activa" in st.session_state:
+    _etapa_override = st.session_state["etapa_activa"]
+
+
 # ============================================================
 # Sidebar
 # ============================================================
@@ -958,33 +1343,48 @@ if not clientes_disponibles:
     st.sidebar.warning("No hay clientes disponibles en data/clientes/. Usando modo carga manual.")
     clientes_disponibles = ["cliente_demo"]
 
-# Show existing clients from repo
-cliente_seleccionado = st.sidebar.selectbox(
-    "Seleccionar cliente",
-    options=clientes_disponibles,
-    index=0,
+# Default to setup values if coming from setup screen
+_default_cliente = st.session_state.get(
+    "cliente_activo", clientes_disponibles[0]
+    if clientes_disponibles else ""
+)
+_default_etapa = st.session_state.get(
+    "etapa_activa", "planificacion"
 )
 
-# Allow typing a new client name (for uploaded data)
-nuevo_cliente = st.sidebar.text_input(
-    "O escribe un nombre de cliente nuevo",
-    key="nuevo_cliente_input",
-    placeholder="ej: empresa_abc_2025",
+_clientes_opts = list(clientes_disponibles)
+if _default_cliente and _default_cliente not in _clientes_opts:
+    _clientes_opts = [_default_cliente] + _clientes_opts
+
+cliente_seleccionado = st.sidebar.selectbox(
+    "Seleccionar cliente",
+    options=_clientes_opts,
+    index=_clientes_opts.index(_default_cliente)
+    if _default_cliente in _clientes_opts else 0,
 )
-if nuevo_cliente.strip():
-    cliente_seleccionado = nuevo_cliente.strip().lower().replace(
-        " ", "_"
-    )
-    st.sidebar.caption(f"Cliente activo: {cliente_seleccionado}")
 
 etapa_seleccionada = st.sidebar.selectbox(
     "Etapa",
     options=["planificacion", "ejecucion", "cierre"],
-    index=2,
+    index=["planificacion", "ejecucion", "cierre"].index(
+        _default_etapa
+    ),
 )
 
 if st.sidebar.button("Cargar cliente", width="stretch"):
     st.session_state.cliente_cargado = cliente_seleccionado
+
+if st.sidebar.button(
+    "← Volver al inicio",
+    key="btn_back_home",
+    use_container_width=True,
+):
+    st.session_state["app_screen"] = "welcome"
+    st.rerun()
+
+auditor = st.session_state.get("auditor_nombre", "")
+if auditor:
+    st.sidebar.caption(f"👤 Auditor: {auditor}")
 
 st.sidebar.divider()
 st.sidebar.markdown("**📂 Cargar archivos del cliente**")
