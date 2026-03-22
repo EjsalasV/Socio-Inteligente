@@ -557,6 +557,36 @@ st.markdown("""
       font-size: 0.82rem;
       margin-top: 2px;
   }
+  .setup-hero {
+      background: linear-gradient(135deg, #EAF2FF 0%, #F5F9FF 100%);
+      border: 1px solid #D5E2F5;
+      border-radius: 16px;
+      padding: 1.2rem 1.4rem;
+      margin: 1rem 0 1.2rem 0;
+  }
+  .setup-hero-title {
+      color: #003366;
+      font-size: 1.45rem;
+      font-weight: 900;
+      margin-bottom: 0.25rem;
+  }
+  .setup-hero-sub {
+      color: #44546A;
+      font-size: 0.92rem;
+      line-height: 1.5;
+  }
+  .setup-step {
+      display: inline-block;
+      background: #FFFFFF;
+      border: 1px solid #B3C8E8;
+      color: #003366;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      margin-right: 6px;
+      margin-top: 8px;
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1087,13 +1117,23 @@ def render_setup_screen(clientes_disponibles: list[str]):
     """, unsafe_allow_html=True)
 
     st.markdown("""
-    <div style="text-align:center; padding:2rem 0 1rem 0;">
-      <span style="font-size:1.8rem; font-weight:900;
+    <div style="text-align:center; padding:1.2rem 0 0.2rem 0;">
+      <span style="font-size:1.95rem; font-weight:900;
                    color:#003366;">📊 SocioAI</span>
-      <div style="color:#6B778C; font-size:0.95rem;
-                  margin-top:0.3rem;">
+      <div style="color:#6B778C; font-size:0.98rem;
+                  margin-top:0.25rem;">
         Configura tu sesión de auditoría
       </div>
+    </div>
+    <div class="setup-hero">
+      <div class="setup-hero-title">Iniciemos tu análisis</div>
+      <div class="setup-hero-sub">
+        Completa 3 pasos para entrar al dashboard:
+        selecciona cliente, sube tu Trial Balance y define la etapa.
+      </div>
+      <span class="setup-step">1. Cliente</span>
+      <span class="setup-step">2. Archivos</span>
+      <span class="setup-step">3. Etapa</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1107,7 +1147,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
         )
         nombre_auditor = st.text_input(
             "Nombre del auditor",
-            placeholder="ej: María Torres",
+            placeholder="ej: Erick Salas",
             key="setup_auditor",
             label_visibility="collapsed",
         )
