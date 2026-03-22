@@ -636,6 +636,26 @@ st.markdown("""
       color: #FFFFFF !important;
       border-radius: 6px !important;
   }
+  /* ── Area selector buttons in ranking ── */
+  [data-testid="stButton"] button[kind="secondary"]:has(
+    div > p
+  ) {
+      opacity: 0 !important;
+      height: 0px !important;
+      padding: 0 !important;
+      margin: -0.4rem 0 0 0 !important;
+      border: none !important;
+      min-height: 0 !important;
+  }
+
+  /* Simpler fallback for all ranking sel buttons */
+  button[data-testid*="sel_area_"] {
+      opacity: 0 !important;
+      height: 4px !important;
+      padding: 0 !important;
+      margin-top: -0.5rem !important;
+      border: none !important;
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -2265,15 +2285,32 @@ if isinstance(diag_tb, dict):
     elif rows_loaded == 0:
         st.warning("No se pudieron cargar filas del TB para el cliente seleccionado.")
 
-area_options = infer_area_options(ranking_areas, tb, cliente)
-if not area_options:
-    area_options = [("140", "140 - Area 140")]
+# Selected area — driven by ranking click,
+# not sidebar dropdown
+_area_key = f"selected_area_{cliente}"
+if _area_key not in st.session_state:
+    # Default to top area from ranking
+    if (
+        isinstance(ranking_areas, pd.DataFrame)
+        and not ranking_areas.empty
+        and "area" in ranking_areas.columns
+    ):
+        _mask = pd.Series([True]*len(ranking_areas))
+        if "con_saldo" in ranking_areas.columns:
+            _mask = ranking_areas[
+                "con_saldo"
+            ].astype(bool)
+        _top = ranking_areas[_mask]
+        if not _top.empty:
+            st.session_state[_area_key] = str(
+                _top.iloc[0]["area"]
+            )
+        else:
+            st.session_state[_area_key] = "14"
+    else:
+        st.session_state[_area_key] = "14"
 
-selected_area_code = st.sidebar.selectbox(
-    "Area L/S",
-    options=[x[0] for x in area_options],
-    format_func=lambda v: dict(area_options).get(v, v),
-)
+selected_area_code = st.session_state[_area_key]
 
 if st.sidebar.button("Limpiar cache", width="stretch"):
     st.cache_data.clear()
@@ -3250,108 +3287,206 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
 
 
 with tab2:
-    col_rank, col_ws = st.columns([1, 2])
+    # ── Build area list ───────────────────────────────────
+    _area_key = f"selected_area_{cliente}"
+    _selected = st.session_state.get(_area_key, "")
 
-    with col_rank:
-        st.markdown("<div class='section-header'>Ranking de Áreas</div>",
-                    unsafe_allow_html=True)
-        if isinstance(ranking_areas, pd.DataFrame) and not ranking_areas.empty:
-            cols_show = ["area", "nombre", "score_riesgo", "prioridad"]
-            cols_show = [c for c in cols_show if c in ranking_areas.columns]
-            rank_small = ranking_areas[cols_show].head(10).copy()
-            if "score_riesgo" in rank_small.columns:
-                rank_small["score_riesgo"] = rank_small["score_riesgo"].apply(
-                    lambda x: f"{float(x):.1f}"
-                )
-            if "prioridad" in rank_small.columns:
-                rank_small["prioridad"] = rank_small["prioridad"].str.upper()
-            st.dataframe(rank_small, use_container_width=True, hide_index=True)
-        else:
-            st.info("Sin datos de ranking.")
+    # Get areas with saldo from ranking
+    _areas_list: list[dict] = []
+    if (
+        isinstance(ranking_areas, pd.DataFrame)
+        and not ranking_areas.empty
+    ):
+        _needed = {"area", "nombre", "score_riesgo"}
+        if _needed.issubset(set(ranking_areas.columns)):
+            _mask2 = pd.Series(
+                [True] * len(ranking_areas)
+            )
+            if "con_saldo" in ranking_areas.columns:
+                _mask2 = ranking_areas[
+                    "con_saldo"
+                ].astype(bool)
+            for _, _row in ranking_areas[
+                _mask2
+            ].iterrows():
+                _areas_list.append({
+                    "codigo": str(
+                        _row.get("area", "")
+                    ).strip(),
+                    "nombre": str(
+                        _row.get("nombre", "")
+                    ),
+                    "score": float(
+                        _row.get("score_riesgo", 0) or 0
+                    ),
+                    "prioridad": str(
+                        _row.get("prioridad", "baja")
+                    ).upper(),
+                    "saldo": float(
+                        _row.get("saldo_total", 0) or 0
+                    ),
+                })
 
-    with col_ws:
-        st.markdown("<div class='section-header'>Workspace por Área</div>",
-                    unsafe_allow_html=True)
-        ws = prepare_area_workspace(
-            cliente=cliente,
-            etapa=etapa_seleccionada,
-            codigo_ls=selected_area_code,
-            perfil=perfil,
-            tb=tb,
-            variaciones=variaciones,
-            ranking_areas=ranking_areas,
+    if not _areas_list:
+        st.info(
+            "Sube un Trial Balance para ver las áreas."
         )
-        render_area_header(ws)
-        render_area_kpis(ws)
+    else:
+        col_rank2, col_ws2 = st.columns([1, 2])
 
-        inner_tabs = st.tabs([
-            "📋 Resumen",
-            "⚙️ Trabajo",
-            "🔍 Calidad",
-            "🏁 Cierre",
-            "📎 Requerimientos",
-        ])
-
-        # ── Tab 1: Resumen ────────────────────────────────────────
-        with inner_tabs[0]:
-            # Only show KPIs if there is actual data
-            saldo_val = float(
-                ws.get("area_summary", {}).get("saldo_actual", 0) or 0
+        with col_rank2:
+            st.markdown(
+                "<div class='section-header'>"
+                "Ranking de Áreas</div>",
+                unsafe_allow_html=True,
             )
-            var_val = float(
-                ws.get("area_summary", {}).get("variacion_acumulada", 0) or 0
+            st.caption(
+                "Haz clic en un área para verla "
+                "en detalle →"
             )
-            has_data = saldo_val != 0 or var_val != 0
 
-            if has_data:
-                m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Saldo actual", fmt_money(saldo_val))
-                m2.metric("Variación acum.", fmt_money(var_val))
-                m3.metric(
-                    "Cobertura",
-                    f"{fmt_num(ws.get('coverage', 0), 1)}%"
+            for _area in _areas_list:
+                _cod = _area["codigo"]
+                _score = _area["score"]
+                _is_sel = (_cod == _selected)
+
+                # Color by score
+                _sc = (
+                    "#DE350B" if _score >= 70
+                    else "#FF8B00" if _score >= 40
+                    else "#00875A"
                 )
-                m4.metric(
-                    "Hallazgos abiertos",
-                    ws.get("hallazgos_count", 0)
+                # Card style
+                _border = (
+                    "3px solid #003366"
+                    if _is_sel
+                    else "1px solid #DFE1E6"
                 )
-            else:
-                st.info("Sin movimientos registrados en el período para esta área.")
+                _bg = "#EBF2FF" if _is_sel else "#FFFFFF"
+                _bar_w = min(int(_score), 100)
 
-            st.divider()
-            render_contexto_tab(ws)
+                st.markdown(
+                    f"""
+                    <div style="background:{_bg};
+                        border:{_border};
+                        border-radius:10px;
+                        padding:0.7rem 1rem;
+                        margin-bottom:0.4rem;
+                        cursor:pointer;
+                        transition:all 0.15s;">
+                      <div style="display:flex;
+                          justify-content:space-between;
+                          align-items:center;">
+                        <div>
+                          <span style="font-weight:700;
+                              color:#003366;
+                              font-size:0.9rem;">
+                            {_cod}
+                          </span>
+                          <span style="color:#6B778C;
+                              font-size:0.82rem;
+                              margin-left:6px;">
+                            {_area['nombre'][:22]}
+                          </span>
+                        </div>
+                        <span style="background:{_sc};
+                            color:white;
+                            padding:2px 8px;
+                            border-radius:10px;
+                            font-size:0.75rem;
+                            font-weight:700;">
+                          {_score:.0f}
+                        </span>
+                      </div>
+                      <div style="background:#F4F5F7;
+                          border-radius:3px;
+                          height:4px;
+                          margin-top:5px;
+                          overflow:hidden;">
+                        <div style="background:{_sc};
+                            width:{_bar_w}%;
+                            height:100%;
+                            border-radius:3px;">
+                        </div>
+                      </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
-            with st.expander("📌 Briefing del área", expanded=False):
-                render_briefing_tab(ws)
+                # Invisible button overlays the card
+                if st.button(
+                    f"📂 {_cod} — {_area['nombre'][:20]}",
+                    key=f"sel_area_{cliente}_{_cod}",
+                    use_container_width=True,
+                ):
+                    st.session_state[_area_key] = _cod
+                    st.rerun()
 
-            with st.expander("📂 Procedimientos", expanded=False):
-                render_procedimientos_tab(ws)
+        with col_ws2:
+            # Reload selected_area_code from session
+            selected_area_code = st.session_state.get(
+                _area_key, _areas_list[0]["codigo"]
+            )
 
-        # ── Tab 2: Trabajo ────────────────────────────────────────
-        with inner_tabs[1]:
-            left_w, right_w = st.columns(2)
-            with left_w:
-                render_hallazgos_tab(ws)
-            with right_w:
-                render_seguimiento_tab(ws, cliente)
-            st.divider()
-            with st.expander("🕐 Historial de cambios", expanded=False):
-                render_historial_tab(ws, cliente)
+            ws = prepare_area_workspace(
+                cliente=cliente,
+                etapa=etapa_seleccionada,
+                codigo_ls=selected_area_code,
+                perfil=perfil,
+                tb=tb,
+                variaciones=variaciones,
+                ranking_areas=ranking_areas,
+            )
+            render_area_header(ws)
+            render_area_kpis(ws)
 
-        # ── Tab 3: Calidad ────────────────────────────────────────
-        with inner_tabs[2]:
-            with st.expander("🔬 Cobertura de aseveraciones", expanded=True):
-                render_cobertura_tab(ws)
-            with st.expander("✅ Revisión de calidad metodológica",
-                             expanded=False):
-                render_calidad_tab(ws)
-
-        # ── Tab 4: Cierre ─────────────────────────────────────────
-        with inner_tabs[3]:
-            _render_cierre_cards(ws)
-
-        with inner_tabs[4]:
-            _render_requerimientos_tab(ws)
+            inner_tabs = st.tabs([
+                "📋 Resumen",
+                "⚙️ Trabajo",
+                "🔍 Calidad",
+                "🏁 Cierre",
+                "📎 Requerimientos",
+            ])
+            with inner_tabs[0]:
+                render_contexto_tab(ws)
+                with st.expander(
+                    "📌 Briefing del área",
+                    expanded=False,
+                ):
+                    render_briefing_tab(ws)
+                with st.expander(
+                    "📂 Procedimientos",
+                    expanded=False,
+                ):
+                    render_procedimientos_tab(ws)
+            with inner_tabs[1]:
+                left_w, right_w = st.columns(2)
+                with left_w:
+                    render_hallazgos_tab(ws)
+                with right_w:
+                    render_seguimiento_tab(ws, cliente)
+                st.divider()
+                with st.expander(
+                    "🕐 Historial de cambios",
+                    expanded=False,
+                ):
+                    render_historial_tab(ws, cliente)
+            with inner_tabs[2]:
+                with st.expander(
+                    "🔬 Cobertura de aseveraciones",
+                    expanded=True,
+                ):
+                    render_cobertura_tab(ws)
+                with st.expander(
+                    "✅ Revisión de calidad",
+                    expanded=False,
+                ):
+                    render_calidad_tab(ws)
+            with inner_tabs[3]:
+                _render_cierre_cards(ws)
+            with inner_tabs[4]:
+                _render_requerimientos_tab(ws)
 
 
 with tab3:
