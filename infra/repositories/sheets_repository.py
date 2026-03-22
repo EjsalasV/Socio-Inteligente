@@ -12,7 +12,7 @@ import pandas as pd
 
 
 # Sheet tab names
-SHEET_CLIENTES = "clientes"
+SHEET_CLIENTES = "Clientes"
 SHEET_TB_META = "tb_metadata"
 SHEET_ESTADOS = "estados_areas"
 
@@ -86,10 +86,14 @@ def _get_sheet(tab_name: str):
 
         spreadsheet = client.open_by_key(sheet_id)
 
-        # Get or create tab
+        # Get existing tab (case-insensitive) or create it
         try:
             return spreadsheet.worksheet(tab_name)
         except Exception:
+            for ws in spreadsheet.worksheets():
+                if str(ws.title).strip().lower() == str(tab_name).strip().lower():
+                    return ws
+
             # Create tab with headers
             ws = spreadsheet.add_worksheet(
                 title=tab_name, rows=1000, cols=20
