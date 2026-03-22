@@ -253,3 +253,247 @@ areas:
         procedimientos:
           - "Verificar cálculo de diferencias temporarias"
           - "Evaluar recuperabilidad del activo diferido"
+
+  "1":
+    nombre: "Propiedad Planta y Equipo"
+    aseveraciones:
+      existencia:
+        documentos:
+          - "Detalle de activos fijos por categoría (muebles, equipos, vehículos, edificios)"
+          - "Actas de baja o disposición de activos durante el período"
+          - "Pólizas de seguro vigentes sobre activos significativos"
+          - "Escrituras de inmuebles o títulos de propiedad"
+        preguntas:
+          - "¿Se realizó un inventario físico de activos fijos en el período?"
+          - "¿Existen activos totalmente depreciados que aún se usan?"
+          - "¿Hubo adquisiciones o bajas significativas en el período?"
+          - "¿Existen activos en leasing o arrendamiento financiero?"
+        procedimientos:
+          - "Inspección física de activos significativos"
+          - "Conciliar detalle de activos vs saldo contable"
+          - "Verificar cálculo de depreciación por categoría"
+          - "Revisar adquisiciones del período y su soporte"
+      valuacion:
+        documentos:
+          - "Tabla de depreciación actualizada al cierre"
+          - "Política contable de vida útil por categoría"
+          - "Avalúos técnicos (si se usa modelo de revaluación)"
+          - "Facturas de adquisición de activos del período"
+        preguntas:
+          - "¿Cuál es el método de depreciación utilizado?"
+          - "¿Se revisaron las vidas útiles en el período?"
+          - "¿Existen indicios de deterioro en algún activo?"
+          - "¿Se aplica modelo de costo o de revaluación?"
+        procedimientos:
+          - "Recalcular depreciación de muestra de activos"
+          - "Evaluar indicios de deterioro (NIC 36 / Sección 17)"
+          - "Verificar consistencia de vidas útiles con política"
+      derechos:
+        documentos:
+          - "Contratos de arrendamiento o leasing vigentes"
+          - "Certificados de gravámenes sobre inmuebles"
+        preguntas:
+          - "¿Existen activos prendados como garantía?"
+          - "¿Hay activos de terceros registrados como propios?"
+        procedimientos:
+          - "Verificar que los activos registrados son de propiedad de la empresa"
+          - "Revisar revelación de activos dados en garantía"
+
+  "410":
+    nombre: "Obligaciones por Beneficios a Empleados"
+    aseveraciones:
+      integridad:
+        documentos:
+          - "Roles de pago de los últimos 3 meses del período"
+          - "Planilla del IESS (aportaciones patronales y personales)"
+          - "Cálculo de provisiones: décimos, vacaciones, fondos de reserva"
+          - "Detalle de liquidaciones de haberes pagadas en el período"
+        preguntas:
+          - "¿Cuántos empleados tiene la empresa al cierre?"
+          - "¿Existen empleados con contrato de plazo fijo próximo a vencer?"
+          - "¿Se han pagado todos los beneficios sociales del período?"
+          - "¿Hay empleados con vacaciones acumuladas sin pagar?"
+        procedimientos:
+          - "Recalcular provisión de vacaciones por empleado"
+          - "Verificar aportaciones al IESS vs planilla"
+          - "Conciliar saldo contable de beneficios vs cálculo actuarial"
+      valuacion:
+        documentos:
+          - "Cálculo actuarial de jubilación patronal (si aplica)"
+          - "Política de reconocimiento de beneficios post-empleo"
+        preguntas:
+          - "¿La empresa tiene obligación de jubilación patronal?"
+          - "¿Se contrató un actuario para el cálculo?"
+          - "¿Cuántos empleados tienen más de 10 años en la empresa?"
+        procedimientos:
+          - "Verificar razonabilidad del cálculo actuarial"
+          - "Revisar hipótesis utilizadas: tasa de descuento, rotación"
+
+  "300.1":
+    nombre: "Préstamos Corrientes"
+    aseveraciones:
+      integridad:
+        documentos:
+          - "Contratos de préstamo vigentes con instituciones financieras"
+          - "Tablas de amortización actualizadas al cierre"
+          - "Estados de cuenta de préstamos al cierre del período"
+          - "Certificados de saldo emitidos por las entidades financieras"
+        preguntas:
+          - "¿Cuántos préstamos bancarios tiene la empresa vigentes?"
+          - "¿Existen cláusulas de incumplimiento (covenants) en los contratos?"
+          - "¿Se han cumplido todas las cuotas del período?"
+          - "¿Hay préstamos con partes relacionadas?"
+        procedimientos:
+          - "Conciliar saldo contable vs tabla de amortización"
+          - "Verificar clasificación corriente vs no corriente"
+          - "Confirmar saldo con institución financiera"
+      valuacion:
+        documentos:
+          - "Cálculo de intereses devengados al cierre"
+          - "Detalle de garantías otorgadas sobre préstamos"
+        preguntas:
+          - "¿Se han reconocido los intereses devengados al cierre?"
+          - "¿Existen préstamos en moneda extranjera?"
+        procedimientos:
+          - "Recalcular intereses devengados no pagados"
+          - "Verificar tipo de cambio en préstamos en divisas"
+
+  "300.2":
+    nombre: "Préstamos No Corrientes"
+    aseveraciones:
+      integridad:
+        documentos:
+          - "Contratos de préstamo a largo plazo vigentes"
+          - "Tablas de amortización con detalle de porción no corriente"
+          - "Certificados de saldo de largo plazo al cierre"
+        preguntas:
+          - "¿Cuál es el vencimiento de cada préstamo a largo plazo?"
+          - "¿Existe riesgo de reclasificación a corriente por incumplimiento?"
+          - "¿Se han refinanciado préstamos en el período?"
+        procedimientos:
+          - "Verificar correcta separación porción corriente vs no corriente"
+          - "Revisar cláusulas de vencimiento anticipado"
+          - "Confirmar saldo con institución financiera"
+      valuacion:
+        documentos:
+          - "Análisis de tasas de interés efectivas vs nominales"
+          - "Detalle de costos de transacción capitalizados"
+        preguntas:
+          - "¿Se aplica tasa de interés efectiva o nominal?"
+          - "¿Existen comisiones o costos de estructuración capitalizados?"
+        procedimientos:
+          - "Verificar aplicación de tasa de interés efectiva (NIIF)"
+          - "Revisar amortización de costos de transacción"
+
+  "325":
+    nombre: "Pasivos por Impuestos Diferidos"
+    aseveraciones:
+      valuacion:
+        documentos:
+          - "Conciliación tributaria del período completa"
+          - "Detalle de diferencias temporarias imponibles"
+          - "Cálculo del pasivo por impuesto diferido"
+          - "Declaración de impuesto a la renta del período anterior"
+        preguntas:
+          - "¿Cuáles son las principales diferencias temporarias imponibles?"
+          - "¿Se ha verificado el cálculo con un experto tributario?"
+          - "¿Existen diferencias permanentes significativas?"
+          - "¿Cuál es la tasa de IR aplicable para el diferido?"
+        procedimientos:
+          - "Verificar identificación de todas las diferencias temporarias"
+          - "Recalcular pasivo diferido aplicando tasa vigente"
+          - "Revisar consistencia con declaración tributaria"
+      integridad:
+        documentos:
+          - "Movimiento del pasivo diferido durante el período"
+          - "Conciliación entre gasto de IR contable vs tributario"
+        preguntas:
+          - "¿Se han identificado todas las diferencias temporarias?"
+          - "¿Existen diferencias de períodos anteriores sin reversar?"
+        procedimientos:
+          - "Conciliar saldo inicial + cargo/abono del período"
+          - "Verificar reversión de diferencias de períodos anteriores"
+
+  "1900":
+    nombre: "Gasto Impuesto a la Renta"
+    aseveraciones:
+      valuacion:
+        documentos:
+          - "Conciliación tributaria completa del período"
+          - "Declaración de impuesto a la renta (Formulario 101)"
+          - "Cálculo del anticipo de impuesto a la renta"
+          - "Detalle de gastos no deducibles del período"
+          - "Detalle de retenciones en la fuente recibidas"
+        preguntas:
+          - "¿Cuál es la tasa de IR aplicable a esta empresa?"
+          - "¿Existen beneficios tributarios o exoneraciones aplicables?"
+          - "¿Se ha calculado el anticipo mínimo?"
+          - "¿Hay diferencias entre el IR corriente y el diferido?"
+        procedimientos:
+          - "Verificar conciliación tributaria (utilidad contable → base imponible)"
+          - "Recalcular IR corriente sobre base imponible"
+          - "Revisar gastos no deducibles más comunes: multas, exceso de nómina"
+          - "Conciliar retenciones recibidas vs formulario 103"
+      integridad:
+        documentos:
+          - "Formularios de retenciones en la fuente recibidas (ATS)"
+          - "Comprobantes de retención recibidos en el período"
+        preguntas:
+          - "¿Se han registrado todas las retenciones recibidas?"
+          - "¿Existe crédito tributario de períodos anteriores?"
+        procedimientos:
+          - "Conciliar retenciones contabilizadas vs ATS del SRI"
+          - "Verificar aplicación de crédito tributario anterior"
+      presentacion:
+        documentos:
+          - "Notas a los estados financieros sobre impuestos"
+          - "Detalle de activo y pasivo diferido revelado"
+        preguntas:
+          - "¿Se revelan las diferencias temporarias en notas?"
+          - "¿La tasa efectiva de IR es consistente con la tasa nominal?"
+        procedimientos:
+          - "Revisar adecuación de revelaciones de impuestos en EEFF"
+          - "Calcular tasa efectiva y compararla con tasa nominal"
+
+  "1600":
+    nombre: "Gastos Administrativos"
+    aseveraciones:
+      integridad:
+        documentos:
+          - "Detalle de gastos por cuenta y naturaleza"
+          - "Roles de pago del período (si incluye nómina)"
+          - "Facturas de gastos significativos (arriendos, servicios, honorarios)"
+          - "Contratos de servicios recurrentes vigentes"
+          - "Detalle de depreciaciones y amortizaciones del período"
+        preguntas:
+          - "¿Existen gastos del período no contabilizados al cierre?"
+          - "¿Se realizaron pagos a partes relacionadas por servicios?"
+          - "¿Hay gastos prepagados o diferidos que deban reconocerse?"
+          - "¿Existen gastos inusuales o no recurrentes en el período?"
+        procedimientos:
+          - "Análisis comparativo de gastos vs período anterior y presupuesto"
+          - "Prueba de detalle sobre gastos superiores al umbral"
+          - "Verificar devengamiento de gastos al cierre"
+      valuacion:
+        documentos:
+          - "Conciliación tributaria (gastos deducibles vs no deducibles)"
+          - "Detalle de gastos de representación y su límite deducible"
+          - "Soporte de gastos de viaje y movilización"
+        preguntas:
+          - "¿Los gastos de representación están dentro del límite deducible?"
+          - "¿Existen multas o sanciones registradas como gasto?"
+          - "¿Hay pagos al exterior sin retención aplicada?"
+        procedimientos:
+          - "Identificar gastos no deducibles para conciliación tributaria"
+          - "Verificar retenciones en la fuente aplicadas a pagos de servicios"
+          - "Revisar gastos de gestión vs límite del 2% de ingresos gravados"
+      presentacion:
+        documentos:
+          - "Clasificación de gastos por función o naturaleza"
+          - "Detalle de gastos financieros separados de administrativos"
+        preguntas:
+          - "¿Los gastos financieros están correctamente separados?"
+          - "¿Existen reclasificaciones entre gastos operativos y no operativos?"
+        procedimientos:
+          - "Verificar correcta clasificación entre gastos operativos y financieros"
+          - "Revisar presentación de gastos extraordinarios o no recurrentes"
