@@ -5,6 +5,25 @@ from pathlib import Path
 
 from infra.repositories.cliente_repository import cargar_perfil as repo_cargar_perfil
 
+# Module-level perfil cache
+_PERFIL_CACHE: dict[str, dict] = {}
+
+
+def set_perfil_cache(cliente: str, perfil: dict) -> None:
+    """Store a perfil dict in module cache."""
+    if isinstance(perfil, dict) and perfil:
+        _PERFIL_CACHE[str(cliente).strip()] = perfil
+
+
+def get_perfil_cache(cliente: str) -> dict | None:
+    """Retrieve a perfil dict from module cache."""
+    return _PERFIL_CACHE.get(str(cliente).strip())
+
+
+def clear_perfil_cache(cliente: str) -> None:
+    """Remove a client's perfil from cache."""
+    _PERFIL_CACHE.pop(str(cliente).strip(), None)
+
 
 def leer_perfil(cliente: str) -> Optional[Dict[str, Any]]:
     """
@@ -16,6 +35,11 @@ def leer_perfil(cliente: str) -> Optional[Dict[str, Any]]:
     Returns:
         dict con el perfil cargado si es válido, o None si falla.
     """
+    # Check module cache first
+    cached = get_perfil_cache(cliente)
+    if cached is not None:
+        return cached
+
     try:
         perfil = repo_cargar_perfil(cliente)
 

@@ -173,6 +173,11 @@ except Exception:
     buscar_movimientos = None
     resumen_mayor = None
 
+try:
+    from llm.llm_client import _get_deepseek_key
+except Exception:
+    _get_deepseek_key = None
+
 
 @st.cache_data(ttl=300)
 def cached_leer_tb(cliente: str):
@@ -690,6 +695,19 @@ def _limpiar_cliente_session(cliente_id: str) -> int:
             del st.session_state[k]
         except KeyError:
             pass
+
+    # Also clear module-level caches
+    try:
+        from analysis.lector_tb import clear_tb_cache
+        clear_tb_cache(cliente_id)
+    except Exception:
+        pass
+    try:
+        from domain.services.leer_perfil import clear_perfil_cache
+        clear_perfil_cache(cliente_id)
+    except Exception:
+        pass
+
     return len(keys_to_delete)
 
 
@@ -1493,18 +1511,29 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     "Crea uno nuevo."
                 )
         else:
-            cliente_nuevo = st.text_input(
-                "Nombre del cliente nuevo",
+            st.markdown("**Identificador del cliente** (sin espacios)")
+            cliente_id_input = st.text_input(
+                "ID único",
                 placeholder="ej: empresa_abc_2025",
-                key="setup_cliente_nuevo",
+                key="setup_cliente_id",
+                help="Identificador interno. Solo letras, números y guiones bajos.",
             )
-            if cliente_nuevo.strip():
-                cliente_elegido = (
-                    cliente_nuevo.strip()
-                    .lower()
-                    .replace(" ", "_")
-                )
-                st.caption(f"ID: `{cliente_elegido}`")
+            # Clean ID: only alphanumeric and underscores
+            if cliente_id_input.strip():
+                import re as _re
+                cliente_elegido = _re.sub(
+                    r"[^a-z0-9_]", "_",
+                    cliente_id_input.strip().lower()
+                ).strip("_")
+                if cliente_elegido:
+                    st.caption(
+                        f"✅ ID interno: `{cliente_elegido}`"
+                    )
+                else:
+                    st.warning(
+                        "ID inválido. Usa solo letras y números."
+                    )
+                    cliente_elegido = ""
 
         st.markdown("<div style='margin-top:1.2rem;'></div>",
                     unsafe_allow_html=True)
@@ -1988,6 +2017,14 @@ if _perfil_from_session is not None:
 else:
     perfil = safe_call(leer_perfil, cliente, default={}) or {}
 
+# Populate module cache so internal services find perfil
+if isinstance(perfil, dict) and perfil:
+    try:
+        from domain.services.leer_perfil import set_perfil_cache
+        set_perfil_cache(cliente, perfil)
+    except Exception:
+        pass
+
 datos_clave = safe_call(cached_datos_clave, cliente, default={}) or {}
 # ── TB: uploaded file takes priority ──────────────────────
 _tb_key = f"tb_upload_{cliente}"
@@ -2005,6 +2042,15 @@ if _tb_from_session is not None:
     tb = _tb_from_session
 else:
     tb = safe_call(leer_tb, cliente, default=pd.DataFrame())
+
+# Populate module cache so internal services
+# (ranking, materialidad, contexto) can find the TB
+if isinstance(tb, pd.DataFrame) and not tb.empty:
+    try:
+        from analysis.lector_tb import set_tb_cache
+        set_tb_cache(cliente, tb)
+    except Exception:
+        pass
 
 # Debug indicator (remove after confirming fix)
 if isinstance(tb, pd.DataFrame) and not tb.empty:
@@ -2693,12 +2739,9 @@ with tab3:
             key="btn_briefing_ia",
             type="primary",
         ):
-            try:
-                from llm.llm_client import _get_deepseek_key as _sdk
-                _key_check = _sdk()
-            except Exception:
-                _key_check = ""
-
+            _key_check = _get_deepseek_key() if callable(
+                globals().get("_get_deepseek_key")
+            ) else ""
             if not _key_check:
                 st.warning(
                     "⚠️ Sin DEEPSEEK_API_KEY. "
@@ -2731,7 +2774,6 @@ with tab3:
                                 isinstance(perfil, dict)
                                 and perfil
                             ) else {}
-                            _ = _perfil_brief
 
                             briefing_txt = (
                                 generar_briefing_area_llm(

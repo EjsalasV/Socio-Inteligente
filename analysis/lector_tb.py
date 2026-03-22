@@ -15,6 +15,27 @@ import pandas as pd
 
 from infra.repositories.cliente_repository import cargar_tb as repo_cargar_tb
 
+# Module-level TB cache
+# Populated by app_streamlit.py so internal services
+# can access uploaded TBs without filesystem access
+_TB_CACHE: dict[str, "pd.DataFrame"] = {}
+
+
+def set_tb_cache(cliente: str, df: "pd.DataFrame") -> None:
+    """Store a TB DataFrame in module cache."""
+    if isinstance(df, pd.DataFrame) and not df.empty:
+        _TB_CACHE[str(cliente).strip()] = df
+
+
+def get_tb_cache(cliente: str) -> "Optional[pd.DataFrame]":
+    """Retrieve a TB DataFrame from module cache."""
+    return _TB_CACHE.get(str(cliente).strip())
+
+
+def clear_tb_cache(cliente: str) -> None:
+    """Remove a client's TB from cache."""
+    _TB_CACHE.pop(str(cliente).strip(), None)
+
 
 def _normalize_header(col: Any) -> str:
     txt = str(col or "").strip().lower()
@@ -55,6 +76,12 @@ def _normalizar_ls_val(v: Any) -> str:
 
 
 def leer_tb(cliente: str) -> Optional[pd.DataFrame]:
+    # Check module cache first (populated by Streamlit
+    # when user uploads a TB — works on Cloud)
+    cached = get_tb_cache(cliente)
+    if cached is not None:
+        return cached
+
     if not cliente or not isinstance(cliente, str):
         return None
     """
