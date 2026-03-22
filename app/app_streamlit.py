@@ -725,12 +725,7 @@ def _get_clientes_dinamicos() -> list[str]:
     _nuevos = st.session_state.get(
         "clientes_creados_sesion", []
     )
-    _ocultos = st.session_state.get(
-        "clientes_ocultos", []
-    )
-
-    _todos = list(dict.fromkeys(_base + _nuevos))
-    return [c for c in _todos if c not in _ocultos]
+    return list(dict.fromkeys(_base + _nuevos))
 
 
 def fmt_num(value: Any, decimals: int = 2) -> str:
@@ -1319,45 +1314,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         )
                     )
                 ]
-
-                _ocultos = st.session_state.get(
-                    "clientes_ocultos", []
-                )
-                clientes_visibles = [
-                    c for c in clientes_disponibles
-                    if c not in _ocultos
-                ]
-
-                # Show hidden clients with restore option
-                if _ocultos:
-                    with st.expander(
-                        f"🗂️ {len(_ocultos)} cliente(s) oculto(s) "
-                        f"en esta sesión"
-                    ):
-                        for oc in _ocultos:
-                            oc_col1, oc_col2 = st.columns([3, 1])
-                            with oc_col1:
-                                st.caption(
-                                    f"🏢 {oc.replace('_',' ').title()}"
-                                )
-                            with oc_col2:
-                                if st.button(
-                                    "↩️ Restaurar",
-                                    key=f"restore_{oc}",
-                                    use_container_width=True,
-                                ):
-                                    hidden = st.session_state.get(
-                                        "clientes_ocultos", []
-                                    )
-                                    hidden = [
-                                        x for x in hidden if x != oc
-                                    ]
-                                    st.session_state[
-                                        "clientes_ocultos"
-                                    ] = hidden
-                                    st.rerun()
-
-                for c in clientes_visibles:
+                for c in clientes_disponibles:
                     label = c.replace("_", " ").title()
                     is_selected = (
                         st.session_state.get("setup_cliente_sel") == c
@@ -1452,42 +1409,47 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         ):
                             admin_pwd = _obtener_admin_password()
                             if pwd_input == admin_pwd:
-                                n = _limpiar_cliente_session(
-                                    cliente_a_borrar
+                                # Real delete: clear all session data
+                                n = _limpiar_cliente_session(cliente_a_borrar)
+
+                                # Remove from dynamic clients list
+                                _creados = st.session_state.get(
+                                    "clientes_creados_sesion", []
                                 )
-                                # Hide from list this session
-                                hidden = st.session_state.get(
-                                    "clientes_ocultos", []
-                                )
-                                if cliente_a_borrar not in hidden:
-                                    hidden.append(cliente_a_borrar)
-                                st.session_state["clientes_ocultos"] = hidden
-                                # Also clear selection if deleted
+                                if cliente_a_borrar in _creados:
+                                    _creados = [
+                                        c for c in _creados
+                                        if c != cliente_a_borrar
+                                    ]
+                                    st.session_state[
+                                        "clientes_creados_sesion"
+                                    ] = _creados
+
+                                # Clear active client if it was deleted
                                 if st.session_state.get(
                                     "setup_cliente_sel"
                                 ) == cliente_a_borrar:
-                                    del st.session_state[
-                                        "setup_cliente_sel"
-                                    ]
-                                del st.session_state[
-                                    "delete_confirm_cliente"
-                                ]
-                                if "delete_pwd_input" in st.session_state:
-                                    del st.session_state[
-                                        "delete_pwd_input"
-                                    ]
+                                    del st.session_state["setup_cliente_sel"]
+
+                                if st.session_state.get(
+                                    "cliente_activo"
+                                ) == cliente_a_borrar:
+                                    del st.session_state["cliente_activo"]
+
+                                # Clean up confirmation state
+                                del st.session_state["delete_confirm_cliente"]
+                                for k in ["delete_pwd_input"]:
+                                    if k in st.session_state:
+                                        del st.session_state[k]
+
                                 st.success(
-                                    f"✅ Datos de "
-                                    f"**{cliente_a_borrar}** "
-                                    f"borrados ({n} entradas "
-                                    f"eliminadas). "
-                                    f"Puedes cargarlo de nuevo."
+                                    f"✅ Cliente **{cliente_a_borrar}** "
+                                    f"eliminado completamente ({n} "
+                                    f"entradas borradas)."
                                 )
                                 st.rerun()
                             else:
-                                st.error(
-                                    "❌ Contraseña incorrecta."
-                                )
+                                st.error("❌ Contraseña incorrecta.")
 
                     with conf_col3:
                         if st.button(
@@ -1634,6 +1596,8 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 "excepto el nombre."
             )
 
+            # ── Section 1: Basic data ─────────────────────────────
+            st.markdown("**Datos básicos**")
             p1, p2 = st.columns(2)
             with p1:
                 perfil_nombre = st.text_input(
@@ -1689,10 +1653,91 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     key="pf_moneda",
                 )
 
+            st.markdown("<div style='margin-top:1rem;'></div>",
+                        unsafe_allow_html=True)
+
+            # ── Section 2: Operational flags ─────────────────────
+            st.markdown("**Características operativas**")
+            st.caption(
+                "Esta información mejora el ranking de riesgo "
+                "y las recomendaciones por área."
+            )
+            op1, op2, op3 = st.columns(3)
+            with op1:
+                pf_partes_rel = st.checkbox(
+                    "Tiene partes relacionadas",
+                    key="pf_partes_rel",
+                    help="Socios, subsidiarias, empresas vinculadas",
+                )
+                pf_inventarios = st.checkbox(
+                    "Inventarios significativos",
+                    key="pf_inventarios",
+                )
+                pf_cartera = st.checkbox(
+                    "Cartera significativa (CxC)",
+                    key="pf_cartera",
+                )
+            with op2:
+                pf_prestamos_socios = st.checkbox(
+                    "Préstamos a socios",
+                    key="pf_prestamos_socios",
+                )
+                pf_anticipos = st.checkbox(
+                    "Anticipos a proveedores",
+                    key="pf_anticipos",
+                )
+                pf_reembolsos = st.checkbox(
+                    "Reembolsos de gastos",
+                    key="pf_reembolsos",
+                )
+            with op3:
+                pf_operaciones_ext = st.checkbox(
+                    "Operaciones en el exterior",
+                    key="pf_operaciones_ext",
+                )
+                pf_primera_auditoria = st.checkbox(
+                    "Primera auditoría",
+                    key="pf_primera_auditoria",
+                )
+                pf_empleados = st.checkbox(
+                    "Tiene empleados",
+                    key="pf_empleados",
+                    value=True,
+                )
+
+            st.markdown("<div style='margin-top:0.5rem;'></div>",
+                        unsafe_allow_html=True)
+
+            # ── Section 3: Risk flags ─────────────────────────────
+            st.markdown("**Banderas de riesgo**")
+            rf1, rf2 = st.columns(2)
+            with rf1:
+                pf_doc_debil = st.checkbox(
+                    "Documentación débil",
+                    key="pf_doc_debil",
+                )
+                pf_riesgo_tributario = st.checkbox(
+                    "Riesgo tributario",
+                    key="pf_riesgo_tributario",
+                )
+            with rf2:
+                pf_ajustes_cierre = st.checkbox(
+                    "Ajustes frecuentes al cierre",
+                    key="pf_ajustes_cierre",
+                )
+                pf_negocio_marcha = st.checkbox(
+                    "Riesgo negocio en marcha",
+                    key="pf_negocio_marcha",
+                )
+
+            # Build complete perfil_form dict
             perfil_form = {
                 "cliente": {
                     "nombre_legal": perfil_nombre or "Cliente",
-                    "nombre_corto": perfil_nombre or "Cliente",
+                    "nombre_corto": (
+                        perfil_nombre.split()[0]
+                        if perfil_nombre else "Cliente"
+                    ),
                     "ruc": perfil_ruc,
                     "tipo_entidad": perfil_tipo,
                     "sector": perfil_sector,
@@ -1705,21 +1750,78 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     "marco_referencial": perfil_marco,
                     "tipo_encargo": "auditoria_externa",
                     "fase_actual": etapa_setup,
+                    "primera_auditoria": pf_primera_auditoria,
                 },
                 "riesgo_global": {
                     "nivel": perfil_riesgo,
+                    "riesgo_negocio_en_marcha": pf_negocio_marcha,
+                    "requiere_enfoque_reforzado": (
+                        perfil_riesgo in ["alto", "medio_alto"]
+                    ),
                 },
                 "contexto_negocio": {
-                    "tiene_partes_relacionadas": False,
+                    "tiene_partes_relacionadas": pf_partes_rel,
+                    "tiene_operaciones_extranjero": pf_operaciones_ext,
+                    "actividad_principal": perfil_sector,
+                    "descripcion_breve_negocio": "",
+                    "pertenece_a_grupo": pf_partes_rel,
+                    "regulador_principal": "SUPERCIAS",
+                },
+                "operacion": {
+                    "tiene_cartera_significativa": pf_cartera,
+                    "tiene_provision_cartera": pf_cartera,
+                    "tiene_inventarios_significativos": pf_inventarios,
+                    "tiene_prestamos_socios": pf_prestamos_socios,
+                    "tiene_anticipos_proveedores": pf_anticipos,
+                    "maneja_reembolsos_gastos": pf_reembolsos,
+                },
+                "nomina": {
+                    "tiene_empleados": pf_empleados,
+                },
+                "banderas_generales": {
+                    "documentacion_debil": pf_doc_debil,
+                    "riesgo_tributario_general": pf_riesgo_tributario,
+                    "ajustes_cierre_frecuentes": pf_ajustes_cierre,
                 },
                 "materialidad": {
                     "estado_materialidad": "preliminar",
+                    "base_utilizada": (
+                        "ingresos" if perfil_sector == "servicios"
+                        else "activos"
+                    ),
                     "preliminar": {},
                     "final": {},
                 },
                 "industria_inteligente": {
                     "sector_base": perfil_sector,
+                    "subtipo_negocio": perfil_sector,
+                    "tags": [
+                        t for t, v in [
+                            ("partes_relacionadas", pf_partes_rel),
+                            ("inventarios_significativos", pf_inventarios),
+                            ("cartera_significativa", pf_cartera),
+                            ("prestamos_socios", pf_prestamos_socios),
+                            ("anticipos_proveedores", pf_anticipos),
+                            ("reembolsos_gastos", pf_reembolsos),
+                            ("operaciones_extranjero", pf_operaciones_ext),
+                            ("tiene_empleados", pf_empleados),
+                        ]
+                        if v
+                    ],
                 },
+                "tesoreria": {
+                    "tiene_caja": True,
+                    "usa_efectivo_intensivo": False,
+                    "numero_bancos_nacionales": 1,
+                },
+                "notas_generales": {
+                    "resumen_cliente": (
+                        f"Cliente creado desde formulario. "
+                        f"Sector: {perfil_sector}. "
+                        f"Marco: {perfil_marco}."
+                    ),
+                },
+                "reguladores_secundarios": ["SRI"],
             }
         else:
             # Existing client — use defaults
@@ -2586,6 +2688,288 @@ def _render_cierre_cards(ws: dict[str, Any]) -> None:
         render_cierre_tab(ws)
 
 
+def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
+    """Requerimientos de auditoría por área y aseveración."""
+    st.markdown(
+        "<div class='section-header'>"
+        "📎 Guía de Requerimientos</div>",
+        unsafe_allow_html=True,
+    )
+
+    codigo_ls = str(ws.get("codigo_ls", ""))
+    area_name = ws.get("area_name", f"Área {codigo_ls}")
+
+    try:
+        from domain.services.requerimientos_service import (
+            obtener_requerimientos_area,
+            construir_checklist,
+        )
+        area_req = obtener_requerimientos_area(codigo_ls)
+    except Exception:
+        area_req = {}
+
+    if not area_req:
+        st.info(
+            f"No hay guía de requerimientos configurada "
+            f"para {area_name} (L/S {codigo_ls}). "
+            f"Puedes agregarla en "
+            f"data/catalogos/requerimientos_por_area.yaml"
+        )
+        return
+
+    asev_data = area_req.get("aseveraciones", {})
+    if not asev_data:
+        st.info("Sin aseveraciones configuradas para esta área.")
+        return
+
+    # ── Filter by aseveracion ─────────────────────────────────
+    asev_options = list(asev_data.keys())
+    sel_asev = st.multiselect(
+        "Filtrar por aseveración",
+        options=asev_options,
+        default=asev_options,
+        key=f"req_asev_{codigo_ls}",
+    )
+
+    st.divider()
+
+    # ── Render by type ────────────────────────────────────────
+    tipo_icons = {
+        "documento": "📄",
+        "pregunta": "❓",
+        "procedimiento": "🔧",
+    }
+    tipo_labels = {
+        "documento": "Documentos a solicitar",
+        "pregunta": "Preguntas clave al cliente",
+        "procedimiento": "Procedimientos sugeridos",
+    }
+    tipo_colors = {
+        "documento": "#EBF2FF",
+        "pregunta": "#FFFAE6",
+        "procedimiento": "#E3FCEF",
+    }
+    tipo_border = {
+        "documento": "#0066CC",
+        "pregunta": "#FF8B00",
+        "procedimiento": "#00875A",
+    }
+
+    # Group by aseveracion first
+    for asev in sel_asev:
+        if asev not in asev_data:
+            continue
+
+        contenido = asev_data[asev]
+        if not isinstance(contenido, dict):
+            continue
+
+        st.markdown(
+            f"<div style='font-size:1rem; font-weight:700;"
+            f"color:#003366; margin:1rem 0 0.5rem 0;"
+            f"border-bottom:2px solid #DFE1E6;"
+            f"padding-bottom:4px;'>"
+            f"Aseveración: {asev.title()}</div>",
+            unsafe_allow_html=True,
+        )
+
+        for tipo in ["documento", "pregunta", "procedimiento"]:
+            # Handle key variants
+            key_map = {
+                "documento": "documentos",
+                "pregunta": "preguntas",
+                "procedimiento": "procedimientos",
+            }
+            items = contenido.get(key_map[tipo], [])
+
+            if not items:
+                continue
+
+            st.markdown(
+                f"<div style='font-size:0.85rem;"
+                f"font-weight:700; color:#6B778C;"
+                f"margin:0.6rem 0 0.3rem 0;'>"
+                f"{tipo_icons[tipo]} "
+                f"{tipo_labels[tipo]}</div>",
+                unsafe_allow_html=True,
+            )
+
+            for item in items:
+                st.markdown(
+                    f"<div style='background:"
+                    f"{tipo_colors[tipo]};"
+                    f"border-left:3px solid "
+                    f"{tipo_border[tipo]};"
+                    f"border-radius:0 6px 6px 0;"
+                    f"padding:0.4rem 0.8rem;"
+                    f"margin-bottom:0.3rem;"
+                    f"font-size:0.88rem;'>"
+                    f"{item}</div>",
+                    unsafe_allow_html=True,
+                )
+
+    st.divider()
+
+    # ── Download checklist ────────────────────────────────────
+    st.markdown(
+        "<div class='section-header'>Exportar checklist</div>",
+        unsafe_allow_html=True,
+    )
+
+    try:
+        from domain.services.requerimientos_service import (
+            construir_checklist,
+        )
+        checklist = construir_checklist(
+            codigo_ls,
+            aseveraciones=sel_asev,
+        )
+    except Exception:
+        checklist = []
+
+    if checklist:
+        c1, c2 = st.columns(2)
+
+        with c1:
+            # CSV download
+            import io as _io
+            df_check = pd.DataFrame(checklist)
+            df_check.columns = [
+                "Aseveración", "Tipo",
+                "Descripción", "Completado",
+            ]
+            csv_buf = _io.StringIO()
+            df_check.to_csv(csv_buf, index=False,
+                            encoding="utf-8")
+            st.download_button(
+                "⬇️ Descargar checklist (.csv)",
+                data=csv_buf.getvalue().encode("utf-8"),
+                file_name=(
+                    f"requerimientos_{codigo_ls}_"
+                    f"{area_name[:15].replace(' ','_')}.csv"
+                ),
+                mime="text/csv",
+                key=f"dl_req_csv_{codigo_ls}",
+                use_container_width=True,
+            )
+
+        with c2:
+            # PDF download
+            try:
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib.units import cm
+                from reportlab.lib import colors
+                from reportlab.platypus import (
+                    SimpleDocTemplate, Paragraph,
+                    Spacer, Table, TableStyle,
+                )
+                from reportlab.lib.styles import (
+                    getSampleStyleSheet, ParagraphStyle,
+                )
+                import io as _io2
+
+                buf = _io2.BytesIO()
+                doc = SimpleDocTemplate(
+                    buf, pagesize=A4,
+                    leftMargin=2*cm, rightMargin=2*cm,
+                    topMargin=2*cm, bottomMargin=2*cm,
+                )
+                NAVY = colors.Color(0/255, 51/255, 102/255)
+
+                story = []
+                story.append(Paragraph(
+                    "Requerimientos de Auditoría",
+                    ParagraphStyle(
+                        "title", fontSize=16,
+                        fontName="Helvetica-Bold",
+                        textColor=NAVY, spaceAfter=4,
+                    ),
+                ))
+                story.append(Paragraph(
+                    f"{area_name} · L/S {codigo_ls}",
+                    ParagraphStyle(
+                        "sub", fontSize=10,
+                        textColor=colors.Color(0.44,0.47,0.52),
+                        spaceAfter=16,
+                    ),
+                ))
+
+                tipo_color_pdf = {
+                    "documento": colors.Color(0.85,0.91,1.0),
+                    "pregunta": colors.Color(1.0,0.98,0.9),
+                    "procedimiento": colors.Color(0.88,0.99,0.93),
+                }
+
+                for item in checklist:
+                    asev = str(item["aseveracion"]).title()
+                    tipo = str(item["tipo"])
+                    desc = str(item["descripcion"])
+                    icon = {
+                        "documento": "📄",
+                        "pregunta": "❓",
+                        "procedimiento": "🔧",
+                    }.get(tipo, "•")
+
+                    row = [[
+                        Paragraph(
+                            f"<b>{asev}</b> · {icon} {tipo.title()}",
+                            ParagraphStyle(
+                                "lbl", fontSize=8,
+                                textColor=NAVY,
+                            ),
+                        ),
+                        Paragraph(
+                            desc,
+                            ParagraphStyle(
+                                "desc", fontSize=9,
+                                leading=12,
+                            ),
+                        ),
+                        Paragraph(
+                            "☐",
+                            ParagraphStyle(
+                                "chk", fontSize=12,
+                                alignment=1,
+                            ),
+                        ),
+                    ]]
+                    t = Table(row, colWidths=[
+                        4*cm, 11*cm, 1*cm
+                    ])
+                    t.setStyle(TableStyle([
+                        ("BACKGROUND", (0,0), (-1,-1),
+                         tipo_color_pdf.get(
+                             tipo,
+                             colors.white,
+                         )),
+                        ("TOPPADDING", (0,0),(-1,-1), 5),
+                        ("BOTTOMPADDING",(0,0),(-1,-1),5),
+                        ("LEFTPADDING",(0,0),(-1,-1),6),
+                        ("GRID",(0,0),(-1,-1),0.3,
+                         colors.Color(0.88,0.88,0.90)),
+                    ]))
+                    story.append(t)
+                    story.append(Spacer(1, 0.15*cm))
+
+                doc.build(story)
+                buf.seek(0)
+
+                st.download_button(
+                    "⬇️ Descargar checklist (.pdf)",
+                    data=buf.read(),
+                    file_name=(
+                        f"requerimientos_{codigo_ls}.pdf"
+                    ),
+                    mime="application/pdf",
+                    key=f"dl_req_pdf_{codigo_ls}",
+                    use_container_width=True,
+                )
+            except Exception as e:
+                st.caption(f"PDF no disponible: {e}")
+    else:
+        st.info("Sin items para exportar con los filtros actuales.")
+
+
 with tab2:
     col_rank, col_ws = st.columns([1, 2])
 
@@ -2626,6 +3010,7 @@ with tab2:
             "⚙️ Trabajo",
             "🔍 Calidad",
             "🏁 Cierre",
+            "📎 Requerimientos",
         ])
 
         # ── Tab 1: Resumen ────────────────────────────────────────
@@ -2685,6 +3070,9 @@ with tab2:
         # ── Tab 4: Cierre ─────────────────────────────────────────
         with inner_tabs[3]:
             _render_cierre_cards(ws)
+
+        with inner_tabs[4]:
+            _render_requerimientos_tab(ws)
 
 
 with tab3:

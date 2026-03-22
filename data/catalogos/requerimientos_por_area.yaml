@@ -1,0 +1,255 @@
+version: 1
+descripcion: "Guía de requerimientos por área y aseveración"
+
+areas:
+
+  "140":
+    nombre: "Efectivo y Equivalentes"
+    aseveraciones:
+      existencia:
+        documentos:
+          - "Conciliaciones bancarias al cierre del período"
+          - "Extractos bancarios originales"
+          - "Arqueos de caja (si aplica)"
+        preguntas:
+          - "¿Cuántas cuentas bancarias tiene la empresa?"
+          - "¿Existe efectivo en caja chica? ¿Cuánto?"
+          - "¿Se realizan conciliaciones bancarias mensuales?"
+        procedimientos:
+          - "Conciliar saldo contable vs extracto bancario"
+          - "Verificar partidas conciliatorias abiertas"
+      integridad:
+        documentos:
+          - "Detalle de movimientos bancarios del período"
+          - "Registros de ingresos y egresos de caja"
+        preguntas:
+          - "¿Existen cuentas bancarias no registradas?"
+          - "¿Hay movimientos en efectivo no contabilizados?"
+        procedimientos:
+          - "Revisar movimientos inusuales o de alto monto"
+
+  "130.1":
+    nombre: "Cuentas por Cobrar Corrientes"
+    aseveraciones:
+      existencia:
+        documentos:
+          - "Detalle de cuentas por cobrar por cliente"
+          - "Facturas de venta pendientes de cobro"
+          - "Confirmaciones de saldo con clientes principales"
+        preguntas:
+          - "¿Cuáles son los 5 clientes principales?"
+          - "¿Existen saldos con partes relacionadas en cartera?"
+          - "¿Se han realizado circulares de confirmación?"
+        procedimientos:
+          - "Circular de confirmación a clientes significativos"
+          - "Revisar cobranzas posteriores al cierre"
+      valuacion:
+        documentos:
+          - "Análisis de antigüedad de cartera"
+          - "Política de provisión de cuentas incobrables"
+          - "Detalle de cuentas castigadas en el período"
+        preguntas:
+          - "¿Cuál es la política de provisión de cartera?"
+          - "¿Existen clientes en proceso de cobro legal?"
+          - "¿Qué porcentaje de cartera supera 90 días?"
+        procedimientos:
+          - "Verificar razonabilidad de provisión vs antigüedad"
+          - "Revisar cuentas con más de 180 días"
+      derechos:
+        documentos:
+          - "Contratos de venta o servicios con clientes"
+          - "Cesiones o garantías sobre cartera (si aplica)"
+        preguntas:
+          - "¿Existe cartera cedida como garantía?"
+          - "¿Hay factoring o descuento de cartera?"
+        procedimientos:
+          - "Verificar que la cartera no esté cedida sin revelar"
+
+  "110":
+    nombre: "Inventarios"
+    aseveraciones:
+      existencia:
+        documentos:
+          - "Acta de toma física de inventarios"
+          - "Conteos físicos al cierre del período"
+          - "Kardex o sistema de control de inventarios"
+        preguntas:
+          - "¿Cuándo fue el último conteo físico?"
+          - "¿Se permitirá la observación del inventario?"
+          - "¿Existe inventario en consignación o en tránsito?"
+        procedimientos:
+          - "Observación de toma física de inventarios"
+          - "Verificar conteos con registros del sistema"
+      valuacion:
+        documentos:
+          - "Política de costeo (FIFO, promedio ponderado)"
+          - "Listado de ítems obsoletos o de lenta rotación"
+          - "Facturas de compra de últimos lotes"
+        preguntas:
+          - "¿Cuál es el método de costeo utilizado?"
+          - "¿Existen productos obsoletos o dañados?"
+          - "¿El costo de reposición es mayor al costo registrado?"
+        procedimientos:
+          - "Verificar cálculo de costo unitario"
+          - "Revisar mercadería obsoleta y su provisión"
+
+  "14":
+    nombre: "Inversiones No Corrientes"
+    aseveraciones:
+      existencia:
+        documentos:
+          - "Detalle de inversiones mantenidas al cierre"
+          - "Escrituras o contratos de inversión"
+          - "Certificados de participación accionaria"
+        preguntas:
+          - "¿En qué entidades tiene inversiones la empresa?"
+          - "¿Cuál es el porcentaje de participación en cada una?"
+          - "¿Se han recibido estados financieros de las participadas?"
+        procedimientos:
+          - "Verificar título o certificado de inversión"
+          - "Solicitar estados financieros de participadas"
+      valuacion:
+        documentos:
+          - "Estados financieros de empresas participadas"
+          - "Cálculo del Valor Patrimonial Proporcional (VPP)"
+          - "Actas que soporten dividendos recibidos"
+        preguntas:
+          - "¿Se aplica el método VPP o costo?"
+          - "¿Las participadas han generado utilidad o pérdida?"
+          - "¿Existen indicios de deterioro de las inversiones?"
+        procedimientos:
+          - "Recalcular VPP con estados financieros de participada"
+          - "Evaluar deterioro de la inversión"
+
+  "200":
+    nombre: "Patrimonio"
+    aseveraciones:
+      integridad:
+        documentos:
+          - "Acta de junta de accionistas del período"
+          - "Libro de acciones o registro de socios"
+          - "Escritura de constitución y reformas estatutarias"
+          - "Acta de distribución de dividendos (si aplica)"
+        preguntas:
+          - "¿Hubo cambios en el capital durante el período?"
+          - "¿Se distribuyeron dividendos o utilidades?"
+          - "¿Existieron aportes de capital no dinerarios?"
+        procedimientos:
+          - "Conciliar capital contable vs libro de acciones"
+          - "Verificar legalidad de movimientos patrimoniales"
+      presentacion:
+        documentos:
+          - "Detalle de reservas y su origen"
+          - "Conciliación de resultados acumulados"
+        preguntas:
+          - "¿Las reservas cumplen con requisitos legales?"
+          - "¿Los resultados acumulados concilian con períodos anteriores?"
+        procedimientos:
+          - "Verificar presentación de componentes patrimoniales"
+
+  "425":
+    nombre: "Cuentas por Pagar"
+    aseveraciones:
+      integridad:
+        documentos:
+          - "Detalle de cuentas por pagar por proveedor"
+          - "Facturas pendientes de pago al cierre"
+          - "Estado de cuenta de proveedores principales"
+        preguntas:
+          - "¿Existen obligaciones no registradas al cierre?"
+          - "¿Se han recibido facturas después del cierre por compras anteriores?"
+          - "¿Hay notas de débito pendientes de contabilizar?"
+        procedimientos:
+          - "Prueba de corte de compras"
+          - "Circular de confirmación a proveedores principales"
+      valuacion:
+        documentos:
+          - "Conciliación de saldos con proveedores"
+          - "Detalle de anticipos recibidos de clientes"
+        preguntas:
+          - "¿Existen saldos con partes relacionadas?"
+          - "¿Hay pasivos en moneda extranjera no ajustados?"
+        procedimientos:
+          - "Verificar tipo de cambio en saldos en divisas"
+
+  "1500":
+    nombre: "Ingresos"
+    aseveraciones:
+      ocurrencia:
+        documentos:
+          - "Facturas de venta del período"
+          - "Contratos con clientes principales"
+          - "Reportes de despacho o entrega de servicio"
+        preguntas:
+          - "¿Cuándo se considera devengado el ingreso?"
+          - "¿Existen ventas a partes relacionadas?"
+          - "¿Hay ingresos diferidos al cierre?"
+        procedimientos:
+          - "Prueba de detalle sobre ventas significativas"
+          - "Verificar que el ingreso corresponde al período"
+      corte:
+        documentos:
+          - "Últimas 20 facturas del año y primeras 20 del año siguiente"
+          - "Remisiones o actas de entrega de diciembre"
+        preguntas:
+          - "¿Cuál es la fecha de la última factura del año?"
+          - "¿Existen ventas registradas antes de la entrega?"
+        procedimientos:
+          - "Prueba de corte de ventas (cutoff test)"
+
+  "1600":
+    nombre: "Gastos Administrativos"
+    aseveraciones:
+      integridad:
+        documentos:
+          - "Detalle de gastos por naturaleza"
+          - "Roles de pago del período"
+          - "Facturas de gastos significativos"
+        preguntas:
+          - "¿Existen gastos no deducibles significativos?"
+          - "¿Se realizaron pagos a partes relacionadas?"
+          - "¿Hay gastos del período no contabilizados?"
+        procedimientos:
+          - "Análisis comparativo de gastos vs período anterior"
+          - "Verificar soporte de gastos sobre umbral"
+      valuacion:
+        documentos:
+          - "Conciliación tributaria (gastos deducibles vs no deducibles)"
+          - "Detalle de depreciaciones y amortizaciones"
+        preguntas:
+          - "¿Cómo se determinó la vida útil de los activos?"
+          - "¿Existen activos totalmente depreciados en uso?"
+        procedimientos:
+          - "Recalcular depreciación de muestra de activos"
+
+  "136":
+    nombre: "Activos por Impuestos Corrientes"
+    aseveraciones:
+      existencia:
+        documentos:
+          - "Formulario 104 (IVA) de los últimos 12 meses"
+          - "Formulario 103 (Retenciones en la fuente)"
+          - "Crédito tributario de IVA (si aplica)"
+        preguntas:
+          - "¿El crédito tributario es recuperable o compensable?"
+          - "¿Existen impuestos en disputa con el SRI?"
+          - "¿Se han solicitado devoluciones de impuestos?"
+        procedimientos:
+          - "Conciliar saldo contable vs declaraciones SRI"
+          - "Verificar aplicación de retenciones recibidas"
+
+  "15":
+    nombre: "Activos por Impuestos Diferidos"
+    aseveraciones:
+      valuacion:
+        documentos:
+          - "Conciliación tributaria del período"
+          - "Cálculo de diferencias temporarias"
+          - "Proyección de utilidades futuras (para justificar AID)"
+        preguntas:
+          - "¿Existe expectativa razonable de utilidades futuras?"
+          - "¿Cuáles son las principales diferencias temporarias?"
+          - "¿Se ha revisado el AID con un experto tributario?"
+        procedimientos:
+          - "Verificar cálculo de diferencias temporarias"
+          - "Evaluar recuperabilidad del activo diferido"
