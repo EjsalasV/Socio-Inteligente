@@ -2035,34 +2035,56 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     f"tb_tipo_{cliente_elegido}"
                 ] = tb_tipo
 
-            # Save form-built perfil
+            # Save perfil in session when using form
             if perfil_form is not None:
                 st.session_state[
                     f"perfil_upload_{cliente_elegido}"
                 ] = perfil_form
-                # Save to Google Sheets for persistence
-                if _sheets_ok and guardar_cliente_sheets:
-                    _saved = safe_call(
-                        guardar_cliente_sheets,
-                        cliente_elegido,
-                        perfil_form,
-                        default=False,
+
+            # Save to Google Sheets for persistence
+            # (new client or existing one with available perfil)
+            _perfil_to_save = None
+            if isinstance(perfil_form, dict) and perfil_form:
+                _perfil_to_save = perfil_form
+            else:
+                _pk = f"perfil_upload_{cliente_elegido}"
+                _p_session = st.session_state.get(_pk, {})
+                if isinstance(_p_session, dict) and _p_session:
+                    _perfil_to_save = _p_session
+                else:
+                    _p_repo = safe_call(
+                        leer_perfil, cliente_elegido, default={}
+                    ) or {}
+                    if isinstance(_p_repo, dict) and _p_repo:
+                        _perfil_to_save = _p_repo
+
+            if (
+                _sheets_ok
+                and guardar_cliente_sheets
+                and isinstance(_perfil_to_save, dict)
+                and _perfil_to_save
+            ):
+                _saved = safe_call(
+                    guardar_cliente_sheets,
+                    cliente_elegido,
+                    _perfil_to_save,
+                    default=False,
+                )
+                if _saved:
+                    # Invalidate cache so new client appears
+                    if "sheets_clientes_cache" in st.session_state:
+                        del st.session_state[
+                            "sheets_clientes_cache"
+                        ]
+                    st.success(
+                        "✅ Cliente guardado en Google Sheets."
                     )
-                    if _saved:
-                        # Invalidate cache so new client appears
-                        if "sheets_clientes_cache" in st.session_state:
-                            del st.session_state[
-                                "sheets_clientes_cache"
-                            ]
-                        st.success(
-                            "✅ Cliente guardado en Google Sheets."
-                        )
-                    else:
-                        st.warning(
-                            "⚠️ No se pudo guardar en Google Sheets. "
-                            "Verifica `GOOGLE_SHEETS_ID`, credenciales "
-                            "y permisos de edición para la service account."
-                        )
+                else:
+                    st.warning(
+                        "⚠️ No se pudo guardar en Google Sheets. "
+                        "Verifica `GOOGLE_SHEETS_ID`, credenciales "
+                        "y permisos de edición para la service account."
+                    )
 
             # Process mayor
             if uploaded_mayor:
@@ -2086,6 +2108,29 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     st.session_state[
                         "clientes_creados_sesion"
                     ] = _creados
+
+                # Explicit persistence on new-client creation
+                _perfil_new = st.session_state.get(
+                    f"perfil_upload_{cliente_elegido}", {}
+                )
+                if (
+                    _sheets_ok
+                    and guardar_cliente_sheets
+                    and isinstance(_perfil_new, dict)
+                    and _perfil_new
+                ):
+                    _saved_new = safe_call(
+                        guardar_cliente_sheets,
+                        cliente_elegido,
+                        _perfil_new,
+                        default=False,
+                    )
+                    if _saved_new:
+                        if "sheets_clientes_cache" in st.session_state:
+                            del st.session_state["sheets_clientes_cache"]
+                        st.success(
+                            "✅ Cliente nuevo guardado en Google Sheets."
+                        )
 
             st.session_state["app_screen"] = "dashboard"
             st.rerun()
