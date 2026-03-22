@@ -944,18 +944,36 @@ def build_area_df(tb: pd.DataFrame | None, variaciones: pd.DataFrame | None, cod
     """
     Intenta construir un DataFrame de area compatible con servicios legacy.
     """
+    codigo_ls_norm = str(codigo_ls or "").strip().replace(".0", "")
+
+    def _norm(v: Any) -> str:
+        return str(v or "").strip().replace(".0", "")
+
+    def _mask_ls(series: pd.Series, code: str) -> pd.Series:
+        s = series.astype(str).str.strip().str.replace(r"\.0+$", "", regex=True)
+        code = str(code).strip().replace(".0", "")
+        # Match exact code or subcode (e.g. 200, 200.1, 200.2)
+        return s.str.match(rf"^{code}(\.|$)", na=False)
+
     if variaciones is not None and not variaciones.empty:
         for col in ["ls", "l/s", "l_s", "L/S"]:
             if col in variaciones.columns:
-                area = variaciones[variaciones[col].astype(str).str.strip() == str(codigo_ls).strip()].copy()
+                area = variaciones[
+                    _mask_ls(variaciones[col], codigo_ls_norm)
+                ].copy()
                 if not area.empty:
                     return area
 
     if tb is not None and not tb.empty:
-        # fallback simple: filtrar por prefijo de codigo
+        # Preferred: filter by L/S area code
+        ls_col = next(
+            (c for c in ["ls", "l/s", "l_s", "L/S", "linea_significancia"] if c in tb.columns),
+            None,
+        )
         codigo_col = None
         nombre_col = None
         saldo_col = None
+        saldo_prev_col = None
         for c in ["codigo", "numero_de_cuenta", "cuenta", "cod_cuenta"]:
             if c in tb.columns:
                 codigo_col = c
@@ -964,25 +982,56 @@ def build_area_df(tb: pd.DataFrame | None, variaciones: pd.DataFrame | None, cod
             if c in tb.columns:
                 nombre_col = c
                 break
-        for c in ["saldo", "saldo_2025", "saldo_actual", "saldo_preliminar"]:
+        for c in ["saldo_2025", "saldo_preliminar", "saldo_actual", "saldo"]:
             if c in tb.columns:
                 saldo_col = c
                 break
+        for c in ["saldo_2024", "saldo_anterior", "saldo_base"]:
+            if c in tb.columns:
+                saldo_prev_col = c
+                break
 
+        if ls_col and saldo_col:
+            mask = _mask_ls(tb[ls_col], codigo_ls_norm)
+            sub = tb[mask].copy()
+            if not sub.empty:
+                out = pd.DataFrame()
+                out["numero_cuenta"] = (
+                    sub[codigo_col].astype(str) if codigo_col else ""
+                )
+                out["nombre_cuenta"] = sub[nombre_col] if nombre_col else ""
+                out["saldo_actual"] = pd.to_numeric(sub[saldo_col], errors="coerce").fillna(0.0)
+                out["saldo_anterior"] = (
+                    pd.to_numeric(sub[saldo_prev_col], errors="coerce").fillna(0.0)
+                    if saldo_prev_col
+                    else 0.0
+                )
+                out["variacion_absoluta"] = out["saldo_actual"] - out["saldo_anterior"]
+                out["abs_variacion_absoluta"] = out["variacion_absoluta"].abs()
+                out["flag_movimiento_relevante"] = out["abs_variacion_absoluta"] > 0
+                out["flag_sin_base"] = True
+                out["ls"] = codigo_ls_norm
+                return out
+
+        # Fallback: filtrar por prefijo de numero de cuenta
         if codigo_col and saldo_col:
-            mask = tb[codigo_col].astype(str).str.startswith(str(codigo_ls))
+            mask = tb[codigo_col].astype(str).str.startswith(codigo_ls_norm)
             sub = tb[mask].copy()
             if not sub.empty:
                 out = pd.DataFrame()
                 out["numero_cuenta"] = sub[codigo_col].astype(str)
                 out["nombre_cuenta"] = sub[nombre_col] if nombre_col else ""
                 out["saldo_actual"] = pd.to_numeric(sub[saldo_col], errors="coerce").fillna(0.0)
-                out["saldo_anterior"] = 0.0
+                out["saldo_anterior"] = (
+                    pd.to_numeric(sub[saldo_prev_col], errors="coerce").fillna(0.0)
+                    if saldo_prev_col
+                    else 0.0
+                )
                 out["variacion_absoluta"] = out["saldo_actual"] - out["saldo_anterior"]
                 out["abs_variacion_absoluta"] = out["variacion_absoluta"].abs()
                 out["flag_movimiento_relevante"] = out["abs_variacion_absoluta"] > 0
                 out["flag_sin_base"] = True
-                out["ls"] = str(codigo_ls)
+                out["ls"] = codigo_ls_norm
                 return out
 
     return pd.DataFrame()
@@ -1987,7 +2036,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 ] = tb_tipo
 
             # Save form-built perfil
-            if perfil_form is not None and perfil_nombre:
+            if perfil_form is not None:
                 st.session_state[
                     f"perfil_upload_{cliente_elegido}"
                 ] = perfil_form
@@ -2005,6 +2054,15 @@ def render_setup_screen(clientes_disponibles: list[str]):
                             del st.session_state[
                                 "sheets_clientes_cache"
                             ]
+                        st.success(
+                            "✅ Cliente guardado en Google Sheets."
+                        )
+                    else:
+                        st.warning(
+                            "⚠️ No se pudo guardar en Google Sheets. "
+                            "Verifica `GOOGLE_SHEETS_ID`, credenciales "
+                            "y permisos de edición para la service account."
+                        )
 
             # Process mayor
             if uploaded_mayor:
@@ -2411,6 +2469,15 @@ if _sheets_ok and safe_call(
     sheets_disponible, default=False
 ):
     st.sidebar.caption("☁️ Google Sheets conectado")
+    if st.sidebar.button(
+        "🔎 Probar Sheets",
+        key="btn_test_sheets",
+        use_container_width=True,
+    ):
+        _rows = safe_call(cargar_clientes_sheets, default=[]) or []
+        st.sidebar.success(
+            f"Conexión OK. Clientes en Sheets: {len(_rows)}"
+        )
 else:
     st.sidebar.caption("💾 Modo local (sin persistencia)")
 

@@ -30,7 +30,36 @@ def _get_client():
         ]
 
         # Load from Streamlit secrets
-        creds_dict = dict(st.secrets["gcp_service_account"])
+        # Preferred format:
+        # [gcp_service_account]
+        # type = "...", project_id = "...", ...
+        creds_dict: dict[str, Any] = {}
+        if "gcp_service_account" in st.secrets:
+            creds_dict = dict(st.secrets["gcp_service_account"])
+        else:
+            # Fallback: flat keys at top-level secrets
+            keys = [
+                "type", "project_id", "private_key_id",
+                "private_key", "client_email", "client_id",
+                "auth_uri", "token_uri",
+                "auth_provider_x509_cert_url",
+                "client_x509_cert_url",
+                "universe_domain",
+            ]
+            creds_dict = {
+                k: st.secrets.get(k, "")
+                for k in keys
+                if st.secrets.get(k, "")
+            }
+
+        if not creds_dict:
+            return None
+
+        # Normalize private key newlines
+        pk = str(creds_dict.get("private_key", "") or "")
+        if "\\n" in pk:
+            creds_dict["private_key"] = pk.replace("\\n", "\n")
+
         creds = Credentials.from_service_account_info(
             creds_dict, scopes=scopes
         )
@@ -48,7 +77,10 @@ def _get_sheet(tab_name: str):
         if not client:
             return None
 
-        sheet_id = st.secrets.get("GOOGLE_SHEETS_ID", "")
+        sheet_id = (
+            st.secrets.get("GOOGLE_SHEETS_ID", "")
+            or st.secrets.get("google_sheets_id", "")
+        )
         if not sheet_id:
             return None
 
@@ -225,9 +257,17 @@ def sheets_disponible() -> bool:
     """Check if Google Sheets connection works."""
     try:
         import streamlit as st
+        _sid = (
+            st.secrets.get("GOOGLE_SHEETS_ID", "")
+            or st.secrets.get("google_sheets_id", "")
+        )
+        _svc = st.secrets.get("gcp_service_account", {})
+        _flat = bool(
+            st.secrets.get("client_email", "")
+            and st.secrets.get("private_key", "")
+        )
         return bool(
-            st.secrets.get("GOOGLE_SHEETS_ID")
-            and st.secrets.get("gcp_service_account")
+            _sid and (_svc or _flat)
         )
     except Exception:
         return False
