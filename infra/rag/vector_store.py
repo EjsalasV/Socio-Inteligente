@@ -4,17 +4,55 @@ Gestiona la indexación y búsqueda semántica de documentos.
 """
 from __future__ import annotations
 
-from pathlib import Path
+import os
+import tempfile
 from typing import Any
 
-CHROMA_PATH = Path("chroma")
+_MODELO_CACHE: Any = None
+_MODELO_NOMBRE = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
+
+def _get_modelo():
+    """Returns cached SentenceTransformer instance."""
+    global _MODELO_CACHE
+    if _MODELO_CACHE is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+
+            print("[RAG] Cargando modelo de embeddings...")
+            _MODELO_CACHE = SentenceTransformer(_MODELO_NOMBRE)
+            print("[RAG] Modelo cargado y cacheado.")
+        except ImportError:
+            raise ImportError(
+                "sentence-transformers no instalado. "
+                "Ejecuta: pip install sentence-transformers"
+            )
+    return _MODELO_CACHE
+
+
+def _get_chroma_path() -> str:
+    """
+    Returns writable path for ChromaDB.
+    Uses /tmp on Streamlit Cloud (read-only filesystem),
+    uses ./chroma locally.
+    """
+    # Check if running on Streamlit Cloud
+    env = os.environ.get("SOCIOAI_ENV", "development")
+    if env == "production":
+        return os.path.join(tempfile.gettempdir(), "socioai_chroma")
+
+    # Local development
+    chroma_dir = os.path.join(
+        os.path.dirname(__file__), "..", "..", "chroma"
+    )
+    os.makedirs(chroma_dir, exist_ok=True)
+    return chroma_dir
 
 
 def _get_client():
     import chromadb
 
-    CHROMA_PATH.mkdir(exist_ok=True)
-    return chromadb.PersistentClient(path=str(CHROMA_PATH))
+    return chromadb.PersistentClient(path=_get_chroma_path())
 
 
 def _get_collection(client=None):
@@ -37,9 +75,7 @@ def indexar_documentos(documentos: list[dict[str, Any]]) -> int:
         return 0
 
     try:
-        from sentence_transformers import SentenceTransformer
-
-        modelo = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+        modelo = _get_modelo()
 
         textos = [d["texto"] for d in documentos]
         ids = [d["id"] for d in documentos]
@@ -93,17 +129,12 @@ def buscar_normativa(
         Lista de chunks relevantes con metadata.
     """
     try:
-        from sentence_transformers import SentenceTransformer
-
-        modelo = SentenceTransformer(
-            "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-        )
-
-        embedding_consulta = modelo.encode([consulta]).tolist()
         coleccion = _get_collection()
-
         if coleccion.count() == 0:
             return []
+
+        modelo = _get_modelo()
+        embedding_consulta = modelo.encode([consulta]).tolist()
 
         where = {"fuente": fuente_filtro} if fuente_filtro else None
 

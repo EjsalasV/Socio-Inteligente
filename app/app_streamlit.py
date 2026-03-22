@@ -8,6 +8,7 @@ sin romper el flujo existente.
 from __future__ import annotations
 
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -148,6 +149,21 @@ try:
     from infra.repositories.catalogo_repository import obtener_area_por_codigo
 except Exception:
     obtener_area_por_codigo = None
+
+try:
+    from analysis.lector_mayor import (
+        mayor_existe,
+        obtener_mayor_cliente,
+        filtrar_por_ls,
+        buscar_movimientos,
+        resumen_mayor,
+    )
+except Exception:
+    mayor_existe = None
+    obtener_mayor_cliente = None
+    filtrar_por_ls = None
+    buscar_movimientos = None
+    resumen_mayor = None
 
 
 @st.cache_data(ttl=300)
@@ -360,6 +376,89 @@ st.markdown("""
       border-radius: 10px;
       margin-bottom: 0.5rem;
   }
+
+  /* ── KPI Cards ── */
+  .kpi-card {
+      background: #FFFFFF;
+      border: 1px solid #DFE1E6;
+      border-radius: 12px;
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 0.5rem;
+      box-shadow: 0 2px 8px rgba(0,51,102,0.06);
+      transition: box-shadow 0.2s;
+  }
+  .kpi-card:hover { box-shadow: 0 4px 16px rgba(0,51,102,0.12); }
+  .kpi-label {
+      color: #6B778C;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 0.3rem;
+  }
+  .kpi-value {
+      color: #003366;
+      font-size: 1.6rem;
+      font-weight: 800;
+      line-height: 1.1;
+  }
+  .kpi-sub {
+      color: #6B778C;
+      font-size: 0.78rem;
+      margin-top: 0.2rem;
+  }
+  .kpi-alto   { border-left: 4px solid #DE350B; }
+  .kpi-medio  { border-left: 4px solid #FF8B00; }
+  .kpi-bajo   { border-left: 4px solid #00875A; }
+  .kpi-info   { border-left: 4px solid #0066CC; }
+
+  /* ── Section headers ── */
+  .section-header {
+      color: #003366;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-bottom: 2px solid #DFE1E6;
+      padding-bottom: 0.4rem;
+      margin: 1rem 0 0.8rem 0;
+  }
+
+  /* ── AI response container ── */
+  .ai-response {
+      background: #F4F5F7;
+      border-left: 4px solid #0066CC;
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.2rem;
+      margin-top: 0.5rem;
+      font-size: 0.92rem;
+  }
+
+  /* ── Checklist item ── */
+  .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.55rem 0.8rem;
+      border-radius: 8px;
+      margin-bottom: 0.35rem;
+      font-size: 0.88rem;
+  }
+  .check-ok   { background:#E3FCEF; color:#006644; }
+  .check-warn { background:#FFFAE6; color:#974F0C; }
+  .check-fail { background:#FFEBE6; color:#BF2600; }
+  .check-icon { font-size: 1rem; flex-shrink: 0; margin-top:1px; }
+
+  /* ── Status badge ── */
+  .status-badge {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+  }
+  .badge-ok   { background:#E3FCEF; color:#006644; }
+  .badge-warn { background:#FFFAE6; color:#974F0C; }
+  .badge-fail { background:#FFEBE6; color:#BF2600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -427,44 +526,81 @@ def infer_area_options(
     tb: pd.DataFrame | None,
     cliente: str,
 ) -> list[tuple[str, str]]:
+    """
+    Returns only areas that have actual data for this client.
+    Priority: areas present in ranking_areas WITH saldo > 0,
+    ordered by score descending.
+    Fallback: areas found in TB ls column.
+    """
     options: list[tuple[str, str]] = []
 
-    if ranking_areas is not None and not ranking_areas.empty and "area" in ranking_areas.columns:
-        for _, row in ranking_areas.iterrows():
-            code = normalize_text(row.get("area", ""))
-            name = normalize_text(row.get("nombre", ""))
-            if code:
-                label = f"{code} - {name}" if name else code
-                options.append((code, label))
+    # ── Primary: ranking with real saldo ──────────────────────
+    if ranking_areas is not None and not ranking_areas.empty:
+        needed = {"area", "nombre"}
+        if needed.issubset(set(ranking_areas.columns)):
+            # Filter: only areas present with actual balance
+            mask_present = pd.Series([True] * len(ranking_areas))
+            if "con_saldo" in ranking_areas.columns:
+                mask_present = ranking_areas["con_saldo"].astype(bool)
+            elif "saldo_total" in ranking_areas.columns:
+                mask_present = ranking_areas["saldo_total"].apply(
+                    lambda x: abs(float(x or 0)) > 0.01
+                )
+            elif "estado_presencia" in ranking_areas.columns:
+                mask_present = ranking_areas["estado_presencia"].astype(
+                    str
+                ).isin({"con_saldo", "sin_saldo"})
 
-    def _label_from_catalog(code: str) -> str:
-        area = safe_call(obtener_area_por_codigo, code, default=None)
-        if isinstance(area, dict):
-            title = normalize_text(area.get("titulo", ""))
-            if title:
-                return f"{code} - {title}"
-        return f"{code} - Area {code}"
+            df_present = ranking_areas[mask_present].copy()
 
-    # fallback desde archivos de estado de area
-    area_path = Path("data") / "clientes" / cliente / "areas"
-    if area_path.exists():
-        for yml in sorted(area_path.glob("*.yaml")):
-            code = yml.stem.strip()
-            if code and code not in {c for c, _ in options}:
-                options.append((code, _label_from_catalog(code)))
+            # Sort by score descending so highest-risk areas appear first
+            if "score_riesgo" in df_present.columns:
+                df_present = df_present.sort_values(
+                    "score_riesgo", ascending=False
+                )
 
-    # fallback por columnas de TB
-    if tb is not None and not tb.empty:
-        ls_col = None
-        for c in ["ls", "l/s", "l_s", "L/S"]:
-            if c in tb.columns:
-                ls_col = c
-                break
+            for _, row in df_present.iterrows():
+                code = normalize_text(row.get("area", ""))
+                name = normalize_text(row.get("nombre", ""))
+                if code:
+                    score = row.get("score_riesgo")
+                    score_txt = (
+                        f" [{float(score):.0f}]" if score is not None else ""
+                    )
+                    label = (
+                        f"{code} — {name}{score_txt}" if name else code
+                    )
+                    options.append((code, label))
+
+    # ── Fallback: read ls column from TB directly ──────────────
+    if not options and tb is not None and not tb.empty:
+        ls_col = next(
+            (c for c in ["ls", "l/s", "l_s", "L/S"] if c in tb.columns),
+            None,
+        )
         if ls_col:
-            vals = sorted({normalize_text(v) for v in tb[ls_col].dropna().tolist() if normalize_text(v)})
-            for code in vals:
-                if code not in {c for c, _ in options}:
-                    options.append((code, _label_from_catalog(code)))
+            present_ls = sorted(
+                {
+                    normalize_text(v)
+                    for v in tb[ls_col].dropna().tolist()
+                    if normalize_text(v)
+                }
+            )
+
+            def _label(code: str) -> str:
+                area = safe_call(obtener_area_por_codigo, code, default=None)
+                if isinstance(area, dict):
+                    title = normalize_text(area.get("titulo", ""))
+                    if title:
+                        return f"{code} — {title}"
+                return f"{code} — Área {code}"
+
+            for code in present_ls:
+                options.append((code, _label(code)))
+
+    # ── Last resort ────────────────────────────────────────────
+    if not options:
+        options = [("140", "140 — Efectivo y Equivalentes")]
 
     return options
 
@@ -847,6 +983,13 @@ ranking_areas = safe_call(cached_ranking_areas, cliente, default=pd.DataFrame())
 indicadores = safe_call(cached_indicadores, cliente, default={}) or {}
 variaciones = safe_call(cached_variaciones, cliente, default=pd.DataFrame())
 
+# Mayor (optional — only if file exists)
+df_mayor = None
+if mayor_existe and safe_call(mayor_existe, cliente, default=False):
+    df_mayor = safe_call(
+        obtener_mayor_cliente, cliente, default=None
+    )
+
 if isinstance(diag_tb, dict):
     rows_loaded = int(diag_tb.get("rows_loaded", 0) or 0)
     rows_saldo_no_cero = int(diag_tb.get("rows_saldo_no_cero", 0) or 0)
@@ -913,444 +1056,1141 @@ st.divider()
 # ============================================================
 # Tabs principales
 # ============================================================
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
-    "Resumen",
-    "Ranking de áreas",
-    "Vista por área",
-    "Variaciones",
-    "Trial Balance",
-    "Hallazgos",
-    "Briefing IA",
-    "Chat con IA",
-    "Análisis Financiero",
+tab1, tab2, tab3, tab4 = st.tabs([
+    "📊 Dashboard",
+    "🎯 Áreas",
+    "🤖 Inteligencia IA",
+    "📋 Datos",
 ])
 
 
 with tab1:
-    st.subheader("Balance general")
+    # ── KPI Row ──────────────────────────────────────────────
+    activo = resumen_tb.get("ACTIVO", 0)
+    pasivo = resumen_tb.get("PASIVO", 0)
+    patrimonio = resumen_tb.get("PATRIMONIO", 0)
+    n_alto = indicadores.get("areas_alto_riesgo", 0)
+    n_medio = indicadores.get("areas_medio_riesgo", 0)
+    n_bajo = indicadores.get("areas_bajo_riesgo", 0)
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Activos", fmt_money(resumen_tb.get("ACTIVO", 0)))
-    col2.metric("Pasivos", fmt_money(resumen_tb.get("PASIVO", 0)))
-    col3.metric("Patrimonio", fmt_money(resumen_tb.get("PATRIMONIO", 0)))
-    col4.metric("# Cuentas", int(tb.shape[0]) if isinstance(tb, pd.DataFrame) else 0)
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        st.markdown(f"""
+        <div class="kpi-card kpi-info">
+            <div class="kpi-label">Activos Totales</div>
+            <div class="kpi-value">${float(activo):,.0f}</div>
+            <div class="kpi-sub">Balance general</div>
+        </div>""", unsafe_allow_html=True)
+    with k2:
+        st.markdown(f"""
+        <div class="kpi-card kpi-info">
+            <div class="kpi-label">Patrimonio</div>
+            <div class="kpi-value">${float(patrimonio):,.0f}</div>
+            <div class="kpi-sub">Vs pasivos ${float(pasivo):,.0f}</div>
+        </div>""", unsafe_allow_html=True)
+    with k3:
+        color_riesgo = "kpi-alto" if n_alto > 0 else "kpi-bajo"
+        st.markdown(f"""
+        <div class="kpi-card {color_riesgo}">
+            <div class="kpi-label">Áreas Alto Riesgo</div>
+            <div class="kpi-value">{n_alto}</div>
+            <div class="kpi-sub">{n_medio} medio · {n_bajo} bajo</div>
+        </div>""", unsafe_allow_html=True)
+    with k4:
+        tb_count = int(tb.shape[0]) if isinstance(tb, pd.DataFrame) else 0
+        st.markdown(f"""
+        <div class="kpi-card kpi-info">
+            <div class="kpi-label">Cuentas en TB</div>
+            <div class="kpi-value">{tb_count}</div>
+            <div class="kpi-sub">Trial Balance cargado</div>
+        </div>""", unsafe_allow_html=True)
 
-    st.divider()
-    st.subheader("Indicadores de riesgo")
-    r1, r2, r3 = st.columns(3)
-    r1.metric("Areas alto riesgo", indicadores.get("areas_alto_riesgo", 0))
-    r2.metric("Areas medio riesgo", indicadores.get("areas_medio_riesgo", 0))
-    r3.metric("Areas bajo riesgo", indicadores.get("areas_bajo_riesgo", 0))
+    st.markdown("<div class='section-header'>Distribución de Riesgo por Áreas</div>",
+                unsafe_allow_html=True)
 
-    concentracion = float(indicadores.get("concentracion_principal_area", 0) or 0)
-    st.markdown("**Concentración principal área**")
-    conc_value = max(0.0, min(concentracion / 100.0, 1.0))
-    color_conc = (
-        "#DE350B" if concentracion >= 50
-        else "#FF8B00" if concentracion >= 30
-        else "#00875A"
-    )
-    st.markdown(f"""
-    <div style="background:#F4F5F7; border-radius:8px; padding:4px; margin-bottom:4px;">
-        <div style="background:{color_conc}; width:{min(concentracion,100):.1f}%;
-                    height:18px; border-radius:6px; transition:width 0.5s;
-                    display:flex; align-items:center; padding-left:8px;">
-            <span style="color:white; font-size:0.75rem; font-weight:700;">
-                {concentracion:.1f}%
-            </span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    try:
-        import plotly.express as px
-        alto   = indicadores.get("areas_alto_riesgo", 0)
-        medio  = indicadores.get("areas_medio_riesgo", 0)
-        bajo   = indicadores.get("areas_bajo_riesgo", 0)
-        if alto + medio + bajo > 0:
-            fig_pie = px.pie(
-                names=["Alto", "Medio", "Bajo"],
-                values=[alto, medio, bajo],
-                color=["Alto", "Medio", "Bajo"],
-                color_discrete_map={
-                    "Alto": "#DE350B",
-                    "Medio": "#FF8B00",
-                    "Bajo": "#00875A",
-                },
-                title="Distribución de riesgo por áreas",
-                hole=0.45,
-            )
-            fig_pie.update_layout(
-                plot_bgcolor="white",
-                paper_bgcolor="white",
-                font_color="#172B4D",
-                title_font_color="#003366",
-                title_font_size=15,
-                height=300,
-                margin=dict(l=10, r=10, t=40, b=10),
-                legend=dict(orientation="h", y=-0.1),
-            )
-            fig_pie.update_traces(
-                textposition="inside",
-                textinfo="percent+label",
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
-    except ImportError:
-        pass
-
-
-with tab2:
-    st.subheader("Ranking explicable de áreas")
-
-    if isinstance(ranking_areas, pd.DataFrame) and not ranking_areas.empty:
-        cols = [
-            "area",
-            "nombre",
-            "estado_presencia",
-            "score_riesgo",
-            "pct_total",
-            "materialidad_relativa",
-            "expert_flags_count",
-            "prioridad",
-            "justificacion",
-        ]
-        show_cols = [c for c in cols if c in ranking_areas.columns]
-        rank_view = ranking_areas[show_cols].copy()
-
-        if "score_riesgo" in rank_view.columns:
-            rank_view["score_riesgo"] = rank_view["score_riesgo"].apply(lambda x: f"{float(x):.2f}")
-        if "pct_total" in rank_view.columns:
-            rank_view["pct_total"] = rank_view["pct_total"].apply(lambda x: f"{float(x):.2f}%")
-        if "materialidad_relativa" in rank_view.columns:
-            rank_view["materialidad_relativa"] = rank_view["materialidad_relativa"].apply(lambda x: f"{float(x):.2f}%")
-        if "prioridad" in rank_view.columns:
-            rank_view["prioridad"] = rank_view["prioridad"].astype(str).str.upper()
-        if "estado_presencia" in rank_view.columns:
-            rank_view["estado_presencia"] = rank_view["estado_presencia"].astype(str).str.upper()
-
-        def _color_score(val):
-            try:
-                v = float(str(val).replace("%",""))
-                if v >= 70: return "background-color: #FFEBE6; color: #DE350B; font-weight: 700"
-                if v >= 40: return "background-color: #FFFAE6; color: #FF8B00; font-weight: 700"
-                return "background-color: #E3FCEF; color: #00875A; font-weight: 700"
-            except Exception:
-                return ""
-
-        if "score_riesgo" in rank_view.columns:
-            st.dataframe(
-                rank_view.style.applymap(_color_score, subset=["score_riesgo"]),
-                use_container_width=True,
-                hide_index=True,
-            )
-        else:
-            st.dataframe(rank_view, use_container_width=True, hide_index=True)
+    col_pie, col_top = st.columns([1, 2])
+    with col_pie:
         try:
             import plotly.express as px
-            if isinstance(ranking_areas, pd.DataFrame) and not ranking_areas.empty:
-                chart_df = ranking_areas.head(8).copy()
-                chart_df["nombre_corto"] = chart_df["nombre"].str[:25]
-                chart_df["color"] = chart_df["score_riesgo"].apply(
-                    lambda x: "#DE350B" if x >= 70
-                    else "#FF8B00" if x >= 40
-                    else "#00875A"
+            if n_alto + n_medio + n_bajo > 0:
+                fig_pie = px.pie(
+                    names=["Alto", "Medio", "Bajo"],
+                    values=[n_alto, n_medio, n_bajo],
+                    color_discrete_map={
+                        "Alto": "#DE350B",
+                        "Medio": "#FF8B00",
+                        "Bajo": "#00875A",
+                    },
+                    hole=0.5,
                 )
-                fig = px.bar(
-                    chart_df,
-                    x="score_riesgo",
-                    y="nombre_corto",
-                    orientation="h",
-                    title="Score de riesgo por área",
-                    labels={"score_riesgo": "Score", "nombre_corto": "Área"},
-                    color="score_riesgo",
-                    color_continuous_scale=["#00875A", "#FF8B00", "#DE350B"],
-                )
-                fig.update_layout(
+                fig_pie.update_layout(
                     plot_bgcolor="white",
                     paper_bgcolor="white",
                     font_color="#172B4D",
-                    title_font_color="#003366",
-                    title_font_size=16,
-                    showlegend=False,
-                    height=350,
-                    margin=dict(l=10, r=10, t=40, b=10),
-                    coloraxis_showscale=False,
+                    height=250,
+                    margin=dict(l=0, r=0, t=20, b=0),
+                    legend=dict(orientation="h", y=-0.15),
+                    showlegend=True,
                 )
-                fig.update_xaxes(showgrid=True, gridcolor="#DFE1E6")
-                fig.update_yaxes(showgrid=False)
-                st.plotly_chart(fig, use_container_width=True)
-        except ImportError:
-            pass
+                fig_pie.update_traces(
+                    textposition="inside",
+                    textinfo="percent",
+                )
+                st.plotly_chart(fig_pie, use_container_width=True)
+        except Exception:
+            st.metric("Alto", n_alto)
+
+    with col_top:
+        st.markdown("<div class='section-header'>Top Áreas por Score</div>",
+                    unsafe_allow_html=True)
+        if isinstance(ranking_areas, pd.DataFrame) and not ranking_areas.empty:
+            for _, row in ranking_areas.head(5).iterrows():
+                score = float(row.get("score_riesgo", 0))
+                nombre_a = str(row.get("nombre", ""))[:30]
+                area_c = str(row.get("area", ""))
+                prior = str(row.get("prioridad", "")).upper()
+                color_badge = (
+                    "#DE350B" if score >= 70
+                    else "#FF8B00" if score >= 40
+                    else "#00875A"
+                )
+                bar_w = min(int(score), 100)
+                st.markdown(f"""
+                <div class="kpi-card" style="padding:0.8rem 1rem; margin-bottom:0.4rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:700; color:#003366;">{area_c} — {nombre_a}</span>
+                        <span style="background:{color_badge}; color:white; padding:2px 10px;
+                               border-radius:12px; font-size:0.75rem; font-weight:700;">
+                            {score:.1f}
+                        </span>
+                    </div>
+                    <div style="background:#F4F5F7; border-radius:4px; height:6px;
+                                margin-top:6px; overflow:hidden;">
+                        <div style="background:{color_badge}; width:{bar_w}%;
+                                    height:100%; border-radius:4px;"></div>
+                    </div>
+                    <div style="color:#6B778C; font-size:0.72rem; margin-top:4px;">
+                        Prioridad: {prior}
+                    </div>
+                </div>""", unsafe_allow_html=True)
+        else:
+            st.info("Sin datos de ranking disponibles.")
+
+    # ── Client info card ─────────────────────────────────────
+    st.markdown("<div class='section-header'>Información del Encargo</div>",
+                unsafe_allow_html=True)
+    nombre_c = normalize_text(get_first(
+        datos_clave, ["nombre"],
+        perfil.get("cliente", {}).get("nombre_legal", "N/A")
+    ))
+    sector_c = normalize_text(get_first(
+        datos_clave, ["sector"],
+        perfil.get("cliente", {}).get("sector", "N/A")
+    ))
+    periodo_c = normalize_text(get_first(
+        datos_clave, ["periodo"],
+        str(perfil.get("encargo", {}).get("anio_activo", "N/A"))
+    ))
+    marco_c = normalize_text(get_first(
+        datos_clave, ["marco_referencial"],
+        perfil.get("encargo", {}).get("marco_referencial", "N/A")
+    ))
+    riesgo_g = normalize_text(
+        perfil.get("riesgo_global", {}).get("nivel", "N/A")
+    )
+    color_rg = (
+        "#DE350B" if "alto" in riesgo_g
+        else "#FF8B00" if "medio" in riesgo_g
+        else "#00875A"
+    )
+    st.markdown(f"""
+    <div class="kpi-card kpi-info" style="padding:1rem 1.4rem;">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr; gap:1rem;">
+            <div><div class="kpi-label">Cliente</div>
+                 <div style="font-weight:700; color:#003366;">{nombre_c}</div></div>
+            <div><div class="kpi-label">Sector</div>
+                 <div style="font-weight:600;">{sector_c}</div></div>
+            <div><div class="kpi-label">Período</div>
+                 <div style="font-weight:600;">{periodo_c}</div></div>
+            <div><div class="kpi-label">Marco</div>
+                 <div style="font-weight:600;">{marco_c}</div></div>
+            <div><div class="kpi-label">Riesgo Global</div>
+                 <div style="font-weight:700; color:{color_rg};">
+                     {riesgo_g.upper()}</div></div>
+        </div>
+    </div>""", unsafe_allow_html=True)
+
+    # ── PDF Export ────────────────────────────────────────────
+    st.markdown(
+        "<div class='section-header'>Exportar Reporte</div>",
+        unsafe_allow_html=True,
+    )
+    col_pdf, col_info = st.columns([1, 3])
+    with col_pdf:
+        if st.button(
+            "📄 Generar PDF",
+            key="btn_gen_pdf",
+            use_container_width=True,
+            type="primary",
+        ):
+            with st.spinner("Generando reporte PDF..."):
+                try:
+                    from domain.services.pdf_report_service import (
+                        generar_pdf_resumen,
+                    )
+                    pdf_bytes = generar_pdf_resumen(
+                        cliente=cliente,
+                        perfil=perfil,
+                        resumen_tb=resumen_tb,
+                        ranking_areas=ranking_areas,
+                        variaciones=variaciones,
+                        datos_clave=datos_clave,
+                    )
+                    nombre_archivo = (
+                        f"SocioAI_{cliente}_"
+                        f"{datetime.now().strftime('%Y%m%d')}.pdf"
+                    )
+                    st.session_state["pdf_bytes"] = pdf_bytes
+                    st.session_state["pdf_filename"] = nombre_archivo
+                    st.success("✅ PDF listo para descargar.")
+                except Exception as e:
+                    st.error(f"Error generando PDF: {e}")
+
+    with col_info:
+        st.caption(
+            "El reporte incluye: balance general, ranking de áreas "
+            "por riesgo, top variaciones y estado de cierre."
+        )
+
+    if st.session_state.get("pdf_bytes"):
+        st.download_button(
+            label="⬇️ Descargar PDF",
+            data=st.session_state["pdf_bytes"],
+            file_name=st.session_state.get(
+                "pdf_filename", f"SocioAI_{cliente}.pdf"
+            ),
+            mime="application/pdf",
+            key="btn_dl_pdf",
+            use_container_width=False,
+        )
+
+
+def _render_cierre_cards(ws: dict[str, Any]) -> None:
+    """Cierre tab with visual status cards instead of raw text."""
+    from app.views.view_area import _closure_readiness
+
+    lista_para_cerrar, razones = _closure_readiness(ws)
+    cobertura = float(ws.get("coverage", 0) or 0)
+    hallazgos_count = int(ws.get("hallazgos_count", 0) or 0)
+    pending_count = int(ws.get("pending_count", 0) or 0)
+    nivel_riesgo = normalize_text(
+        ws.get("riesgo", ws.get("area_summary", {}).get("nivel_riesgo", ""))
+    )
+    calidad = (
+        ws.get("calidad_metodologia", {})
+        if isinstance(ws.get("calidad_metodologia", {}), dict)
+        else {}
+    )
+    alertas_criticas = int(
+        calidad.get("resumen", {}).get("alertas_criticas", 0) or 0
+    )
+
+    # ── Estado general ────────────────────────────────────────
+    if lista_para_cerrar:
+        badge_cls = "badge-ok"
+        badge_txt = "✅ Lista para cerrar"
+        st.markdown(
+            f"<span class='status-badge {badge_cls}'>"
+            f"{badge_txt}</span>",
+            unsafe_allow_html=True,
+        )
     else:
-        st.info("No se pudo construir el ranking enriquecido para este cliente.")
+        badge_cls = "badge-fail"
+        badge_txt = "⛔ No lista para cerrar"
+        st.markdown(
+            f"<span class='status-badge {badge_cls}'>"
+            f"{badge_txt}</span>",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("")  # spacer
+
+    # ── Checklist cards ───────────────────────────────────────
+    st.markdown(
+        "<div class='section-header'>Checklist de cierre</div>",
+        unsafe_allow_html=True,
+    )
+
+    checks = [
+        (
+            cobertura >= 80,
+            f"Cobertura de aseveraciones: {cobertura:.1f}%",
+            "Cobertura insuficiente (mínimo 80%)",
+        ),
+        (
+            hallazgos_count == 0,
+            "Sin hallazgos abiertos",
+            f"{hallazgos_count} hallazgo(s) abierto(s) pendiente(s)",
+        ),
+        (
+            pending_count == 0,
+            "Todos los procedimientos ejecutados",
+            f"{pending_count} procedimiento(s) pendiente(s)",
+        ),
+        (
+            alertas_criticas == 0,
+            "Sin alertas metodológicas críticas",
+            f"{alertas_criticas} alerta(s) crítica(s) de calidad",
+        ),
+        (
+            nivel_riesgo not in {"alto", "medio_alto"},
+            "Nivel de riesgo controlado",
+            f"Riesgo del área: {nivel_riesgo.upper()}",
+        ),
+    ]
+
+    for ok, msg_ok, msg_fail in checks:
+        if ok:
+            st.markdown(
+                f"<div class='check-item check-ok'>"
+                f"<span class='check-icon'>✅</span>"
+                f"<span>{msg_ok}</span></div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                f"<div class='check-item check-fail'>"
+                f"<span class='check-icon'>⚠️</span>"
+                f"<span>{msg_fail}</span></div>",
+                unsafe_allow_html=True,
+            )
+
+    # ── Acciones recomendadas ─────────────────────────────────
+    acciones = []
+    if pending_count > 0:
+        acciones.append("Completar procedimientos pendientes con evidencia.")
+    if hallazgos_count > 0:
+        acciones.append(
+            "Resolver hallazgos abiertos o documentar plan de remediación."
+        )
+    if cobertura < 80:
+        acciones.append(
+            "Fortalecer cobertura en aseveraciones débiles o no cubiertas."
+        )
+    if alertas_criticas > 0:
+        acciones.append(
+            "Resolver alertas metodológicas críticas (ver tab Calidad)."
+        )
+    if not acciones:
+        acciones.append(
+            "Documentar conclusión final y referencias cruzadas de evidencia."
+        )
+
+    if acciones:
+        st.markdown(
+            "<div class='section-header' style='margin-top:1rem;'>"
+            "Próximas acciones</div>",
+            unsafe_allow_html=True,
+        )
+        for a in acciones:
+            st.markdown(
+                f"<div class='check-item check-warn'>"
+                f"<span class='check-icon'>→</span>"
+                f"<span>{a}</span></div>",
+                unsafe_allow_html=True,
+            )
+
+    # ── Seguimiento manual (colapsado) ────────────────────────
+    with st.expander("📝 Registrar estado y conclusión", expanded=False):
+        render_cierre_tab(ws)
+
+
+with tab2:
+    col_rank, col_ws = st.columns([1, 2])
+
+    with col_rank:
+        st.markdown("<div class='section-header'>Ranking de Áreas</div>",
+                    unsafe_allow_html=True)
+        if isinstance(ranking_areas, pd.DataFrame) and not ranking_areas.empty:
+            cols_show = ["area", "nombre", "score_riesgo", "prioridad"]
+            cols_show = [c for c in cols_show if c in ranking_areas.columns]
+            rank_small = ranking_areas[cols_show].head(10).copy()
+            if "score_riesgo" in rank_small.columns:
+                rank_small["score_riesgo"] = rank_small["score_riesgo"].apply(
+                    lambda x: f"{float(x):.1f}"
+                )
+            if "prioridad" in rank_small.columns:
+                rank_small["prioridad"] = rank_small["prioridad"].str.upper()
+            st.dataframe(rank_small, use_container_width=True, hide_index=True)
+        else:
+            st.info("Sin datos de ranking.")
+
+    with col_ws:
+        st.markdown("<div class='section-header'>Workspace por Área</div>",
+                    unsafe_allow_html=True)
+        ws = prepare_area_workspace(
+            cliente=cliente,
+            etapa=etapa_seleccionada,
+            codigo_ls=selected_area_code,
+            perfil=perfil,
+            tb=tb,
+            variaciones=variaciones,
+            ranking_areas=ranking_areas,
+        )
+        render_area_header(ws)
+        render_area_kpis(ws)
+
+        inner_tabs = st.tabs([
+            "📋 Resumen",
+            "⚙️ Trabajo",
+            "🔍 Calidad",
+            "🏁 Cierre",
+        ])
+
+        # ── Tab 1: Resumen ────────────────────────────────────────
+        with inner_tabs[0]:
+            # Only show KPIs if there is actual data
+            saldo_val = float(
+                ws.get("area_summary", {}).get("saldo_actual", 0) or 0
+            )
+            var_val = float(
+                ws.get("area_summary", {}).get("variacion_acumulada", 0) or 0
+            )
+            has_data = saldo_val != 0 or var_val != 0
+
+            if has_data:
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Saldo actual", fmt_money(saldo_val))
+                m2.metric("Variación acum.", fmt_money(var_val))
+                m3.metric(
+                    "Cobertura",
+                    f"{fmt_num(ws.get('coverage', 0), 1)}%"
+                )
+                m4.metric(
+                    "Hallazgos abiertos",
+                    ws.get("hallazgos_count", 0)
+                )
+            else:
+                st.info("Sin movimientos registrados en el período para esta área.")
+
+            st.divider()
+            render_contexto_tab(ws)
+
+            with st.expander("📌 Briefing del área", expanded=False):
+                render_briefing_tab(ws)
+
+            with st.expander("📂 Procedimientos", expanded=False):
+                render_procedimientos_tab(ws)
+
+        # ── Tab 2: Trabajo ────────────────────────────────────────
+        with inner_tabs[1]:
+            left_w, right_w = st.columns(2)
+            with left_w:
+                render_hallazgos_tab(ws)
+            with right_w:
+                render_seguimiento_tab(ws, cliente)
+            st.divider()
+            with st.expander("🕐 Historial de cambios", expanded=False):
+                render_historial_tab(ws, cliente)
+
+        # ── Tab 3: Calidad ────────────────────────────────────────
+        with inner_tabs[2]:
+            with st.expander("🔬 Cobertura de aseveraciones", expanded=True):
+                render_cobertura_tab(ws)
+            with st.expander("✅ Revisión de calidad metodológica",
+                             expanded=False):
+                render_calidad_tab(ws)
+
+        # ── Tab 4: Cierre ─────────────────────────────────────────
+        with inner_tabs[3]:
+            _render_cierre_cards(ws)
 
 
 with tab3:
-    ws = prepare_area_workspace(
-        cliente=cliente,
-        etapa=etapa_seleccionada,
-        codigo_ls=selected_area_code,
-        perfil=perfil,
-        tb=tb,
-        variaciones=variaciones,
-        ranking_areas=ranking_areas,
-    )
-
-    render_area_header(ws)
-    render_area_kpis(ws)
-    render_por_que_importa(ws)
-    render_export_block(ws, cliente, datos_clave, perfil)
-    st.divider()
-
-    t_ctx, t_brf, t_proc, t_cov, t_hal, t_seg, t_his, t_cal, t_cie, t_soc = st.tabs([
-        "Contexto",
-        "Briefing",
-        "Procedimientos",
-        "Cobertura",
-        "Hallazgos",
-        "Seguimiento",
-        "Historial",
-        "Revision de calidad",
-        "Cierre",
-        "Consultar Socio",
+    ia_tab1, ia_tab2, ia_tab3 = st.tabs([
+        "💡 Briefing", "📝 Programa", "💬 Chat"
     ])
 
-    with t_ctx:
-        render_contexto_tab(ws)
-    with t_brf:
-        render_briefing_tab(ws)
-    with t_proc:
-        render_procedimientos_tab(ws)
-    with t_cov:
-        render_cobertura_tab(ws)
-    with t_hal:
-        render_hallazgos_tab(ws)
-    with t_seg:
-        render_seguimiento_tab(ws, cliente)
-    with t_his:
-        render_historial_tab(ws, cliente)
-    with t_cal:
-        render_calidad_tab(ws)
-    with t_cie:
-        render_cierre_tab(ws)
-    with t_soc:
-        render_consultar_socio_tab(ws, cliente)
+    with ia_tab1:
+        st.markdown("<div class='section-header'>Briefing de Área</div>",
+                    unsafe_allow_html=True)
+        render_briefing_ia_tab(cliente, selected_area_code)
+
+    with ia_tab2:
+        st.markdown("<div class='section-header'>Programa de Auditoría</div>",
+                    unsafe_allow_html=True)
+        from domain.services.programa_ia_service import generar_programa_auditoria_ia
+        col_p1, col_p2 = st.columns(2)
+        with col_p1:
+            area_prog = st.text_input(
+                "Código área L/S",
+                value=selected_area_code or "14",
+                key="prog_area",
+            )
+        with col_p2:
+            etapa_prog = st.selectbox(
+                "Etapa",
+                ["planificacion", "ejecucion", "cierre"],
+                key="prog_etapa",
+            )
+        if st.button("Generar Programa", key="btn_prog_ia"):
+            with st.spinner("Generando programa..."):
+                prog = generar_programa_auditoria_ia(cliente, area_prog, etapa_prog)
+            with st.expander("Ver programa completo", expanded=True):
+                st.markdown(prog)
+            st.download_button(
+                "Descargar (.md)",
+                data=prog,
+                file_name=f"programa_{cliente}_{area_prog}.md",
+                mime="text/markdown",
+                key="dl_prog",
+            )
+
+    with ia_tab3:
+        st.markdown("<div class='section-header'>Chat con IA</div>",
+                    unsafe_allow_html=True)
+        from llm.llm_client import llamar_llm_seguro
+        render_chat_tab(cliente, cached_leer_perfil, llamar_llm_seguro)
+
+
+def _build_chart_data(
+    tb: pd.DataFrame | None,
+    ranking_areas: pd.DataFrame | None,
+    resumen_tb: dict,
+) -> dict[str, Any]:
+    """
+    Prepares data structures for the 3 financial charts.
+    Returns a dict with keys: areas_bar, balance_stack, riesgo_line.
+    Returns empty dicts per key if data is insufficient.
+    """
+    result = {
+        "areas_bar": {},
+        "balance_stack": {},
+        "riesgo_line": {},
+    }
+
+    # ── Chart 1: Evolución por área (2024 vs 2025) ────────────
+    if (
+        isinstance(tb, pd.DataFrame)
+        and not tb.empty
+        and "saldo_2024" in tb.columns
+        and "saldo_2025" in tb.columns
+        and isinstance(ranking_areas, pd.DataFrame)
+        and not ranking_areas.empty
+        and "area" in ranking_areas.columns
+        and "con_saldo" in ranking_areas.columns
+    ):
+        # Only areas with real balance, top 8 by score
+        df_rank = ranking_areas.copy()
+        if "score_riesgo" in df_rank.columns:
+            df_rank = df_rank.sort_values("score_riesgo", ascending=False)
+
+        present = df_rank[df_rank["con_saldo"].astype(bool)].head(8)
+
+        nombres_areas = []
+        vals_2024 = []
+        vals_2025 = []
+
+        ls_col = next(
+            (c for c in ["ls", "l/s", "l_s"] if c in tb.columns), None
+        )
+
+        for _, row in present.iterrows():
+            codigo = str(row.get("area", "")).strip()
+            nombre = str(row.get("nombre", codigo))[:20]
+
+            if ls_col:
+                mask = tb[ls_col].astype(str).str.strip() == codigo
+                sub = tb[mask]
+            else:
+                sub = tb[tb["codigo"].astype(str).str.startswith(codigo)]
+
+            s24 = abs(float(
+                pd.to_numeric(sub["saldo_2024"], errors="coerce")
+                .fillna(0).sum()
+            ))
+            s25 = abs(float(
+                pd.to_numeric(sub["saldo_2025"], errors="coerce")
+                .fillna(0).sum()
+            ))
+
+            if s24 > 0 or s25 > 0:
+                nombres_areas.append(f"{codigo}\n{nombre}")
+                vals_2024.append(s24)
+                vals_2025.append(s25)
+
+        if nombres_areas:
+            result["areas_bar"] = {
+                "nombres": nombres_areas,
+                "vals_2024": vals_2024,
+                "vals_2025": vals_2025,
+            }
+
+    # ── Chart 2: Composición del balance ─────────────────────
+    activo = abs(float(resumen_tb.get("ACTIVO", 0) or 0))
+    pasivo = abs(float(resumen_tb.get("PASIVO", 0) or 0))
+    patrimonio = abs(float(resumen_tb.get("PATRIMONIO", 0) or 0))
+    ingresos = abs(float(resumen_tb.get("INGRESOS", 0) or 0))
+    gastos = abs(float(resumen_tb.get("GASTOS", 0) or 0))
+
+    if activo + pasivo + patrimonio > 0:
+        result["balance_stack"] = {
+            "activo": activo,
+            "pasivo": pasivo,
+            "patrimonio": patrimonio,
+            "ingresos": ingresos,
+            "gastos": gastos,
+        }
+
+    # ── Chart 3: Riesgo por área (2024 estimado vs 2025) ──────
+    # Since we only have 2 periods, estimate 2024 score from
+    # saldo_2024 proportions vs saldo_2025
+    if (
+        isinstance(ranking_areas, pd.DataFrame)
+        and not ranking_areas.empty
+        and "score_riesgo" in ranking_areas.columns
+        and result["areas_bar"]
+    ):
+        nombres_r = []
+        scores_r = []
+
+        df_r = ranking_areas.copy()
+        if "score_riesgo" in df_r.columns:
+            df_r = df_r.sort_values("score_riesgo", ascending=False)
+
+        present_r = df_r[df_r["con_saldo"].astype(bool)].head(6)
+
+        bar = result["areas_bar"]
+        for _, row in present_r.iterrows():
+            codigo = str(row.get("area", "")).strip()
+            nombre = str(row.get("nombre", codigo))[:15]
+            score_25 = float(row.get("score_riesgo", 0) or 0)
+
+            # Estimate 2024 score based on saldo ratio
+            idx = next(
+                (i for i, n in enumerate(bar["nombres"])
+                 if n.startswith(codigo)), None
+            )
+            if idx is not None and bar["vals_2025"][idx] > 0:
+                ratio = bar["vals_2024"][idx] / bar["vals_2025"][idx]
+                score_24 = round(score_25 * ratio * 0.9, 1)
+            else:
+                score_24 = round(score_25 * 0.85, 1)
+
+            nombres_r.append(f"{codigo} {nombre}")
+            scores_r.append((score_24, score_25))
+
+        if nombres_r:
+            result["riesgo_line"] = {
+                "nombres": nombres_r,
+                "scores": scores_r,
+            }
+
+    return result
 
 
 with tab4:
-    st.subheader("Analisis de variaciones")
+    d_tab1, d_tab2, d_tab3, d_tab4, d_tab5 = st.tabs([
+        "📈 Variaciones", "🔢 Trial Balance",
+        "📊 Análisis Financiero", "🗂️ Hallazgos",
+        "📒 Mayor",
+    ])
 
-    resumen_var = safe_call(resumen_variaciones, cliente, default={}) or {}
-    v1, v2, v3 = st.columns(3)
-    v1.metric("Cuentas con variacion", resumen_var.get("total_cuentas_variacion", 0))
-    v2.metric("Mayor variacion", fmt_money(resumen_var.get("mayor_variacion", 0)))
-    v3.metric("Suma variaciones", fmt_money(resumen_var.get("suma_variaciones", 0)))
+    with d_tab1:
+        st.markdown("<div class='section-header'>Variaciones Significativas</div>",
+                    unsafe_allow_html=True)
+        resumen_var = safe_call(resumen_variaciones, cliente, default={}) or {}
+        v1, v2, v3 = st.columns(3)
+        v1.metric("Cuentas con variación",
+                  resumen_var.get("total_cuentas_variacion", 0))
+        v2.metric("Mayor variación",
+                  fmt_money(resumen_var.get("mayor_variacion", 0)))
+        v3.metric("Suma variaciones",
+                  fmt_money(resumen_var.get("suma_variaciones", 0)))
+        if isinstance(variaciones, pd.DataFrame) and not variaciones.empty:
+            cols_var = [c for c in ["codigo", "nombre", "saldo", "impacto"]
+                       if c in variaciones.columns]
+            show_var = variaciones[cols_var].head(15).copy() if cols_var \
+                       else variaciones.head(15).copy()
+            if "saldo" in show_var.columns:
+                show_var["saldo"] = show_var["saldo"].apply(fmt_money)
+            if "impacto" in show_var.columns:
+                show_var["impacto"] = show_var["impacto"].apply(fmt_money)
+            st.dataframe(show_var, use_container_width=True, hide_index=True)
+        else:
+            st.info("Sin variaciones significativas detectadas.")
 
-    if isinstance(variaciones, pd.DataFrame) and not variaciones.empty:
-        cols = [c for c in ["codigo", "nombre", "saldo", "impacto"] if c in variaciones.columns]
-        show = variaciones[cols].head(15).copy() if cols else variaciones.head(15).copy()
-        if "saldo" in show.columns:
-            show["saldo"] = show["saldo"].apply(fmt_money)
-        if "impacto" in show.columns:
-            show["impacto"] = show["impacto"].apply(fmt_money)
-        st.dataframe(show, width="stretch", hide_index=True)
-    else:
-        st.info("No hay variaciones significativas detectadas.")
-
-
-with tab5:
-    st.subheader("Trial Balance")
-
-    if not isinstance(tb, pd.DataFrame) or tb.empty:
-        st.error("No se pudo cargar el trial balance.")
-    else:
-        tb_filtrado = tb.copy()
-
-        if "tipo_cuenta" in tb_filtrado.columns:
-            tipos = sorted([str(x) for x in tb_filtrado["tipo_cuenta"].dropna().unique().tolist()])
-            sel_tipos = st.multiselect("Filtrar por tipo de cuenta", options=tipos, default=tipos)
-            if sel_tipos:
-                tb_filtrado = tb_filtrado[tb_filtrado["tipo_cuenta"].astype(str).isin(sel_tipos)]
-
-        st.dataframe(tb_filtrado, width="stretch", hide_index=True)
-
-        num_col = None
-        for c in ["saldo", "saldo_2025", "saldo_actual", "saldo_preliminar"]:
-            if c in tb_filtrado.columns:
-                num_col = c
-                break
-
-        if num_col:
-            vals = pd.to_numeric(tb_filtrado[num_col], errors="coerce").fillna(0)
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Numero de cuentas", int(len(tb_filtrado)))
-            c2.metric("Suma de saldos", fmt_money(vals.sum()))
-            c3.metric("Mayor saldo", fmt_money(vals.max()))
-            c4.metric("Menor saldo", fmt_money(vals.min()))
-
-
-with tab6:
-    st.subheader("Gestión de Hallazgos")
-
-    from domain.services.hallazgos_service import (
-        cargar_hallazgos_gestion,
-        crear_hallazgo,
-        actualizar_estado_hallazgo,
-        resumen_hallazgos,
-    )
-    from domain.services.export_service import exportar_hallazgos_excel, exportar_resumen_txt
-
-    resumen_h = resumen_hallazgos(cliente)
-    h1, h2, h3, h4 = st.columns(4)
-    h1.metric("Total", resumen_h["total"])
-    h2.metric("Abiertos", resumen_h["abiertos"])
-    h3.metric("Cerrados", resumen_h["cerrados"])
-    h4.metric("Alto riesgo abiertos", resumen_h["alto_riesgo_abiertos"])
-
-    st.divider()
-
-    with st.expander("Registrar nuevo hallazgo"):
-        col_a, col_b = st.columns(2)
-        with col_a:
-            desc_input = st.text_area("Descripción del hallazgo")
-            area_input = st.text_input("Código área L/S (ej: 14, 130.1)")
-        with col_b:
-            asev_input = st.text_input("Aseveración afectada")
-            nivel_input = st.selectbox("Nivel", ["alto", "medio", "bajo"])
-            resp_input = st.text_input("Responsable")
-
-        if st.button("Guardar hallazgo"):
-            if desc_input and area_input:
-                nuevo = crear_hallazgo(
-                    cliente=cliente,
-                    codigo_area=area_input,
-                    descripcion=desc_input,
-                    aseveracion=asev_input,
-                    nivel=nivel_input,
-                    responsable=resp_input,
+    with d_tab2:
+        st.markdown("<div class='section-header'>Trial Balance</div>",
+                    unsafe_allow_html=True)
+        if not isinstance(tb, pd.DataFrame) or tb.empty:
+            st.error("No se pudo cargar el trial balance.")
+        else:
+            tb_filtrado = tb.copy()
+            if "tipo_cuenta" in tb_filtrado.columns:
+                tipos = sorted([str(x) for x in
+                               tb_filtrado["tipo_cuenta"].dropna().unique()])
+                sel_tipos = st.multiselect(
+                    "Filtrar por tipo", options=tipos, default=tipos
                 )
-                st.success(f"Hallazgo {nuevo['id']} creado.")
-                st.rerun()
-            else:
-                st.warning("Descripción y área son obligatorios.")
-
-    st.divider()
-    st.subheader("Hallazgos registrados")
-
-    todos = cargar_hallazgos_gestion(cliente)
-    if todos:
-        filtro_estado = st.selectbox(
-            "Filtrar por estado", ["todos", "abierto", "cerrado"]
-        )
-        lista = todos if filtro_estado == "todos" else [
-            h for h in todos if h.get("estado") == filtro_estado
-        ]
-        for h in lista:
-            nivel_color = {"alto": "🔴", "medio": "🟡", "bajo": "🟢"}.get(
-                h.get("nivel", ""), "⚪"
+                if sel_tipos:
+                    tb_filtrado = tb_filtrado[
+                        tb_filtrado["tipo_cuenta"].astype(str).isin(sel_tipos)
+                    ]
+            st.dataframe(tb_filtrado, use_container_width=True, hide_index=True)
+            num_col = next(
+                (c for c in ["saldo", "saldo_2025", "saldo_actual"]
+                 if c in tb_filtrado.columns), None
             )
-            with st.expander(
-                f"{nivel_color} {h.get('id')} | {h.get('codigo_area')} | {h.get('estado')} | {h.get('descripcion','')[:60]}"
-            ):
-                st.json(h)
-                if h.get("estado") == "abierto":
-                    nota_cierre = st.text_input(
-                        "Nota de cierre", key=f"nota_{h['id']}"
-                    )
-                    if st.button("Cerrar hallazgo", key=f"cerrar_{h['id']}"):
-                        actualizar_estado_hallazgo(
-                            cliente, h["id"], "cerrado", nota_cierre
-                        )
-                        st.rerun()
-    else:
-        st.info("Sin hallazgos registrados para este cliente.")
+            if num_col:
+                vals = pd.to_numeric(
+                    tb_filtrado[num_col], errors="coerce"
+                ).fillna(0)
+                cc1, cc2, cc3 = st.columns(3)
+                cc1.metric("Cuentas", len(tb_filtrado))
+                cc2.metric("Suma", fmt_money(vals.sum()))
+                cc3.metric("Mayor saldo", fmt_money(vals.max()))
 
-    st.divider()
-    st.subheader("Exportar")
-    col_e1, col_e2 = st.columns(2)
-    with col_e1:
-        if st.button("Exportar hallazgos a Excel"):
-            ruta = exportar_hallazgos_excel(cliente)
-            if ruta:
-                st.success(f"Exportado: {ruta}")
-            else:
-                st.warning("Sin hallazgos para exportar.")
-    with col_e2:
-        if st.button("Exportar resumen ejecutivo"):
-            ruta = exportar_resumen_txt(cliente, ranking_areas if isinstance(ranking_areas, pd.DataFrame) else None)
-            if ruta:
-                st.success(f"Exportado: {ruta}")
-            else:
-                st.error("Error al exportar.")
-
-
-with tab7:
-    render_briefing_ia_tab(cliente, selected_area_code)
-
-
-with tab8:
-    from llm.llm_client import llamar_llm_seguro
-    render_chat_tab(cliente, cached_leer_perfil, llamar_llm_seguro)
-
-with tab9:
-    st.subheader("Análisis Financiero")
-
-    from analysis.ratios import resumen_ratios, calcular_ratios
-    from analysis.benchmark import resumen_benchmark
-    from analysis.tendencias import resumen_tendencias, alertas_tendencias
-
-    col_r, col_b = st.columns(2)
-
-    with col_r:
-        st.markdown("#### Ratios financieros")
-        ratios_data = resumen_ratios(cliente)
-        if ratios_data:
-            df_ratios = pd.DataFrame(ratios_data)
-            show_cols = ["categoria", "ratio", "valor", "interpretacion"]
-            show_cols = [c for c in show_cols if c in df_ratios.columns]
-            st.dataframe(df_ratios[show_cols], use_container_width=True, hide_index=True)
-        else:
-            st.info("Sin datos suficientes para calcular ratios.")
-
-    with col_b:
-        st.markdown("#### Benchmark sectorial")
-        bench = resumen_benchmark(cliente)
-        if bench.get("total", 0) > 0:
-            b1, b2, b3 = st.columns(3)
-            b1.metric("OK", bench["ok"])
-            b2.metric("Alerta", bench["alerta"])
-            b3.metric("Crítico", bench["critico"])
-            df_bench = pd.DataFrame(bench["detalle"])
-            show_b = ["ratio", "valor_cliente", "benchmark_optimo", "estado"]
-            show_b = [c for c in show_b if c in df_bench.columns]
-            st.dataframe(df_bench[show_b], use_container_width=True, hide_index=True)
-        else:
-            st.info("Sin benchmark disponible para este cliente.")
-
-    st.divider()
-    st.markdown("#### Tendencias de cuentas")
-    res_tend = resumen_tendencias(cliente)
-    if res_tend:
-        t1, t2, t3 = st.columns(3)
-        t1.metric("Total cuentas", res_tend.get("total_cuentas", 0))
-        t2.metric("Cuentas en alerta", res_tend.get("cuentas_alerta", 0))
-        t3.metric("Mayor crecimiento", 
-            res_tend.get("mayor_crecimiento", {}).get("nombre", "N/A")
-            if res_tend.get("mayor_crecimiento") else "N/A"
+    with d_tab3:
+        st.markdown(
+            "<div class='section-header'>Análisis Financiero</div>",
+            unsafe_allow_html=True,
         )
-        alertas = alertas_tendencias(cliente)
-        if alertas:
-            st.markdown("**Cuentas que requieren atención**")
-            df_alertas = pd.DataFrame(alertas[:15])
-            show_t = ["codigo", "nombre", "saldo_actual",
-                      "variacion_absoluta", "variacion_porcentual", "tendencia"]
-            show_t = [c for c in show_t if c in df_alertas.columns]
-            st.dataframe(df_alertas[show_t], use_container_width=True, hide_index=True)
-    else:
-        st.info("Sin datos de tendencias disponibles.")
 
+        chart_data = _build_chart_data(tb, ranking_areas, resumen_tb)
+
+        try:
+            import plotly.graph_objects as go
+
+            # ── Chart 1: Evolución 2024 vs 2025 por área ─────
+            bar_d = chart_data.get("areas_bar", {})
+            if bar_d:
+                st.markdown("**Evolución de saldo por área · 2024 vs 2025**")
+                fig_bar = go.Figure()
+                fig_bar.add_trace(go.Bar(
+                    name="2024",
+                    x=bar_d["nombres"],
+                    y=bar_d["vals_2024"],
+                    marker_color="#A8C4E0",
+                    text=[f"${v:,.0f}" for v in bar_d["vals_2024"]],
+                    textposition="outside",
+                    textfont=dict(size=10),
+                ))
+                fig_bar.add_trace(go.Bar(
+                    name="2025",
+                    x=bar_d["nombres"],
+                    y=bar_d["vals_2025"],
+                    marker_color="#003366",
+                    text=[f"${v:,.0f}" for v in bar_d["vals_2025"]],
+                    textposition="outside",
+                    textfont=dict(size=10),
+                ))
+                fig_bar.update_layout(
+                    barmode="group",
+                    plot_bgcolor="white",
+                    paper_bgcolor="white",
+                    font=dict(color="#172B4D", size=11),
+                    height=340,
+                    margin=dict(l=10, r=10, t=30, b=60),
+                    legend=dict(
+                        orientation="h", y=1.1, x=0.5,
+                        xanchor="center"
+                    ),
+                    yaxis=dict(
+                        showgrid=True,
+                        gridcolor="#F4F5F7",
+                        tickformat="$,.0f",
+                    ),
+                    xaxis=dict(tickangle=-20),
+                )
+                st.plotly_chart(fig_bar, use_container_width=True)
+            else:
+                st.info(
+                    "Sin datos comparativos 2024/2025. "
+                    "Verificar columnas saldo_2024 y saldo_2025 en el TB."
+                )
+
+            st.divider()
+
+            col_left, col_right = st.columns(2)
+
+            # ── Chart 2: Composición del balance ─────────────
+            with col_left:
+                bal_d = chart_data.get("balance_stack", {})
+                if bal_d:
+                    st.markdown("**Composición del balance**")
+                    categorias = []
+                    valores = []
+                    colores = []
+
+                    mapping = [
+                        ("Activo", bal_d["activo"], "#003366"),
+                        ("Pasivo", bal_d["pasivo"], "#DE350B"),
+                        ("Patrimonio", bal_d["patrimonio"], "#00875A"),
+                        ("Ingresos", bal_d["ingresos"], "#0066CC"),
+                        ("Gastos", bal_d["gastos"], "#FF8B00"),
+                    ]
+                    for label, val, color in mapping:
+                        if val > 0:
+                            categorias.append(label)
+                            valores.append(val)
+                            colores.append(color)
+
+                    if categorias:
+                        fig_stack = go.Figure(go.Bar(
+                            x=categorias,
+                            y=valores,
+                            marker_color=colores,
+                            text=[f"${v:,.0f}" for v in valores],
+                            textposition="outside",
+                            textfont=dict(size=10),
+                        ))
+                        fig_stack.update_layout(
+                            plot_bgcolor="white",
+                            paper_bgcolor="white",
+                            font=dict(color="#172B4D", size=11),
+                            height=300,
+                            margin=dict(l=10, r=10, t=20, b=20),
+                            yaxis=dict(
+                                showgrid=True,
+                                gridcolor="#F4F5F7",
+                                tickformat="$,.0f",
+                            ),
+                            showlegend=False,
+                        )
+                        st.plotly_chart(
+                            fig_stack, use_container_width=True
+                        )
+                else:
+                    st.info("Sin datos de balance.")
+
+            # ── Chart 3: Tendencia de riesgo ──────────────────
+            with col_right:
+                riesgo_d = chart_data.get("riesgo_line", {})
+                if riesgo_d:
+                    st.markdown("**Tendencia de score de riesgo por área**")
+                    fig_line = go.Figure()
+
+                    periodos = ["2024 (est.)", "2025"]
+                    colores_line = [
+                        "#003366", "#0066CC", "#DE350B",
+                        "#00875A", "#FF8B00", "#6554C0",
+                    ]
+
+                    for i, (nombre, (s24, s25)) in enumerate(
+                        zip(
+                            riesgo_d["nombres"],
+                            riesgo_d["scores"],
+                        )
+                    ):
+                        color_l = colores_line[i % len(colores_line)]
+                        fig_line.add_trace(go.Scatter(
+                            x=periodos,
+                            y=[s24, s25],
+                            mode="lines+markers+text",
+                            name=nombre,
+                            line=dict(color=color_l, width=2),
+                            marker=dict(size=8, color=color_l),
+                            text=[f"{s24:.0f}", f"{s25:.0f}"],
+                            textposition="top center",
+                            textfont=dict(size=9),
+                        ))
+
+                    fig_line.update_layout(
+                        plot_bgcolor="white",
+                        paper_bgcolor="white",
+                        font=dict(color="#172B4D", size=11),
+                        height=300,
+                        margin=dict(l=10, r=10, t=20, b=20),
+                        legend=dict(
+                            font=dict(size=9),
+                            orientation="v",
+                            x=1.01,
+                        ),
+                        yaxis=dict(
+                            showgrid=True,
+                            gridcolor="#F4F5F7",
+                            range=[0, 100],
+                            title="Score",
+                        ),
+                        xaxis=dict(title="Período"),
+                    )
+                    st.plotly_chart(
+                        fig_line, use_container_width=True
+                    )
+                else:
+                    st.info("Sin datos de tendencia de riesgo.")
+
+        except Exception as e:
+            st.warning(f"Error generando gráficos: {e}")
+
+        st.divider()
+
+        # ── Ratios y benchmark (existing, keep below charts) ──
+        from analysis.ratios import resumen_ratios
+        from analysis.benchmark import resumen_benchmark
+
+        col_r, col_b = st.columns(2)
+        with col_r:
+            st.markdown("**Ratios financieros**")
+            ratios_data = resumen_ratios(cliente)
+            if ratios_data:
+                df_ratios = pd.DataFrame(ratios_data)
+                show_r = [
+                    c for c in ["ratio", "valor", "interpretacion"]
+                    if c in df_ratios.columns
+                ]
+                st.dataframe(
+                    df_ratios[show_r],
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            else:
+                st.info("Sin datos de ratios.")
+        with col_b:
+            st.markdown("**Benchmark sectorial**")
+            bench = resumen_benchmark(cliente)
+            if bench.get("total", 0) > 0:
+                bb1, bb2, bb3 = st.columns(3)
+                bb1.metric("OK", bench["ok"])
+                bb2.metric("Alerta", bench["alerta"])
+                bb3.metric("Crítico", bench["critico"])
+            else:
+                st.info("Sin benchmark disponible.")
+
+    with d_tab4:
+        st.markdown("<div class='section-header'>Gestión de Hallazgos</div>",
+                    unsafe_allow_html=True)
+        from domain.services.hallazgos_service import (
+            cargar_hallazgos_gestion, crear_hallazgo,
+            actualizar_estado_hallazgo, resumen_hallazgos,
+        )
+        from domain.services.export_service import (
+            exportar_hallazgos_excel, exportar_resumen_txt
+        )
+        res_h = resumen_hallazgos(cliente)
+        hh1, hh2, hh3, hh4 = st.columns(4)
+        hh1.metric("Total", res_h["total"])
+        hh2.metric("Abiertos", res_h["abiertos"])
+        hh3.metric("Cerrados", res_h["cerrados"])
+        hh4.metric("Alto riesgo", res_h["alto_riesgo_abiertos"])
+        with st.expander("Registrar nuevo hallazgo"):
+            ca, cb = st.columns(2)
+            with ca:
+                di = st.text_area("Descripción", key="h_desc")
+                ai_input = st.text_input("Área L/S", key="h_area")
+            with cb:
+                asv = st.text_input("Afirmación", key="h_asev")
+                niv = st.selectbox("Nivel", ["alto","medio","bajo"],
+                                   key="h_nivel")
+                resp = st.text_input("Responsable", key="h_resp")
+            if st.button("Guardar hallazgo", key="h_save"):
+                if di and ai_input:
+                    nuevo_h = crear_hallazgo(
+                        cliente, ai_input, di, asv, niv, resp
+                    )
+                    st.success(f"Hallazgo {nuevo_h['id']} creado.")
+                    st.rerun()
+        todos_h = cargar_hallazgos_gestion(cliente)
+        if todos_h:
+            filtro_h = st.selectbox(
+                "Filtrar", ["todos","abierto","cerrado"], key="h_filtro"
+            )
+            lista_h = todos_h if filtro_h == "todos" else [
+                h for h in todos_h if h.get("estado") == filtro_h
+            ]
+            for h in lista_h:
+                ic = {"alto":"🔴","medio":"🟡","bajo":"🟢"}.get(
+                    h.get("nivel",""), "⚪"
+                )
+                with st.expander(
+                    f"{ic} {h.get('id')} | {h.get('codigo_area')} | "
+                    f"{h.get('estado')} | {h.get('descripcion','')[:50]}"
+                ):
+                    st.json(h)
+                    if h.get("estado") == "abierto":
+                        nc = st.text_input("Nota cierre",
+                                          key=f"nc_{h['id']}")
+                        if st.button("Cerrar", key=f"ch_{h['id']}"):
+                            actualizar_estado_hallazgo(
+                                cliente, h["id"], "cerrado", nc
+                            )
+                            st.rerun()
+        else:
+            st.info("Sin hallazgos registrados.")
+        ec1, ec2 = st.columns(2)
+        with ec1:
+            if st.button("Exportar hallazgos Excel", key="exp_h"):
+                r = exportar_hallazgos_excel(cliente)
+                st.success(f"Exportado: {r}") if r else st.warning("Sin datos.")
+        with ec2:
+            if st.button("Exportar resumen TXT", key="exp_r"):
+                r = exportar_resumen_txt(
+                    cliente,
+                    ranking_areas if isinstance(ranking_areas, pd.DataFrame)
+                    else None
+                )
+                st.success(f"Exportado: {r}") if r else st.error("Error.")
+
+    with d_tab5:
+        st.markdown(
+            "<div class='section-header'>Libro Mayor</div>",
+            unsafe_allow_html=True,
+        )
+
+        if df_mayor is None or (
+            isinstance(df_mayor, pd.DataFrame) and df_mayor.empty
+        ):
+            st.info(
+                "No se encontró mayor.xlsx para este cliente. "
+                "Carga el archivo en: "
+                f"data/clientes/{cliente}/mayor.xlsx"
+            )
+            st.markdown(
+                "**Formato esperado del archivo:**\n\n"
+                "| fecha | numero_cuenta | nombre_cuenta | ls | "
+                "descripcion | referencia | debe | haber | saldo | tipo |"
+            )
+        else:
+            # ── Summary KPIs ──────────────────────────────────
+            res_m = safe_call(
+                resumen_mayor, df_mayor, default={}
+            ) or {}
+            mk1, mk2, mk3, mk4 = st.columns(4)
+            mk1.metric(
+                "Total movimientos",
+                res_m.get("total_movimientos", 0)
+            )
+            mk2.metric(
+                "Total debe",
+                fmt_money(res_m.get("total_debe", 0))
+            )
+            mk3.metric(
+                "Total haber",
+                fmt_money(res_m.get("total_haber", 0))
+            )
+            mk4.metric(
+                "Cuentas distintas",
+                res_m.get("cuentas_distintas", 0)
+            )
+
+            st.divider()
+
+            # ── Filters ───────────────────────────────────────
+            st.markdown(
+                "<div class='section-header'>Filtros</div>",
+                unsafe_allow_html=True,
+            )
+            f1, f2, f3, f4 = st.columns([1, 1, 2, 1])
+            with f1:
+                filtro_ls = st.text_input(
+                    "Área L/S",
+                    value=selected_area_code or "",
+                    key="m_ls",
+                    placeholder="ej. 14",
+                )
+            with f2:
+                filtro_cuenta = st.text_input(
+                    "Código cuenta",
+                    key="m_cuenta",
+                    placeholder="ej. 1.02",
+                )
+            with f3:
+                filtro_texto = st.text_input(
+                    "Buscar en descripción / referencia",
+                    key="m_texto",
+                    placeholder="ej. VPP, honorarios...",
+                )
+            with f4:
+                filtro_monto = st.number_input(
+                    "Monto mínimo",
+                    min_value=0.0,
+                    value=0.0,
+                    step=100.0,
+                    key="m_monto",
+                )
+
+            # ── Apply filters ─────────────────────────────────
+            df_view = df_mayor.copy()
+
+            if filtro_ls.strip() and filtrar_por_ls:
+                filtered = safe_call(
+                    filtrar_por_ls, df_view,
+                    filtro_ls.strip(), default=df_view
+                )
+                if isinstance(filtered, pd.DataFrame):
+                    df_view = filtered
+
+            if filtro_cuenta.strip():
+                try:
+                    from analysis.lector_mayor import filtrar_por_cuenta as _fpc
+
+                    filtered = safe_call(
+                        _fpc, df_view,
+                        filtro_cuenta.strip(), default=df_view
+                    )
+                    if isinstance(filtered, pd.DataFrame):
+                        df_view = filtered
+                except Exception:
+                    pass
+
+            if (filtro_texto.strip() or filtro_monto > 0) and buscar_movimientos:
+                filtered = safe_call(
+                    buscar_movimientos,
+                    df_view,
+                    texto=filtro_texto,
+                    monto_min=filtro_monto,
+                    default=df_view,
+                )
+                if isinstance(filtered, pd.DataFrame):
+                    df_view = filtered
+
+            st.caption(
+                f"Mostrando {len(df_view)} de "
+                f"{len(df_mayor)} movimientos"
+            )
+
+            # ── Table ─────────────────────────────────────────
+            show_cols = [
+                c for c in [
+                    "fecha", "numero_cuenta", "nombre_cuenta",
+                    "ls", "descripcion", "referencia",
+                    "debe", "haber", "saldo",
+                ]
+                if c in df_view.columns
+            ]
+
+            if not df_view.empty:
+                disp = df_view[show_cols].copy()
+                for mc in ["debe", "haber", "saldo"]:
+                    if mc in disp.columns:
+                        disp[mc] = disp[mc].apply(fmt_money)
+                if "fecha" in disp.columns:
+                    disp["fecha"] = disp["fecha"].astype(str).str[:10]
+
+                st.dataframe(
+                    disp,
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+                # Download filtered mayor
+                csv_bytes = df_view[show_cols].to_csv(
+                    index=False
+                ).encode("utf-8")
+                st.download_button(
+                    "⬇️ Exportar filtrado (.csv)",
+                    data=csv_bytes,
+                    file_name=f"mayor_{cliente}_{filtro_ls or 'all'}.csv",
+                    mime="text/csv",
+                    key="dl_mayor_csv",
+                )
+            else:
+                st.info("Sin movimientos para los filtros aplicados.")
 
 st.divider()
 f1, f2, f3 = st.columns(3)
 f1.caption("SocioAI - Auditoria Inteligente con IA")
 f2.caption("Ultima actualizacion: 2026-03-17")
 f3.caption("Modo: analisis + workspace por area")
+

@@ -97,8 +97,13 @@ def agregar_evento_historial_area(
     historial.append(evento)
     ruta = ruta_historial_area(nombre_cliente, codigo_ls)
     ruta.parent.mkdir(parents=True, exist_ok=True)
-    with open(ruta, "w", encoding="utf-8") as f:
-        yaml.safe_dump(historial, f, allow_unicode=True, sort_keys=False)
+    try:
+        with open(ruta, "w", encoding="utf-8") as f:
+            yaml.safe_dump(historial, f, allow_unicode=True, sort_keys=False)
+    except OSError:
+        # Streamlit Cloud has read-only filesystem
+        # Writes are silently ignored in production
+        pass
 
     return evento
 

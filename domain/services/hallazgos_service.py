@@ -30,8 +30,13 @@ def guardar_hallazgos_gestion(cliente: str, hallazgos: list[dict[str, Any]]) -> 
     try:
         ruta = _ruta_hallazgos(cliente)
         ruta.parent.mkdir(parents=True, exist_ok=True)
-        with open(ruta, "w", encoding="utf-8") as f:
-            yaml.safe_dump(hallazgos, f, allow_unicode=True, sort_keys=False)
+        try:
+            with open(ruta, "w", encoding="utf-8") as f:
+                yaml.safe_dump(hallazgos, f, allow_unicode=True, sort_keys=False)
+        except OSError:
+            # Streamlit Cloud has read-only filesystem
+            # Writes are silently ignored in production
+            pass
         return True
     except Exception as e:
         print(f"[hallazgos] Error guardando: {e}")

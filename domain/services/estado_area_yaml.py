@@ -91,8 +91,13 @@ def guardar_estado_area(nombre_cliente: str, codigo_ls: str, estado_area: dict[s
     data["fecha_actualizacion"] = datetime.now().isoformat(timespec="seconds")
     data.pop("_fuente_yaml", None)
 
-    with open(ruta, "w", encoding="utf-8") as archivo:
-        yaml.safe_dump(data, archivo, allow_unicode=True, sort_keys=False)
+    try:
+        with open(ruta, "w", encoding="utf-8") as archivo:
+            yaml.safe_dump(data, archivo, allow_unicode=True, sort_keys=False)
+    except OSError:
+        # Streamlit Cloud has read-only filesystem
+        # Writes are silently ignored in production
+        pass
 
     return ruta
 

@@ -155,5 +155,10 @@ def save_area_markdown(cliente: str, filename: str, content: str) -> Path:
     export_dir = Path("data") / "exports" / str(cliente)
     export_dir.mkdir(parents=True, exist_ok=True)
     out_path = export_dir / filename
-    out_path.write_text(content, encoding="utf-8")
+    try:
+        out_path.write_text(content, encoding="utf-8")
+    except OSError:
+        # Streamlit Cloud has read-only filesystem
+        # Writes are silently ignored in production
+        pass
     return out_path

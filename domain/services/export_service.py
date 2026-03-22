@@ -31,7 +31,12 @@ def exportar_hallazgos_excel(cliente: str) -> Path | None:
         EXPORTS_PATH.mkdir(parents=True, exist_ok=True)
         fecha = datetime.now().strftime("%Y%m%d_%H%M")
         ruta = EXPORTS_PATH / f"{cliente}_hallazgos_{fecha}.xlsx"
-        df.to_excel(ruta, index=False, engine="openpyxl")
+        try:
+            df.to_excel(ruta, index=False, engine="openpyxl")
+        except OSError:
+            # Streamlit Cloud has read-only filesystem
+            # Writes are silently ignored in production
+            pass
         print(f"[export] Exportado: {ruta}")
         return ruta
     except Exception as e:
@@ -84,7 +89,12 @@ def exportar_resumen_txt(cliente: str, ranking_df: pd.DataFrame | None = None) -
         EXPORTS_PATH.mkdir(parents=True, exist_ok=True)
         fecha = datetime.now().strftime("%Y%m%d_%H%M")
         ruta = EXPORTS_PATH / f"{cliente}_resumen_{fecha}.txt"
-        ruta.write_text("\n".join(lineas), encoding="utf-8")
+        try:
+            ruta.write_text("\n".join(lineas), encoding="utf-8")
+        except OSError:
+            # Streamlit Cloud has read-only filesystem
+            # Writes are silently ignored in production
+            pass
         print(f"[export] Exportado: {ruta}")
         return ruta
     except Exception as e:

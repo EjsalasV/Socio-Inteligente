@@ -27,6 +27,42 @@ def _load_config() -> dict[str, Any]:
         return {}
 
 
+def _obtener_api_key(nombre: str) -> str:
+    """
+    Loads API key from:
+    1. Streamlit secrets (production on Streamlit Cloud)
+    2. Environment variable (local with .env)
+    3. Empty string (graceful degradation)
+    """
+    # Try Streamlit secrets first (Streamlit Cloud)
+    try:
+        import streamlit as st
+
+        val = st.secrets.get(nombre, "")
+        if val:
+            return str(val)
+    except Exception:
+        pass
+
+    # Fallback to environment variable (local)
+    val = os.environ.get(nombre, "")
+    if val:
+        return str(val)
+
+    # Fallback to .env file (local dev)
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+        val = os.environ.get(nombre, "")
+        if val:
+            return str(val)
+    except Exception:
+        pass
+
+    return ""
+
+
 def _get_client() -> tuple[OpenAI, str, dict[str, Any]]:
     """
     Returns (client, model, llm_config) based on config.yaml provider.
@@ -37,8 +73,11 @@ def _get_client() -> tuple[OpenAI, str, dict[str, Any]]:
     provider = str(llm_cfg.get("provider", "deepseek")).lower()
     model = str(llm_cfg.get("model", "deepseek-chat"))
 
+    DEEPSEEK_API_KEY = _obtener_api_key("DEEPSEEK_API_KEY")
+    OPENAI_API_KEY = _obtener_api_key("OPENAI_API_KEY")
+
     if provider == "deepseek":
-        api_key = os.getenv("DEEPSEEK_API_KEY", "")
+        api_key = DEEPSEEK_API_KEY
         if not api_key:
             raise ValueError(
                 "DEEPSEEK_API_KEY not set. "
@@ -49,7 +88,7 @@ def _get_client() -> tuple[OpenAI, str, dict[str, Any]]:
             base_url="https://api.deepseek.com",
         )
     else:
-        api_key = os.getenv("OPENAI_API_KEY", "")
+        api_key = OPENAI_API_KEY
         if not api_key:
             raise ValueError("OPENAI_API_KEY not set.")
         client = OpenAI(api_key=api_key)

@@ -54,7 +54,7 @@ def _chunk_texto(texto: str, chunk_size: int = 800, overlap: int = 100) -> list[
             if actual:
                 chunks.append(" ".join(actual))
 
-    return [c for c in chunks if len(c.strip()) > 50]
+    return [c for c in chunks if len(c.strip()) > 10]
 
 
 def cargar_documentos() -> list[dict[str, Any]]:
@@ -85,10 +85,12 @@ def cargar_documentos() -> list[dict[str, Any]]:
             chunks = _chunk_texto(texto)
             for i, chunk in enumerate(chunks):
                 doc_id = f"{archivo.stem}_{i}"
+                # Prefix chunk with document title for better retrieval
+                texto_enriquecido = f"[{fuente}: {titulo}]\n{chunk}"
                 documentos.append(
                     {
                         "id": doc_id,
-                        "texto": chunk,
+                        "texto": texto_enriquecido,
                         "fuente": fuente,
                         "archivo": str(archivo),
                         "titulo": titulo,

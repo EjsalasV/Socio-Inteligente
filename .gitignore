@@ -93,3 +93,31 @@ Thumbs.db
 .env.local
 config.local.yaml
 secrets/
+
+# Streamlit secrets (NEVER commit)
+.streamlit/secrets.toml
+
+# Keep config (safe to commit)
+!.streamlit/config.toml
+!.streamlit/secrets.toml.example
+
+# ChromaDB (rebuilds on cloud)
+chroma/
+
+# Local exports and logs
+data/exports/
+logs/
+
+# Sensitive client data — commit only demo data
+data/clientes/bf_holding_2025/tb.xlsx
+data/clientes/bustamante_fabara_ip_2025/tb.xlsx
+
+# Keep demo client and catalogs
+!data/clientes/cliente_demo/
+!data/clientes/cliente_demo/**
+!data/catalogos/
+!data/catalogos/**
+!data/conocimiento_normativo/
+!data/conocimiento_normativo/**
+!data/criterio_experto/
+!data/criterio_experto/**

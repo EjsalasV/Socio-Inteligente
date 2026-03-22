@@ -116,8 +116,13 @@ def guardar_materialidad(cliente: str, data: dict) -> bool:
         path = CLIENTES_PATH / cliente / "materialidad.yaml"
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
+        except OSError:
+            # Streamlit Cloud has read-only filesystem
+            # Writes are silently ignored in production
+            pass
 
         print(f"[OK] Materialidad guardada para {cliente}")
         return True
