@@ -2329,6 +2329,106 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 
+def _calcular_estado_encargo(
+    ranking_areas: pd.DataFrame | None,
+    cliente: str,
+) -> dict[str, Any]:
+    """
+    Calculates engagement completion status
+    based on area states in session_state and ranking.
+    """
+    if not isinstance(ranking_areas, pd.DataFrame) \
+            or ranking_areas.empty:
+        return {
+            "areas": [],
+            "pct_completado": 0,
+            "total": 0,
+            "completas": 0,
+            "en_proceso": 0,
+            "no_iniciadas": 0,
+        }
+
+    mask = pd.Series([True] * len(ranking_areas))
+    if "con_saldo" in ranking_areas.columns:
+        mask = ranking_areas["con_saldo"].astype(bool)
+    df_areas = ranking_areas[mask].copy()
+
+    areas_estado = []
+    for _, row in df_areas.iterrows():
+        codigo = str(row.get("area", "")).strip()
+        nombre_a = str(row.get("nombre", codigo))
+        score = float(row.get("score_riesgo", 0) or 0)
+        prior = str(row.get("prioridad", "baja")).lower()
+
+        # Check state from session
+        _estado_key = f"area_estado_{cliente}_{codigo}"
+        _estado_yaml = st.session_state.get(
+            _estado_key, ""
+        )
+
+        # Also check saved YAML state
+        try:
+            from domain.services.estado_area_yaml import (
+                cargar_estado_area,
+            )
+            _yaml = cargar_estado_area(cliente, codigo)
+            _estado_yaml = (
+                _yaml.get("estado_area", "") or _estado_yaml
+            )
+        except Exception:
+            pass
+
+        # Determine semaphore
+        _estados_completos = {
+            "cerrada", "lista_para_cierre", "completada"
+        }
+        _estados_proceso = {
+            "en_revision", "en_ejecucion",
+            "pendiente_cliente", "en_proceso",
+        }
+
+        if _estado_yaml in _estados_completos:
+            semaforo = "completa"
+            emoji = "🟢"
+        elif _estado_yaml in _estados_proceso:
+            semaforo = "en_proceso"
+            emoji = "🟡"
+        else:
+            semaforo = "no_iniciada"
+            emoji = "🔴"
+
+        areas_estado.append({
+            "codigo": codigo,
+            "nombre": nombre_a,
+            "score": score,
+            "prioridad": prior,
+            "semaforo": semaforo,
+            "emoji": emoji,
+            "estado_txt": _estado_yaml or "No iniciada",
+        })
+
+    total = len(areas_estado)
+    completas = sum(
+        1 for a in areas_estado if a["semaforo"] == "completa"
+    )
+    en_proceso = sum(
+        1 for a in areas_estado
+        if a["semaforo"] == "en_proceso"
+    )
+    no_iniciadas = total - completas - en_proceso
+
+    pct = int((completas / total * 100)) if total > 0 else 0
+
+    return {
+        "areas": areas_estado,
+        "pct_completado": pct,
+        "total": total,
+        "completas": completas,
+        "en_proceso": en_proceso,
+        "no_iniciadas": no_iniciadas,
+    }
+
+
 with tab1:
     # ── KPI Row ──────────────────────────────────────────────
     activo = resumen_tb.get("ACTIVO", 0)
@@ -2514,6 +2614,161 @@ with tab1:
                      {riesgo_g.upper()}</div></div>
         </div>
     </div>""", unsafe_allow_html=True)
+
+    # ── Engagement Status ─────────────────────────────────
+    st.markdown(
+        "<div class='section-header'>"
+        "Estado del Encargo</div>",
+        unsafe_allow_html=True,
+    )
+
+    _estado_enc = _calcular_estado_encargo(
+        ranking_areas, cliente
+    )
+
+    # Progress bar
+    _pct = _estado_enc["pct_completado"]
+    _total = _estado_enc["total"]
+    _completas = _estado_enc["completas"]
+    _proceso = _estado_enc["en_proceso"]
+    _no_ini = _estado_enc["no_iniciadas"]
+
+    prog_color = (
+        "#00875A" if _pct >= 80
+        else "#FF8B00" if _pct >= 40
+        else "#DE350B"
+    )
+
+    st.markdown(
+        f"""
+        <div class="kpi-card kpi-info"
+             style="padding:1rem 1.4rem;">
+          <div style="display:flex;
+                      justify-content:space-between;
+                      align-items:center;
+                      margin-bottom:0.6rem;">
+            <span style="font-weight:700;
+                         color:#003366;
+                         font-size:1rem;">
+              Progreso del encargo
+            </span>
+            <span style="font-size:1.4rem;
+                         font-weight:900;
+                         color:{prog_color};">
+              {_pct}%
+            </span>
+          </div>
+          <div style="background:#F4F5F7;
+                      border-radius:6px;
+                      height:12px;
+                      overflow:hidden;
+                      margin-bottom:0.8rem;">
+            <div style="background:{prog_color};
+                        width:{_pct}%;
+                        height:100%;
+                        border-radius:6px;
+                        transition:width 0.5s;">
+            </div>
+          </div>
+          <div style="display:grid;
+                      grid-template-columns:1fr 1fr 1fr;
+                      gap:0.5rem; text-align:center;">
+            <div>
+              <div style="font-size:1.4rem;">🟢</div>
+              <div style="font-weight:700;
+                          color:#006644;
+                          font-size:1.1rem;">
+                {_completas}
+              </div>
+              <div style="color:#6B778C;
+                          font-size:0.75rem;">
+                Completas
+              </div>
+            </div>
+            <div>
+              <div style="font-size:1.4rem;">🟡</div>
+              <div style="font-weight:700;
+                          color:#974F0C;
+                          font-size:1.1rem;">
+                {_proceso}
+              </div>
+              <div style="color:#6B778C;
+                          font-size:0.75rem;">
+                En proceso
+              </div>
+            </div>
+            <div>
+              <div style="font-size:1.4rem;">🔴</div>
+              <div style="font-weight:700;
+                          color:#BF2600;
+                          font-size:1.1rem;">
+                {_no_ini}
+              </div>
+              <div style="color:#6B778C;
+                          font-size:0.75rem;">
+                No iniciadas
+              </div>
+            </div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Semaphore table by area
+    if _estado_enc["areas"]:
+        st.markdown(
+            "<div style='margin-top:0.8rem;'></div>",
+            unsafe_allow_html=True,
+        )
+        for area_e in sorted(
+            _estado_enc["areas"],
+            key=lambda x: x["score"],
+            reverse=True,
+        ):
+            _color_bg = {
+                "completa": "#E3FCEF",
+                "en_proceso": "#FFFAE6",
+                "no_iniciada": "#FFEBE6",
+            }.get(area_e["semaforo"], "#F4F5F7")
+
+            _color_txt = {
+                "completa": "#006644",
+                "en_proceso": "#974F0C",
+                "no_iniciada": "#BF2600",
+            }.get(area_e["semaforo"], "#172B4D")
+
+            st.markdown(
+                f"""
+                <div style="background:{_color_bg};
+                            border-radius:8px;
+                            padding:0.5rem 1rem;
+                            margin-bottom:0.3rem;
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;">
+                  <div>
+                    <span style="font-weight:700;
+                                 color:#003366;">
+                      {area_e['emoji']}
+                      {area_e['codigo']} —
+                      {area_e['nombre'][:35]}
+                    </span>
+                    <span style="color:#6B778C;
+                                 font-size:0.78rem;
+                                 margin-left:8px;">
+                      Score: {area_e['score']:.1f}
+                    </span>
+                  </div>
+                  <span style="color:{_color_txt};
+                               font-size:0.8rem;
+                               font-weight:700;">
+                    {area_e['estado_txt'].replace('_',' ').title()}
+                  </span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     # ── PDF Export ────────────────────────────────────────────
     st.markdown(
@@ -3248,10 +3503,202 @@ with tab3:
             )
 
     with ia_tab3:
-        st.markdown("<div class='section-header'>Chat con IA</div>",
-                    unsafe_allow_html=True)
-        from llm.llm_client import llamar_llm_seguro
-        render_chat_tab(cliente, cached_leer_perfil, llamar_llm_seguro)
+        st.markdown(
+            "<div class='section-header'>"
+            "🤖 Asistente SocioAI</div>",
+            unsafe_allow_html=True,
+        )
+
+        try:
+            from llm.asistente_llm import (
+                construir_contexto_sistema,
+                generar_respuesta_asistente,
+                SUGERENCIAS_INICIALES,
+            )
+            _asistente_ok = True
+        except Exception:
+            _asistente_ok = False
+
+        if not _asistente_ok:
+            st.error("Error cargando el asistente.")
+        else:
+            # Build system context
+            _sistema = construir_contexto_sistema(
+                cliente=cliente,
+                perfil=perfil,
+                resumen_tb=resumen_tb,
+                ranking_areas=ranking_areas,
+                variaciones=variaciones,
+                etapa=etapa_seleccionada,
+            )
+
+            # ── Perfil completeness check ─────────────────
+            _perfil_score = 0
+            _perfil_missing = []
+            _cliente_info = perfil.get("cliente", {}) if isinstance(perfil, dict) else {}
+            _checks = [
+                ("cliente.nombre_legal",
+                 bool(_cliente_info.get("nombre_legal"))),
+                ("sector",
+                 bool(_cliente_info.get("sector"))),
+                ("partes_relacionadas",
+                 "tiene_partes_relacionadas" in str(perfil)),
+                ("operacion",
+                 bool(perfil.get("operacion")
+                      if isinstance(perfil, dict) else False)),
+                ("materialidad",
+                 bool(perfil.get("materialidad", {})
+                      .get("preliminar", {})
+                      if isinstance(perfil, dict) else False)),
+            ]
+            for campo, ok in _checks:
+                if ok:
+                    _perfil_score += 1
+                else:
+                    _perfil_missing.append(campo)
+
+            _pct_perfil = int(
+                (_perfil_score / len(_checks)) * 100
+            )
+
+            if _pct_perfil < 80:
+                st.markdown(
+                    f"<div class='check-item check-warn'>"
+                    f"<span class='check-icon'>💡</span>"
+                    f"<span>El perfil del cliente está "
+                    f"<b>{_pct_perfil}% completo</b>. "
+                    f"Puedes pedirme que complete la "
+                    f"información faltante: "
+                    f"<i>{', '.join(_perfil_missing)}</i>"
+                    f"</span></div>",
+                    unsafe_allow_html=True,
+                )
+
+            # Chat history key per client
+            _hist_key = f"chat_history_{cliente}"
+            if _hist_key not in st.session_state:
+                st.session_state[_hist_key] = []
+
+            # Show suggestion chips if no history
+            if not st.session_state[_hist_key]:
+                st.markdown(
+                    "<div style='color:#6B778C; "
+                    "font-size:0.88rem; "
+                    "margin-bottom:0.8rem;'>"
+                    "💡 Sugerencias para empezar:"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+                chip_cols = st.columns(3)
+                for i, sug in enumerate(
+                    SUGERENCIAS_INICIALES[:6]
+                ):
+                    with chip_cols[i % 3]:
+                        if st.button(
+                            sug,
+                            key=f"chip_{i}_{cliente}",
+                            use_container_width=True,
+                        ):
+                            st.session_state[
+                                _hist_key
+                            ].append({
+                                "role": "user",
+                                "content": sug,
+                            })
+                            with st.spinner(
+                                "Consultando..."
+                            ):
+                                resp = (
+                                    generar_respuesta_asistente(
+                                        st.session_state[
+                                            _hist_key
+                                        ],
+                                        _sistema,
+                                    )
+                                )
+                            st.session_state[
+                                _hist_key
+                            ].append({
+                                "role": "assistant",
+                                "content": resp,
+                            })
+                            st.rerun()
+
+            # Render chat history
+            chat_container = st.container()
+            with chat_container:
+                for msg in st.session_state[_hist_key]:
+                    if msg["role"] == "user":
+                        st.markdown(
+                            f"<div style='background:#EBF2FF;"
+                            f"border-radius:12px 12px 2px 12px;"
+                            f"padding:0.7rem 1rem;"
+                            f"margin:0.4rem 0 0.4rem 20%;"
+                            f"font-size:0.9rem;'>"
+                            f"👤 {msg['content']}"
+                            f"</div>",
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.markdown(
+                            f"<div style='background:#F4F5F7;"
+                            f"border-left:3px solid #003366;"
+                            f"border-radius:0 12px 12px 0;"
+                            f"padding:0.7rem 1rem;"
+                            f"margin:0.4rem 20% 0.4rem 0;"
+                            f"font-size:0.9rem;'>"
+                            f"🤖 {msg['content']}"
+                            f"</div>",
+                            unsafe_allow_html=True,
+                        )
+
+            # Input
+            st.markdown(
+                "<div style='margin-top:1rem;'></div>",
+                unsafe_allow_html=True,
+            )
+            inp_col, btn_col = st.columns([5, 1])
+            with inp_col:
+                user_input = st.text_input(
+                    "Escribe tu pregunta",
+                    key=f"chat_input_{cliente}",
+                    placeholder=(
+                        "ej: ¿Qué área tiene mayor riesgo?"
+                    ),
+                    label_visibility="collapsed",
+                )
+            with btn_col:
+                send = st.button(
+                    "Enviar →",
+                    key=f"chat_send_{cliente}",
+                    use_container_width=True,
+                    type="primary",
+                )
+
+            if send and user_input.strip():
+                st.session_state[_hist_key].append({
+                    "role": "user",
+                    "content": user_input.strip(),
+                })
+                with st.spinner("SocioAI está pensando..."):
+                    resp = generar_respuesta_asistente(
+                        st.session_state[_hist_key],
+                        _sistema,
+                    )
+                st.session_state[_hist_key].append({
+                    "role": "assistant",
+                    "content": resp,
+                })
+                st.rerun()
+
+            # Clear chat button
+            if st.session_state[_hist_key]:
+                if st.button(
+                    "🗑️ Limpiar conversación",
+                    key=f"clear_chat_{cliente}",
+                ):
+                    st.session_state[_hist_key] = []
+                    st.rerun()
 
 
 def _build_chart_data(
