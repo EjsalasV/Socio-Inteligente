@@ -712,10 +712,6 @@ def _limpiar_cliente_session(cliente_id: str) -> int:
 
 
 def _get_clientes_dinamicos() -> list[str]:
-    """
-    Returns base clients from repo PLUS any new clients
-    created this session.
-    """
     _base_path = Path("data/clientes")
     _base = sorted([
         d.name for d in _base_path.iterdir()
@@ -725,7 +721,13 @@ def _get_clientes_dinamicos() -> list[str]:
     _nuevos = st.session_state.get(
         "clientes_creados_sesion", []
     )
-    return list(dict.fromkeys(_base + _nuevos))
+    # Clients explicitly deleted this session
+    _borrados = st.session_state.get(
+        "clientes_borrados_sesion", []
+    )
+
+    _todos = list(dict.fromkeys(_base + _nuevos))
+    return [c for c in _todos if c not in _borrados]
 
 
 def fmt_num(value: Any, decimals: int = 2) -> str:
@@ -1424,6 +1426,16 @@ def render_setup_screen(clientes_disponibles: list[str]):
                                     st.session_state[
                                         "clientes_creados_sesion"
                                     ] = _creados
+
+                                # Add to permanent blocklist for this session
+                                _borrados = st.session_state.get(
+                                    "clientes_borrados_sesion", []
+                                )
+                                if cliente_a_borrar not in _borrados:
+                                    _borrados.append(cliente_a_borrar)
+                                st.session_state[
+                                    "clientes_borrados_sesion"
+                                ] = _borrados
 
                                 # Clear active client if it was deleted
                                 if st.session_state.get(
@@ -2838,12 +2850,20 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                 "Aseveración", "Tipo",
                 "Descripción", "Completado",
             ]
-            csv_buf = _io.StringIO()
-            df_check.to_csv(csv_buf, index=False,
-                            encoding="utf-8")
+            # Generate and cache CSV in session_state
+            _csv_key = f"req_csv_data_{codigo_ls}"
+            if _csv_key not in st.session_state:
+                _csv_buf = _io.StringIO()
+                df_check.to_csv(
+                    _csv_buf, index=False, encoding="utf-8"
+                )
+                st.session_state[_csv_key] = (
+                    _csv_buf.getvalue().encode("utf-8")
+                )
+
             st.download_button(
                 "⬇️ Descargar checklist (.csv)",
-                data=csv_buf.getvalue().encode("utf-8"),
+                data=st.session_state[_csv_key],
                 file_name=(
                     f"requerimientos_{codigo_ls}_"
                     f"{area_name[:15].replace(' ','_')}.csv"
@@ -2868,95 +2888,99 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                 )
                 import io as _io2
 
-                buf = _io2.BytesIO()
-                doc = SimpleDocTemplate(
-                    buf, pagesize=A4,
-                    leftMargin=2*cm, rightMargin=2*cm,
-                    topMargin=2*cm, bottomMargin=2*cm,
-                )
-                NAVY = colors.Color(0/255, 51/255, 102/255)
+                # Generate and cache PDF in session_state
+                _pdf_key = f"req_pdf_data_{codigo_ls}"
+                if _pdf_key not in st.session_state:
+                    buf = _io2.BytesIO()
+                    doc = SimpleDocTemplate(
+                        buf, pagesize=A4,
+                        leftMargin=2*cm, rightMargin=2*cm,
+                        topMargin=2*cm, bottomMargin=2*cm,
+                    )
+                    NAVY = colors.Color(0/255, 51/255, 102/255)
 
-                story = []
-                story.append(Paragraph(
-                    "Requerimientos de Auditoría",
-                    ParagraphStyle(
-                        "title", fontSize=16,
-                        fontName="Helvetica-Bold",
-                        textColor=NAVY, spaceAfter=4,
-                    ),
-                ))
-                story.append(Paragraph(
-                    f"{area_name} · L/S {codigo_ls}",
-                    ParagraphStyle(
-                        "sub", fontSize=10,
-                        textColor=colors.Color(0.44,0.47,0.52),
-                        spaceAfter=16,
-                    ),
-                ))
-
-                tipo_color_pdf = {
-                    "documento": colors.Color(0.85,0.91,1.0),
-                    "pregunta": colors.Color(1.0,0.98,0.9),
-                    "procedimiento": colors.Color(0.88,0.99,0.93),
-                }
-
-                for item in checklist:
-                    asev = str(item["aseveracion"]).title()
-                    tipo = str(item["tipo"])
-                    desc = str(item["descripcion"])
-                    icon = {
-                        "documento": "📄",
-                        "pregunta": "❓",
-                        "procedimiento": "🔧",
-                    }.get(tipo, "•")
-
-                    row = [[
-                        Paragraph(
-                            f"<b>{asev}</b> · {icon} {tipo.title()}",
-                            ParagraphStyle(
-                                "lbl", fontSize=8,
-                                textColor=NAVY,
-                            ),
+                    story = []
+                    story.append(Paragraph(
+                        "Requerimientos de Auditoría",
+                        ParagraphStyle(
+                            "title", fontSize=16,
+                            fontName="Helvetica-Bold",
+                            textColor=NAVY, spaceAfter=4,
                         ),
-                        Paragraph(
-                            desc,
-                            ParagraphStyle(
-                                "desc", fontSize=9,
-                                leading=12,
-                            ),
+                    ))
+                    story.append(Paragraph(
+                        f"{area_name} · L/S {codigo_ls}",
+                        ParagraphStyle(
+                            "sub", fontSize=10,
+                            textColor=colors.Color(0.44,0.47,0.52),
+                            spaceAfter=16,
                         ),
-                        Paragraph(
-                            "☐",
-                            ParagraphStyle(
-                                "chk", fontSize=12,
-                                alignment=1,
-                            ),
-                        ),
-                    ]]
-                    t = Table(row, colWidths=[
-                        4*cm, 11*cm, 1*cm
-                    ])
-                    t.setStyle(TableStyle([
-                        ("BACKGROUND", (0,0), (-1,-1),
-                         tipo_color_pdf.get(
-                             tipo,
-                             colors.white,
-                         )),
-                        ("TOPPADDING", (0,0),(-1,-1), 5),
-                        ("BOTTOMPADDING",(0,0),(-1,-1),5),
-                        ("LEFTPADDING",(0,0),(-1,-1),6),
-                        ("GRID",(0,0),(-1,-1),0.3,
-                         colors.Color(0.88,0.88,0.90)),
-                    ]))
-                    story.append(t)
-                    story.append(Spacer(1, 0.15*cm))
+                    ))
 
-                doc.build(story)
-                buf.seek(0)
+                    tipo_color_pdf = {
+                        "documento": colors.Color(0.85,0.91,1.0),
+                        "pregunta": colors.Color(1.0,0.98,0.9),
+                        "procedimiento": colors.Color(0.88,0.99,0.93),
+                    }
+
+                    for item in checklist:
+                        asev = str(item["aseveracion"]).title()
+                        tipo = str(item["tipo"])
+                        desc = str(item["descripcion"])
+                        icon = {
+                            "documento": "📄",
+                            "pregunta": "❓",
+                            "procedimiento": "🔧",
+                        }.get(tipo, "•")
+
+                        row = [[
+                            Paragraph(
+                                f"<b>{asev}</b> · {icon} {tipo.title()}",
+                                ParagraphStyle(
+                                    "lbl", fontSize=8,
+                                    textColor=NAVY,
+                                ),
+                            ),
+                            Paragraph(
+                                desc,
+                                ParagraphStyle(
+                                    "desc", fontSize=9,
+                                    leading=12,
+                                ),
+                            ),
+                            Paragraph(
+                                "☐",
+                                ParagraphStyle(
+                                    "chk", fontSize=12,
+                                    alignment=1,
+                                ),
+                            ),
+                        ]]
+                        t = Table(row, colWidths=[
+                            4*cm, 11*cm, 1*cm
+                        ])
+                        t.setStyle(TableStyle([
+                            ("BACKGROUND", (0,0), (-1,-1),
+                             tipo_color_pdf.get(
+                                 tipo,
+                                 colors.white,
+                             )),
+                            ("TOPPADDING", (0,0),(-1,-1), 5),
+                            ("BOTTOMPADDING",(0,0),(-1,-1),5),
+                            ("LEFTPADDING",(0,0),(-1,-1),6),
+                            ("GRID",(0,0),(-1,-1),0.3,
+                             colors.Color(0.88,0.88,0.90)),
+                        ]))
+                        story.append(t)
+                        story.append(Spacer(1, 0.15*cm))
+
+                    doc.build(story)
+                    buf.seek(0)
+                    st.session_state[_pdf_key] = buf.read()
 
                 st.download_button(
                     "⬇️ Descargar checklist (.pdf)",
-                    data=buf.read(),
+                    data=st.session_state[_pdf_key],
                     file_name=(
                         f"requerimientos_{codigo_ls}.pdf"
                     ),
