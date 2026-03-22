@@ -1929,22 +1929,45 @@ cliente = st.session_state.cliente_cargado
 # ============================================================
 # ── Perfil: uploaded file takes priority ──────────────────
 _perfil_key = f"perfil_upload_{cliente}"
-if _perfil_key in st.session_state and isinstance(
-    st.session_state[_perfil_key], dict
-):
-    perfil = st.session_state[_perfil_key]
+_perfil_key_active = f"perfil_upload_{st.session_state.get('cliente_activo', '')}"
+
+_perfil_from_session = None
+for _k in [_perfil_key, _perfil_key_active]:
+    if _k in st.session_state and isinstance(
+        st.session_state.get(_k), dict
+    ) and st.session_state[_k]:
+        _perfil_from_session = st.session_state[_k]
+        break
+
+if _perfil_from_session is not None:
+    perfil = _perfil_from_session
 else:
-    perfil = safe_call(cached_leer_perfil, cliente, default={}) or {}
+    perfil = safe_call(leer_perfil, cliente, default={}) or {}
 
 datos_clave = safe_call(cached_datos_clave, cliente, default={}) or {}
 # ── TB: uploaded file takes priority ──────────────────────
 _tb_key = f"tb_upload_{cliente}"
-if _tb_key in st.session_state and isinstance(
-    st.session_state[_tb_key], pd.DataFrame
-):
-    tb = st.session_state[_tb_key]
+_tb_key_active = f"tb_upload_{st.session_state.get('cliente_activo', '')}"
+
+_tb_from_session = None
+for _k in [_tb_key, _tb_key_active]:
+    if _k in st.session_state and isinstance(
+        st.session_state.get(_k), pd.DataFrame
+    ) and not st.session_state[_k].empty:
+        _tb_from_session = st.session_state[_k]
+        break
+
+if _tb_from_session is not None:
+    tb = _tb_from_session
 else:
-    tb = safe_call(cached_leer_tb, cliente, default=pd.DataFrame())
+    tb = safe_call(leer_tb, cliente, default=pd.DataFrame())
+
+# Debug indicator (remove after confirming fix)
+if isinstance(tb, pd.DataFrame) and not tb.empty:
+    print(f"[OK] TB activo para {cliente}: {len(tb)} filas")
+else:
+    print(f"[WARN] Sin TB para {cliente} — keys disponibles: "
+          f"{[k for k in st.session_state.keys() if 'tb_upload' in str(k)]}")
 
 resumen_tb = safe_call(cached_resumen_tb, cliente, default={}) or {}
 diag_tb = safe_call(obtener_diagnostico_tb, cliente, default={}) or {}
@@ -1953,7 +1976,7 @@ indicadores = safe_call(cached_indicadores, cliente, default={}) or {}
 variaciones = safe_call(cached_variaciones, cliente, default=pd.DataFrame())
 
 # Build lightweight ranking/variaciones from uploaded TB when available
-if _tb_key in st.session_state and isinstance(tb, pd.DataFrame) and not tb.empty:
+if _tb_from_session is not None and isinstance(tb, pd.DataFrame) and not tb.empty:
     try:
         tb_cols = {str(c).strip().lower(): c for c in tb.columns}
         col_ls = next((tb_cols[k] for k in ["ls", "l/s", "l_s"] if k in tb_cols), None)

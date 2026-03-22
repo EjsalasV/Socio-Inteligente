@@ -45,11 +45,14 @@ def cargar_tb(cliente: str) -> pd.DataFrame:
             return pd.DataFrame()
 
         try:
-            xls = pd.ExcelFile(path, engine="openpyxl")
-            sheet = xls.sheet_names[0] if xls.sheet_names else 0
-            df = pd.read_excel(path, sheet_name=sheet, engine="openpyxl")
-        except Exception:
-            df = pd.read_excel(path, sheet_name=0)
+            df = pd.read_excel(
+                path,
+                sheet_name=0,
+                engine="openpyxl",
+            )
+        except Exception as e:
+            print(f"[ERROR] Error cargando TB de {cliente}: {e}")
+            return pd.DataFrame()
 
         if df is None:
             return pd.DataFrame()

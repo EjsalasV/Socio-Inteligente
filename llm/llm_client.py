@@ -65,6 +65,27 @@ def _obtener_api_key(nombre: str) -> str:
     return ""
 
 
+# DO NOT assign at module level — lazy load instead
+_DEEPSEEK_KEY_CACHE = None
+_OPENAI_KEY_CACHE = None
+
+
+def _get_deepseek_key() -> str:
+    global _DEEPSEEK_KEY_CACHE
+    if _DEEPSEEK_KEY_CACHE:
+        return _DEEPSEEK_KEY_CACHE
+    _DEEPSEEK_KEY_CACHE = _obtener_api_key("DEEPSEEK_API_KEY")
+    return _DEEPSEEK_KEY_CACHE
+
+
+def _get_openai_key() -> str:
+    global _OPENAI_KEY_CACHE
+    if _OPENAI_KEY_CACHE:
+        return _OPENAI_KEY_CACHE
+    _OPENAI_KEY_CACHE = _obtener_api_key("OPENAI_API_KEY")
+    return _OPENAI_KEY_CACHE
+
+
 def _get_client() -> tuple[OpenAI, str, dict[str, Any]]:
     """
     Returns (client, model, llm_config) based on config.yaml provider.
@@ -75,22 +96,19 @@ def _get_client() -> tuple[OpenAI, str, dict[str, Any]]:
     provider = str(llm_cfg.get("provider", "deepseek")).lower()
     model = str(llm_cfg.get("model", "deepseek-chat"))
 
-    DEEPSEEK_API_KEY = _obtener_api_key("DEEPSEEK_API_KEY")
-    OPENAI_API_KEY = _obtener_api_key("OPENAI_API_KEY")
-
     if provider == "deepseek":
-        api_key = DEEPSEEK_API_KEY
+        api_key = _get_deepseek_key()
         if not api_key:
             raise ValueError(
                 "DEEPSEEK_API_KEY not set. "
-                "Add it to your .env file: DEEPSEEK_API_KEY=sk-..."
+                "Add it to Streamlit Cloud Secrets."
             )
         client = OpenAI(
             api_key=api_key,
             base_url="https://api.deepseek.com",
         )
     else:
-        api_key = OPENAI_API_KEY
+        api_key = _get_openai_key()
         if not api_key:
             raise ValueError("OPENAI_API_KEY not set.")
         client = OpenAI(api_key=api_key)
