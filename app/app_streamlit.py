@@ -955,14 +955,27 @@ if data_path.exists():
     clientes_disponibles = sorted([d.name for d in data_path.iterdir() if d.is_dir()])
 
 if not clientes_disponibles:
-    st.sidebar.warning("No hay clientes disponibles en data/clientes/")
-    st.stop()
+    st.sidebar.warning("No hay clientes disponibles en data/clientes/. Usando modo carga manual.")
+    clientes_disponibles = ["cliente_demo"]
 
+# Show existing clients from repo
 cliente_seleccionado = st.sidebar.selectbox(
     "Seleccionar cliente",
     options=clientes_disponibles,
-    index=0 if "cliente_demo" in clientes_disponibles else 0,
+    index=0,
 )
+
+# Allow typing a new client name (for uploaded data)
+nuevo_cliente = st.sidebar.text_input(
+    "O escribe un nombre de cliente nuevo",
+    key="nuevo_cliente_input",
+    placeholder="ej: empresa_abc_2025",
+)
+if nuevo_cliente.strip():
+    cliente_seleccionado = nuevo_cliente.strip().lower().replace(
+        " ", "_"
+    )
+    st.sidebar.caption(f"Cliente activo: {cliente_seleccionado}")
 
 etapa_seleccionada = st.sidebar.selectbox(
     "Etapa",
@@ -973,6 +986,80 @@ etapa_seleccionada = st.sidebar.selectbox(
 if st.sidebar.button("Cargar cliente", width="stretch"):
     st.session_state.cliente_cargado = cliente_seleccionado
 
+st.sidebar.divider()
+st.sidebar.markdown("**📂 Cargar archivos del cliente**")
+
+# TB uploader
+uploaded_tb = st.sidebar.file_uploader(
+    "Trial Balance (.xlsx)",
+    type=["xlsx"],
+    key="uploader_tb",
+    help="Sube el tb.xlsx del cliente seleccionado",
+)
+if uploaded_tb is not None:
+    try:
+        import io
+
+        df_uploaded = pd.read_excel(
+            io.BytesIO(uploaded_tb.read()),
+            sheet_name=0,
+            engine="openpyxl",
+        )
+        st.session_state[f"tb_upload_{cliente_seleccionado}"] = (
+            df_uploaded
+        )
+        st.sidebar.success(
+            f"✅ TB cargado: {len(df_uploaded)} filas"
+        )
+    except Exception as e:
+        st.sidebar.error(f"Error leyendo TB: {e}")
+
+# Perfil uploader
+uploaded_perfil = st.sidebar.file_uploader(
+    "Perfil del cliente (.yaml)",
+    type=["yaml", "yml"],
+    key="uploader_perfil",
+    help="Sube el perfil.yaml del cliente (opcional)",
+)
+if uploaded_perfil is not None:
+    try:
+        import yaml as _yaml
+
+        perfil_data = _yaml.safe_load(
+            uploaded_perfil.read().decode("utf-8")
+        )
+        st.session_state[
+            f"perfil_upload_{cliente_seleccionado}"
+        ] = perfil_data
+        st.sidebar.success("✅ Perfil cargado")
+    except Exception as e:
+        st.sidebar.error(f"Error leyendo perfil: {e}")
+
+# Mayor uploader (optional)
+uploaded_mayor = st.sidebar.file_uploader(
+    "Libro Mayor (.xlsx) — opcional",
+    type=["xlsx"],
+    key="uploader_mayor",
+    help="Sube el mayor.xlsx del cliente (opcional)",
+)
+if uploaded_mayor is not None:
+    try:
+        import io
+
+        df_mayor_up = pd.read_excel(
+            io.BytesIO(uploaded_mayor.read()),
+            sheet_name=0,
+            engine="openpyxl",
+        )
+        st.session_state[
+            f"mayor_upload_{cliente_seleccionado}"
+        ] = df_mayor_up
+        st.sidebar.success(
+            f"✅ Mayor cargado: {len(df_mayor_up)} movimientos"
+        )
+    except Exception as e:
+        st.sidebar.error(f"Error leyendo mayor: {e}")
+
 if "cliente_cargado" not in st.session_state:
     st.session_state.cliente_cargado = cliente_seleccionado
 
@@ -982,21 +1069,92 @@ cliente = st.session_state.cliente_cargado
 # ============================================================
 # Carga de datos base
 # ============================================================
-perfil = safe_call(cached_leer_perfil, cliente, default={}) or {}
+# ── Perfil: uploaded file takes priority ──────────────────
+_perfil_key = f"perfil_upload_{cliente}"
+if _perfil_key in st.session_state and isinstance(
+    st.session_state[_perfil_key], dict
+):
+    perfil = st.session_state[_perfil_key]
+else:
+    perfil = safe_call(cached_leer_perfil, cliente, default={}) or {}
+
 datos_clave = safe_call(cached_datos_clave, cliente, default={}) or {}
-tb = safe_call(cached_leer_tb, cliente, default=pd.DataFrame())
+# ── TB: uploaded file takes priority ──────────────────────
+_tb_key = f"tb_upload_{cliente}"
+if _tb_key in st.session_state and isinstance(
+    st.session_state[_tb_key], pd.DataFrame
+):
+    tb = st.session_state[_tb_key]
+else:
+    tb = safe_call(cached_leer_tb, cliente, default=pd.DataFrame())
+
 resumen_tb = safe_call(cached_resumen_tb, cliente, default={}) or {}
 diag_tb = safe_call(obtener_diagnostico_tb, cliente, default={}) or {}
 ranking_areas = safe_call(cached_ranking_areas, cliente, default=pd.DataFrame())
 indicadores = safe_call(cached_indicadores, cliente, default={}) or {}
 variaciones = safe_call(cached_variaciones, cliente, default=pd.DataFrame())
 
-# Mayor (optional — only if file exists)
-df_mayor = None
-if mayor_existe and safe_call(mayor_existe, cliente, default=False):
+# Build lightweight ranking/variaciones from uploaded TB when available
+if _tb_key in st.session_state and isinstance(tb, pd.DataFrame) and not tb.empty:
+    try:
+        tb_cols = {str(c).strip().lower(): c for c in tb.columns}
+        col_ls = next((tb_cols[k] for k in ["ls", "l/s", "l_s"] if k in tb_cols), None)
+        col_nombre = next((tb_cols[k] for k in ["agrupacion", "nombre cuenta", "nombre_cuenta", "nombre"] if k in tb_cols), None)
+        col_s24 = next((tb_cols[k] for k in ["saldo 2024", "saldo_2024"] if k in tb_cols), None)
+        col_s25 = next((tb_cols[k] for k in ["saldo 2025", "saldo_2025", "saldo preliminar", "saldo_preliminar"] if k in tb_cols), None)
+
+        if col_ls and col_s25:
+            tmp = tb.copy()
+            tmp["_ls"] = tmp[col_ls].astype(str).str.strip().str.replace(r"\.0+$", "", regex=True)
+            tmp["_s25"] = pd.to_numeric(tmp[col_s25], errors="coerce").fillna(0.0)
+            tmp["_s24"] = pd.to_numeric(tmp[col_s24], errors="coerce").fillna(0.0) if col_s24 else 0.0
+            tmp["_nombre"] = tmp[col_nombre].astype(str) if col_nombre else tmp["_ls"]
+
+            # Variaciones
+            tmp["_impacto"] = tmp["_s25"] - tmp["_s24"]
+            variaciones = tmp[["_ls", "_nombre", "_s25", "_impacto"]].copy()
+            variaciones.columns = ["codigo", "nombre", "saldo", "impacto"]
+            variaciones["impacto_abs"] = variaciones["impacto"].abs()
+            variaciones = variaciones.sort_values("impacto_abs", ascending=False).drop(columns=["impacto_abs"])
+
+            # Ranking por LS
+            grp = tmp.groupby("_ls", as_index=False).agg(
+                saldo_total=("_s25", "sum"),
+                impacto_total=("_impacto", "sum"),
+            )
+            name_map = tmp.groupby("_ls")["_nombre"].first().to_dict()
+            grp["area"] = grp["_ls"]
+            grp["nombre"] = grp["_ls"].map(name_map).astype(str).str[:50]
+            grp["con_saldo"] = grp["saldo_total"].abs() > 0.01
+            if grp["saldo_total"].abs().max() > 0:
+                grp["score_riesgo"] = (
+                    grp["saldo_total"].abs() / grp["saldo_total"].abs().max() * 100
+                ).round(1)
+            else:
+                grp["score_riesgo"] = 0.0
+            grp["prioridad"] = grp["score_riesgo"].apply(
+                lambda x: "alta" if x >= 70 else "media" if x >= 40 else "baja"
+            )
+            ranking_areas = grp[["area", "nombre", "score_riesgo", "prioridad", "saldo_total", "con_saldo"]].sort_values(
+                "score_riesgo", ascending=False
+            )
+    except Exception:
+        pass
+
+# ── Mayor: uploaded file takes priority ───────────────────
+_mayor_key = f"mayor_upload_{cliente}"
+if _mayor_key in st.session_state and isinstance(
+    st.session_state[_mayor_key], pd.DataFrame
+):
+    df_mayor = st.session_state[_mayor_key]
+elif mayor_existe and safe_call(
+    mayor_existe, cliente, default=False
+):
     df_mayor = safe_call(
         obtener_mayor_cliente, cliente, default=None
     )
+else:
+    df_mayor = None
 
 if isinstance(diag_tb, dict):
     rows_loaded = int(diag_tb.get("rows_loaded", 0) or 0)
@@ -1183,6 +1341,36 @@ with tab1:
                 </div>""", unsafe_allow_html=True)
         else:
             st.info("Sin datos de ranking disponibles.")
+
+    # ── Data source indicator ─────────────────────────────────
+    _tb_loaded = (
+        isinstance(tb, pd.DataFrame) and not tb.empty
+    )
+    _perfil_loaded = (
+        isinstance(perfil, dict) and bool(perfil)
+    )
+    _from_upload = f"tb_upload_{cliente}" in st.session_state
+
+    src1, src2, src3 = st.columns(3)
+    with src1:
+        if _tb_loaded and _from_upload:
+            st.success("✅ TB cargado desde archivo")
+        elif _tb_loaded:
+            st.success("✅ TB cargado desde repo")
+        else:
+            st.warning(
+                "⚠️ Sin TB — sube el archivo en el sidebar"
+            )
+    with src2:
+        if _perfil_loaded:
+            st.success("✅ Perfil disponible")
+        else:
+            st.info("ℹ️ Sin perfil — usando defaults")
+    with src3:
+        if df_mayor is not None:
+            st.success("✅ Libro Mayor disponible")
+        else:
+            st.info("ℹ️ Sin Mayor cargado")
 
     # ── Client info card ─────────────────────────────────────
     st.markdown("<div class='section-header'>Información del Encargo</div>",
