@@ -2594,8 +2594,13 @@ else:
             key="btn_save_runtime_supabase",
             use_container_width=True,
         ):
-            st.session_state["runtime_supabase_url"] = _rt_url.strip()
-            st.session_state["runtime_supabase_key"] = _rt_key.strip()
+            _url_rt = _rt_url.strip()
+            _key_rt = _rt_key.strip()
+            st.session_state["runtime_supabase_url"] = _url_rt
+            st.session_state["runtime_supabase_key"] = _key_rt
+            # Process-level fallback for repository reads
+            os.environ["SUPABASE_URL_RUNTIME"] = _url_rt
+            os.environ["SUPABASE_ANON_KEY_RUNTIME"] = _key_rt
             st.sidebar.success("Credenciales runtime guardadas.")
             st.rerun()
 

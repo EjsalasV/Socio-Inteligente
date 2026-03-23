@@ -59,6 +59,8 @@ def _get_cfg() -> tuple[str, str]:
         runtime_key = str(
             st.session_state.get("runtime_supabase_key", "") or ""
         ).strip()
+        runtime_url = runtime_url or os.environ.get("SUPABASE_URL_RUNTIME", "")
+        runtime_key = runtime_key or os.environ.get("SUPABASE_ANON_KEY_RUNTIME", "")
         if runtime_url and runtime_key:
             return runtime_url, runtime_key
 
@@ -379,6 +381,8 @@ def diagnosticar_config_supabase() -> dict[str, Any]:
                 "runtime_supabase_key": bool(
                     str(st.session_state.get("runtime_supabase_key", "") or "").strip()
                 ),
+                "env_runtime_url": bool(os.environ.get("SUPABASE_URL_RUNTIME", "")),
+                "env_runtime_key": bool(os.environ.get("SUPABASE_ANON_KEY_RUNTIME", "")),
             },
             "has_url": bool(url),
             "has_key": bool(key),
