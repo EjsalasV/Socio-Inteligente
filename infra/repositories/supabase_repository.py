@@ -27,6 +27,52 @@ def obtener_ultimo_error_sheets() -> str:
 def _get_cfg() -> tuple[str, str]:
     try:
         import streamlit as st
+        # Direct access first (most reliable in Streamlit Cloud)
+        def _sg(name: str) -> str:
+            try:
+                v = st.secrets.get(name, "")
+                return str(v or "").strip()
+            except Exception:
+                return ""
+
+        direct_url = (
+            _sg("SUPABASE_URL")
+            or _sg("supabase_url")
+            or _sg("PROJECT_URL")
+            or _sg("project_url")
+        )
+        direct_key = (
+            _sg("SUPABASE_ANON_KEY")
+            or _sg("supabase_anon_key")
+            or _sg("SUPABASE_PUBLISHABLE_KEY")
+            or _sg("supabase_publishable_key")
+            or _sg("SUPABASE_KEY")
+            or _sg("supabase_key")
+            or _sg("ANON_KEY")
+            or _sg("anon_key")
+        )
+
+        # Nested block access
+        block_url = ""
+        block_key = ""
+        for bn in ["supabase", "SUPABASE"]:
+            try:
+                blk = st.secrets.get(bn, {})
+                if hasattr(blk, "get"):
+                    block_url = block_url or str(blk.get("url", "") or "").strip()
+                    block_key = (
+                        block_key
+                        or str(blk.get("anon_key", "") or "").strip()
+                        or str(blk.get("publishable_key", "") or "").strip()
+                        or str(blk.get("key", "") or "").strip()
+                    )
+            except Exception:
+                pass
+
+        if direct_url and direct_key:
+            return direct_url, direct_key
+
+        # Fallback map build (case-insensitive scan)
         secrets_map: dict[str, Any] = {}
         try:
             secrets_map = st.secrets.to_dict()  # type: ignore[attr-defined]
@@ -56,6 +102,9 @@ def _get_cfg() -> tuple[str, str]:
             return ""
 
         url = (
+            direct_url
+            or block_url
+            or
             _pick([
                 "SUPABASE_URL",
                 "supabase_url",
@@ -69,6 +118,9 @@ def _get_cfg() -> tuple[str, str]:
             or os.environ.get("PROJECT_URL", "")
         )
         key = (
+            direct_key
+            or block_key
+            or
             _pick([
                 "SUPABASE_ANON_KEY",
                 "supabase_anon_key",
@@ -289,6 +341,18 @@ def diagnosticar_config_supabase() -> dict[str, Any]:
                 keys = list(dict(st.secrets).keys())
             except Exception:
                 keys = []
+        # Direct key visibility check
+        direct_present = {}
+        for k in [
+            "SUPABASE_URL", "supabase_url", "PROJECT_URL", "project_url",
+            "SUPABASE_ANON_KEY", "supabase_anon_key",
+            "SUPABASE_PUBLISHABLE_KEY", "supabase_publishable_key",
+            "SUPABASE_KEY", "supabase_key",
+        ]:
+            try:
+                direct_present[k] = bool(str(st.secrets.get(k, "")).strip())
+            except Exception:
+                direct_present[k] = False
         env_keys = [k for k in [
             "SUPABASE_URL", "PROJECT_URL", "SUPABASE_ANON_KEY",
             "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_KEY"
@@ -296,6 +360,7 @@ def diagnosticar_config_supabase() -> dict[str, Any]:
         url, key = _get_cfg()
         return {
             "secrets_keys": keys,
+            "direct_present": direct_present,
             "env_keys": env_keys,
             "has_url": bool(url),
             "has_key": bool(key),

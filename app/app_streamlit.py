@@ -2630,14 +2630,18 @@ if st.sidebar.button(
                     "Keys detectadas (nombres): "
                     f"{_cfg.get('secrets_keys', [])}"
                 )
-                st.sidebar.caption(
-                    "Env detectadas: "
-                    f"{_cfg.get('env_keys', [])}"
-                )
-                st.sidebar.caption(
-                    f"has_url={_cfg.get('has_url')} | "
-                    f"has_key={_cfg.get('has_key')}"
-                )
+            st.sidebar.caption(
+                "Env detectadas: "
+                f"{_cfg.get('env_keys', [])}"
+            )
+            st.sidebar.caption(
+                "Direct keys present: "
+                f"{_cfg.get('direct_present', {})}"
+            )
+            st.sidebar.caption(
+                f"has_url={_cfg.get('has_url')} | "
+                f"has_key={_cfg.get('has_key')}"
+            )
 
 
 # ============================================================
