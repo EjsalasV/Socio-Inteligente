@@ -2660,24 +2660,26 @@ if st.sidebar.button(
                     "Keys detectadas (nombres): "
                     f"{_cfg.get('secrets_keys', [])}"
                 )
-            st.sidebar.caption(
-                "Env detectadas: "
-                f"{_cfg.get('env_keys', [])}"
-            )
-            st.sidebar.caption(
-                "Direct keys present: "
-                f"{_cfg.get('direct_present', {})}"
-            )
-            st.sidebar.caption(
-                "Runtime keys present: "
-                f"{_cfg.get('runtime_present', {})}"
-            )
-            st.sidebar.caption(
-                f"has_url={_cfg.get('has_url')} | "
-                f"has_key={_cfg.get('has_key')}"
-            )
-            with st.sidebar.expander("Debug config persistencia", expanded=False):
-                st.write(_cfg)
+                st.sidebar.caption(
+                    "Env detectadas: "
+                    f"{_cfg.get('env_keys', [])}"
+                )
+                st.sidebar.caption(
+                    "Direct keys present: "
+                    f"{_cfg.get('direct_present', {})}"
+                )
+                st.sidebar.caption(
+                    "Runtime keys present: "
+                    f"{_cfg.get('runtime_present', {})}"
+                )
+                st.sidebar.caption(
+                    f"has_url={_cfg.get('has_url')} | "
+                    f"has_key={_cfg.get('has_key')}"
+                )
+                with st.sidebar.expander("Debug config persistencia", expanded=False):
+                    st.write(_cfg)
+            else:
+                st.sidebar.caption("Debug config persistencia no disponible.")
 
 
 # ============================================================
