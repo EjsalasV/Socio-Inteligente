@@ -188,6 +188,7 @@ try:
         diagnosticar_sheets,
     )
     _sheets_ok = True
+    _sheets_import_error = ""
 except Exception:
     guardar_cliente_sheets = None
     cargar_clientes_sheets = None
@@ -196,6 +197,7 @@ except Exception:
     obtener_ultimo_error_sheets = None
     diagnosticar_sheets = None
     _sheets_ok = False
+    _sheets_import_error = str(sys.exc_info()[1] or "")
 
 
 @st.cache_data(ttl=300)
@@ -2529,12 +2531,24 @@ if _sheets_ready:
     st.sidebar.caption("☁️ Google Sheets conectado")
 else:
     st.sidebar.caption("💾 Modo local (sin persistencia)")
+    if _sheets_import_error:
+        st.sidebar.caption(f"Sheets import: {_sheets_import_error}")
 
 if st.sidebar.button(
     "🔎 Probar Sheets",
     key="btn_test_sheets",
     use_container_width=True,
 ):
+    if not _sheets_ok or not callable(diagnosticar_sheets):
+        st.sidebar.error("❌ Módulo Sheets no cargado.")
+        if _sheets_import_error:
+            st.sidebar.error(f"ImportError: {_sheets_import_error}")
+        else:
+            st.sidebar.caption(
+                "Faltan funciones de diagnóstico en sheets_repository."
+            )
+        st.stop()
+
     _diag = safe_call(diagnosticar_sheets, default={}) or {}
     _rows = safe_call(cargar_clientes_sheets, default=[]) or []
     if _diag.get("ok"):
