@@ -179,7 +179,8 @@ except Exception:
     _get_deepseek_key = None
 
 try:
-    from infra.repositories import sheets_repository as _sheets_repo
+    # Preferred remote persistence backend: Supabase
+    from infra.repositories import supabase_repository as _sheets_repo
     guardar_cliente_sheets = getattr(
         _sheets_repo, "guardar_cliente_sheets", None
     )
@@ -201,14 +202,38 @@ try:
     _sheets_ok = True
     _sheets_import_error = ""
 except Exception:
-    guardar_cliente_sheets = None
-    cargar_clientes_sheets = None
-    eliminar_cliente_sheets = None
-    sheets_disponible = None
-    obtener_ultimo_error_sheets = None
-    diagnosticar_sheets = None
-    _sheets_ok = False
-    _sheets_import_error = str(sys.exc_info()[1] or "")
+    try:
+        # Fallback legacy backend: Google Sheets
+        from infra.repositories import sheets_repository as _sheets_repo
+        guardar_cliente_sheets = getattr(
+            _sheets_repo, "guardar_cliente_sheets", None
+        )
+        cargar_clientes_sheets = getattr(
+            _sheets_repo, "cargar_clientes_sheets", None
+        )
+        eliminar_cliente_sheets = getattr(
+            _sheets_repo, "eliminar_cliente_sheets", None
+        )
+        sheets_disponible = getattr(
+            _sheets_repo, "sheets_disponible", None
+        )
+        obtener_ultimo_error_sheets = getattr(
+            _sheets_repo, "obtener_ultimo_error_sheets", None
+        )
+        diagnosticar_sheets = getattr(
+            _sheets_repo, "diagnosticar_sheets", None
+        )
+        _sheets_ok = True
+        _sheets_import_error = ""
+    except Exception:
+        guardar_cliente_sheets = None
+        cargar_clientes_sheets = None
+        eliminar_cliente_sheets = None
+        sheets_disponible = None
+        obtener_ultimo_error_sheets = None
+        diagnosticar_sheets = None
+        _sheets_ok = False
+        _sheets_import_error = str(sys.exc_info()[1] or "")
 
 
 @st.cache_data(ttl=300)
@@ -740,7 +765,7 @@ def _limpiar_cliente_session(cliente_id: str) -> int:
     except Exception:
         pass
 
-    # Also delete from Google Sheets
+    # Also delete from remote persistence (Supabase/Sheets)
     if _sheets_ok and eliminar_cliente_sheets:
         safe_call(
             eliminar_cliente_sheets,
@@ -757,7 +782,7 @@ def _limpiar_cliente_session(cliente_id: str) -> int:
 def _get_clientes_dinamicos() -> list[str]:
     """
     Returns clients from:
-    1. Google Sheets (persistent, cross-session)
+    1. Remote persistence (Supabase/Sheets)
     2. Local repo folders (demo clients)
     3. Session-created clients (this session only)
     Excludes deleted clients.
@@ -766,7 +791,7 @@ def _get_clientes_dinamicos() -> list[str]:
         "clientes_borrados_sesion", []
     )
 
-    # 1. From Google Sheets (persistent)
+    # 1. From remote persistence (persistent)
     _sheets_clientes: list[str] = []
     if _sheets_ok and sheets_disponible and \
             safe_call(sheets_disponible, default=False):
@@ -2058,7 +2083,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     f"perfil_upload_{cliente_elegido}"
                 ] = perfil_form
 
-            # Save to Google Sheets for persistence
+            # Save to remote persistence
             # (new client or existing one with available perfil)
             _perfil_to_save = None
             if isinstance(perfil_form, dict) and perfil_form:
@@ -2094,7 +2119,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                             "sheets_clientes_cache"
                         ]
                     st.success(
-                        "✅ Cliente guardado en Google Sheets."
+                        "✅ Cliente guardado en persistencia remota."
                     )
                 else:
                     _err = safe_call(
@@ -2102,12 +2127,11 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         default="",
                     ) if obtener_ultimo_error_sheets else ""
                     st.warning(
-                        "⚠️ No se pudo guardar en Google Sheets. "
-                        "Verifica `GOOGLE_SHEETS_ID`, credenciales "
-                        "y permisos de edición para la service account."
+                        "⚠️ No se pudo guardar en persistencia remota. "
+                        "Verifica credenciales de Supabase (o Sheets fallback)."
                     )
                     if _err:
-                        st.error(f"Detalle Sheets: {_err}")
+                        st.error(f"Detalle persistencia: {_err}")
 
             # Process mayor
             if uploaded_mayor:
@@ -2152,7 +2176,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         if "sheets_clientes_cache" in st.session_state:
                             del st.session_state["sheets_clientes_cache"]
                         st.success(
-                            "✅ Cliente nuevo guardado en Google Sheets."
+                            "✅ Cliente nuevo guardado en persistencia remota."
                         )
 
             st.session_state["app_screen"] = "dashboard"
@@ -2531,7 +2555,7 @@ except Exception:
     pass
 
 render_sidebar_summary(cliente, perfil, datos_clave, ranking_areas)
-# Sheets connection indicator
+# Remote persistence connection indicator
 st.sidebar.divider()
 _sheets_ready = bool(
     _sheets_ok and safe_call(
@@ -2539,22 +2563,19 @@ _sheets_ready = bool(
     )
 )
 if _sheets_ready:
-    st.sidebar.caption("☁️ Google Sheets conectado")
+    st.sidebar.caption("☁️ Persistencia remota conectada")
 else:
     st.sidebar.caption("💾 Modo local (sin persistencia)")
     if _sheets_import_error:
         st.sidebar.caption(f"Sheets import: {_sheets_import_error}")
 
 if st.sidebar.button(
-    "🔎 Probar Sheets",
+    "🔎 Probar persistencia",
     key="btn_test_sheets",
     use_container_width=True,
 ):
     if not _sheets_ok or not callable(diagnosticar_sheets):
-        st.sidebar.warning(
-            "⚠️ Diagnóstico avanzado no disponible, "
-            "usando diagnóstico básico."
-        )
+        st.sidebar.warning("⚠️ Diagnóstico avanzado no disponible.")
         _rows_basic = safe_call(cargar_clientes_sheets, default=[]) or []
         _err_basic = safe_call(
             obtener_ultimo_error_sheets, default=""
@@ -2573,14 +2594,14 @@ if st.sidebar.button(
         _rows = safe_call(cargar_clientes_sheets, default=[]) or []
         if _diag.get("ok"):
             st.sidebar.success(
-                f"Conexión OK. Clientes en Sheets: {len(_rows)}"
+                f"Conexión OK. Clientes remotos: {len(_rows)}"
             )
             if _diag.get("spreadsheet_title"):
                 st.sidebar.caption(
                     f"Sheet: {_diag.get('spreadsheet_title')}"
                 )
         else:
-            st.sidebar.error("❌ Falla en diagnóstico Sheets.")
+            st.sidebar.error("❌ Falla en diagnóstico de persistencia.")
             st.sidebar.write(
                 f"auth={_diag.get('auth_ok')} | "
                 f"open={_diag.get('open_ok')} | "
