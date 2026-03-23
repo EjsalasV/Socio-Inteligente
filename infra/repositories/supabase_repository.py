@@ -36,28 +36,55 @@ def _get_cfg() -> tuple[str, str]:
             except Exception:
                 secrets_map = {}
 
-        supa_block = secrets_map.get("supabase", {})
+        # Flatten nested dicts and match keys case-insensitively
+        flat: dict[str, Any] = {}
+
+        def _walk(prefix: str, obj: Any) -> None:
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    k2 = f"{prefix}.{k}" if prefix else str(k)
+                    flat[k2.lower()] = v
+                    _walk(k2, v)
+
+        _walk("", secrets_map)
+
+        def _pick(candidates: list[str]) -> str:
+            for c in candidates:
+                v = flat.get(c.lower(), "")
+                if isinstance(v, str) and v.strip():
+                    return v.strip()
+            return ""
+
         url = (
-            secrets_map.get("SUPABASE_URL", "")
-            or secrets_map.get("supabase_url", "")
-            or secrets_map.get("PROJECT_URL", "")
-            or secrets_map.get("project_url", "")
-            or (supa_block.get("url", "") if hasattr(supa_block, "get") else "")
+            _pick([
+                "SUPABASE_URL",
+                "supabase_url",
+                "PROJECT_URL",
+                "project_url",
+                "supabase.url",
+                "SUPABASE.url",
+                "SUPABASE.URL",
+            ])
             or os.environ.get("SUPABASE_URL", "")
             or os.environ.get("PROJECT_URL", "")
         )
         key = (
-            secrets_map.get("SUPABASE_ANON_KEY", "")
-            or secrets_map.get("supabase_anon_key", "")
-            or secrets_map.get("SUPABASE_PUBLISHABLE_KEY", "")
-            or secrets_map.get("supabase_publishable_key", "")
-            or secrets_map.get("SUPABASE_KEY", "")
-            or secrets_map.get("supabase_key", "")
-            or secrets_map.get("ANON_KEY", "")
-            or secrets_map.get("anon_key", "")
-            or (supa_block.get("anon_key", "") if hasattr(supa_block, "get") else "")
-            or (supa_block.get("publishable_key", "") if hasattr(supa_block, "get") else "")
-            or (supa_block.get("key", "") if hasattr(supa_block, "get") else "")
+            _pick([
+                "SUPABASE_ANON_KEY",
+                "supabase_anon_key",
+                "SUPABASE_PUBLISHABLE_KEY",
+                "supabase_publishable_key",
+                "SUPABASE_KEY",
+                "supabase_key",
+                "ANON_KEY",
+                "anon_key",
+                "supabase.anon_key",
+                "SUPABASE.anon_key",
+                "supabase.publishable_key",
+                "SUPABASE.publishable_key",
+                "supabase.key",
+                "SUPABASE.key",
+            ])
             or os.environ.get("SUPABASE_ANON_KEY", "")
             or os.environ.get("SUPABASE_PUBLISHABLE_KEY", "")
             or os.environ.get("SUPABASE_KEY", "")
