@@ -185,6 +185,7 @@ try:
         eliminar_cliente_sheets,
         sheets_disponible,
         obtener_ultimo_error_sheets,
+        diagnosticar_sheets,
     )
     _sheets_ok = True
 except Exception:
@@ -193,6 +194,7 @@ except Exception:
     eliminar_cliente_sheets = None
     sheets_disponible = None
     obtener_ultimo_error_sheets = None
+    diagnosticar_sheets = None
     _sheets_ok = False
 
 
@@ -2527,16 +2529,31 @@ if _sheets_ok and safe_call(
         key="btn_test_sheets",
         use_container_width=True,
     ):
+        _diag = safe_call(diagnosticar_sheets, default={}) or {}
         _rows = safe_call(cargar_clientes_sheets, default=[]) or []
-        _err = safe_call(
-            obtener_ultimo_error_sheets,
-            default="",
-        ) if obtener_ultimo_error_sheets else ""
-        st.sidebar.success(
-            f"Conexión OK. Clientes en Sheets: {len(_rows)}"
-        )
-        if _err:
-            st.sidebar.caption(f"Detalle: {_err}")
+        if _diag.get("ok"):
+            st.sidebar.success(
+                f"Conexión OK. Clientes en Sheets: {len(_rows)}"
+            )
+            if _diag.get("spreadsheet_title"):
+                st.sidebar.caption(
+                    f"Sheet: {_diag.get('spreadsheet_title')}"
+                )
+        else:
+            st.sidebar.error("❌ Falla en diagnóstico Sheets.")
+            st.sidebar.caption(
+                f"auth={_diag.get('auth_ok')} | "
+                f"open={_diag.get('open_ok')} | "
+                f"sheet={_diag.get('sheet_ok')} | "
+                f"read={_diag.get('read_ok')} | "
+                f"write={_diag.get('write_ok')}"
+            )
+            _err = _diag.get("error", "") or safe_call(
+                obtener_ultimo_error_sheets,
+                default="",
+            )
+            if _err:
+                st.sidebar.caption(f"Detalle: {_err}")
 else:
     st.sidebar.caption("💾 Modo local (sin persistencia)")
 

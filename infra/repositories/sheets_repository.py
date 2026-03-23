@@ -75,6 +75,7 @@ def _get_client():
         creds = Credentials.from_service_account_info(
             creds_dict, scopes=scopes
         )
+        _set_last_error("")
         return gspread.authorize(creds)
     except Exception as e:
         _set_last_error(f"Error connecting: {e}")
@@ -102,10 +103,12 @@ def _get_sheet(tab_name: str):
 
         # Get existing tab (case-insensitive) or create it
         try:
+            _set_last_error("")
             return spreadsheet.worksheet(tab_name)
         except Exception:
             for ws in spreadsheet.worksheets():
                 if str(ws.title).strip().lower() == str(tab_name).strip().lower():
+                    _set_last_error("")
                     return ws
 
             # Create tab with headers
@@ -113,6 +116,7 @@ def _get_sheet(tab_name: str):
                 title=tab_name, rows=1000, cols=20
             )
             _init_headers(ws, tab_name)
+            _set_last_error("")
             return ws
     except Exception as e:
         _set_last_error(f"Error getting sheet {tab_name}: {e}")
@@ -204,12 +208,14 @@ def guardar_cliente_sheets(
             if existing_row and existing_row[0] == cliente_id:
                 # Update existing row
                 row[-2] = existing_row[-2]  # keep created date
-                ws.update(f"A{i}:T{i}", [row])
+                ws.update(range_name=f"A{i}:T{i}", values=[row])
+                _set_last_error("")
                 print(f"[SHEETS] Updated client: {cliente_id}")
                 return True
 
         # New client → append
         ws.append_row(row)
+        _set_last_error("")
         print(f"[SHEETS] Saved new client: {cliente_id}")
         return True
 
@@ -248,6 +254,7 @@ def cargar_clientes_sheets() -> list[dict[str, Any]]:
                 ),
                 "perfil": perfil,
             })
+        _set_last_error("")
         return clientes
     except Exception as e:
         _set_last_error(f"Error loading clients: {e}")
@@ -266,6 +273,7 @@ def eliminar_cliente_sheets(cliente_id: str) -> bool:
         for i, row in enumerate(rows[1:], start=2):
             if row and row[0] == cliente_id:
                 ws.delete_rows(i)
+                _set_last_error("")
                 print(f"[SHEETS] Deleted client: {cliente_id}")
                 return True
         return False
@@ -293,3 +301,86 @@ def sheets_disponible() -> bool:
         )
     except Exception:
         return False
+
+
+def diagnosticar_sheets() -> dict[str, Any]:
+    """
+    Performs a read/write probe and returns diagnostic details.
+    """
+    out: dict[str, Any] = {
+        "ok": False,
+        "auth_ok": False,
+        "open_ok": False,
+        "sheet_ok": False,
+        "read_ok": False,
+        "write_ok": False,
+        "spreadsheet_title": "",
+        "sheet_id": "",
+        "error": "",
+    }
+    try:
+        import streamlit as st
+        client = _get_client()
+        if not client:
+            out["error"] = obtener_ultimo_error_sheets() or "Auth failed."
+            return out
+        out["auth_ok"] = True
+
+        sid = (
+            st.secrets.get("GOOGLE_SHEETS_ID", "")
+            or st.secrets.get("google_sheets_id", "")
+        )
+        out["sheet_id"] = str(sid or "")
+        if not sid:
+            out["error"] = "Missing GOOGLE_SHEETS_ID."
+            return out
+
+        ss = client.open_by_key(sid)
+        out["open_ok"] = True
+        out["spreadsheet_title"] = str(getattr(ss, "title", "") or "")
+
+        ws = _get_sheet(SHEET_CLIENTES)
+        if not ws:
+            out["error"] = obtener_ultimo_error_sheets() or "Worksheet access failed."
+            return out
+        out["sheet_ok"] = True
+
+        _ = ws.get_all_values()
+        out["read_ok"] = True
+
+        probe = [
+            "__probe__",
+            "probe",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "USD",
+            "False",
+            "False",
+            "False",
+            "False",
+            "False",
+            "False",
+            "False",
+            "False",
+            datetime.now().strftime("%Y-%m-%d %H:%M"),
+            datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "{}",
+        ]
+        ws.append_row(probe)
+        rows = ws.get_all_values()
+        for i, row in enumerate(rows[1:], start=2):
+            if row and row[0] == "__probe__":
+                ws.delete_rows(i)
+                break
+        out["write_ok"] = True
+        out["ok"] = True
+        _set_last_error("")
+        return out
+    except Exception as e:
+        _set_last_error(f"Diagnostic failed: {e}")
+        out["error"] = str(e)
+        return out
