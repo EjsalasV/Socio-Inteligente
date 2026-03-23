@@ -120,6 +120,14 @@ def _get_cfg() -> tuple[str, str]:
                     return v.strip()
             return ""
 
+        def _pick_suffix(suffixes: list[str]) -> str:
+            for sfx in suffixes:
+                sfx_l = sfx.lower()
+                for k, v in flat.items():
+                    if k.endswith(sfx_l) and isinstance(v, str) and v.strip():
+                        return v.strip()
+            return ""
+
         url = (
             direct_url
             or block_url
@@ -132,6 +140,11 @@ def _get_cfg() -> tuple[str, str]:
                 "supabase.url",
                 "SUPABASE.url",
                 "SUPABASE.URL",
+            ])
+            or _pick_suffix([
+                "supabase_url",
+                "supabase.url",
+                "project_url",
             ])
             or os.environ.get("SUPABASE_URL", "")
             or os.environ.get("PROJECT_URL", "")
@@ -155,6 +168,14 @@ def _get_cfg() -> tuple[str, str]:
                 "SUPABASE.publishable_key",
                 "supabase.key",
                 "SUPABASE.key",
+            ])
+            or _pick_suffix([
+                "supabase_anon_key",
+                "supabase_publishable_key",
+                "supabase_key",
+                "anon_key",
+                "publishable_key",
+                "key",
             ])
             or os.environ.get("SUPABASE_ANON_KEY", "")
             or os.environ.get("SUPABASE_PUBLISHABLE_KEY", "")
@@ -381,6 +402,10 @@ def diagnosticar_config_supabase() -> dict[str, Any]:
             "secrets_keys": keys,
             "direct_present": direct_present,
             "env_keys": env_keys,
+            "hint": (
+                "Si SUPABASE_* está después de [gcp_service_account], "
+                "queda anidado en TOML."
+            ),
             "runtime_present": {
                 "runtime_supabase_url": bool(
                     str(st.session_state.get("runtime_supabase_url", "") or "").strip()
