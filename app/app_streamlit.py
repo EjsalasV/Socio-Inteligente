@@ -2601,8 +2601,10 @@ else:
             # Process-level fallback for repository reads
             os.environ["SUPABASE_URL_RUNTIME"] = _url_rt
             os.environ["SUPABASE_ANON_KEY_RUNTIME"] = _key_rt
+            # Also expose standard names in process env
+            os.environ["SUPABASE_URL"] = _url_rt
+            os.environ["SUPABASE_ANON_KEY"] = _key_rt
             st.sidebar.success("Credenciales runtime guardadas.")
-            st.rerun()
 
 if st.sidebar.button(
     "🔎 Probar persistencia",
@@ -2674,6 +2676,8 @@ if st.sidebar.button(
                 f"has_url={_cfg.get('has_url')} | "
                 f"has_key={_cfg.get('has_key')}"
             )
+            with st.sidebar.expander("Debug config persistencia", expanded=False):
+                st.write(_cfg)
 
 
 # ============================================================
