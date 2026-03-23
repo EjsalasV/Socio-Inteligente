@@ -199,6 +199,9 @@ try:
     diagnosticar_sheets = getattr(
         _sheets_repo, "diagnosticar_sheets", None
     )
+    diagnosticar_config_supabase = getattr(
+        _sheets_repo, "diagnosticar_config_supabase", None
+    )
     _sheets_ok = True
     _sheets_import_error = ""
 except Exception:
@@ -223,6 +226,9 @@ except Exception:
         diagnosticar_sheets = getattr(
             _sheets_repo, "diagnosticar_sheets", None
         )
+        diagnosticar_config_supabase = getattr(
+            _sheets_repo, "diagnosticar_config_supabase", None
+        )
         _sheets_ok = True
         _sheets_import_error = ""
     except Exception:
@@ -232,6 +238,7 @@ except Exception:
         sheets_disponible = None
         obtener_ultimo_error_sheets = None
         diagnosticar_sheets = None
+        diagnosticar_config_supabase = None
         _sheets_ok = False
         _sheets_import_error = str(sys.exc_info()[1] or "")
 
@@ -2615,6 +2622,22 @@ if st.sidebar.button(
             )
             if _err:
                 st.sidebar.error(f"Detalle: {_err}")
+            _cfg = safe_call(
+                diagnosticar_config_supabase, default={}
+            ) if callable(diagnosticar_config_supabase) else {}
+            if _cfg:
+                st.sidebar.caption(
+                    "Keys detectadas (nombres): "
+                    f"{_cfg.get('secrets_keys', [])}"
+                )
+                st.sidebar.caption(
+                    "Env detectadas: "
+                    f"{_cfg.get('env_keys', [])}"
+                )
+                st.sidebar.caption(
+                    f"has_url={_cfg.get('has_url')} | "
+                    f"has_key={_cfg.get('has_key')}"
+                )
 
 
 # ============================================================

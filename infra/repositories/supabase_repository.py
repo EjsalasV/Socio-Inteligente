@@ -5,6 +5,7 @@ Compatible with existing Sheets integration function names.
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from typing import Any
 
@@ -26,26 +27,40 @@ def obtener_ultimo_error_sheets() -> str:
 def _get_cfg() -> tuple[str, str]:
     try:
         import streamlit as st
-        supa_block = st.secrets.get("supabase", {})
+        secrets_map: dict[str, Any] = {}
+        try:
+            secrets_map = st.secrets.to_dict()  # type: ignore[attr-defined]
+        except Exception:
+            try:
+                secrets_map = dict(st.secrets)
+            except Exception:
+                secrets_map = {}
+
+        supa_block = secrets_map.get("supabase", {})
         url = (
-            st.secrets.get("SUPABASE_URL", "")
-            or st.secrets.get("supabase_url", "")
-            or st.secrets.get("PROJECT_URL", "")
-            or st.secrets.get("project_url", "")
+            secrets_map.get("SUPABASE_URL", "")
+            or secrets_map.get("supabase_url", "")
+            or secrets_map.get("PROJECT_URL", "")
+            or secrets_map.get("project_url", "")
             or (supa_block.get("url", "") if hasattr(supa_block, "get") else "")
+            or os.environ.get("SUPABASE_URL", "")
+            or os.environ.get("PROJECT_URL", "")
         )
         key = (
-            st.secrets.get("SUPABASE_ANON_KEY", "")
-            or st.secrets.get("supabase_anon_key", "")
-            or st.secrets.get("SUPABASE_PUBLISHABLE_KEY", "")
-            or st.secrets.get("supabase_publishable_key", "")
-            or st.secrets.get("SUPABASE_KEY", "")
-            or st.secrets.get("supabase_key", "")
-            or st.secrets.get("ANON_KEY", "")
-            or st.secrets.get("anon_key", "")
+            secrets_map.get("SUPABASE_ANON_KEY", "")
+            or secrets_map.get("supabase_anon_key", "")
+            or secrets_map.get("SUPABASE_PUBLISHABLE_KEY", "")
+            or secrets_map.get("supabase_publishable_key", "")
+            or secrets_map.get("SUPABASE_KEY", "")
+            or secrets_map.get("supabase_key", "")
+            or secrets_map.get("ANON_KEY", "")
+            or secrets_map.get("anon_key", "")
             or (supa_block.get("anon_key", "") if hasattr(supa_block, "get") else "")
             or (supa_block.get("publishable_key", "") if hasattr(supa_block, "get") else "")
             or (supa_block.get("key", "") if hasattr(supa_block, "get") else "")
+            or os.environ.get("SUPABASE_ANON_KEY", "")
+            or os.environ.get("SUPABASE_PUBLISHABLE_KEY", "")
+            or os.environ.get("SUPABASE_KEY", "")
         )
         return str(url or "").strip(), str(key or "").strip()
     except Exception:
@@ -231,6 +246,41 @@ def diagnosticar_sheets() -> dict[str, Any]:
         out["error"] = f"{type(e).__name__}: {e!r}"
         _set_last_error(out["error"])
         return out
+
+
+def diagnosticar_config_supabase() -> dict[str, Any]:
+    """
+    Returns non-sensitive debug info about detected key names.
+    """
+    try:
+        import streamlit as st
+        keys = []
+        try:
+            keys = list((st.secrets.to_dict()).keys())  # type: ignore[attr-defined]
+        except Exception:
+            try:
+                keys = list(dict(st.secrets).keys())
+            except Exception:
+                keys = []
+        env_keys = [k for k in [
+            "SUPABASE_URL", "PROJECT_URL", "SUPABASE_ANON_KEY",
+            "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_KEY"
+        ] if os.environ.get(k)]
+        url, key = _get_cfg()
+        return {
+            "secrets_keys": keys,
+            "env_keys": env_keys,
+            "has_url": bool(url),
+            "has_key": bool(key),
+        }
+    except Exception as e:
+        return {
+            "secrets_keys": [],
+            "env_keys": [],
+            "has_url": False,
+            "has_key": False,
+            "error": f"{type(e).__name__}: {e!r}",
+        }
 
 
 # Backward-compatible aliases used by app_streamlit
