@@ -179,13 +179,24 @@ except Exception:
     _get_deepseek_key = None
 
 try:
-    from infra.repositories.sheets_repository import (
-        guardar_cliente_sheets,
-        cargar_clientes_sheets,
-        eliminar_cliente_sheets,
-        sheets_disponible,
-        obtener_ultimo_error_sheets,
-        diagnosticar_sheets,
+    from infra.repositories import sheets_repository as _sheets_repo
+    guardar_cliente_sheets = getattr(
+        _sheets_repo, "guardar_cliente_sheets", None
+    )
+    cargar_clientes_sheets = getattr(
+        _sheets_repo, "cargar_clientes_sheets", None
+    )
+    eliminar_cliente_sheets = getattr(
+        _sheets_repo, "eliminar_cliente_sheets", None
+    )
+    sheets_disponible = getattr(
+        _sheets_repo, "sheets_disponible", None
+    )
+    obtener_ultimo_error_sheets = getattr(
+        _sheets_repo, "obtener_ultimo_error_sheets", None
+    )
+    diagnosticar_sheets = getattr(
+        _sheets_repo, "diagnosticar_sheets", None
     )
     _sheets_ok = True
     _sheets_import_error = ""
@@ -2540,40 +2551,49 @@ if st.sidebar.button(
     use_container_width=True,
 ):
     if not _sheets_ok or not callable(diagnosticar_sheets):
-        st.sidebar.error("❌ Módulo Sheets no cargado.")
+        st.sidebar.warning(
+            "⚠️ Diagnóstico avanzado no disponible, "
+            "usando diagnóstico básico."
+        )
+        _rows_basic = safe_call(cargar_clientes_sheets, default=[]) or []
+        _err_basic = safe_call(
+            obtener_ultimo_error_sheets, default=""
+        ) if callable(obtener_ultimo_error_sheets) else ""
+        st.sidebar.caption(
+            f"Básico: rows={len(_rows_basic)} | "
+            f"sheets_ok={_sheets_ok}"
+        )
         if _sheets_import_error:
             st.sidebar.error(f"ImportError: {_sheets_import_error}")
-        else:
-            st.sidebar.caption(
-                "Faltan funciones de diagnóstico en sheets_repository."
-            )
-        st.stop()
-
-    _diag = safe_call(diagnosticar_sheets, default={}) or {}
-    _rows = safe_call(cargar_clientes_sheets, default=[]) or []
-    if _diag.get("ok"):
-        st.sidebar.success(
-            f"Conexión OK. Clientes en Sheets: {len(_rows)}"
-        )
-        if _diag.get("spreadsheet_title"):
-            st.sidebar.caption(
-                f"Sheet: {_diag.get('spreadsheet_title')}"
-            )
+        if _err_basic:
+            st.sidebar.error(f"Detalle: {_err_basic}")
+        # Do not stop app render
     else:
-        st.sidebar.error("❌ Falla en diagnóstico Sheets.")
-        st.sidebar.write(
-            f"auth={_diag.get('auth_ok')} | "
-            f"open={_diag.get('open_ok')} | "
-            f"sheet={_diag.get('sheet_ok')} | "
-            f"read={_diag.get('read_ok')} | "
-            f"write={_diag.get('write_ok')}"
-        )
-        _err = _diag.get("error", "") or safe_call(
-            obtener_ultimo_error_sheets,
-            default="",
-        )
-        if _err:
-            st.sidebar.error(f"Detalle: {_err}")
+        _diag = safe_call(diagnosticar_sheets, default={}) or {}
+        _rows = safe_call(cargar_clientes_sheets, default=[]) or []
+        if _diag.get("ok"):
+            st.sidebar.success(
+                f"Conexión OK. Clientes en Sheets: {len(_rows)}"
+            )
+            if _diag.get("spreadsheet_title"):
+                st.sidebar.caption(
+                    f"Sheet: {_diag.get('spreadsheet_title')}"
+                )
+        else:
+            st.sidebar.error("❌ Falla en diagnóstico Sheets.")
+            st.sidebar.write(
+                f"auth={_diag.get('auth_ok')} | "
+                f"open={_diag.get('open_ok')} | "
+                f"sheet={_diag.get('sheet_ok')} | "
+                f"read={_diag.get('read_ok')} | "
+                f"write={_diag.get('write_ok')}"
+            )
+            _err = _diag.get("error", "") or safe_call(
+                obtener_ultimo_error_sheets,
+                default="",
+            )
+            if _err:
+                st.sidebar.error(f"Detalle: {_err}")
 
 
 # ============================================================
