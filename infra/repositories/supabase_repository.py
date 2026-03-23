@@ -26,16 +26,26 @@ def obtener_ultimo_error_sheets() -> str:
 def _get_cfg() -> tuple[str, str]:
     try:
         import streamlit as st
+        supa_block = st.secrets.get("supabase", {})
         url = (
             st.secrets.get("SUPABASE_URL", "")
             or st.secrets.get("supabase_url", "")
             or st.secrets.get("PROJECT_URL", "")
+            or st.secrets.get("project_url", "")
+            or (supa_block.get("url", "") if hasattr(supa_block, "get") else "")
         )
         key = (
             st.secrets.get("SUPABASE_ANON_KEY", "")
             or st.secrets.get("supabase_anon_key", "")
             or st.secrets.get("SUPABASE_PUBLISHABLE_KEY", "")
             or st.secrets.get("supabase_publishable_key", "")
+            or st.secrets.get("SUPABASE_KEY", "")
+            or st.secrets.get("supabase_key", "")
+            or st.secrets.get("ANON_KEY", "")
+            or st.secrets.get("anon_key", "")
+            or (supa_block.get("anon_key", "") if hasattr(supa_block, "get") else "")
+            or (supa_block.get("publishable_key", "") if hasattr(supa_block, "get") else "")
+            or (supa_block.get("key", "") if hasattr(supa_block, "get") else "")
         )
         return str(url or "").strip(), str(key or "").strip()
     except Exception:
