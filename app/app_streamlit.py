@@ -2520,42 +2520,46 @@ except Exception:
 render_sidebar_summary(cliente, perfil, datos_clave, ranking_areas)
 # Sheets connection indicator
 st.sidebar.divider()
-if _sheets_ok and safe_call(
-    sheets_disponible, default=False
-):
+_sheets_ready = bool(
+    _sheets_ok and safe_call(
+        sheets_disponible, default=False
+    )
+)
+if _sheets_ready:
     st.sidebar.caption("☁️ Google Sheets conectado")
-    if st.sidebar.button(
-        "🔎 Probar Sheets",
-        key="btn_test_sheets",
-        use_container_width=True,
-    ):
-        _diag = safe_call(diagnosticar_sheets, default={}) or {}
-        _rows = safe_call(cargar_clientes_sheets, default=[]) or []
-        if _diag.get("ok"):
-            st.sidebar.success(
-                f"Conexión OK. Clientes en Sheets: {len(_rows)}"
-            )
-            if _diag.get("spreadsheet_title"):
-                st.sidebar.caption(
-                    f"Sheet: {_diag.get('spreadsheet_title')}"
-                )
-        else:
-            st.sidebar.error("❌ Falla en diagnóstico Sheets.")
-            st.sidebar.caption(
-                f"auth={_diag.get('auth_ok')} | "
-                f"open={_diag.get('open_ok')} | "
-                f"sheet={_diag.get('sheet_ok')} | "
-                f"read={_diag.get('read_ok')} | "
-                f"write={_diag.get('write_ok')}"
-            )
-            _err = _diag.get("error", "") or safe_call(
-                obtener_ultimo_error_sheets,
-                default="",
-            )
-            if _err:
-                st.sidebar.caption(f"Detalle: {_err}")
 else:
     st.sidebar.caption("💾 Modo local (sin persistencia)")
+
+if st.sidebar.button(
+    "🔎 Probar Sheets",
+    key="btn_test_sheets",
+    use_container_width=True,
+):
+    _diag = safe_call(diagnosticar_sheets, default={}) or {}
+    _rows = safe_call(cargar_clientes_sheets, default=[]) or []
+    if _diag.get("ok"):
+        st.sidebar.success(
+            f"Conexión OK. Clientes en Sheets: {len(_rows)}"
+        )
+        if _diag.get("spreadsheet_title"):
+            st.sidebar.caption(
+                f"Sheet: {_diag.get('spreadsheet_title')}"
+            )
+    else:
+        st.sidebar.error("❌ Falla en diagnóstico Sheets.")
+        st.sidebar.caption(
+            f"auth={_diag.get('auth_ok')} | "
+            f"open={_diag.get('open_ok')} | "
+            f"sheet={_diag.get('sheet_ok')} | "
+            f"read={_diag.get('read_ok')} | "
+            f"write={_diag.get('write_ok')}"
+        )
+        _err = _diag.get("error", "") or safe_call(
+            obtener_ultimo_error_sheets,
+            default="",
+        )
+        if _err:
+            st.sidebar.caption(f"Detalle: {_err}")
 
 
 # ============================================================
