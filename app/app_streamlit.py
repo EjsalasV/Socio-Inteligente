@@ -2547,7 +2547,7 @@ if st.sidebar.button(
             )
     else:
         st.sidebar.error("❌ Falla en diagnóstico Sheets.")
-        st.sidebar.caption(
+        st.sidebar.write(
             f"auth={_diag.get('auth_ok')} | "
             f"open={_diag.get('open_ok')} | "
             f"sheet={_diag.get('sheet_ok')} | "
@@ -2559,7 +2559,7 @@ if st.sidebar.button(
             default="",
         )
         if _err:
-            st.sidebar.caption(f"Detalle: {_err}")
+            st.sidebar.error(f"Detalle: {_err}")
 
 
 # ============================================================

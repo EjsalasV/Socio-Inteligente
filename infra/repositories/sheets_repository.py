@@ -78,7 +78,9 @@ def _get_client():
         _set_last_error("")
         return gspread.authorize(creds)
     except Exception as e:
-        _set_last_error(f"Error connecting: {e}")
+        _set_last_error(
+            f"Error connecting [{type(e).__name__}]: {e!r}"
+        )
         print(f"[SHEETS] Error connecting: {e}")
         return None
 
@@ -119,7 +121,10 @@ def _get_sheet(tab_name: str):
             _set_last_error("")
             return ws
     except Exception as e:
-        _set_last_error(f"Error getting sheet {tab_name}: {e}")
+        _set_last_error(
+            f"Error getting sheet {tab_name} "
+            f"[{type(e).__name__}]: {e!r}"
+        )
         print(f"[SHEETS] Error getting sheet {tab_name}: {e}")
         return None
 
@@ -220,7 +225,9 @@ def guardar_cliente_sheets(
         return True
 
     except Exception as e:
-        _set_last_error(f"Error saving client: {e}")
+        _set_last_error(
+            f"Error saving client [{type(e).__name__}]: {e!r}"
+        )
         print(f"[SHEETS] Error saving client: {e}")
         return False
 
@@ -257,7 +264,9 @@ def cargar_clientes_sheets() -> list[dict[str, Any]]:
         _set_last_error("")
         return clientes
     except Exception as e:
-        _set_last_error(f"Error loading clients: {e}")
+        _set_last_error(
+            f"Error loading clients [{type(e).__name__}]: {e!r}"
+        )
         print(f"[SHEETS] Error loading clients: {e}")
         return []
 
@@ -278,7 +287,9 @@ def eliminar_cliente_sheets(cliente_id: str) -> bool:
                 return True
         return False
     except Exception as e:
-        _set_last_error(f"Error deleting client: {e}")
+        _set_last_error(
+            f"Error deleting client [{type(e).__name__}]: {e!r}"
+        )
         print(f"[SHEETS] Error deleting client: {e}")
         return False
 
@@ -381,6 +392,11 @@ def diagnosticar_sheets() -> dict[str, Any]:
         _set_last_error("")
         return out
     except Exception as e:
-        _set_last_error(f"Diagnostic failed: {e}")
-        out["error"] = str(e)
+        _set_last_error(
+            f"Diagnostic failed [{type(e).__name__}]: {e!r}"
+        )
+        out["error"] = (
+            f"{type(e).__name__}: {e!r}"
+        )
+        print(f"[SHEETS_DIAG] {out['error']}")
         return out
