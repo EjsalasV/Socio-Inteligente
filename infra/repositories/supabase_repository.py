@@ -52,6 +52,16 @@ def _get_cfg() -> tuple[str, str]:
             or _sg("anon_key")
         )
 
+        # Runtime fallback (manual inputs in UI)
+        runtime_url = str(
+            st.session_state.get("runtime_supabase_url", "") or ""
+        ).strip()
+        runtime_key = str(
+            st.session_state.get("runtime_supabase_key", "") or ""
+        ).strip()
+        if runtime_url and runtime_key:
+            return runtime_url, runtime_key
+
         # Nested block access
         block_url = ""
         block_key = ""
@@ -362,6 +372,14 @@ def diagnosticar_config_supabase() -> dict[str, Any]:
             "secrets_keys": keys,
             "direct_present": direct_present,
             "env_keys": env_keys,
+            "runtime_present": {
+                "runtime_supabase_url": bool(
+                    str(st.session_state.get("runtime_supabase_url", "") or "").strip()
+                ),
+                "runtime_supabase_key": bool(
+                    str(st.session_state.get("runtime_supabase_key", "") or "").strip()
+                ),
+            },
             "has_url": bool(url),
             "has_key": bool(key),
         }

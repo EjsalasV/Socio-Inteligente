@@ -2575,6 +2575,29 @@ else:
     st.sidebar.caption("💾 Modo local (sin persistencia)")
     if _sheets_import_error:
         st.sidebar.caption(f"Sheets import: {_sheets_import_error}")
+    with st.sidebar.expander("Configurar Supabase manualmente", expanded=False):
+        _rt_url = st.text_input(
+            "SUPABASE_URL",
+            value=st.session_state.get("runtime_supabase_url", ""),
+            key="rt_supabase_url_input",
+            placeholder="https://xxx.supabase.co",
+        )
+        _rt_key = st.text_input(
+            "SUPABASE_ANON_KEY",
+            value=st.session_state.get("runtime_supabase_key", ""),
+            key="rt_supabase_key_input",
+            type="password",
+            placeholder="eyJhbGciOi...",
+        )
+        if st.button(
+            "Guardar credenciales runtime",
+            key="btn_save_runtime_supabase",
+            use_container_width=True,
+        ):
+            st.session_state["runtime_supabase_url"] = _rt_url.strip()
+            st.session_state["runtime_supabase_key"] = _rt_key.strip()
+            st.sidebar.success("Credenciales runtime guardadas.")
+            st.rerun()
 
 if st.sidebar.button(
     "🔎 Probar persistencia",
@@ -2637,6 +2660,10 @@ if st.sidebar.button(
             st.sidebar.caption(
                 "Direct keys present: "
                 f"{_cfg.get('direct_present', {})}"
+            )
+            st.sidebar.caption(
+                "Runtime keys present: "
+                f"{_cfg.get('runtime_present', {})}"
             )
             st.sidebar.caption(
                 f"has_url={_cfg.get('has_url')} | "
