@@ -12,12 +12,30 @@ import yaml
 
 DATA_ROOT = Path("data") / "clientes"
 
+try:
+    from infra.repositories.supabase_repository import (
+        cargar_hallazgos_remoto,
+        guardar_hallazgos_remoto,
+    )
+except Exception:
+    cargar_hallazgos_remoto = None
+    guardar_hallazgos_remoto = None
+
 
 def _ruta_hallazgos(cliente: str) -> Path:
     return DATA_ROOT / cliente / "hallazgos_gestion.yaml"
 
 
 def cargar_hallazgos_gestion(cliente: str) -> list[dict[str, Any]]:
+    # Remote-first (Supabase), fallback to YAML
+    if callable(cargar_hallazgos_remoto):
+        try:
+            remoto = cargar_hallazgos_remoto(cliente)
+            if isinstance(remoto, list) and remoto:
+                return [x for x in remoto if isinstance(x, dict)]
+        except Exception:
+            pass
+
     ruta = _ruta_hallazgos(cliente)
     if not ruta.exists():
         return []
@@ -28,6 +46,13 @@ def cargar_hallazgos_gestion(cliente: str) -> list[dict[str, Any]]:
 
 def guardar_hallazgos_gestion(cliente: str, hallazgos: list[dict[str, Any]]) -> bool:
     try:
+        # Remote-first save (Supabase), local as best-effort fallback
+        if callable(guardar_hallazgos_remoto):
+            try:
+                guardar_hallazgos_remoto(cliente, hallazgos)
+            except Exception:
+                pass
+
         ruta = _ruta_hallazgos(cliente)
         ruta.parent.mkdir(parents=True, exist_ok=True)
         try:

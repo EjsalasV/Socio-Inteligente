@@ -13,6 +13,8 @@ import requests
 
 _LAST_REMOTE_ERROR = ""
 TABLE_CLIENTES = "clientes"
+TABLE_ESTADOS_AREAS = "estados_areas"
+TABLE_HALLAZGOS = "hallazgos_gestion"
 
 
 def _set_last_error(msg: str) -> None:
@@ -206,6 +208,34 @@ def _rest_url(table: str) -> str:
     return f"{url.rstrip('/')}/rest/v1/{table}"
 
 
+def _request(
+    method: str,
+    table: str,
+    *,
+    params: dict[str, Any] | None = None,
+    payload: Any = None,
+    prefer: str = "return=representation",
+    timeout: int = 20,
+) -> requests.Response | None:
+    if not sheets_disponible():
+        _set_last_error("Missing SUPABASE_URL or SUPABASE_ANON_KEY.")
+        return None
+    h = _headers()
+    h["Prefer"] = prefer
+    try:
+        return requests.request(
+            method=method.upper(),
+            url=_rest_url(table),
+            params=params or {},
+            headers=h,
+            json=payload,
+            timeout=timeout,
+        )
+    except Exception as e:
+        _set_last_error(f"Supabase request error [{type(e).__name__}]: {e!r}")
+        return None
+
+
 def guardar_cliente_supabase(
     cliente_id: str,
     perfil: dict[str, Any],
@@ -322,6 +352,192 @@ def eliminar_cliente_supabase(cliente_id: str) -> bool:
             f"Supabase delete error [{type(e).__name__}]: {e!r}"
         )
         return False
+
+
+def guardar_estado_area_remoto(
+    cliente_id: str,
+    codigo_area: str,
+    estado_area: dict[str, Any],
+) -> bool:
+    try:
+        now = datetime.now().isoformat(timespec="seconds")
+        payload = {
+            "cliente_id": str(cliente_id).strip(),
+            "codigo_area": str(codigo_area).strip(),
+            "estado_area": str(estado_area.get("estado_area", "") or ""),
+            "decision_cierre": str(estado_area.get("decision_cierre", "") or ""),
+            "conclusion": str(estado_area.get("conclusion_preliminar", "") or ""),
+            "notas": json.dumps(estado_area.get("notas", []) or [], ensure_ascii=False),
+            "pendientes": json.dumps(estado_area.get("pendientes", []) or [], ensure_ascii=False),
+            "fecha_actualizacion": now,
+            "estado_json": json.dumps(estado_area or {}, ensure_ascii=False),
+        }
+        r = _request(
+            "POST",
+            TABLE_ESTADOS_AREAS,
+            params={"on_conflict": "cliente_id,codigo_area"},
+            payload=payload,
+            prefer="resolution=merge-duplicates,return=representation",
+        )
+        if r is None:
+            return False
+        if r.status_code >= 300:
+            _set_last_error(
+                f"Supabase estado save failed [{r.status_code}]: {r.text[:500]}"
+            )
+            return False
+        _set_last_error("")
+        return True
+    except Exception as e:
+        _set_last_error(
+            f"Supabase estado save error [{type(e).__name__}]: {e!r}"
+        )
+        return False
+
+
+def cargar_estado_area_remoto(
+    cliente_id: str,
+    codigo_area: str,
+) -> dict[str, Any] | None:
+    try:
+        r = _request(
+            "GET",
+            TABLE_ESTADOS_AREAS,
+            params={
+                "select": "estado_json",
+                "cliente_id": f"eq.{str(cliente_id).strip()}",
+                "codigo_area": f"eq.{str(codigo_area).strip()}",
+                "limit": "1",
+            },
+        )
+        if r is None:
+            return None
+        if r.status_code >= 300:
+            _set_last_error(
+                f"Supabase estado load failed [{r.status_code}]: {r.text[:500]}"
+            )
+            return None
+        rows = r.json() if isinstance(r.json(), list) else []
+        if not rows:
+            return None
+        raw = rows[0].get("estado_json", {})
+        if isinstance(raw, str):
+            try:
+                raw = json.loads(raw)
+            except Exception:
+                raw = {}
+        if isinstance(raw, dict):
+            _set_last_error("")
+            return raw
+        return None
+    except Exception as e:
+        _set_last_error(
+            f"Supabase estado load error [{type(e).__name__}]: {e!r}"
+        )
+        return None
+
+
+def guardar_hallazgos_remoto(
+    cliente_id: str,
+    hallazgos: list[dict[str, Any]],
+) -> bool:
+    try:
+        # Strategy: replace client set to avoid dependency on composite unique index
+        r_del = _request(
+            "DELETE",
+            TABLE_HALLAZGOS,
+            params={"cliente_id": f"eq.{str(cliente_id).strip()}"},
+            prefer="return=minimal",
+        )
+        if r_del is None:
+            return False
+        if r_del.status_code >= 300:
+            _set_last_error(
+                f"Supabase hallazgos delete failed [{r_del.status_code}]: {r_del.text[:500]}"
+            )
+            return False
+
+        now = datetime.now().isoformat(timespec="seconds")
+        payload = []
+        for h in hallazgos or []:
+            if not isinstance(h, dict):
+                continue
+            payload.append(
+                {
+                    "cliente_id": str(cliente_id).strip(),
+                    "hallazgo_id": str(h.get("id", "") or ""),
+                    "codigo_area": str(h.get("codigo_area", "") or ""),
+                    "estado": str(h.get("estado", "") or ""),
+                    "nivel": str(h.get("nivel", "") or ""),
+                    "descripcion": str(h.get("descripcion", "") or ""),
+                    "fecha_actualizacion": now,
+                    "hallazgo_json": json.dumps(h, ensure_ascii=False),
+                }
+            )
+        if not payload:
+            _set_last_error("")
+            return True
+
+        r_ins = _request(
+            "POST",
+            TABLE_HALLAZGOS,
+            payload=payload,
+            prefer="return=minimal",
+        )
+        if r_ins is None:
+            return False
+        if r_ins.status_code >= 300:
+            _set_last_error(
+                f"Supabase hallazgos insert failed [{r_ins.status_code}]: {r_ins.text[:500]}"
+            )
+            return False
+        _set_last_error("")
+        return True
+    except Exception as e:
+        _set_last_error(
+            f"Supabase hallazgos save error [{type(e).__name__}]: {e!r}"
+        )
+        return False
+
+
+def cargar_hallazgos_remoto(
+    cliente_id: str,
+) -> list[dict[str, Any]]:
+    try:
+        r = _request(
+            "GET",
+            TABLE_HALLAZGOS,
+            params={
+                "select": "hallazgo_json",
+                "cliente_id": f"eq.{str(cliente_id).strip()}",
+                "order": "fecha_actualizacion.desc",
+            },
+        )
+        if r is None:
+            return []
+        if r.status_code >= 300:
+            _set_last_error(
+                f"Supabase hallazgos load failed [{r.status_code}]: {r.text[:500]}"
+            )
+            return []
+        rows = r.json() if isinstance(r.json(), list) else []
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            raw = row.get("hallazgo_json", {})
+            if isinstance(raw, str):
+                try:
+                    raw = json.loads(raw)
+                except Exception:
+                    raw = {}
+            if isinstance(raw, dict):
+                out.append(raw)
+        _set_last_error("")
+        return out
+    except Exception as e:
+        _set_last_error(
+            f"Supabase hallazgos load error [{type(e).__name__}]: {e!r}"
+        )
+        return []
 
 
 def diagnosticar_sheets() -> dict[str, Any]:

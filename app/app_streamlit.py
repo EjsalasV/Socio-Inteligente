@@ -1404,7 +1404,7 @@ def render_welcome_screen():
         if st.button(
             "🚀 Comenzar",
             key="btn_welcome_start",
-            use_container_width=True,
+            width="stretch",
             type="primary",
         ):
             st.session_state["app_screen"] = "setup"
@@ -1534,7 +1534,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         if st.button(
                             "Seleccionar",
                             key=f"sel_{c}",
-                            use_container_width=True,
+                            width="stretch",
                         ):
                             st.session_state["setup_cliente_sel"] = c
                             st.rerun()
@@ -1543,7 +1543,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         if st.button(
                             "🗑️ Borrar",
                             key=f"del_{c}",
-                            use_container_width=True,
+                            width="stretch",
                             help="Borra los datos cargados de este cliente",
                         ):
                             # Open delete confirmation for this client
@@ -1585,7 +1585,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         if st.button(
                             "✅ Confirmar borrado",
                             key="btn_confirm_delete",
-                            use_container_width=True,
+                            width="stretch",
                         ):
                             admin_pwd = _obtener_admin_password()
                             if pwd_input == admin_pwd:
@@ -1645,7 +1645,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         if st.button(
                             "✗ Cancelar",
                             key="btn_cancel_delete",
-                            use_container_width=True,
+                            width="stretch",
                         ):
                             del st.session_state[
                                 "delete_confirm_cliente"
@@ -2040,7 +2040,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
         if st.button(
             "✅ Entrar al análisis",
             key="btn_setup_enter",
-            use_container_width=True,
+            width="stretch",
             type="primary",
             disabled=not puede_entrar,
         ):
@@ -2262,7 +2262,7 @@ if st.sidebar.button("Cargar cliente", width="stretch"):
 if st.sidebar.button(
     "← Volver al inicio",
     key="btn_back_home",
-    use_container_width=True,
+    width="stretch",
 ):
     st.session_state["app_screen"] = "welcome"
     st.rerun()
@@ -2592,7 +2592,7 @@ else:
         if st.button(
             "Guardar credenciales runtime",
             key="btn_save_runtime_supabase",
-            use_container_width=True,
+            width="stretch",
         ):
             _url_rt = _rt_url.strip()
             _key_rt = _rt_key.strip()
@@ -2609,7 +2609,7 @@ else:
 if st.sidebar.button(
     "🔎 Probar persistencia",
     key="btn_test_sheets",
-    use_container_width=True,
+    width="stretch",
 ):
     if not _sheets_ok or not callable(diagnosticar_sheets):
         st.sidebar.warning("⚠️ Diagnóstico avanzado no disponible.")
@@ -2887,7 +2887,7 @@ with tab1:
                     textposition="inside",
                     textinfo="percent",
                 )
-                st.plotly_chart(fig_pie, use_container_width=True)
+                st.plotly_chart(fig_pie, width="stretch")
         except Exception:
             st.metric("Alto", n_alto)
 
@@ -3166,7 +3166,7 @@ with tab1:
         if st.button(
             "📄 Generar PDF",
             key="btn_gen_pdf",
-            use_container_width=True,
+            width="stretch",
             type="primary",
         ):
             with st.spinner("Generando reporte PDF..."):
@@ -3207,7 +3207,7 @@ with tab1:
             ),
             mime="application/pdf",
             key="btn_dl_pdf",
-            use_container_width=False,
+            width="content",
         )
 
 
@@ -3511,7 +3511,7 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                 ),
                 mime="text/csv",
                 key=f"dl_req_csv_{codigo_ls}",
-                use_container_width=True,
+                width="stretch",
             )
 
         with c2:
@@ -3627,7 +3627,7 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                     ),
                     mime="application/pdf",
                     key=f"dl_req_pdf_{codigo_ls}",
-                    use_container_width=True,
+                    width="stretch",
                 )
             except Exception as e:
                 st.caption(f"PDF no disponible: {e}")
@@ -3770,7 +3770,7 @@ with tab2:
                     "▶ Abrir área" if not _is_sel
                     else "✅ Área activa",
                     key=f"sel_area_{cliente}_{_cod}",
-                    use_container_width=True,
+                    width="stretch",
                     type="primary" if _is_sel else "secondary",
                 )
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -4091,7 +4091,7 @@ with tab3:
                         if st.button(
                             sug,
                             key=f"chip_{i}_{cliente}",
-                            use_container_width=True,
+                            width="stretch",
                         ):
                             st.session_state[
                                 _hist_key
@@ -4165,7 +4165,7 @@ with tab3:
                 send = st.button(
                     "Enviar →",
                     key=f"chat_send_{cliente}",
-                    use_container_width=True,
+                    width="stretch",
                     type="primary",
                 )
 
@@ -4358,7 +4358,7 @@ with tab4:
                 show_var["saldo"] = show_var["saldo"].apply(fmt_money)
             if "impacto" in show_var.columns:
                 show_var["impacto"] = show_var["impacto"].apply(fmt_money)
-            st.dataframe(show_var, use_container_width=True, hide_index=True)
+            st.dataframe(show_var, width="stretch", hide_index=True)
         else:
             st.info("Sin variaciones significativas detectadas.")
 
@@ -4379,7 +4379,7 @@ with tab4:
                     tb_filtrado = tb_filtrado[
                         tb_filtrado["tipo_cuenta"].astype(str).isin(sel_tipos)
                     ]
-            st.dataframe(tb_filtrado, use_container_width=True, hide_index=True)
+            st.dataframe(tb_filtrado, width="stretch", hide_index=True)
             num_col = next(
                 (c for c in ["saldo", "saldo_2025", "saldo_actual"]
                  if c in tb_filtrado.columns), None
@@ -4445,7 +4445,7 @@ with tab4:
                     ),
                     xaxis=dict(tickangle=-20),
                 )
-                st.plotly_chart(fig_bar, use_container_width=True)
+                st.plotly_chart(fig_bar, width="stretch")
             else:
                 st.info(
                     "Sin datos comparativos 2024/2025. "
@@ -4501,7 +4501,7 @@ with tab4:
                             showlegend=False,
                         )
                         st.plotly_chart(
-                            fig_stack, use_container_width=True
+                            fig_stack, width="stretch"
                         )
                 else:
                     st.info("Sin datos de balance.")
@@ -4558,7 +4558,7 @@ with tab4:
                         xaxis=dict(title="Período"),
                     )
                     st.plotly_chart(
-                        fig_line, use_container_width=True
+                        fig_line, width="stretch"
                     )
                 else:
                     st.info("Sin datos de tendencia de riesgo.")
@@ -4584,7 +4584,7 @@ with tab4:
                 ]
                 st.dataframe(
                     df_ratios[show_r],
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
             else:
@@ -4812,7 +4812,7 @@ with tab4:
 
                 st.dataframe(
                     disp,
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -4835,4 +4835,5 @@ f1, f2, f3 = st.columns(3)
 f1.caption("SocioAI - Auditoria Inteligente con IA")
 f2.caption("Ultima actualizacion: 2026-03-17")
 f3.caption("Modo: analisis + workspace por area")
+
 

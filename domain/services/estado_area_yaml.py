@@ -6,6 +6,15 @@ from datetime import datetime
 
 import yaml
 
+try:
+    from infra.repositories.supabase_repository import (
+        cargar_estado_area_remoto,
+        guardar_estado_area_remoto,
+    )
+except Exception:
+    cargar_estado_area_remoto = None
+    guardar_estado_area_remoto = None
+
 
 def _normalizar_codigo_area(codigo_ls: str) -> str:
     return str(codigo_ls).strip()
@@ -49,6 +58,24 @@ def cargar_estado_area(nombre_cliente: str, codigo_ls: str) -> dict[str, Any]:
     Carga el estado del área desde YAML.
     Si no existe, devuelve una estructura vacía estándar.
     """
+    # Remote-first (Supabase), fallback to YAML
+    if callable(cargar_estado_area_remoto):
+        remoto = cargar_estado_area_remoto(nombre_cliente, codigo_ls)
+        if isinstance(remoto, dict) and remoto:
+            remoto.setdefault("codigo", _normalizar_codigo_area(codigo_ls))
+            remoto.setdefault("nombre", "")
+            remoto.setdefault("estado_area", "")
+            remoto.setdefault("riesgo", "")
+            remoto.setdefault("procedimientos", [])
+            remoto.setdefault("hallazgos_abiertos", [])
+            remoto.setdefault("notas", [])
+            remoto.setdefault("pendientes", [])
+            remoto.setdefault("conclusion_preliminar", None)
+            remoto.setdefault("decision_cierre", "")
+            remoto.setdefault("fecha_actualizacion", None)
+            remoto["_fuente_yaml"] = "supabase"
+            return remoto
+
     ruta = ruta_estado_area(nombre_cliente, codigo_ls)
 
     if not ruta.exists():
@@ -90,6 +117,13 @@ def guardar_estado_area(nombre_cliente: str, codigo_ls: str, estado_area: dict[s
     data["codigo"] = _normalizar_codigo_area(codigo_ls)
     data["fecha_actualizacion"] = datetime.now().isoformat(timespec="seconds")
     data.pop("_fuente_yaml", None)
+
+    # Remote-first save (Supabase), local as best-effort fallback
+    if callable(guardar_estado_area_remoto):
+        try:
+            guardar_estado_area_remoto(nombre_cliente, codigo_ls, data)
+        except Exception:
+            pass
 
     try:
         with open(ruta, "w", encoding="utf-8") as archivo:
