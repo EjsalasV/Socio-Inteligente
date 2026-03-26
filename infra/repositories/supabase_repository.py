@@ -8,6 +8,7 @@ import json
 import os
 from datetime import datetime
 from typing import Any
+from urllib.parse import quote
 
 import requests
 
@@ -198,9 +199,160 @@ def _headers() -> dict[str, str]:
     }
 
 
+def _storage_bucket() -> str:
+    try:
+        import streamlit as st
+        v = str(st.secrets.get("SUPABASE_TB_BUCKET", "") or "").strip()
+        if v:
+            return v
+    except Exception:
+        pass
+    return str(os.environ.get("SUPABASE_TB_BUCKET", "socioai-tb")).strip() or "socioai-tb"
+
+
+def _tb_storage_path(cliente_id: str, filename: str = "tb_latest.xlsx") -> str:
+    cid = str(cliente_id or "").strip().lower()
+    return f"{cid}/{filename}"
+
+
+def _storage_object_url(bucket: str, path: str) -> str:
+    url, _ = _get_cfg()
+    safe_path = quote(path, safe="/")
+    return f"{url.rstrip('/')}/storage/v1/object/{bucket}/{safe_path}"
+
+
+def _storage_object_info_url(bucket: str, path: str) -> str:
+    url, _ = _get_cfg()
+    safe_path = quote(path, safe="/")
+    return f"{url.rstrip('/')}/storage/v1/object/info/{bucket}/{safe_path}"
+
+
 def sheets_disponible() -> bool:
     url, key = _get_cfg()
     return bool(url and key)
+
+
+def guardar_tb_storage(
+    cliente_id: str,
+    tb_bytes: bytes,
+    filename: str = "tb_latest.xlsx",
+) -> bool:
+    try:
+        if not sheets_disponible():
+            _set_last_error("Missing SUPABASE_URL or SUPABASE_ANON_KEY.")
+            return False
+        if not isinstance(tb_bytes, (bytes, bytearray)) or not tb_bytes:
+            _set_last_error("TB bytes payload is empty.")
+            return False
+        bucket = _storage_bucket()
+        path = _tb_storage_path(cliente_id, filename=filename)
+        h = _headers()
+        h["x-upsert"] = "true"
+        h["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        r = requests.post(
+            _storage_object_url(bucket, path),
+            headers=h,
+            data=tb_bytes,
+            timeout=30,
+        )
+        if r.status_code >= 300:
+            _set_last_error(
+                f"Supabase TB upload failed [{r.status_code}]: {r.text[:500]}"
+            )
+            return False
+        _set_last_error("")
+        return True
+    except Exception as e:
+        _set_last_error(
+            f"Supabase TB upload error [{type(e).__name__}]: {e!r}"
+        )
+        return False
+
+
+def cargar_tb_storage(
+    cliente_id: str,
+    filename: str = "tb_latest.xlsx",
+) -> bytes | None:
+    try:
+        if not sheets_disponible():
+            _set_last_error("Missing SUPABASE_URL or SUPABASE_ANON_KEY.")
+            return None
+        bucket = _storage_bucket()
+        path = _tb_storage_path(cliente_id, filename=filename)
+        r = requests.get(
+            _storage_object_url(bucket, path),
+            headers=_headers(),
+            timeout=30,
+        )
+        if r.status_code == 404:
+            return None
+        if r.status_code >= 300:
+            _set_last_error(
+                f"Supabase TB download failed [{r.status_code}]: {r.text[:500]}"
+            )
+            return None
+        _set_last_error("")
+        return r.content or None
+    except Exception as e:
+        _set_last_error(
+            f"Supabase TB download error [{type(e).__name__}]: {e!r}"
+        )
+        return None
+
+
+def existe_tb_storage(
+    cliente_id: str,
+    filename: str = "tb_latest.xlsx",
+) -> bool:
+    try:
+        if not sheets_disponible():
+            return False
+        bucket = _storage_bucket()
+        path = _tb_storage_path(cliente_id, filename=filename)
+        r = requests.get(
+            _storage_object_info_url(bucket, path),
+            headers=_headers(),
+            timeout=20,
+        )
+        if r.status_code == 404:
+            return False
+        if r.status_code >= 300:
+            _set_last_error(
+                f"Supabase TB exists check failed [{r.status_code}]: {r.text[:500]}"
+            )
+            return False
+        _set_last_error("")
+        return True
+    except Exception:
+        return False
+
+
+def eliminar_tb_storage(
+    cliente_id: str,
+    filename: str = "tb_latest.xlsx",
+) -> bool:
+    try:
+        if not sheets_disponible():
+            return False
+        bucket = _storage_bucket()
+        path = _tb_storage_path(cliente_id, filename=filename)
+        r = requests.delete(
+            _storage_object_url(bucket, path),
+            headers=_headers(),
+            timeout=20,
+        )
+        if r.status_code in (200, 204, 404):
+            _set_last_error("")
+            return True
+        _set_last_error(
+            f"Supabase TB delete failed [{r.status_code}]: {r.text[:500]}"
+        )
+        return False
+    except Exception as e:
+        _set_last_error(
+            f"Supabase TB delete error [{type(e).__name__}]: {e!r}"
+        )
+        return False
 
 
 def _rest_url(table: str) -> str:

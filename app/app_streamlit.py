@@ -202,6 +202,18 @@ try:
     diagnosticar_config_supabase = getattr(
         _sheets_repo, "diagnosticar_config_supabase", None
     )
+    guardar_tb_storage = getattr(
+        _sheets_repo, "guardar_tb_storage", None
+    )
+    cargar_tb_storage = getattr(
+        _sheets_repo, "cargar_tb_storage", None
+    )
+    existe_tb_storage = getattr(
+        _sheets_repo, "existe_tb_storage", None
+    )
+    eliminar_tb_storage = getattr(
+        _sheets_repo, "eliminar_tb_storage", None
+    )
     _sheets_ok = True
     _sheets_import_error = ""
 except Exception:
@@ -229,6 +241,18 @@ except Exception:
         diagnosticar_config_supabase = getattr(
             _sheets_repo, "diagnosticar_config_supabase", None
         )
+        guardar_tb_storage = getattr(
+            _sheets_repo, "guardar_tb_storage", None
+        )
+        cargar_tb_storage = getattr(
+            _sheets_repo, "cargar_tb_storage", None
+        )
+        existe_tb_storage = getattr(
+            _sheets_repo, "existe_tb_storage", None
+        )
+        eliminar_tb_storage = getattr(
+            _sheets_repo, "eliminar_tb_storage", None
+        )
         _sheets_ok = True
         _sheets_import_error = ""
     except Exception:
@@ -239,6 +263,10 @@ except Exception:
         obtener_ultimo_error_sheets = None
         diagnosticar_sheets = None
         diagnosticar_config_supabase = None
+        guardar_tb_storage = None
+        cargar_tb_storage = None
+        existe_tb_storage = None
+        eliminar_tb_storage = None
         _sheets_ok = False
         _sheets_import_error = str(sys.exc_info()[1] or "")
 
@@ -779,6 +807,12 @@ def _limpiar_cliente_session(cliente_id: str) -> int:
             cliente_id,
             default=False,
         )
+        if callable(eliminar_tb_storage):
+            safe_call(
+                eliminar_tb_storage,
+                cliente_id,
+                default=False,
+            )
         # Invalidate cache
         if "sheets_clientes_cache" in st.session_state:
             del st.session_state["sheets_clientes_cache"]
@@ -857,6 +891,28 @@ def _get_clientes_dinamicos() -> list[str]:
         _sheets_clientes + _base + _nuevos
     ))
     return [c for c in _todos if c not in _borrados]
+
+
+def _normalizar_tb_desde_bytes(tb_bytes: bytes) -> pd.DataFrame:
+    import io
+    from analysis.lector_tb import (
+        _normalizar_columnas,
+        _mapear_columnas_canonicas,
+        _validar_tb,
+        _enriquecer_tb,
+    )
+
+    raw = pd.read_excel(
+        io.BytesIO(tb_bytes),
+        sheet_name=0,
+        engine="openpyxl",
+    )
+    raw = raw.dropna(how="all").reset_index(drop=True)
+    raw = _normalizar_columnas(raw)
+    raw = _mapear_columnas_canonicas(raw)
+    raw = _validar_tb(raw)
+    raw = _enriquecer_tb(raw)
+    return raw
 
 
 def fmt_num(value: Any, decimals: int = 2) -> str:
@@ -1720,7 +1776,20 @@ def render_setup_screen(clientes_disponibles: list[str]):
             in st.session_state
             if cliente_elegido else False
         )
-        _tiene_tb = _tiene_tb_repo or _tiene_tb_session
+        _tiene_tb_remote = (
+            bool(
+                _sheets_ok
+                and callable(existe_tb_storage)
+                and cliente_elegido
+                and safe_call(
+                    existe_tb_storage,
+                    cliente_elegido,
+                    default=False,
+                )
+            )
+            if cliente_elegido else False
+        )
+        _tiene_tb = _tiene_tb_repo or _tiene_tb_session or _tiene_tb_remote
 
         if _tiene_tb and cliente_elegido:
             st.markdown(
@@ -2052,32 +2121,49 @@ def render_setup_screen(clientes_disponibles: list[str]):
             # Process TB
             if uploaded_tb:
                 try:
-                    import io
-                    from analysis.lector_tb import (
-                        _normalizar_columnas,
-                        _mapear_columnas_canonicas,
-                        _validar_tb,
-                        _enriquecer_tb,
-                    )
-
-                    raw = pd.read_excel(
-                        io.BytesIO(uploaded_tb.read()),
-                        sheet_name=0,
-                        engine="openpyxl",
-                    )
-                    raw = raw.dropna(how="all").reset_index(drop=True)
-                    raw = _normalizar_columnas(raw)
-                    raw = _mapear_columnas_canonicas(raw)
-                    raw = _validar_tb(raw)
-                    raw = _enriquecer_tb(raw)
+                    tb_bytes = uploaded_tb.getvalue()
+                    raw = _normalizar_tb_desde_bytes(tb_bytes)
                     st.session_state[
                         f"tb_upload_{cliente_elegido}"
                     ] = raw
                     st.session_state[
                         f"tb_tipo_{cliente_elegido}"
                     ] = tb_tipo
+                    if _sheets_ok and callable(guardar_tb_storage):
+                        _tb_saved = safe_call(
+                            guardar_tb_storage,
+                            cliente_elegido,
+                            tb_bytes,
+                            "tb_latest.xlsx",
+                            default=False,
+                        )
+                        if _tb_saved:
+                            st.success(
+                                "✅ TB guardado en almacenamiento remoto."
+                            )
                 except Exception as e:
                     st.error(f"Error procesando TB: {e}")
+            elif _tiene_tb_remote and not _tiene_tb_session:
+                tb_bytes = safe_call(
+                    cargar_tb_storage,
+                    cliente_elegido,
+                    "tb_latest.xlsx",
+                    default=None,
+                )
+                if isinstance(tb_bytes, (bytes, bytearray)) and tb_bytes:
+                    try:
+                        raw = _normalizar_tb_desde_bytes(bytes(tb_bytes))
+                        st.session_state[
+                            f"tb_upload_{cliente_elegido}"
+                        ] = raw
+                        st.session_state[
+                            f"tb_tipo_{cliente_elegido}"
+                        ] = tb_tipo
+                        st.info(
+                            "ℹ️ TB restaurado desde almacenamiento remoto."
+                        )
+                    except Exception as e:
+                        st.error(f"Error restaurando TB remoto: {e}")
             elif _tiene_tb_session:
                 # Keep existing, just update tipo
                 st.session_state[
@@ -2283,27 +2369,21 @@ uploaded_tb = st.sidebar.file_uploader(
 )
 if uploaded_tb is not None:
     try:
-        import io
-        from analysis.lector_tb import (
-            _normalizar_columnas,
-            _mapear_columnas_canonicas,
-            _validar_tb,
-            _enriquecer_tb,
-        )
-
-        raw = pd.read_excel(
-            io.BytesIO(uploaded_tb.read()),
-            sheet_name=0,
-            engine="openpyxl",
-        )
-        raw = raw.dropna(how="all").reset_index(drop=True)
-        raw = _normalizar_columnas(raw)
-        raw = _mapear_columnas_canonicas(raw)
-        raw = _validar_tb(raw)
-        raw = _enriquecer_tb(raw)
+        tb_bytes = uploaded_tb.getvalue()
+        raw = _normalizar_tb_desde_bytes(tb_bytes)
         st.session_state[
             f"tb_upload_{cliente_seleccionado}"
         ] = raw
+        if _sheets_ok and callable(guardar_tb_storage):
+            _saved_tb_side = safe_call(
+                guardar_tb_storage,
+                cliente_seleccionado,
+                tb_bytes,
+                "tb_latest.xlsx",
+                default=False,
+            )
+            if _saved_tb_side:
+                st.sidebar.caption("☁️ TB persistido en remoto")
         st.sidebar.success(
             f"✅ TB cargado: {len(raw)} filas"
         )
@@ -2406,7 +2486,22 @@ for _k in [_tb_key, _tb_key_active]:
 if _tb_from_session is not None:
     tb = _tb_from_session
 else:
-    tb = safe_call(leer_tb, cliente, default=pd.DataFrame())
+    tb = pd.DataFrame()
+    if _sheets_ok and callable(cargar_tb_storage):
+        _tb_remote_bytes = safe_call(
+            cargar_tb_storage,
+            cliente,
+            "tb_latest.xlsx",
+            default=None,
+        )
+        if isinstance(_tb_remote_bytes, (bytes, bytearray)) and _tb_remote_bytes:
+            try:
+                tb = _normalizar_tb_desde_bytes(bytes(_tb_remote_bytes))
+                st.session_state[f"tb_upload_{cliente}"] = tb
+            except Exception:
+                tb = pd.DataFrame()
+    if tb is None or (isinstance(tb, pd.DataFrame) and tb.empty):
+        tb = safe_call(leer_tb, cliente, default=pd.DataFrame())
 
 # Populate module cache so internal services
 # (ranking, materialidad, contexto) can find the TB
