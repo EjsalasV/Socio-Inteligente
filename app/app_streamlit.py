@@ -48,6 +48,12 @@ from app.views.view_area import (
     render_historial_tab,
     render_export_block,
 )
+from app.views.view_area_premium import render_area_premium
+from app.views.view_estados_financieros_premium import (
+    render_estados_financieros_premium,
+)
+from app.views.view_dashboard_premium import render_dashboard_overview_premium
+from app.views.view_risk_engine_premium import render_risk_engine_premium
 from app.views.view_materialidad import render_calidad_tab
 from app.views.view_chat import render_briefing_ia_tab, render_chat_tab
 
@@ -728,8 +734,238 @@ st.markdown("""
       color: #FFFFFF !important;
       border-radius: 6px !important;
   }
+
+  /* ── Premium Area Workspace ── */
+  .premium-hero{
+      background:#ffffff;
+      border:1px solid #E2E8F0;
+      border-radius:24px;
+      padding:28px 32px;
+      box-shadow:0 8px 30px rgba(2,6,23,.06);
+  }
+  .premium-badge{
+      display:inline-block;
+      padding:6px 12px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+  }
+  .badge-risk-high{background:#ba1a1a;color:#fff;}
+  .badge-risk-medium{background:#f59e0b;color:#fff;}
+  .badge-risk-low{background:#059669;color:#fff;}
+  .badge-state{background:#e2e8f0;color:#475569;}
+  .premium-stat{
+      background:#fff;
+      border:1px solid #E2E8F0;
+      border-radius:20px;
+      padding:20px 22px;
+      box-shadow:0 6px 18px rgba(15,23,42,.05);
+  }
+  .premium-stat-title{
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#64748b;
+  }
+  .premium-stat-value{
+      font-size:34px;
+      font-weight:800;
+      color:#041627;
+      line-height:1.05;
+      margin-top:10px;
+  }
+  .premium-stat-sub{
+      font-size:12px;
+      color:#64748b;
+      margin-top:10px;
+  }
+  .premium-stat-danger{border-left:5px solid #ba1a1a;}
+  .premium-stat-warn{border-left:5px solid #f59e0b;}
+  .premium-stat-ok{border-left:5px solid #059669;}
+  .decision-block{
+      border-radius:32px;
+      padding:34px;
+      color:#fff;
+      box-shadow:0 18px 40px rgba(186,26,26,.24);
+  }
+  .decision-danger{
+      background:linear-gradient(135deg,#ba1a1a 0%,#93000a 100%);
+  }
+  .decision-ok{
+      background:linear-gradient(135deg,#047857 0%,#065f46 100%);
+      box-shadow:0 18px 40px rgba(4,120,87,.24);
+  }
+  .executive-summary{
+      background:#f8fafc;
+      border:1px solid #E2E8F0;
+      border-radius:24px;
+      padding:24px 26px;
+      position:relative;
+  }
+  .executive-label{
+      display:inline-block;
+      background:#fff;
+      border:1px solid #E2E8F0;
+      border-radius:999px;
+      padding:6px 12px;
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color:#64748b;
+      margin-bottom:14px;
+  }
+  .ai-opinion{
+      background:#fff;
+      border:2px solid #041627;
+      border-radius:28px;
+      overflow:hidden;
+      box-shadow:0 18px 40px rgba(15,23,42,.10);
+  }
+  .ai-opinion-head{
+      background:#041627;
+      color:#fff;
+      padding:14px 20px;
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+  }
+  .ai-opinion-body{
+      padding:26px;
+      color:#1e293b;
+      line-height:1.75;
+  }
+  .side-card{
+      background:#fff;
+      border:1px solid #E2E8F0;
+      border-radius:28px;
+      padding:24px;
+      box-shadow:0 10px 30px rgba(15,23,42,.06);
+  }
+  .task-item{
+      border:1px solid #E2E8F0;
+      border-radius:16px;
+      padding:14px 16px;
+      margin-bottom:10px;
+      background:#fff;
+  }
+  .task-priority-high{
+      background:#ba1a1a;
+      color:#fff;
+      border-radius:999px;
+      padding:3px 8px;
+      font-size:9px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+  }
+  .task-priority-medium{
+      background:#fef3c7;
+      color:#92400e;
+      border-radius:999px;
+      padding:3px 8px;
+      font-size:9px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+  }
+  .task-priority-low{
+      background:#e2e8f0;
+      color:#475569;
+      border-radius:999px;
+      padding:3px 8px;
+      font-size:9px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+  }
+  .alert-critical{
+      background:#041627;
+      color:#fff;
+      border-left:10px solid #ba1a1a;
+      border-radius:24px;
+      padding:22px;
+  }
+  .alert-medium{
+      background:#fff;
+      border:1px solid #E2E8F0;
+      border-radius:24px;
+      padding:22px;
+  }
+  @media (max-width: 900px) {
+      .premium-hero { padding:18px 18px; border-radius:18px; }
+      .premium-hero-title { font-size:30px !important; }
+      .premium-stat-value { font-size:24px; }
+      .ai-opinion-body { padding:18px; }
+      .decision-block { padding:20px; border-radius:20px; }
+  }
 </style>
 """, unsafe_allow_html=True)
+
+# Sovereign visual system override (navy + gray + dark green)
+st.markdown(
+    """
+    <style>
+      :root {
+        --soc-navy: #041627;
+        --soc-navy-soft: #1a2b3c;
+        --soc-gray-50: #f7fafc;
+        --soc-gray-100: #f1f4f6;
+        --soc-gray-200: #e2e8f0;
+        --soc-gray-500: #64748b;
+        --soc-green: #0f766e;
+      }
+
+      .main {
+        background: linear-gradient(180deg, var(--soc-gray-50) 0%, #f4f7fb 100%) !important;
+      }
+
+      [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, var(--soc-navy) 0%, #0b2238 100%) !important;
+      }
+
+      [data-testid="metric-container"] {
+        background: #ffffff !important;
+        border: 1px solid var(--soc-gray-200) !important;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05) !important;
+      }
+
+      [data-testid="stTabs"] [role="tab"] {
+        color: var(--soc-gray-500) !important;
+        border-bottom: 2px solid transparent !important;
+      }
+      [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+        color: var(--soc-navy) !important;
+        border-bottom: 2px solid var(--soc-green) !important;
+      }
+
+      .stButton button {
+        background: var(--soc-navy) !important;
+        color: #fff !important;
+        border: 1px solid var(--soc-navy) !important;
+        border-radius: 10px !important;
+      }
+      .stButton button:hover {
+        background: var(--soc-green) !important;
+        border-color: var(--soc-green) !important;
+      }
+
+      .section-header {
+        color: var(--soc-navy) !important;
+        border-bottom-color: var(--soc-gray-200) !important;
+      }
+
+      .kpi-info, .kpi-card {
+        border-color: var(--soc-gray-200) !important;
+      }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # ============================================================
@@ -2802,9 +3038,11 @@ st.divider()
 # ============================================================
 # Tabs principales
 # ============================================================
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab_risk, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Dashboard",
+    "🛡️ Risk Engine",
     "🎯 Áreas",
+    "💼 Estados Financieros",
     "🤖 Inteligencia IA",
     "📋 Datos",
 ])
@@ -2911,6 +3149,16 @@ def _calcular_estado_encargo(
 
 
 with tab1:
+    render_dashboard_overview_premium(
+        cliente=cliente,
+        datos_clave=datos_clave if isinstance(datos_clave, dict) else {},
+        perfil=perfil if isinstance(perfil, dict) else {},
+        resumen_tb=resumen_tb if isinstance(resumen_tb, dict) else {},
+        indicadores=indicadores if isinstance(indicadores, dict) else {},
+        ranking_areas=ranking_areas if isinstance(ranking_areas, pd.DataFrame) else None,
+        variaciones=variaciones if isinstance(variaciones, pd.DataFrame) else None,
+    )
+    st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
     # ── KPI Row ──────────────────────────────────────────────
     activo = resumen_tb.get("ACTIVO", 0)
     pasivo = resumen_tb.get("PASIVO", 0)
@@ -3730,6 +3978,16 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
         st.info("Sin items para exportar con los filtros actuales.")
 
 
+with tab_risk:
+    render_risk_engine_premium(
+        cliente=cliente,
+        ranking_areas=ranking_areas if isinstance(ranking_areas, pd.DataFrame) else None,
+        indicadores=indicadores if isinstance(indicadores, dict) else {},
+        variaciones=variaciones if isinstance(variaciones, pd.DataFrame) else None,
+        perfil=perfil if isinstance(perfil, dict) else {},
+    )
+
+
 with tab2:
     # ── Build area list ───────────────────────────────────
     _area_key = f"selected_area_{cliente}"
@@ -3892,8 +4150,8 @@ with tab2:
                 variaciones=variaciones,
                 ranking_areas=ranking_areas,
             )
-            render_area_header(ws)
-            render_area_kpis(ws)
+            render_area_premium(ws, cliente, datos_clave, perfil)
+            st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
             inner_tabs = st.tabs([
                 "📋 Resumen",
@@ -3944,6 +4202,16 @@ with tab2:
 
 
 with tab3:
+    render_estados_financieros_premium(
+        cliente=cliente,
+        tb=tb if isinstance(tb, pd.DataFrame) else None,
+        variaciones=variaciones if isinstance(variaciones, pd.DataFrame) else None,
+        datos_clave=datos_clave if isinstance(datos_clave, dict) else {},
+        perfil=perfil if isinstance(perfil, dict) else {},
+    )
+
+
+with tab4:
     # ── API key check ─────────────────────────────────────
     try:
         import streamlit as st
@@ -4120,6 +4388,68 @@ with tab3:
                 variaciones=variaciones,
                 etapa=etapa_seleccionada,
             )
+
+            st.markdown(
+                """
+                <style>
+                  .chat-shell { background:#ffffff; border:1px solid #E2E8F0; border-radius:18px; padding:14px 16px; box-shadow:0 12px 28px rgba(15,23,42,.06); }
+                  .chat-kicker { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#0f766e; font-weight:800; }
+                  .chat-title { font-family:'Newsreader',serif; font-size:30px; color:#041627; line-height:1.05; margin-top:4px; }
+                  .chat-sub { color:#64748B; font-size:12px; margin-top:4px; }
+                  .ctx-card { background:#1a2b3c; color:#fff; border-radius:14px; padding:12px 14px; }
+                  .ctx-lbl { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#89d3d4; font-weight:800; }
+                  .ctx-val { font-size:14px; font-weight:700; margin-top:2px; }
+                  .ref-item { background:#fff; border:1px solid #E2E8F0; border-radius:10px; padding:8px 10px; margin-bottom:8px; }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            _cliente_info_card = perfil.get("cliente", {}) if isinstance(perfil, dict) else {}
+            _mat_prelim = (
+                perfil.get("materialidad", {}).get("preliminar", {}).get("materialidad_global", "N/A")
+                if isinstance(perfil, dict)
+                else "N/A"
+            )
+            _riesgo_global = (
+                perfil.get("riesgo_global", {}).get("nivel", "N/A")
+                if isinstance(perfil, dict)
+                else "N/A"
+            )
+
+            st.markdown(
+                f"""
+                <div class="chat-shell">
+                  <div class="chat-kicker">Socio Chat</div>
+                  <div class="chat-title">Asistente de Criterio Experto</div>
+                  <div class="chat-sub">Cliente: {normalize_text(_cliente_info_card.get('nombre_legal', cliente)) or cliente} · Etapa: {etapa_seleccionada}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            cctx1, cctx2 = st.columns([2, 1])
+            with cctx1:
+                st.markdown(
+                    f"""
+                    <div class="ctx-card">
+                      <div class="ctx-lbl">Contexto de la Consulta</div>
+                      <div class="ctx-val">Área activa: {selected_area_code or 'N/D'}</div>
+                      <div class="ctx-val">Materialidad: {fmt_money(_mat_prelim) if str(_mat_prelim).replace('.', '', 1).isdigit() else _mat_prelim}</div>
+                      <div class="ctx-val">Riesgo global: {str(_riesgo_global).upper()}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with cctx2:
+                st.markdown("**Referencias Técnicas**")
+                st.markdown(
+                    """
+                    <div class="ref-item"><b>NIIF 15</b><br><span style="font-size:11px;color:#64748B;">Obligaciones de desempeño y reconocimiento de ingresos.</span></div>
+                    <div class="ref-item"><b>NIA 315</b><br><span style="font-size:11px;color:#64748B;">Identificación y valoración de riesgos de incorrección material.</span></div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
             # ── Perfil completeness check ─────────────────
             _perfil_score = 0
@@ -4426,7 +4756,7 @@ def _build_chart_data(
     return result
 
 
-with tab4:
+with tab5:
     d_tab1, d_tab2, d_tab3, d_tab4, d_tab5 = st.tabs([
         "📈 Variaciones", "🔢 Trial Balance",
         "📊 Análisis Financiero", "🗂️ Hallazgos",
