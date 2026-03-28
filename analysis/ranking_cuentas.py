@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import sys
 from pathlib import Path
@@ -14,14 +14,14 @@ from core.logger import registrar_ejecucion, registrar_error
 
 def puntaje_por_variacion_absoluta(valor: float, config_thresholds: list | None = None) -> int:
     """
-    Calcula puntuaciÃ³n por variaciÃ³n absoluta.
+    Calcula puntuación por variación absoluta.
     
     Args:
-        valor: VariaciÃ³n absoluta
+        valor: Variación absoluta
         config_thresholds: Lista de [threshold, puntos] desde config (si None, usa defaults)
     
     Returns:
-        PuntuaciÃ³n (0-5 tÃ­picamente)
+        Puntuación (0-5 típicamente)
     """
     valor = abs(valor)
     
@@ -43,14 +43,14 @@ def puntaje_por_variacion_absoluta(valor: float, config_thresholds: list | None 
 
 def puntaje_por_saldo_actual(valor: float, config_thresholds: list | None = None) -> int:
     """
-    Calcula puntuaciÃ³n por saldo actual.
+    Calcula puntuación por saldo actual.
     
     Args:
         valor: Saldo actual
         config_thresholds: Lista de [threshold, puntos] desde config (si None, usa defaults)
     
     Returns:
-        PuntuaciÃ³n (0-5 tÃ­picamente)
+        Puntuación (0-5 típicamente)
     """
     valor = abs(valor)
     
@@ -72,14 +72,14 @@ def puntaje_por_saldo_actual(valor: float, config_thresholds: list | None = None
 
 def puntaje_por_variacion_porcentual(valor: float, config_thresholds: list | None = None) -> int:
     """
-    Calcula puntuaciÃ³n por variaciÃ³n porcentual.
+    Calcula puntuación por variación porcentual.
     
     Args:
-        valor: VariaciÃ³n porcentual
+        valor: Variación porcentual
         config_thresholds: Lista de [threshold, puntos] desde config (si None, usa defaults)
     
     Returns:
-        PuntuaciÃ³n (0-5 tÃ­picamente)
+        Puntuación (0-5 típicamente)
     """
     valor = abs(valor)
     
@@ -110,8 +110,8 @@ def puntaje_por_grupo(grupo: str) -> int:
 
 def calcular_score_cuentas(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Calcula score de cada cuenta basado en variaciÃ³n, saldo y otros factores.
-    Usa configuraciÃ³n desde config.yaml si estÃ¡ disponible.
+    Calcula score de cada cuenta basado en variación, saldo y otros factores.
+    Usa configuración desde config.yaml si está disponible.
     
     Args:
         df: DataFrame con variaciones y marcas ya calculadas
@@ -121,7 +121,7 @@ def calcular_score_cuentas(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = df.copy()
     
-    # Cargar configuraciÃ³n
+    # Cargar configuración
     config_scoring = obtener_scoring_config()
     thresholds_var = config_scoring.get("variacion_absoluta")
     thresholds_saldo = config_scoring.get("saldo_actual")
@@ -194,7 +194,7 @@ def imprimir_ranking_cuentas(nombre_cliente: str) -> None:
     df_tb = leer_trial_balance(ruta_tb)
 
     if df_tb.empty:
-        print("El TB estÃ¡ vacÃ­o.")
+        print("El TB está vacío.")
         return
 
     df_var = calcular_variaciones(df_tb)

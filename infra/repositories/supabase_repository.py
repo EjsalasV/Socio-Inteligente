@@ -424,6 +424,16 @@ def guardar_cliente_supabase(
             timeout=20,
         )
         if r.status_code >= 300:
+            if r.status_code in (401, 403):
+                _set_last_error(
+                    f"Supabase save failed [{r.status_code}] (permisos/autorización): {r.text[:500]}"
+                )
+                return False
+            if r.status_code == 409:
+                _set_last_error(
+                    f"Supabase save failed [{r.status_code}] (duplicado/conflicto): {r.text[:500]}"
+                )
+                return False
             _set_last_error(
                 f"Supabase save failed [{r.status_code}]: {r.text[:500]}"
             )

@@ -1,9 +1,9 @@
-﻿# Sección 11 — Instrumentos Financieros Básicos (NIIF para PYMES)
+ï»¿# SecciÃ3n 11 â€" Instrumentos Financieros Básicos (NIIF para PYMES)
 
 ## Alcance
 Aplica a instrumentos financieros básicos:
 - Efectivo
-- Depósitos bancarios
+- DepÃ3sitos bancarios
 - Cuentas por cobrar y pagar comerciales
 - Préstamos simples
 - Inversiones en instrumentos de deuda no complejos
@@ -11,10 +11,10 @@ Aplica a instrumentos financieros básicos:
 
 ## Reconocimiento Inicial
 Reconocer cuando la entidad se convierta en parte del contrato.
-Medir al **precio de la transacción** (incluidos costos de transacción
+Medir al **precio de la transacciÃ3n** (incluidos costos de transacciÃ3n
 para partidas no medidas a valor razonable con cambios en resultados).
 
-## Medición Posterior
+## MediciÃ3n Posterior
 
 ### Activos Financieros al Costo Amortizado
 - Cuentas por cobrar comerciales a corto plazo (sin interés significativo)
@@ -29,21 +29,21 @@ para partidas no medidas a valor razonable con cambios en resultados).
 
 ## Deterioro de Activos Financieros
 
-### Evaluación de Deterioro
+### EvaluaciÃ3n de Deterioro
 Al cierre de cada período, evaluar si existe evidencia objetiva de deterioro:
 - Dificultades financieras del deudor
 - Incumplimientos o moras
 - Quiebra probable del deudor
-- Reorganización financiera del deudor
+- ReorganizaciÃ3n financiera del deudor
 
 ### Cálculo del Deterioro
 Pérdida por deterioro = Valor en libros - Valor presente de
 flujos futuros esperados
 
 ### Cuentas por Cobrar Comerciales
-Para carteras homogéneas, puede usarse análisis de antigüedad:
+Para carteras homogéneas, puede usarse análisis de antigÃ1⁄4edad:
 
-| Antigüedad | Porcentaje de Deterioro Referencial |
+| AntigÃ1⁄4edad | Porcentaje de Deterioro Referencial |
 |------------|-------------------------------------|
 | Al corriente | 0-2% |
 | 30-90 días | 5-15% |
@@ -51,7 +51,7 @@ Para carteras homogéneas, puede usarse análisis de antigüedad:
 | 181-360 días | 50-75% |
 | Más de 360 días | 80-100% |
 
-*Los porcentajes deben basarse en experiencia histórica de la entidad.*
+*Los porcentajes deben basarse en experiencia histÃ3rica de la entidad.*
 
 ## Baja en Cuentas
 Dar de baja cuando:
@@ -59,10 +59,10 @@ Dar de baja cuando:
 - Se transfieren los riesgos y beneficios sustancialmente
 
 ## Alertas de Auditoría
-- Verificar aplicación del método de interés efectivo
-- Evaluar suficiencia de la provisión por deterioro
+- Verificar aplicaciÃ3n del método de interés efectivo
+- Evaluar suficiencia de la provisiÃ3n por deterioro
 - Revisar política de castigos y su consistencia
-- Confirmar revelaciones requeridas sobre concentración de riesgo
+- Confirmar revelaciones requeridas sobre concentraciÃ3n de riesgo
 
 ---
-*Fuente: IASB — NIIF para las PYMES (2015/2019)*
+*Fuente: IASB â€" NIIF para las PYMES (2015/2019)*

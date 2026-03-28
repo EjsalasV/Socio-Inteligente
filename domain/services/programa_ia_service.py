@@ -1,4 +1,4 @@
-﻿"""
+"""
 Servicio para generar programas de auditoría con IA.
 Combina contexto del cliente, riesgos del área y base normativa
 para que DeepSeek genere un programa de trabajo accionable.

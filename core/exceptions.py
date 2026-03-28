@@ -1,4 +1,4 @@
-﻿"""
+"""
 Excepciones personalizadas de SocioAI.
 Permite distinguir errores de negocio de errores técnicos.
 """

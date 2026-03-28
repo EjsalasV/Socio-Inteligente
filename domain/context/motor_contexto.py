@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import sys
 from typing import Any, Dict, List
@@ -26,9 +26,9 @@ REGLAS_CONTEXTO = {
         "areas_prioritarias": ["14", "200", "1500", "1501", "425.2"],
         "areas_secundarias": ["136", "140"],
         "riesgos_esperados": [
-            "ValuaciÃ³n de inversiones",
-            "AplicaciÃ³n de mÃ©todo VPP",
-            "PresentaciÃ³n de resultados por inversiones",
+            "Valuación de inversiones",
+            "Aplicación de método VPP",
+            "Presentación de resultados por inversiones",
             "Partes relacionadas",
             "Consistencia entre inversiones, ingresos y patrimonio",
         ],
@@ -43,7 +43,7 @@ REGLAS_CONTEXTO = {
         "areas_prioritarias": ["110", "130.1", "1500", "425", "140"],
         "areas_secundarias": ["1600", "136"],
         "riesgos_esperados": [
-            "ValuaciÃ³n de inventarios",
+            "Valuación de inventarios",
             "Deterioro de cartera",
             "Reconocimiento de ingresos",
             "Corte de compras y ventas",
@@ -52,7 +52,7 @@ REGLAS_CONTEXTO = {
         "observaciones": [
             "En empresas comerciales, el foco suele estar en inventarios, cartera e ingresos.",
             "Las variaciones en inventarios e ingresos deben analizarse en conjunto.",
-            "La rotaciÃ³n de cartera e inventarios es clave para interpretar riesgos.",
+            "La rotación de cartera e inventarios es clave para interpretar riesgos.",
         ],
     },
 
@@ -62,14 +62,14 @@ REGLAS_CONTEXTO = {
         "riesgos_esperados": [
             "Reconocimiento de ingresos",
             "Recuperabilidad de cuentas por cobrar",
-            "ClasificaciÃ³n de gastos",
+            "Clasificación de gastos",
             "Flujos de efectivo",
             "Soporte de costos y gastos operativos",
         ],
         "observaciones": [
-            "En empresas de servicios, el Ã¡rea crÃ­tica suele ser ingresos y cartera.",
-            "Si no existen inventarios, el Ã©nfasis se traslada a ingresos, gastos y liquidez.",
-            "Debe revisarse si los ingresos estÃ¡n correctamente devengados y soportados.",
+            "En empresas de servicios, el área crítica suele ser ingresos y cartera.",
+            "Si no existen inventarios, el énfasis se traslada a ingresos, gastos y liquidez.",
+            "Debe revisarse si los ingresos están correctamente devengados y soportados.",
         ],
     },
 
@@ -77,23 +77,23 @@ REGLAS_CONTEXTO = {
         "areas_prioritarias": ["110", "1", "1500", "1600", "425"],
         "areas_secundarias": ["140", "136"],
         "riesgos_esperados": [
-            "ValuaciÃ³n de inventarios",
-            "Costeo y absorciÃ³n",
-            "Existencia y depreciaciÃ³n de PPE",
+            "Valuación de inventarios",
+            "Costeo y absorción",
+            "Existencia y depreciación de PPE",
             "Reconocimiento de ingresos",
-            "Corte y clasificaciÃ³n de pasivos",
+            "Corte y clasificación de pasivos",
         ],
         "observaciones": [
-            "En entidades industriales, inventarios y propiedad planta y equipo suelen ser Ã¡reas crÃ­ticas.",
-            "La relaciÃ³n entre inventarios, producciÃ³n, costo y ventas debe mantenerse consistente.",
-            "Es importante revisar la razonabilidad de costos y gastos de producciÃ³n.",
+            "En entidades industriales, inventarios y propiedad planta y equipo suelen ser áreas críticas.",
+            "La relación entre inventarios, producción, costo y ventas debe mantenerse consistente.",
+            "Es importante revisar la razonabilidad de costos y gastos de producción.",
         ],
     },
 }
 
 
 # =========================================================
-# DETECCIÃ“N DEL CONTEXTO GENERAL
+# DETECCIÓN DEL CONTEXTO GENERAL
 # =========================================================
 
 def detectar_tipo_contexto(perfil: Dict[str, Any]) -> str:
@@ -168,13 +168,13 @@ def construir_contexto_cliente(perfil: Dict[str, Any]) -> Dict[str, Any]:
     if operacion.get("tiene_prestamos_socios"):
         if "130.2" not in areas_secundarias:
             areas_secundarias.append("130.2")
-        riesgos_esperados.append("PrÃ©stamos a socios y su adecuada presentaciÃ³n")
+        riesgos_esperados.append("Préstamos a socios y su adecuada presentación")
 
     if operacion.get("tiene_anticipos_proveedores"):
-        riesgos_esperados.append("ClasificaciÃ³n y recuperabilidad de anticipos a proveedores")
+        riesgos_esperados.append("Clasificación y recuperabilidad de anticipos a proveedores")
 
     if operacion.get("maneja_reembolsos_gastos"):
-        riesgos_esperados.append("ClasificaciÃ³n y soporte de reembolsos de gastos")
+        riesgos_esperados.append("Clasificación y soporte de reembolsos de gastos")
 
     if contexto_negocio.get("tiene_partes_relacionadas"):
         if "425.2" not in areas_secundarias and tipo_contexto != "holding":
@@ -205,7 +205,7 @@ def construir_contexto_cliente(perfil: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # =========================================================
-# IMPRESIÃ“N
+# IMPRESIÓN
 # =========================================================
 
 def imprimir_contexto_cliente(nombre_cliente: str) -> None:
@@ -221,11 +221,11 @@ def imprimir_contexto_cliente(nombre_cliente: str) -> None:
     print(f"Marco referencial: {obtener_marco_referencial(perfil)}")
     print(f"Tipo de contexto detectado: {contexto['tipo_contexto']}\n")
 
-    print("Ãreas prioritarias esperadas:")
+    print("Áreas prioritarias esperadas:")
     for area in contexto["areas_prioritarias"]:
         print(f"- {area}")
 
-    print("\nÃreas secundarias:")
+    print("\nÁreas secundarias:")
     for area in contexto["areas_secundarias"]:
         print(f"- {area}")
 

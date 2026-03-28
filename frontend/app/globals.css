@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,600;0,700;1,400&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply text-slate-900 font-body;
+  background: radial-gradient(1400px 600px at 95% -10%, rgba(4, 22, 39, 0.045), transparent 55%), #f7fafc;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga' 1, 'clig' 1;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 350, 'GRAD' 0, 'opsz' 24;
+  speak: none;
+}
+
+.sovereign-page-transition {
+  animation: sovereignFadeSlide 0.3s ease-out;
+}
+
+@keyframes sovereignFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.risk-tooltip-animate {
+  animation: riskTooltipFade 0.18s ease-out;
+}
+
+@keyframes riskTooltipFade {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.sovereign-card {
+  @apply rounded-editorial shadow-editorial p-6;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(4, 22, 39, 0.08);
+  backdrop-filter: blur(6px);
+}
+
+.ai-memo {
+  background: linear-gradient(135deg, #041627 0%, #1a2b3c 100%);
+  color: #a5eff0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(24, 28, 30, 0.04);
+}
+
+.risk-high {
+  background: #ffdad6;
+  border-left: 6px solid #ba1a1a;
+  border-radius: 12px;
+  padding: 1rem 1rem 1rem 1.25rem;
+}
+
+.ghost-input {
+  @apply rounded-editorial px-3 py-2 outline-none;
+  border: 1px solid rgba(4, 22, 39, 0.14);
+  background: rgba(246, 249, 252, 0.92);
+}
+
+.ghost-input:focus {
+  border-color: rgba(4, 22, 39, 0.35);
+  @apply ring-0;
+}

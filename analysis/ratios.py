@@ -1,4 +1,4 @@
-﻿"""
+"""
 Módulo de ratios financieros para auditoría.
 Calcula indicadores de liquidez, solvencia, rentabilidad y actividad
 a partir del Trial Balance del cliente.

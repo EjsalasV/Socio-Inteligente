@@ -1,9 +1,41 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
 import pandas as pd
 import streamlit as st
+
+
+def render_profile_editorial_intro() -> None:
+    st.markdown(
+        """
+        <div class="sovereign-card" style="margin:.3rem 0 .9rem 0;">
+          <div style="font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:#64748B;">
+            The Sovereign Intelligence
+          </div>
+          <div class="sv-serif" style="font-size:2rem;font-weight:700;color:#041627;line-height:1.1;margin-top:.2rem;">
+            Configuracion de Perfil
+          </div>
+          <div style="font-size:.9rem;color:#64748B;margin-top:.35rem;">
+            Define el contexto del cliente para que Socio AI priorice riesgos y evidencia con criterio editorial premium.
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_profile_card_title(title: str, subtitle: str = "") -> None:
+    st.markdown(
+        f"""
+        <div class="profile-block-marker"></div>
+        <div style="font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:#64748B;">
+          {title}
+        </div>
+        {f'<div style="font-size:.82rem;color:#64748B;margin:.28rem 0 .25rem 0;">{subtitle}</div>' if subtitle else ''}
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def fmt_num(value: Any, decimals: int = 2) -> str:

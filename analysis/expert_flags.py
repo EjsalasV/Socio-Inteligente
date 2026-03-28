@@ -1,4 +1,4 @@
-﻿"""Motor de banderas expertas (rule-based) para ranking y workspace por area."""
+"""Motor de banderas expertas (rule-based) para ranking y workspace por area."""
 
 from __future__ import annotations
 

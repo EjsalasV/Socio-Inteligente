@@ -1,5 +1,22 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
-export default function AreasRootPage({ params }: { params: { clienteId: string } }) {
-  redirect(`/areas/${params.clienteId}/130`);
+type PageParams = {
+  clienteId: string;
+};
+
+type PageProps = {
+  params: Promise<PageParams>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function AreasRootPage({ params }: PageProps) {
+  const { clienteId } = await params;
+  redirect(`/areas/${clienteId}/130`);
+}
+
+export async function generateMetadata({ params }: PageProps) {
+  const { clienteId } = await params;
+  return {
+    title: `Areas - ${clienteId} | SocioAI`,
+  };
 }

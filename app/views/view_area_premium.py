@@ -2,14 +2,22 @@ from __future__ import annotations
 
 from html import escape
 from typing import Any
+from pathlib import Path
+from datetime import datetime
+import re
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
+import yaml
 
 
 def _fmt_money(value: Any) -> str:
     try:
-        return f"${float(value):,.2f}"
+        v = float(value)
+        if v < 0:
+            return f"(${abs(v):,.2f})"
+        return f"${v:,.2f}"
     except Exception:
         return "$0.00"
 
@@ -127,107 +135,7 @@ def _inject_assets_once() -> None:
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,600;0,700;1,400&family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet">
-        <style>
-            :root {
-                --soc-primary: #041627;
-                --soc-error: #BA1A1A;
-                --soc-medium: #B45309;
-                --soc-success: #047857;
-                --soc-surface: #F7FAFC;
-                --soc-border: #E2E8F0;
-                --soc-muted: #64748B;
-                --soc-white: #FFFFFF;
-            }
-            .soc-root { font-family: 'Inter', sans-serif; color: var(--soc-primary); }
-            .soc-title { font-family: 'Newsreader', serif; letter-spacing: -0.02em; }
-            .soc-card { background: var(--soc-white); border: 1px solid var(--soc-border); border-radius: 18px; }
-            .soc-hero { padding: 1.25rem; }
-            .soc-badge { display:inline-block; padding:.35rem .65rem; border-radius:.5rem; font-size:.66rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
-            .badge-error { background: var(--soc-error); color:#fff; }
-            .badge-warning { background: #FEF3C7; color:#78350F; border:1px solid #FDE68A; }
-            .badge-success { background: #DCFCE7; color:#065F46; border:1px solid #A7F3D0; }
-            .badge-state { background: #E2E8F0; color: #334155; }
-            .badge-default { background: #EEF2FF; color: #334155; }
-
-            .decision-wrap { border-radius: 28px; padding: 6px; box-shadow: 0 16px 35px rgba(15, 23, 42, .18); }
-            .decision-danger { background: linear-gradient(140deg, #BA1A1A 0%, #7F1010 90%); }
-            .decision-ok { background: linear-gradient(140deg, #047857 0%, #065F46 90%); }
-            .decision-inner { border-radius: 24px; padding: 1.3rem; color:#fff; }
-            .decision-title { font-family: 'Newsreader', serif; font-size: 2.1rem; font-weight: 700; line-height: 1.05; }
-            .decision-sub { color: rgba(255,255,255,.88); }
-            .counter-pill { background: rgba(0,0,0,.22); border:1px solid rgba(255,255,255,.18); border-radius: 12px; padding:.5rem .7rem; margin-top:.45rem; }
-            .counter-k { font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.75); font-weight:800; }
-            .counter-v { font-size:1.25rem; font-weight:800; }
-
-            .metric-card { border-radius: 16px; padding: .95rem 1rem; background: #fff; border:1px solid var(--soc-border); }
-            .metric-label { font-size:.65rem; text-transform:uppercase; letter-spacing:.12em; color:#94A3B8; font-weight:800; }
-            .metric-value { font-size:2.05rem; line-height:1; margin-top:.6rem; font-family:'Newsreader', serif; font-weight:700; }
-            .metric-sub { color: var(--soc-muted); font-size:.74rem; margin-top:.5rem; }
-            .progress-track { height:6px; background:#E5E7EB; border-radius:999px; overflow:hidden; margin-top:.6rem; }
-            .progress-fill { height:100%; border-radius:999px; }
-
-            .opinion-wrap { border: 3px solid var(--soc-primary); border-radius: 22px; overflow: hidden; background: #fff; }
-            .opinion-head { background: var(--soc-primary); color: #fff; padding: .8rem 1rem; font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; font-weight:800; display:flex; gap:.45rem; align-items:center; }
-            .opinion-body { padding: 1rem 1.1rem; }
-            .opinion-list { margin:.25rem 0 0 1rem; padding:0; }
-            .opinion-list li { margin:.35rem 0; }
-            .quote-block { border-left: 4px solid var(--soc-border); padding-left: .9rem; color:#334155; }
-
-            .table-wrap { background: #fff; border: 1px solid var(--soc-border); border-radius: 18px; overflow: hidden; }
-            .table-head { padding: .9rem 1rem; border-bottom:1px solid #EEF2F7; background:#F8FAFC; display:flex; justify-content:space-between; align-items:center; gap:.6rem; }
-            .table-title { font-family: 'Newsreader', serif; font-size:1.3rem; font-weight:700; }
-            .soc-btn { display:inline-block; font-size:.64rem; letter-spacing:.1em; text-transform:uppercase; padding:.45rem .6rem; border-radius:.55rem; font-weight:800; border:1px solid var(--soc-border); background:#fff; color:#334155; }
-            .soc-btn.primary { background: var(--soc-primary); border-color: var(--soc-primary); color:#fff; }
-            .soc-table { width:100%; border-collapse:collapse; }
-            .soc-table th { text-align:left; font-size:.64rem; color:#94A3B8; text-transform:uppercase; letter-spacing:.11em; padding:.7rem .9rem; border-bottom:1px solid #EEF2F7; }
-            .soc-table td { padding:.75rem .9rem; border-bottom:1px solid #F1F5F9; font-size:.86rem; color:#1E293B; }
-            .state-chip { padding:.2rem .45rem; border-radius:.45rem; font-size:.62rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; display:inline-block; }
-            .state-ok { background:#DCFCE7; color:#065F46; border:1px solid #A7F3D0; }
-            .state-pending { background:#FEE2E2; color:#991B1B; border:1px solid #FECACA; }
-            .state-plan { background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; }
-            .state-progress { background:#FEF3C7; color:#92400E; border:1px solid #FDE68A; }
-
-            .side-card { background:#fff; border:1px solid var(--soc-border); border-radius:20px; padding:1rem; }
-            .side-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.8rem; }
-            .task-row { border:1px solid var(--soc-border); border-radius:12px; padding:.6rem .7rem; margin-bottom:.5rem; }
-            .task-row.block { border: 2px solid var(--soc-error); background: #FEF2F2; }
-            .task-meta { margin-top:.35rem; display:flex; gap:.35rem; }
-            .task-chip { font-size:.58rem; font-weight:800; letter-spacing:.1em; border-radius:.4rem; padding:.15rem .3rem; text-transform:uppercase; }
-            .chip-block { background: var(--soc-error); color:#fff; }
-            .chip-high { background:#FEE2E2; color:#991B1B; border:1px solid #FECACA; }
-            .chip-mid { background:#FEF3C7; color:#92400E; border:1px solid #FDE68A; }
-            .chip-low { background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; }
-
-            .alert-card { border-radius: 16px; padding: .8rem .9rem; border:1px solid var(--soc-border); }
-            .alert-high { background: #0F172A; border-left: 6px solid var(--soc-error); color:#fff; }
-            .alert-mid { background: #fff; border-left: 6px solid #F59E0B; }
-            .alert-low { background: #fff; border-left: 6px solid #10B981; }
-            .alert-label { font-size:.6rem; text-transform:uppercase; letter-spacing:.12em; font-weight:800; opacity:.8; }
-            .alert-title { margin-top:.3rem; font-weight:700; font-size:.86rem; }
-            .alert-msg { margin-top:.3rem; font-size:.8rem; line-height:1.4; }
-
-            .flow-card { background:#F8FAFC; border:1px solid var(--soc-border); border-radius:20px; padding:1rem; }
-            .flow-line { position:relative; margin-left:.45rem; border-left:2px solid #CBD5E1; padding-left:1.05rem; }
-            .flow-step { position:relative; margin-bottom:.95rem; }
-            .flow-dot { position:absolute; left:-1.48rem; top:.2rem; width:.78rem; height:.78rem; border-radius:999px; border:2px solid #CBD5E1; background:#fff; }
-            .flow-step.done .flow-dot { background: var(--soc-success); border-color: var(--soc-success); box-shadow: 0 0 0 3px rgba(4, 120, 87, .16); }
-            .flow-step.active .flow-dot { background: var(--soc-primary); border-color: var(--soc-primary); animation: socPulse 1.2s infinite; }
-            .flow-step.future { opacity:.55; }
-            .flow-name { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; }
-            .flow-sub { font-size:.72rem; color: var(--soc-muted); }
-
-            @keyframes socPulse {
-                0% { box-shadow: 0 0 0 0 rgba(4, 22, 39, .32); }
-                70% { box-shadow: 0 0 0 10px rgba(4, 22, 39, 0); }
-                100% { box-shadow: 0 0 0 0 rgba(4, 22, 39, 0); }
-            }
-
-            div[data-testid="stCheckbox"] label p {
-                font-size: .84rem !important;
-                color: #0F172A !important;
-                font-weight: 600 !important;
-            }
-        </style>
+        
         """,
         unsafe_allow_html=True,
     )
@@ -265,7 +173,7 @@ def _render_header(ws: dict[str, Any], cliente: str) -> None:
         risk_badge = _badge_html(f"RIESGO {riesgo}", "success")
         score_color = "#047857"
 
-    etapa = _txt(ws.get("etapa", "en revisión").replace("_", " "), "en revisión").upper()
+    etapa = _txt(ws.get("etapa", "en revisi - n").replace("_", " "), "en revisi - n").upper()
     estado_badge = _badge_html(etapa, "state")
 
     mat_rel = _safe_float(ws.get("materialidad_relativa", 0.0))
@@ -287,7 +195,7 @@ def _render_header(ws: dict[str, Any], cliente: str) -> None:
                     </div>
                     <div style="width:1px;height:48px;background:#E2E8F0;"></div>
                     <div>
-                        <div class="metric-label">Materialidad Relativa / Ejecución</div>
+                        <div class="metric-label">Materialidad Relativa / Ejecuci-n</div>
                         <div class="soc-title" style="font-size:1.42rem;color:#041627;">{_fmt_pct(mat_rel)} / {_fmt_money(mat_exec)}</div>
                     </div>
                 </div>
@@ -307,7 +215,7 @@ def _render_decision_critica(ws: dict[str, Any]) -> None:
     wrap_cls = "decision-danger" if no_lista else "decision-ok"
     title = "NO LISTA PARA CIERRE" if no_lista else "LISTA PARA CIERRE"
     subtitle = (
-        "El área presenta condiciones críticas que requieren remediación antes del cierre."
+        "El área presenta condiciones críticas que requieren remediaci-n antes del cierre."
         if no_lista
         else "El área cumple condiciones para avanzar al cierre sin bloqueos críticos."
     )
@@ -325,7 +233,7 @@ def _render_decision_critica(ws: dict[str, Any]) -> None:
 
     st.markdown(
         f"""
-        <div class="soc-root decision-wrap {wrap_cls}">
+        <div class="soc-root soc-decision decision-wrap {wrap_cls}">
             <div class="decision-inner">
                 <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
                     <div style="max-width:72%;min-width:300px;">
@@ -396,7 +304,7 @@ def _render_metrics(ws: dict[str, Any]) -> None:
     with c4:
         color = "#BA1A1A" if alertas_criticas > 0 else "#047857"
         st.markdown(
-            _render_metric_card("Alertas Críticas de Calidad", str(alertas_criticas), "Control metodológico", color),
+            _render_metric_card("Alertas Críticas de Calidad", str(alertas_criticas), "Control metodol-gico", color),
             unsafe_allow_html=True,
         )
 
@@ -421,6 +329,7 @@ def _render_opinion(ws: dict[str, Any]) -> None:
 
     st.markdown(
         f"""
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
         <div class="soc-root opinion-wrap">
             <div class="opinion-head">
                 <span class="material-symbols-outlined" style="font-size:18px;">verified_user</span>
@@ -483,7 +392,7 @@ def _render_table(ws: dict[str, Any]) -> None:
             <div class="table-head">
                 <div>
                     <div class="table-title">Procedimientos del Área</div>
-                    <div style="font-size:.74rem;color:#64748B;">Muestra de ejecución y estado operativo</div>
+                    <div style="font-size:.74rem;color:#64748B;">Muestra de ejecuci-n y estado operativo</div>
                 </div>
                 <div>
                     <span class="soc-btn">Exportar</span>
@@ -493,7 +402,7 @@ def _render_table(ws: dict[str, Any]) -> None:
             <div style="overflow-x:auto;">
                 <table class="soc-table">
                     <thead>
-                        <tr><th>ID</th><th>Descripción</th><th>Estado</th></tr>
+                        <tr><th>ID</th><th>Descripci-n</th><th>Estado</th></tr>
                     </thead>
                     <tbody>{rows_html}</tbody>
                 </table>
@@ -573,8 +482,8 @@ def _render_alertas(ws: dict[str, Any]) -> None:
 def _render_stepper(ws: dict[str, Any]) -> None:
     etapa = _txt(ws.get("etapa", "planificacion"), "planificacion").lower()
     steps = [
-        ("planificacion", "Planificación"),
-        ("ejecucion", "Ejecución"),
+        ("planificacion", "Planificaci-n"),
+        ("ejecucion", "Ejecuci-n"),
         ("cierre", "Cierre"),
     ]
 
@@ -601,6 +510,250 @@ def _render_stepper(ws: dict[str, Any]) -> None:
     )
 
 
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _load_yaml(path: Path) -> dict[str, Any]:
+    try:
+        if path.exists():
+            data = yaml.safe_load(path.read_text(encoding="utf-8", errors="replace"))
+            if isinstance(data, dict):
+                return data
+    except Exception:
+        return {}
+    return {}
+
+
+def _nia_reference_for_proc(proc: dict[str, Any], nia_available: set[str]) -> str:
+    p_tipo = _txt(proc.get("tipo", "")).lower()
+    p_desc = _txt(proc.get("descripcion", "")).lower()
+    if "confirm" in p_tipo or "circular" in p_desc:
+        return "NIA 505" if "505" in nia_available else "NIA 500"
+    if "analit" in p_tipo:
+        return "NIA 520" if "520" in nia_available else "NIA 500"
+    if "muestra" in p_desc or "muest" in p_desc:
+        return "NIA 530" if "530" in nia_available else "NIA 500"
+    return "NIA 500" if "500" in nia_available else "NIA 330"
+
+
+def _suggest_procedures(
+    ws: dict[str, Any],
+    perfil: dict[str, Any],
+    proc_catalog: dict[str, Any],
+    nia_available: set[str],
+) -> list[dict[str, Any]]:
+    codigo_ls = _txt(ws.get("codigo_ls", ""))
+    area_data = proc_catalog.get(codigo_ls, {}) if isinstance(proc_catalog.get(codigo_ls, {}), dict) else {}
+    procs = area_data.get("procedimientos", []) if isinstance(area_data.get("procedimientos", []), list) else []
+    if not procs:
+        return []
+
+    riesgo = _txt(ws.get("riesgo", "MEDIO"), "MEDIO").upper()
+    area_score = _safe_float(ws.get("area_score", 0.0))
+    risk_high = riesgo == "ALTO" or area_score >= 70 or _safe_int(ws.get("hallazgos_count", 0)) > 0
+    sector = _txt(
+        perfil.get("cliente", {}).get("sector", perfil.get("sector", ""))
+        if isinstance(perfil, dict)
+        else ""
+    ).lower()
+    is_holding_14 = ("holding" in sector) and (codigo_ls == "14")
+
+    ranked: list[tuple[float, dict[str, Any]]] = []
+    for p in procs:
+        if not isinstance(p, dict):
+            continue
+        score = 0.0
+        descripcion = _txt(p.get("descripcion", "")).lower()
+        afirmacion = _txt(p.get("afirmacion", "")).lower()
+        tipo = _txt(p.get("tipo", "")).lower()
+        if bool(p.get("obligatorio", False)):
+            score += 3.0
+        if risk_high and "valuacion" in afirmacion:
+            score += 2.5
+        if risk_high and "confirm" in tipo:
+            score += 1.8
+        if is_holding_14 and (
+            "vpp" in descripcion
+            or "particip" in descripcion
+            or "inversion" in descripcion
+        ):
+            score += 4.2
+        if "corte" in afirmacion:
+            score += 0.8
+        p2 = dict(p)
+        p2["nia_ref"] = _nia_reference_for_proc(p2, nia_available)
+        ranked.append((score, p2))
+
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    return [x[1] for x in ranked[:3]]
+
+
+def _render_copy_block(md_text: str, key: str) -> None:
+    safe_text = md_text.replace("`", "'")
+    html = f"""
+    <div style="margin-top:.5rem;">
+      <textarea id="{key}_txt" style="width:100%;height:220px;border:1px solid #E2E8F0;border-radius:12px;padding:10px;background:#fff;color:#0F172A;">{escape(safe_text)}</textarea>
+      <button id="{key}_btn" style="margin-top:.5rem;border:0;background:#041627;color:#fff;border-radius:10px;padding:.5rem .85rem;font-weight:700;cursor:pointer;">
+        Copiar al portapapeles
+      </button>
+      <span id="{key}_msg" style="margin-left:.55rem;color:#047857;font-size:.83rem;"></span>
+    </div>
+    <script>
+      const btn = document.getElementById("{key}_btn");
+      const txt = document.getElementById("{key}_txt");
+      const msg = document.getElementById("{key}_msg");
+      btn.addEventListener("click", async () => {{
+        try {{
+          await navigator.clipboard.writeText(txt.value);
+          msg.textContent = "Copiado";
+        }} catch(e) {{
+          msg.textContent = "No se pudo copiar";
+        }}
+      }});
+    </script>
+    """
+    components.html(html, height=300)
+
+
+def _render_workspace_execution(ws: dict[str, Any], cliente: str, perfil: dict[str, Any]) -> None:
+    root = _project_root()
+    asev_path = root / "data" / "catalogos" / "aseveraciones_guia_ls.yaml"
+    proc_path = root / "data" / "catalogos" / "procedimientos_por_area.yaml"
+    nia_dir = root / "data" / "conocimiento_normativo" / "nias"
+
+    asev_catalog = _load_yaml(asev_path)
+    proc_catalog = _load_yaml(proc_path)
+    nia_available = set()
+    if nia_dir.exists():
+        for f in nia_dir.glob("nia_*.md"):
+            m = re.search(r"nia_(\d+)", f.stem.lower())
+            if m:
+                nia_available.add(m.group(1))
+
+    codigo_ls = _txt(ws.get("codigo_ls", ""))
+    asev_data = asev_catalog.get(codigo_ls, {}) if isinstance(asev_catalog.get(codigo_ls, {}), dict) else {}
+    aseveraciones = asev_data.get("aseveraciones_sugeridas", []) if isinstance(asev_data.get("aseveraciones_sugeridas", []), list) else []
+    if not aseveraciones:
+        aseveraciones = _to_list(ws.get("cobertura", {}).get("esperadas", [])) if isinstance(ws.get("cobertura", {}), dict) else []
+
+    riesgo = _txt(ws.get("riesgo", "MEDIO"), "MEDIO").upper()
+    area_score = _safe_float(ws.get("area_score", 0.0))
+    risk_high = riesgo == "ALTO" or area_score >= 70 or _safe_int(ws.get("hallazgos_count", 0)) > 0
+
+    suggested = _suggest_procedures(ws, perfil, proc_catalog, nia_available)
+
+    st.markdown("<div class='section-header'>Workspace de Ejecuci-n</div>", unsafe_allow_html=True)
+    col_asev, col_proc = st.columns([1, 2], gap="large")
+
+    with col_asev:
+        st.markdown("<div class='sovereign-card'>", unsafe_allow_html=True)
+        st.markdown("**Aseveraciones Clave**")
+        if aseveraciones:
+            for a in aseveraciones:
+                a_txt = _txt(a)
+                priority = (
+                    '<span class="soc-badge badge-error" style="margin-left:.35rem;">Prioridad Alta</span>'
+                    if risk_high and a_txt.lower() == "valuacion"
+                    else ""
+                )
+                st.markdown(
+                    f"""
+                    <div style="border:1px solid #E2E8F0;background:#F8FAFC;border-radius:12px;padding:.55rem .65rem;margin-bottom:.4rem;">
+                      <span style="font-weight:700;color:#041627;">{a_txt}</span>{priority}
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("No se encontraron aseveraciones guía para esta área.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_proc:
+        st.markdown("<div class='sovereign-card'>", unsafe_allow_html=True)
+        st.markdown("**Procedimientos sugeridos por riesgo**")
+        if suggested:
+            for i, p in enumerate(suggested, start=1):
+                pid = _txt(p.get("id", f"PROC-{i}"))
+                pdesc = _txt(p.get("descripcion", "Sin descripción"))
+                paf = _txt(p.get("afirmacion", "N/D"))
+                nia = _txt(p.get("nia_ref", "NIA 500"))
+                st.checkbox(
+                    f"{pid} - {pdesc}",
+                    key=f"ws_proc_{codigo_ls}_{i}_{pid}",
+                    value=False,
+                )
+                st.markdown(
+                    f"<div style='margin:-.2rem 0 .5rem 1.9rem;font-size:.78rem;color:#64748B;'>"
+                    f"Aseveración: <b>{paf}</b> - Referencia: <b>{nia}</b></div>",
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("No hay procedimientos catalogados para esta área.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:.4rem;'></div>", unsafe_allow_html=True)
+    if st.button("-- -- Generar Ficha de Ejecuci-n", key=f"btn_ficha_exec_{codigo_ls}", type="primary"):
+        me = _safe_float(ws.get("materialidad_ejecucion", 0.0))
+        cuentas_rel = _safe_int(ws.get("area_summary", {}).get("cuentas_relevantes", 0)) if isinstance(ws.get("area_summary", {}), dict) else 0
+        muestra = max(5, min(35, cuentas_rel if cuentas_rel > 0 else int((me / 10000.0) if me else 8)))
+        proc_lineas = []
+        for idx, p in enumerate(suggested[:3], start=1):
+            proc_lineas.append(f"{idx}. {p.get('descripcion', 'Procedimiento')}")
+        proc_txt = "<br>".join([escape(x) for x in proc_lineas]) if proc_lineas else "1. Sin procedimiento sugerido"
+        asev_target = ", ".join([_txt(a) for a in aseveraciones[:2]]) if aseveraciones else "Valuaci-n"
+        riesgo_txt = _txt(ws.get("riesgo", "MEDIO"), "MEDIO").upper()
+
+        ficha = (
+            "| Riesgo Identificado | Aseveración atacada | Procedimiento paso a paso | Muestra sugerida |\n"
+            "|---|---|---|---|\n"
+            f"| Riesgo {riesgo_txt} en área LS {codigo_ls} | {asev_target} | {proc_txt} | {muestra} elementos |\n"
+        )
+        st.markdown("<div class='sovereign-card'>", unsafe_allow_html=True)
+        st.markdown("**Ficha de Ejecuci-n (copiable a Excel)**")
+        st.markdown(ficha)
+        _render_copy_block(ficha, key=f"copy_ficha_{codigo_ls}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:.35rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='sovereign-card'>", unsafe_allow_html=True)
+    st.markdown("**Documentar Conclusi-n**")
+    hall_path = root / "data" / "clientes" / str(cliente) / "hallazgos.md"
+    if f"conclusion_ws_{codigo_ls}_{cliente}" not in st.session_state:
+        existing = ""
+        try:
+            if hall_path.exists():
+                existing = hall_path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            existing = ""
+        st.session_state[f"conclusion_ws_{codigo_ls}_{cliente}"] = existing
+
+    concl = st.text_area(
+        "Conclusi-n del área",
+        key=f"conclusion_ws_{codigo_ls}_{cliente}",
+        height=150,
+        placeholder="Documenta evidencia, conclusi-n y pendientes finales...",
+    )
+    if st.button("Guardar conclusi-n local", key=f"save_concl_{codigo_ls}_{cliente}"):
+        try:
+            hall_path.parent.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+            current = ""
+            if hall_path.exists():
+                current = hall_path.read_text(encoding="utf-8", errors="replace")
+            block = (
+                f"\n\n## {ws.get('area_name', 'Área')} (LS {codigo_ls})\n"
+                f"- Fecha: {stamp}\n"
+                f"- Riesgo: {ws.get('riesgo', 'N/D')}\n\n"
+                f"{concl.strip()}\n"
+            )
+            hall_path.write_text((current + block).strip() + "\n", encoding="utf-8")
+            st.success("Conclusi-n guardada en hallazgos.md")
+        except Exception as e:
+            st.error(f"No se pudo guardar la conclusi-n: {e}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def render_area_premium(ws: dict, cliente: str, datos_clave: dict, perfil: dict) -> None:
     if not ws:
         return
@@ -615,6 +768,7 @@ def render_area_premium(ws: dict, cliente: str, datos_clave: dict, perfil: dict)
 
     with main_col:
         _render_opinion(ws)
+        _render_workspace_execution(ws, cliente, perfil if isinstance(perfil, dict) else {})
         _render_table(ws)
 
     with side_col:
@@ -657,3 +811,71 @@ def render_pending_system_premium(ws: dict[str, Any]) -> None:
 def render_alerts_premium(ws: dict[str, Any]) -> None:
     _inject_assets_once()
     _render_alertas(ws or {})
+
+
+def _render_cierre_cards(ws: dict[str, Any]) -> None:
+    """Render editorial closure cards used by legacy intelligence/memory tabs."""
+    _inject_assets_once()
+    ws = ws or {}
+
+    hallazgos_count = _safe_int(ws.get("hallazgos_count", 0))
+    pendientes_count = _safe_int(ws.get("pending_count", 0))
+    focos = [str(x).strip() for x in _to_list(ws.get("focos")) if str(x).strip()]
+    hallazgos = [str(x).strip() for x in _to_list(ws.get("hallazgos")) if str(x).strip()]
+    pendientes = [str(x).strip() for x in _to_list(ws.get("pendientes")) if str(x).strip()]
+
+    st.markdown(
+        """
+        <div class="section-header">Cierre del Area</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(
+            f"""
+            <div class="sovereign-card">
+              <div class="metric-label">Hallazgos Abiertos</div>
+              <div class="metric-value" style="color:{'#BA1A1A' if hallazgos_count > 0 else '#047857'};">{hallazgos_count}</div>
+              <div class="metric-sub">{escape(hallazgos[0]) if hallazgos else 'Sin hallazgos materiales abiertos.'}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with c2:
+        st.markdown(
+            f"""
+            <div class="sovereign-card">
+              <div class="metric-label">Pendientes Criticos</div>
+              <div class="metric-value" style="color:{'#B45309' if pendientes_count > 0 else '#047857'};">{pendientes_count}</div>
+              <div class="metric-sub">{escape(pendientes[0]) if pendientes else 'No hay pendientes bloqueantes.'}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with c3:
+        st.markdown(
+            f"""
+            <div class="sovereign-card">
+              <div class="metric-label">Acciones Requeridas</div>
+              <div class="metric-value" style="font-size:1.65rem;color:#041627;">{len(focos)}</div>
+              <div class="metric-sub">{escape(focos[0]) if focos else 'Sin acciones nuevas definidas.'}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    if focos:
+        items = "".join(
+            [f"<li style='margin:.3rem 0;'>{escape(x)}</li>" for x in focos[:5]]
+        )
+        st.markdown(
+            f"""
+            <div class="sovereign-card" style="margin-top:.6rem;">
+              <div class="metric-label">Plan de Cierre Prioritario</div>
+              <ul style="margin:.45rem 0 0 1rem; color:#334155;">{items}</ul>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )

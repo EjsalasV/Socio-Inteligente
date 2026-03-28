@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import sys
 from pathlib import Path
@@ -53,7 +53,7 @@ def imprimir_agrupacion_ls(nombre_cliente: str) -> None:
     df_tb = leer_trial_balance(ruta_tb)
 
     if df_tb.empty:
-        print("El TB estÃ¡ vacÃ­o.")
+        print("El TB está vacío.")
         return
 
     df_var = calcular_variaciones(df_tb)
@@ -65,7 +65,7 @@ def imprimir_agrupacion_ls(nombre_cliente: str) -> None:
     periodo = obtener_periodo(perfil)
 
     print("\n====================================================")
-    print("AGRUPACIÃ“N POR L/S")
+    print("AGRUPACIÓN POR L/S")
     print("====================================================\n")
     print(f"Cliente: {cliente}")
     print(f"Periodo: {periodo}")
@@ -92,4 +92,4 @@ if __name__ == "__main__":
         imprimir_agrupacion_ls(cliente)
 
     except Exception as e:
-        print(f"\nError en agrupaciÃ³n por L/S: {e}")
+        print(f"\nError en agrupación por L/S: {e}")

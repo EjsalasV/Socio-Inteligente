@@ -1,118 +1,44 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+dist/
+build/
+.venv/
+venv/
+.env
+*.log
+logs/
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
+# Caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 .coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
+htmlcov/
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-*.sublime-project
-*.sublime-workspace
-
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
-
-# pyenv
-.python-version
-
-# Logs
-logs/
-*.log
-
-# Data and uploads
-data/uploads/*
-data/processed/*
-data/exports/*
-*.xlsx
-*.xls
-
-# Vector store
+# Local data artifacts
 chroma/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Project specific
-.env.local
-config.local.yaml
-secrets/
-
-# Streamlit secrets (NEVER commit)
-.streamlit/secrets.toml
-
-# Keep config (safe to commit)
-!.streamlit/config.toml
-!.streamlit/secrets.toml.example
-
-# ChromaDB (rebuilds on cloud)
-chroma/
-
-# Local exports and logs
 data/exports/
-logs/
+data/uploads/
 
-# Sensitive client data — commit only demo data
+# Node / Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+frontend/.turbo/
+frontend/*.tsbuildinfo
+frontend/coverage/
+
+# Sensitive files
+.streamlit/secrets.toml
 data/clientes/bf_holding_2025/tb.xlsx
 data/clientes/bustamante_fabara_ip_2025/tb.xlsx
 
-# Keep demo client and catalogs
+# Keep demo and knowledge catalogs
 !data/clientes/cliente_demo/
 !data/clientes/cliente_demo/**
 !data/catalogos/
@@ -121,3 +47,12 @@ data/clientes/bustamante_fabara_ip_2025/tb.xlsx
 !data/conocimiento_normativo/**
 !data/criterio_experto/
 !data/criterio_experto/**
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

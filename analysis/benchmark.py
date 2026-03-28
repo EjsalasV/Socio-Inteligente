@@ -1,4 +1,4 @@
-﻿"""
+"""
 Módulo de benchmark sectorial para auditoría.
 Compara ratios del cliente contra referencias por sector
 para identificar desviaciones que requieren atención.

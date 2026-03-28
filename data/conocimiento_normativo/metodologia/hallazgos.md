@@ -1,14 +1,14 @@
-﻿# Hallazgos de Auditoría — Guía Metodológica SocioAI
+ï»¿# Hallazgos de Auditoría â€" Guía MetodolÃ3gica SocioAI
 
-## Definición
-Un hallazgo de auditoría es una situación identificada durante
-el encargo que requiere atención, ya sea una incorrección,
+## DefiniciÃ3n
+Un hallazgo de auditoría es una situaciÃ3n identificada durante
+el encargo que requiere atenciÃ3n, ya sea una incorrecciÃ3n,
 una debilidad de control o un incumplimiento normativo.
 
 ## Estructura de un Hallazgo (4C)
 
-### 1. Condición
-¿Qué encontramos? La situación real observada.
+### 1. CondiciÃ3n
+¿Qué encontramos? La situaciÃ3n real observada.
 - Específica y documentada con referencia a la evidencia
 - Medible cuando sea posible (importe, cantidad, porcentaje)
 
@@ -18,11 +18,11 @@ una debilidad de control o un incumplimiento normativo.
 - Ser específico: indicar el artículo o párrafo aplicable
 
 ### 3. Causa
-¿Por qué ocurrió? La razón de la diferencia entre condición y criterio.
+¿Por qué ocurriÃ3? La razÃ3n de la diferencia entre condiciÃ3n y criterio.
 - Control interno ausente o inefectivo
 - Error humano o sistema deficiente
 - Cambio de circunstancias no reflejado
-- Interpretación incorrecta de la norma
+- InterpretaciÃ3n incorrecta de la norma
 
 ### 4. Efecto (o Riesgo)
 ¿Qué impacto tiene? Las consecuencias actuales o potenciales.
@@ -31,59 +31,59 @@ una debilidad de control o un incumplimiento normativo.
 - Riesgo de auditoría resultante
 - Consecuencias legales o tributarias
 
-## Clasificación de Hallazgos
+## ClasificaciÃ3n de Hallazgos
 
 ### Por Naturaleza
-| Tipo | Descripción |
+| Tipo | DescripciÃ3n |
 |------|-------------|
-| Incorrección material | Afecta estados financieros en monto material |
-| Incorrección inmaterial | Monto inferior a materialidad |
+| IncorrecciÃ3n material | Afecta estados financieros en monto material |
+| IncorrecciÃ3n inmaterial | Monto inferior a materialidad |
 | Debilidad de control | Control interno ausente o inefectivo |
 | Incumplimiento normativo | Incumplimiento de ley, reglamento o contrato |
-| Observación de mejora | Oportunidad de mejora sin incorrección |
+| ObservaciÃ3n de mejora | Oportunidad de mejora sin incorrecciÃ3n |
 
 ### Por Nivel de Riesgo en SocioAI
-- **Alto**: requiere ajuste o revelación en EEFF
-- **Medio**: requiere atención y documentación
-- **Bajo**: observación para conocimiento de la dirección
+- **Alto**: requiere ajuste o revelaciÃ3n en EEFF
+- **Medio**: requiere atenciÃ3n y documentaciÃ3n
+- **Bajo**: observaciÃ3n para conocimiento de la direcciÃ3n
 
-## Proceso de Resolución de Hallazgos
+## Proceso de ResoluciÃ3n de Hallazgos
 
 Identificar y documentar hallazgo
-↓
-Comunicar a la dirección
-↓
-Obtener respuesta de la dirección
-↓
+â†"
+Comunicar a la direcciÃ3n
+â†"
+Obtener respuesta de la direcciÃ3n
+â†"
 Evaluar respuesta (acepta / no acepta)
-↓
-Si acepta: verificar corrección y cerrar
-Si no acepta: evaluar impacto en opinión
-↓
-Documentar conclusión final
+â†"
+Si acepta: verificar correcciÃ3n y cerrar
+Si no acepta: evaluar impacto en opiniÃ3n
+â†"
+Documentar conclusiÃ3n final
 
 
-## Evaluación de Incorrecciones No Corregidas
+## EvaluaciÃ3n de Incorrecciones No Corregidas
 Al cierre, evaluar si la suma de incorrecciones no corregidas
-supera la materialidad de ejecución.
+supera la materialidad de ejecuciÃ3n.
 Incorrecciones conocidas + Proyectadas = Total
-¿Total > Materialidad de ejecución?
-SÍ → Solicitar ajuste o modificar opinión
-NO → Evaluar si son materiales cualitativamente
+¿Total > Materialidad de ejecuciÃ3n?
+SÃ- â†' Solicitar ajuste o modificar opiniÃ3n
+NO â†' Evaluar si son materiales cualitativamente
 
-## Comunicación de Hallazgos
+## ComunicaciÃ3n de Hallazgos
 
 ### Carta de Gerencia
-Comunicar debilidades de control interno a la dirección por escrito.
+Comunicar debilidades de control interno a la direcciÃ3n por escrito.
 Incluir:
-- Descripción de la debilidad
+- DescripciÃ3n de la debilidad
 - Riesgo resultante
-- Recomendación del auditor
-- Respuesta de la dirección
+- RecomendaciÃ3n del auditor
+- Respuesta de la direcciÃ3n
 
 ### Al Gobierno Corporativo
 Comunicar hallazgos significativos que puedan afectar
 la confiabilidad de los estados financieros.
 
 ---
-*Metodología interna SocioAI — basada en NIAs 260, 265, 450*
+*Metodología interna SocioAI â€" basada en NIAs 260, 265, 450*

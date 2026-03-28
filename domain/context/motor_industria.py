@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import sys
 from typing import Any, Dict, List, Set
@@ -283,7 +283,7 @@ BASE_INDUSTRIAS = {
 
 
 # =========================================================
-# EXTRACCIÃ“N DESDE PERFIL
+# EXTRACCIÓN DESDE PERFIL
 # =========================================================
 
 def detectar_sector_base(perfil: Dict[str, Any]) -> str:
@@ -403,7 +403,7 @@ def construir_tags_negocio(perfil: Dict[str, Any]) -> List[str]:
 
 
 # =========================================================
-# COMBINACIÃ“N DE REGLAS
+# COMBINACIÓN DE REGLAS
 # =========================================================
 
 def obtener_reglas_base(sector_base: str, subtipo_negocio: str) -> Dict[str, Any]:
@@ -483,7 +483,7 @@ def construir_contexto_industrial(perfil: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # =========================================================
-# IMPRESIÃ“N
+# IMPRESIÓN
 # =========================================================
 
 def imprimir_contexto_industrial(nombre_cliente: str) -> None:

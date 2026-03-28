@@ -43,54 +43,8 @@ def _inject_assets_once() -> None:
         """
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,600;0,700;1,700&family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet">
-        <style>
-            :root {
-                --ef-primary: #041627;
-                --ef-error: #BA1A1A;
-                --ef-medium: #B45309;
-                --ef-success: #047857;
-                --ef-surface: #F7FAFC;
-                --ef-border: #E2E8F0;
-                --ef-muted: #64748B;
-                --ef-white: #FFFFFF;
-            }
-            .ef-root { font-family: 'Inter', sans-serif; color: var(--ef-primary); }
-            .ef-serif { font-family: 'Newsreader', serif; letter-spacing: -0.015em; }
-            .ef-card { background: #fff; border: 1px solid var(--ef-border); border-radius: 16px; }
-            .ef-metric { padding: 1rem; border-left: 4px solid var(--ef-primary); }
-            .ef-metric.k2 { border-left-color: #89d3d4; }
-            .ef-metric.k3 { border-left: 0; background: #1a2b3c; color: #fff; position: relative; overflow: hidden; }
-            .ef-label { font-size: .64rem; letter-spacing: .13em; text-transform: uppercase; font-weight: 800; color: var(--ef-muted); }
-            .ef-value { margin-top: .45rem; font-size: 2rem; font-weight: 700; line-height: 1.05; }
-            .ef-sub { margin-top: .25rem; font-size: .74rem; color: var(--ef-muted); }
-
-            .ef-table-wrap { background: #f1f4f6; border-radius: 14px; padding: 4px; }
-            .ef-table-box { background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #e9eef3; }
-            .ef-table-head { padding: .85rem 1rem; border-bottom: 1px solid #eef2f7; display:flex; justify-content:space-between; align-items:center; }
-            .ef-btn { display:inline-block; padding:.38rem .58rem; border-radius:.55rem; font-size:.62rem; text-transform:uppercase; font-weight:800; letter-spacing:.1em; border:1px solid #cbd5e1; color:#334155; margin-left:.3rem; }
-            .ef-btn.primary { background: var(--ef-primary); border-color: var(--ef-primary); color:#fff; }
-            .ef-table { width: 100%; border-collapse: collapse; }
-            .ef-table th { text-align:left; font-size:.62rem; text-transform:uppercase; letter-spacing:.11em; color:#64748B; padding:.72rem .8rem; background:#f1f4f6; }
-            .ef-table td { padding:.72rem .8rem; border-bottom:1px solid #f1f5f9; font-size:.84rem; }
-            .ef-num { text-align:right; }
-            .ef-warn-row { background: rgba(186,26,26,.06); }
-            .ef-warn { color: var(--ef-error); font-weight: 800; }
-            .ef-ok { color: var(--ef-success); font-weight: 700; }
-
-            .ef-ia { padding: 1rem; }
-            .ef-ia-item { background:#f1f4f6; border-left:4px solid #89d3d4; border-radius:10px; padding:.75rem .85rem; margin-top:.6rem; }
-            .ef-ia-item h4 { margin:0 0 .25rem 0; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; }
-            .ef-ia-item p { margin:0; color:#475569; font-size:.82rem; line-height:1.45; }
-            .ef-alerts { background:#1a2b3c; color:#fff; padding:1rem; border-radius:14px; }
-            .ef-alert { display:flex; gap:.6rem; padding:.6rem 0; border-bottom:1px solid rgba(255,255,255,.12); }
-            .ef-alert:last-child { border-bottom:0; }
-            .ef-alert-title { font-size:.8rem; font-weight:700; }
-            .ef-alert-msg { font-size:.72rem; color:#cbd5e1; margin-top:.2rem; }
-
-            .ef-narrative { margin-top: .9rem; padding: 1rem; border-radius: 18px; background:#f1f4f6; }
-            .ef-pill { font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:#64748B; font-weight:800; }
-        </style>
+        <link href="https://fonts.googleapis.com/css2family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,600;0,700;1,700&family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet">
+        
         """,
         unsafe_allow_html=True,
     )

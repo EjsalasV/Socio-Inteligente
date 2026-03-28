@@ -1,50 +1,50 @@
-﻿# Superintendencia de Compañías, Valores y Seguros — Ecuador
+ï»¿# Superintendencia de Compañías, Valores y Seguros â€" Ecuador
 
 ## Rol y Funciones
-La Supercias es el organismo técnico y autónomo que vigila y controla
-la organización, actividades, funcionamiento, disolución y liquidación
+La Supercias es el organismo técnico y autÃ3nomo que vigila y controla
+la organizaciÃ3n, actividades, funcionamiento, disoluciÃ3n y liquidaciÃ3n
 de las compañías y otras entidades en las circunstancias que establece la ley.
 
 ## Marco Legal Principal
-- Ley de Compañías (Codificación)
+- Ley de Compañías (CodificaciÃ3n)
 - Reglamentos de la Supercias
 - Resoluciones específicas por tipo de entidad
 
 ## Tipos de Compañías Supervisadas
 | Tipo | Características |
 |------|----------------|
-| Compañía Anónima (S.A.) | Capital dividido en acciones, mínimo 2 accionistas |
+| Compañía AnÃ3nima (S.A.) | Capital dividido en acciones, mínimo 2 accionistas |
 | Compañía Limitada (Cía. Ltda.) | Capital dividido en participaciones, máx. 15 socios |
-| Sociedad por Acciones Simplificada (SAS) | Flexible, constitución por escritura pública |
-| Sucursal de compañía extranjera | Requiere permiso de operación |
+| Sociedad por Acciones Simplificada (SAS) | Flexible, constituciÃ3n por escritura pÃoblica |
+| Sucursal de compañía extranjera | Requiere permiso de operaciÃ3n |
 
-## Obligaciones de Presentación de Información
+## Obligaciones de PresentaciÃ3n de InformaciÃ3n
 
 ### Estados Financieros Anuales
 - Plazo: hasta el 30 de abril del año siguiente
-- Formato: según resoluciones Supercias
-- Auditoría externa: obligatoria para compañías con activos ≥ USD 1 millón
-  o ingresos ≥ USD 5 millones (verificar umbrales vigentes)
+- Formato: segÃon resoluciones Supercias
+- Auditoría externa: obligatoria para compañías con activos â‰¥ USD 1 millÃ3n
+  o ingresos â‰¥ USD 5 millones (verificar umbrales vigentes)
 
 ### Marco Contable Aplicable
 - **NIIF Completas**: grupo 1 (grandes empresas, cotizadas)
 - **NIIF para PYMES**: grupo 2 (medianas empresas)
-- **Catálogo único de cuentas**: para microempresas
+- **Catálogo Ãonico de cuentas**: para microempresas
 
-### Información Adicional Requerida
-- Nómina de socios/accionistas
-- Informe de administración
+### InformaciÃ3n Adicional Requerida
+- NÃ3mina de socios/accionistas
+- Informe de administraciÃ3n
 - Informe del comisario (cuando aplique)
-- Declaración de dividendos
+- DeclaraciÃ3n de dividendos
 
 ## Auditoría Externa Obligatoria
-Según resolución Supercias, están obligadas a contratar auditoría externa:
+SegÃon resoluciÃ3n Supercias, están obligadas a contratar auditoría externa:
 
 | Criterio | Umbral Referencial |
 |----------|-------------------|
-| Activos totales | ≥ USD 1 millón |
-| Ingresos brutos | ≥ USD 5 millones |
-| Número de trabajadores | ≥ 100 |
+| Activos totales | â‰¥ USD 1 millÃ3n |
+| Ingresos brutos | â‰¥ USD 5 millones |
+| NÃomero de trabajadores | â‰¥ 100 |
 | Compañías cotizadas | Siempre |
 
 *Verificar umbrales actualizados en www.supercias.gob.ec*
@@ -52,9 +52,9 @@ Según resolución Supercias, están obligadas a contratar auditoría externa:
 ## Informe del Auditor
 El auditor debe presentar informe a la Supercias siguiendo los formatos
 establecidos. El informe debe incluir:
-- Opinión sobre estados financieros
+- OpiniÃ3n sobre estados financieros
 - Carta de control interno (observaciones de control)
-- Declaración de independencia del auditor
+- DeclaraciÃ3n de independencia del auditor
 
 ## Registro de Auditores
 Los auditores externos deben estar registrados en el Catastro de Auditores
@@ -62,24 +62,24 @@ Externos de la Supercias para poder emitir informes válidos.
 
 ## Plazos Clave
 
-| Obligación | Plazo |
+| ObligaciÃ3n | Plazo |
 |------------|-------|
 | Estados financieros | 30 de abril |
 | Informe de auditoría | Con los estados financieros |
 | Junta de accionistas | Máx. 3 meses después del cierre |
-| Reportes intermedios | Según resolución específica |
+| Reportes intermedios | SegÃon resoluciÃ3n específica |
 
 ## Sanciones por Incumplimiento
-- Multas por presentación tardía
-- Cancelación del permiso de operación en casos graves
-- Publicación de incumplimientos en el Registro Mercantil
+- Multas por presentaciÃ3n tardía
+- CancelaciÃ3n del permiso de operaciÃ3n en casos graves
+- PublicaciÃ3n de incumplimientos en el Registro Mercantil
 
 ## Alertas para el Auditor
-- Verificar que la compañía cumple obligaciones de presentación
+- Verificar que la compañía cumple obligaciones de presentaciÃ3n
 - Confirmar que el auditor está registrado en Supercias
 - Revisar que se cumple el plazo del 30 de abril
 - Evaluar si la compañía está obligada a auditoría externa
 - Revisar actas de junta de accionistas del período
 
 ---
-*Fuente: Supercias Ecuador — www.supercias.gob.ec*
+*Fuente: Supercias Ecuador â€" www.supercias.gob.ec*

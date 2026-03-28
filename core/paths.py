@@ -1,4 +1,4 @@
-﻿"""
+"""
 Gestión centralizada de rutas del proyecto SocioAI.
 Todas las rutas se calculan relativas a la raíz del proyecto.
 """

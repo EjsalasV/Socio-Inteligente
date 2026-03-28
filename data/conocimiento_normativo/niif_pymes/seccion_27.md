@@ -1,27 +1,27 @@
-﻿# Sección 27 — Deterioro del Valor de los Activos (NIIF para PYMES)
+ï»¿# SecciÃ3n 27 â€" Deterioro del Valor de los Activos (NIIF para PYMES)
 
 ## Objetivo
 Asegurar que los activos no se registren por encima de su importe recuperable.
 
-## Ámbito de Aplicación
-- Inventarios (Sección 13)
-- PPE (Sección 17)
-- Activos intangibles (Sección 18)
+## Ã-mbito de AplicaciÃ3n
+- Inventarios (SecciÃ3n 13)
+- PPE (SecciÃ3n 17)
+- Activos intangibles (SecciÃ3n 18)
 - Inversiones en asociadas y negocios conjuntos
 - Activos por impuestos diferidos (excluidos)
-- Activos financieros (Sección 11 y 12)
+- Activos financieros (SecciÃ3n 11 y 12)
 
 ## Deterioro de Inventarios
 Reconocer deterioro cuando:
 Valor neto realizable < Costo
 
-**Valor Neto Realizable** = Precio estimado de venta - Costos de terminación y venta
+**Valor Neto Realizable** = Precio estimado de venta - Costos de terminaciÃ3n y venta
 
 Indicadores:
 - Daño físico
 - Obsolescencia total o parcial
 - Precios de venta caídos por debajo del costo
-- Costos estimados de terminación o venta aumentados
+- Costos estimados de terminaciÃ3n o venta aumentados
 
 ## Deterioro de Activos No Financieros
 
@@ -33,7 +33,7 @@ Indicadores:
 ### Indicadores Internos
 - Evidencia de daño físico o desuso
 - Cambios adversos en el uso esperado del activo
-- Rendimiento económico peor de lo esperado
+- Rendimiento econÃ3mico peor de lo esperado
 
 ### Cálculo del Deterioro
 Pérdida por deterioro = Valor en libros - Importe recuperable
@@ -42,18 +42,18 @@ Valor en uso)
 
 **Valor en uso**: valor presente de flujos de caja futuros esperados.
 
-## Reversión del Deterioro
+## ReversiÃ3n del Deterioro
 Se permite revertir si el importe recuperable aumenta posteriormente,
 excepto para el crédito mercantil (goodwill).
 
-## Deterioro de Cartera (Sección 11)
-Ver análisis de antigüedad y porcentajes referenciales en Sección 11.
+## Deterioro de Cartera (SecciÃ3n 11)
+Ver análisis de antigÃ1⁄4edad y porcentajes referenciales en SecciÃ3n 11.
 
 ## Alertas de Auditoría
-- Verificar que se evalúa deterioro al cierre de cada período
+- Verificar que se evalÃoa deterioro al cierre de cada período
 - Revisar razonabilidad de supuestos en el valor en uso
 - Confirmar que inventarios obsoletos tienen deterioro reconocido
 - Evaluar si las reversiones de deterioro son justificadas
 
 ---
-*Fuente: IASB — NIIF para las PYMES (2015/2019)*
+*Fuente: IASB â€" NIIF para las PYMES (2015/2019)*

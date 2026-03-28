@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from html import escape
+from pathlib import Path
 from textwrap import dedent
 from typing import Any
 
@@ -39,55 +40,8 @@ def _inject_assets_once() -> None:
             """
             <link rel="preconnect" href="https://fonts.googleapis.com">
             <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,600;0,700;1,700&family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet">
-            <style>
-                :root {
-                    --rk-primary: #041627;
-                    --rk-error: #BA1A1A;
-                    --rk-medium: #B45309;
-                    --rk-success: #047857;
-                    --rk-border: #E2E8F0;
-                    --rk-muted: #64748B;
-                }
-                .rk-root { font-family: 'Inter', sans-serif; color: var(--rk-primary); }
-                .rk-serif { font-family: 'Newsreader', serif; letter-spacing: -0.018em; }
-                .rk-card { background: #fff; border: 1px solid var(--rk-border); border-radius: 16px; }
-                .rk-kicker { font-size: .64rem; text-transform: uppercase; letter-spacing: .2em; color:#006d77; font-weight: 800; }
-                .rk-title { font-size: 2.2rem; line-height: 1.05; margin: .2rem 0 0 0; }
-
-                .rk-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap: 1rem; }
-                .rk-col-7 { grid-column: span 12; }
-                .rk-col-5 { grid-column: span 12; }
-                @media (min-width: 1100px) {
-                    .rk-col-7 { grid-column: span 7; }
-                    .rk-col-5 { grid-column: span 5; }
-                }
-
-                .rk-heat-wrap { padding:1rem; }
-                .rk-heat-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; width:100%; max-width:520px; aspect-ratio:1 / 1; }
-                .rk-cell { border-radius:4px; position:relative; }
-                .rk-cell.hot { box-shadow: 0 0 0 2px rgba(255,255,255,.7) inset, 0 0 16px rgba(186,26,26,.18); }
-                .rk-dot { width:7px; height:7px; border-radius:999px; background:#fff; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); }
-
-                .rk-strategy { background:#1a2b3c; color:#fff; padding:1rem; border-radius:16px; }
-                .rk-strategy .lbl { font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:#89d3d4; font-weight:800; }
-                .rk-strategy h3 { margin:.35rem 0 .75rem 0; font-size:1.75rem; }
-                .rk-insight { background:#002f30; color:#a5eff0; border:1px solid rgba(137,211,212,.25); border-radius:12px; padding:.8rem; }
-
-                .rk-risk-card { background:#f1f4f6; border-radius:12px; padding:.75rem .85rem; border-left:4px solid #BA1A1A; display:flex; justify-content:space-between; gap:.7rem; align-items:center; margin-bottom:.5rem; }
-                .rk-risk-card.mid { border-left-color:#B45309; }
-                .rk-risk-card.low { border-left-color:#64748B; }
-                .rk-chip { font-size:.58rem; letter-spacing:.09em; text-transform:uppercase; font-weight:800; border-radius:.35rem; padding:.16rem .35rem; }
-                .rk-chip.crit { background:#BA1A1A; color:#fff; }
-                .rk-chip.alto { background:#B45309; color:#fff; }
-                .rk-chip.med { background:#CBD5E1; color:#334155; }
-
-                .rk-proc { background:#f1f4f6; border-radius:14px; padding:1rem; }
-                .rk-proc-item { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:.75rem .8rem; margin-bottom:.55rem; }
-                .rk-nia { display:inline-block; border:1px solid rgba(0,47,48,.15); background:#f0fdfa; color:#0f766e; border-radius:999px; padding:.14rem .45rem; font-size:.58rem; letter-spacing:.08em; text-transform:uppercase; font-weight:800; }
-
-                .rk-footer { margin-top:1rem; border-top:1px solid #E2E8F0; padding-top:.6rem; font-size:.64rem; letter-spacing:.12em; text-transform:uppercase; color:#94A3B8; display:flex; justify-content:space-between; }
-            </style>
+            <link href="https://fonts.googleapis.com/css2-family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,600;0,700;1,700&family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet">
+            
             """
         )),
         unsafe_allow_html=True,
@@ -164,6 +118,16 @@ def _build_procedures(risks: list[dict[str, Any]]) -> list[dict[str, str]]:
     return (items or [{"nia": "NIA 330", "title": "Respuesta a Riesgos Valorados", "desc": "Alinear pruebas con riesgo valorado.", "tag": "General"}])[:3]
 
 
+def _load_holding_guidance() -> str:
+    try:
+        p = Path(__file__).resolve().parents[2] / "data" / "criterio_experto" / "por_sector" / "holding.md"
+        if not p.exists():
+            return ""
+        return p.read_text(encoding="utf-8", errors="replace").strip()
+    except Exception:
+        return ""
+
+
 def _pick_focus_account(
     variaciones: pd.DataFrame | None,
     risks: list[dict[str, Any]],
@@ -184,14 +148,14 @@ def _pick_focus_account(
                 row = v.sort_values("_rel", ascending=False).iloc[0]
                 account = _txt(row.get(name_col, "Cuenta relevante"), "Cuenta relevante")
                 rel = _safe_float(row.get("_rel", 0.0))
-                return account, f"Variación relativa estimada: {rel:.1f}%"
+                return account, f"Variaci-n relativa estimada: {rel:.1f}%"
             row = variaciones.iloc[0]
             account = _txt(row.get(name_col, "Cuenta relevante"), "Cuenta relevante")
             return account, "Movimiento relevante detectado en este rubro."
 
     if risks:
         return risks[0]["nombre"], "Riesgo priorizado por el motor de áreas."
-    return "Ingresos / Cuentas por cobrar", "Rubro sensible por exposición de corte y recuperabilidad."
+    return "Ingresos / Cuentas por cobrar", "Rubro sensible por exposici-n de corte y recuperabilidad."
 
 
 def render_risk_engine_premium(
@@ -206,6 +170,10 @@ def render_risk_engine_premium(
 
     risks = _build_risks(ranking_areas)
     procedures = _build_procedures(risks)
+    _cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente", {}), dict) else {}
+    sector = str(_cliente.get("sector", "")).lower()
+    is_holding = bool(perfil.get("es_holding")) or ("holding" in sector) or ("sociedad_cartera" in sector)
+    holding_guidance = _load_holding_guidance() if is_holding else ""
 
     alto = int(indicadores.get("areas_alto_riesgo", 0) or 0)
     medio = int(indicadores.get("areas_medio_riesgo", 0) or 0)
@@ -222,12 +190,18 @@ def render_risk_engine_premium(
         "#fb923c", "#facc15", "#34d399", "#16a34a", "#15803d",
     ]
     hot_idxs = {0, 2, 10}
-    cells = "".join(
-        [
-            f'<div class="rk-cell {'hot' if idx in hot_idxs else ''}" style="background:{color};">{'<span class="rk-dot"></span>' if idx in hot_idxs else ''}</div>'
-            for idx, color in enumerate(heat_colors)
-        ]
-    )
+    cell_parts: list[str] = []
+    for idx, color in enumerate(heat_colors):
+        inner = '<span class="rk-dot"></span>' if idx in hot_idxs else ""
+        if idx in hot_idxs:
+            cell_parts.append(
+                f"<div class=\"rk-cell hot\" style=\"background:{color};cursor:pointer;\" "
+                f"onclick=\"var el=document.getElementById('riesgos-criticos'); if(el){{el.scrollIntoView({{behavior:'smooth'}});}}\" "
+                f"title=\"Ver riesgos criticos\">{inner}</div>"
+            )
+        else:
+            cell_parts.append(f'<div class="rk-cell" style="background:{color};">{inner}</div>')
+    cells = "".join(cell_parts)
 
     risk_cards = "".join(
         [
@@ -269,45 +243,35 @@ def render_risk_engine_premium(
     if isinstance(variaciones, pd.DataFrame) and not variaciones.empty and "variacion_relativa" in variaciones.columns:
         max_rel = _safe_float(pd.to_numeric(variaciones["variacion_relativa"], errors="coerce").abs().max(), 0.0)
         ai_insight = f"La variacion relativa maxima observada es {max_rel:.1f}%, lo que sugiere reforzar pruebas de corte y estimaciones clave."
+    if is_holding:
+        holding_note = (
+            " La guía sectorial para holding indica reforzar L/S 14 con revisi-n de VPP/equity method, "
+            "conciliaci-n de movimientos del período y consistencia con informaci-n de participadas."
+            if "L/S 14 - Inversiones no corrientes" in holding_guidance
+            else ""
+        )
+        ai_insight = (
+            "Al ser una Holding, el riesgo no debe explicarse solo por el saldo de la cuenta 14. "
+            "El riesgo principal es el reconocimiento del método de participaci-n segon la secci-n correspondiente "
+            "de la NIIF para las PYMES (especialmente secci-n 14 cuando aplica a asociadas)."
+            + holding_note
+        )
 
     ui_html = dedent(
         f"""
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,600;0,700;1,700&family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet">
-        <style>
-            .rk-root {{ font-family: 'Inter', sans-serif; color:#041627; }}
-            .rk-serif {{ font-family: 'Newsreader', serif; letter-spacing:-0.018em; }}
-            .rk-kicker {{ font-size:.64rem;text-transform:uppercase;letter-spacing:.2em;color:#006d77;font-weight:800; }}
-            .rk-title {{ font-size:2.2rem;line-height:1.05;margin:.2rem 0 0 0; }}
-            .rk-grid {{ display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:1rem; }}
-            .rk-col-7,.rk-col-5 {{ grid-column:span 12; }}
-            @media(min-width:1100px) {{ .rk-col-7{{grid-column:span 7;}} .rk-col-5{{grid-column:span 5;}} }}
-            .rk-card {{ background:#fff;border:1px solid #E2E8F0;border-radius:16px; }}
-            .rk-heat-wrap {{ padding:1rem; }}
-            .rk-heat-grid {{ display:grid;grid-template-columns:repeat(5,1fr);gap:4px;width:100%;max-width:520px;aspect-ratio:1/1; }}
-            .rk-cell {{ border-radius:4px;position:relative; }}
-            .rk-cell.hot {{ box-shadow:0 0 0 2px rgba(255,255,255,.7) inset,0 0 16px rgba(186,26,26,.18); }}
-            .rk-dot {{ width:7px;height:7px;border-radius:999px;background:#fff;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%); }}
-            .rk-chip {{ font-size:.58rem;letter-spacing:.09em;text-transform:uppercase;font-weight:800;border-radius:.35rem;padding:.16rem .35rem; }}
-            .rk-chip.crit {{ background:#BA1A1A;color:#fff; }} .rk-chip.alto {{ background:#B45309;color:#fff; }} .rk-chip.med {{ background:#CBD5E1;color:#334155; }}
-            .rk-strategy {{ background:#1a2b3c;color:#fff;padding:1rem;border-radius:16px; }} .rk-strategy .lbl {{ font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:#89d3d4;font-weight:800; }}
-            .rk-insight {{ background:#002f30;color:#a5eff0;border:1px solid rgba(137,211,212,.25);border-radius:12px;padding:.8rem; }}
-            .rk-risk-card {{ background:#f1f4f6;border-radius:12px;padding:.75rem .85rem;border-left:4px solid #BA1A1A;display:flex;justify-content:space-between;gap:.7rem;align-items:center;margin-bottom:.5rem; }}
-            .rk-risk-card.mid {{ border-left-color:#B45309; }} .rk-risk-card.low {{ border-left-color:#64748B; }}
-            .rk-proc {{ background:#f1f4f6;border-radius:14px;padding:1rem; }} .rk-proc-item {{ background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:.75rem .8rem;margin-bottom:.55rem; }}
-            .rk-nia {{ display:inline-block;border:1px solid rgba(0,47,48,.15);background:#f0fdfa;color:#0f766e;border-radius:999px;padding:.14rem .45rem;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;font-weight:800; }}
-            .rk-footer {{ margin-top:1rem;border-top:1px solid #E2E8F0;padding-top:.6rem;font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:#94A3B8;display:flex;justify-content:space-between; }}
-        </style>
+        <link href="https://fonts.googleapis.com/css2-family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,600;0,700;1,700&family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet">
+        
         <div class="rk-root" style="margin-bottom:.8rem;">
             <span class="rk-kicker">Risk Intelligence Dashboard</span>
-            <h1 class="rk-serif rk-title">Motor de Riesgos - Mapa de Calor de Auditoria</h1>
-            <div style="color:#64748B;font-size:.82rem;">Cliente: {_txt(cliente, 'N/D')} | Alto: {alto} · Medio: {medio} · Bajo: {bajo}</div>
+            <h1 class="rk-serif rk-title">Matriz de Riesgo Inherente vs. Control</h1>
+            <div style="color:#64748B;font-size:.82rem;">Cliente: {_txt(cliente, 'N/D')} | Alto: {alto} - Medio: {medio} - Bajo: {bajo}</div>
         </div>
         <div class="rk-root rk-grid">
             <div class="rk-col-7 rk-card rk-heat-wrap">
                 <div style="display:flex;justify-content:space-between;gap:.7rem;align-items:end;flex-wrap:wrap;">
-                    <div><h2 class="rk-serif" style="margin:0;font-size:1.65rem;">Matriz de Riesgo</h2><p style="margin:.2rem 0 0 0;color:#64748B;font-size:.82rem;">Interaccion entre Riesgo Inherente y Riesgo de Control</p></div>
+                    <div><h2 class="rk-serif" style="margin:0;font-size:1.65rem;">Matriz de Riesgo</h2></div>
                     <div style="display:flex;gap:.35rem;"><span class="rk-chip crit">ALTO</span><span class="rk-chip med">BAJO</span></div>
                 </div>
                 <div style="display:flex;gap:.7rem;margin-top:.7rem;align-items:stretch;">
@@ -319,21 +283,18 @@ def render_risk_engine_premium(
                 <div class="rk-strategy"><div class="lbl">Estrategia Recomendada</div><h3 class="rk-serif">Enfoque de Auditoria: <span style="color:#89d3d4;font-style:italic;">Mixto</span></h3><div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.14);padding-bottom:.35rem;margin-bottom:.35rem;"><span style="color:#cbd5e1;">Pruebas de Control</span><b style="color:#89d3d4;">{pct_ctrl}%</b></div><div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.14);padding-bottom:.35rem;"><span style="color:#cbd5e1;">Procedimientos Sustantivos</span><b style="color:#89d3d4;">{pct_subs}%</b></div><p style="margin:.55rem 0 0 0;color:#cbd5e1;font-size:.8rem;line-height:1.45;">Riesgo global {global_level} con concentracion en cuentas sensibles. Se sugiere reforzar confirmaciones externas y pruebas de integridad al cierre.</p></div>
                 <div class="rk-insight"><div style="display:flex;gap:.5rem;align-items:flex-start;"><span class="material-symbols-outlined" style="font-size:1.8rem;">psychology</span><div><div style="font-weight:700;">AI Insight</div><div style="font-size:.8rem;line-height:1.45;margin-top:.2rem;">{ai_insight}</div></div></div></div>
             </div>
-            <div class="rk-col-5"><h2 class="rk-serif" style="font-size:1.6rem;margin:.15rem 0 .6rem .1rem;">Riesgos Criticos Detectados</h2>{risk_cards}</div>
+            <div class="rk-col-5" id="riesgos-criticos"><h2 class="rk-serif" style="font-size:1.6rem;margin:.15rem 0 .6rem .1rem;">Riesgos Criticos Detectados</h2>{risk_cards}</div>
             <div class="rk-col-7 rk-proc"><div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.65rem;"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1; color:#0f766e;">bolt</span><h2 class="rk-serif" style="font-size:1.55rem;margin:0;">Socio AI - Sugerencia de Procedimientos</h2></div>{proc_cards}</div>
         </div>
-        <div class="rk-root rk-footer"><span>Socio AI Risk Engine v2.4.0</span><span>Documentation · Methodology · Audit Standards</span></div>
+        <div class="rk-root rk-footer"><span>Socio AI Risk Engine v2.4.0</span><span>Documentation - Methodology - Audit Standards</span></div>
         """
     )
     components.html(ui_html, height=1120, scrolling=False)
 
-    st.markdown("### Interaccion del mapa")
-    st.caption("Haz clic en un cuadrado para evaluar la combinación inherente/control.")
-
     legend_cols = st.columns(4)
     legend_cols[0].markdown("🟥 Critico")
     legend_cols[1].markdown("🟧 Alto")
-    legend_cols[2].markdown("🟨 Medio")
+    legend_cols[2].markdown("  Medio")
     legend_cols[3].markdown("🟩 Bajo")
 
     def _emoji_for_cell(inh: int, ctl: int) -> str:
@@ -343,7 +304,7 @@ def render_risk_engine_premium(
         if score >= 10:
             return "🟧"
         if score >= 6:
-            return "🟨"
+            return " "
         return "🟩"
 
     selected_key = f"rk_selected_cell_{cliente}"
@@ -369,14 +330,14 @@ def render_risk_engine_premium(
         if zona == "Alta"
         else "Mantener enfoque mixto con seguimiento semanal."
         if zona == "Moderada"
-        else "Monitoreo estándar y pruebas de confirmación selectivas."
+        else "Monitoreo estándar y pruebas de confirmaci-n selectivas."
     )
 
     st.markdown(
         f"""
         <div style="margin-top:.6rem;padding:.8rem 1rem;border:1px solid #E2E8F0;border-radius:12px;background:#fff;">
             <div style="font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:#64748B;font-weight:800;">Celda Seleccionada</div>
-            <div style="margin-top:.2rem;font-weight:700;color:#041627;">Riesgo Inherente {inherente} × Riesgo de Control {control}</div>
+            <div style="margin-top:.2rem;font-weight:700;color:#041627;">Riesgo Inherente {inherente} - Riesgo de Control {control}</div>
             <div style="margin-top:.2rem;font-weight:900;color:{color};">Zona: {zona} ({score_mapa}/25)</div>
             <div style="margin-top:.25rem;color:#475569;font-size:.84rem;">{accion}</div>
         </div>
@@ -385,14 +346,20 @@ def render_risk_engine_premium(
     )
 
     focus_account, focus_detail = _pick_focus_account(variaciones, risks)
+    if is_holding:
+        focus_account = "L/S 14 - Inversiones no corrientes"
+        focus_detail = (
+            "Al ser Holding, la evaluaci-n crítica es el método de participaci-n (VPP/equity method) "
+            "y su alineaci-n con la secci-n NIIF PYMES aplicable."
+        )
     historia = (
         f"En esta zona crítica, la cuenta '{focus_account}' puede concentrar errores materiales. "
-        f"{focus_detail} Si el patrón se confirma, es probable que exista sesgo de corte o debilidad de control."
+        f"{focus_detail} Si el patr-n se confirma, es probable que exista sesgo de corte o debilidad de control."
         if zona == "Critica"
         else f"La cuenta '{focus_account}' merece pruebas adicionales. {focus_detail} "
         "La narrativa sugiere riesgo alto y necesidad de procedimientos de detalle."
         if zona == "Alta"
-        else f"La cuenta '{focus_account}' permanece bajo observación. {focus_detail} "
+        else f"La cuenta '{focus_account}' permanece bajo observaci-n. {focus_detail} "
         "La evidencia actual permite un enfoque mixto con monitoreo."
         if zona == "Moderada"
         else f"En zona baja, '{focus_account}' no muestra señales fuertes. {focus_detail} "
@@ -463,4 +430,4 @@ def render_risk_engine_premium(
         code = next((c for l, c in risk_nav_options if l == selected_label), "")
         if st.button("Ir a Areas con esta seleccion", key=f"rk_go_area_{cliente}"):
             st.session_state[f"selected_area_{cliente}"] = code
-            st.success(f"Area {code} preseleccionada. Abre la pestana '🎯 Areas'.")
+            st.success(f"Area {code} preseleccionada. Abre la pestana '  Areas'.")

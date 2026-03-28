@@ -1,5 +1,5 @@
 version: 1
-descripcion: "Guía de requerimientos por área y aseveración"
+descripcion: "Guía de requerimientos por área y aseveraciÃ3n"
 
 areas:
 
@@ -39,21 +39,21 @@ areas:
         preguntas:
           - "¿Cuáles son los 5 clientes principales?"
           - "¿Existen saldos con partes relacionadas en cartera?"
-          - "¿Se han realizado circulares de confirmación?"
+          - "¿Se han realizado circulares de confirmaciÃ3n?"
         procedimientos:
-          - "Circular de confirmación a clientes significativos"
+          - "Circular de confirmaciÃ3n a clientes significativos"
           - "Revisar cobranzas posteriores al cierre"
       valuacion:
         documentos:
-          - "Análisis de antigüedad de cartera"
-          - "Política de provisión de cuentas incobrables"
+          - "Análisis de antigÃ1⁄4edad de cartera"
+          - "Política de provisiÃ3n de cuentas incobrables"
           - "Detalle de cuentas castigadas en el período"
         preguntas:
-          - "¿Cuál es la política de provisión de cartera?"
+          - "¿Cuál es la política de provisiÃ3n de cartera?"
           - "¿Existen clientes en proceso de cobro legal?"
           - "¿Qué porcentaje de cartera supera 90 días?"
         procedimientos:
-          - "Verificar razonabilidad de provisión vs antigüedad"
+          - "Verificar razonabilidad de provisiÃ3n vs antigÃ1⁄4edad"
           - "Revisar cuentas con más de 180 días"
       derechos:
         documentos:
@@ -74,24 +74,24 @@ areas:
           - "Conteos físicos al cierre del período"
           - "Kardex o sistema de control de inventarios"
         preguntas:
-          - "¿Cuándo fue el último conteo físico?"
-          - "¿Se permitirá la observación del inventario?"
-          - "¿Existe inventario en consignación o en tránsito?"
+          - "¿Cuándo fue el Ãoltimo conteo físico?"
+          - "¿Se permitirá la observaciÃ3n del inventario?"
+          - "¿Existe inventario en consignaciÃ3n o en tránsito?"
         procedimientos:
-          - "Observación de toma física de inventarios"
+          - "ObservaciÃ3n de toma física de inventarios"
           - "Verificar conteos con registros del sistema"
       valuacion:
         documentos:
           - "Política de costeo (FIFO, promedio ponderado)"
-          - "Listado de ítems obsoletos o de lenta rotación"
-          - "Facturas de compra de últimos lotes"
+          - "Listado de ítems obsoletos o de lenta rotaciÃ3n"
+          - "Facturas de compra de Ãoltimos lotes"
         preguntas:
           - "¿Cuál es el método de costeo utilizado?"
           - "¿Existen productos obsoletos o dañados?"
-          - "¿El costo de reposición es mayor al costo registrado?"
+          - "¿El costo de reposiciÃ3n es mayor al costo registrado?"
         procedimientos:
           - "Verificar cálculo de costo unitario"
-          - "Revisar mercadería obsoleta y su provisión"
+          - "Revisar mercadería obsoleta y su provisiÃ3n"
 
   "14":
     nombre: "Inversiones No Corrientes"
@@ -99,14 +99,14 @@ areas:
       existencia:
         documentos:
           - "Detalle de inversiones mantenidas al cierre"
-          - "Escrituras o contratos de inversión"
-          - "Certificados de participación accionaria"
+          - "Escrituras o contratos de inversiÃ3n"
+          - "Certificados de participaciÃ3n accionaria"
         preguntas:
           - "¿En qué entidades tiene inversiones la empresa?"
-          - "¿Cuál es el porcentaje de participación en cada una?"
+          - "¿Cuál es el porcentaje de participaciÃ3n en cada una?"
           - "¿Se han recibido estados financieros de las participadas?"
         procedimientos:
-          - "Verificar título o certificado de inversión"
+          - "Verificar título o certificado de inversiÃ3n"
           - "Solicitar estados financieros de participadas"
       valuacion:
         documentos:
@@ -119,7 +119,7 @@ areas:
           - "¿Existen indicios de deterioro de las inversiones?"
         procedimientos:
           - "Recalcular VPP con estados financieros de participada"
-          - "Evaluar deterioro de la inversión"
+          - "Evaluar deterioro de la inversiÃ3n"
 
   "200":
     nombre: "Patrimonio"
@@ -128,8 +128,8 @@ areas:
         documentos:
           - "Acta de junta de accionistas del período"
           - "Libro de acciones o registro de socios"
-          - "Escritura de constitución y reformas estatutarias"
-          - "Acta de distribución de dividendos (si aplica)"
+          - "Escritura de constituciÃ3n y reformas estatutarias"
+          - "Acta de distribuciÃ3n de dividendos (si aplica)"
         preguntas:
           - "¿Hubo cambios en el capital durante el período?"
           - "¿Se distribuyeron dividendos o utilidades?"
@@ -140,12 +140,12 @@ areas:
       presentacion:
         documentos:
           - "Detalle de reservas y su origen"
-          - "Conciliación de resultados acumulados"
+          - "ConciliaciÃ3n de resultados acumulados"
         preguntas:
           - "¿Las reservas cumplen con requisitos legales?"
           - "¿Los resultados acumulados concilian con períodos anteriores?"
         procedimientos:
-          - "Verificar presentación de componentes patrimoniales"
+          - "Verificar presentaciÃ3n de componentes patrimoniales"
 
   "425":
     nombre: "Cuentas por Pagar"
@@ -161,10 +161,10 @@ areas:
           - "¿Hay notas de débito pendientes de contabilizar?"
         procedimientos:
           - "Prueba de corte de compras"
-          - "Circular de confirmación a proveedores principales"
+          - "Circular de confirmaciÃ3n a proveedores principales"
       valuacion:
         documentos:
-          - "Conciliación de saldos con proveedores"
+          - "ConciliaciÃ3n de saldos con proveedores"
           - "Detalle de anticipos recibidos de clientes"
         preguntas:
           - "¿Existen saldos con partes relacionadas?"
@@ -192,7 +192,7 @@ areas:
           - "Últimas 20 facturas del año y primeras 20 del año siguiente"
           - "Remisiones o actas de entrega de diciembre"
         preguntas:
-          - "¿Cuál es la fecha de la última factura del año?"
+          - "¿Cuál es la fecha de la Ãoltima factura del año?"
           - "¿Existen ventas registradas antes de la entrega?"
         procedimientos:
           - "Prueba de corte de ventas (cutoff test)"
@@ -214,20 +214,20 @@ areas:
           - "Verificar soporte de gastos sobre umbral"
       valuacion:
         documentos:
-          - "Conciliación tributaria (gastos deducibles vs no deducibles)"
+          - "ConciliaciÃ3n tributaria (gastos deducibles vs no deducibles)"
           - "Detalle de depreciaciones y amortizaciones"
         preguntas:
-          - "¿Cómo se determinó la vida útil de los activos?"
+          - "¿CÃ3mo se determinÃ3 la vida Ãotil de los activos?"
           - "¿Existen activos totalmente depreciados en uso?"
         procedimientos:
-          - "Recalcular depreciación de muestra de activos"
+          - "Recalcular depreciaciÃ3n de muestra de activos"
 
   "136":
     nombre: "Activos por Impuestos Corrientes"
     aseveraciones:
       existencia:
         documentos:
-          - "Formulario 104 (IVA) de los últimos 12 meses"
+          - "Formulario 104 (IVA) de los Ãoltimos 12 meses"
           - "Formulario 103 (Retenciones en la fuente)"
           - "Crédito tributario de IVA (si aplica)"
         preguntas:
@@ -236,16 +236,16 @@ areas:
           - "¿Se han solicitado devoluciones de impuestos?"
         procedimientos:
           - "Conciliar saldo contable vs declaraciones SRI"
-          - "Verificar aplicación de retenciones recibidas"
+          - "Verificar aplicaciÃ3n de retenciones recibidas"
 
   "15":
     nombre: "Activos por Impuestos Diferidos"
     aseveraciones:
       valuacion:
         documentos:
-          - "Conciliación tributaria del período"
+          - "ConciliaciÃ3n tributaria del período"
           - "Cálculo de diferencias temporarias"
-          - "Proyección de utilidades futuras (para justificar AID)"
+          - "ProyecciÃ3n de utilidades futuras (para justificar AID)"
         preguntas:
           - "¿Existe expectativa razonable de utilidades futuras?"
           - "¿Cuáles son las principales diferencias temporarias?"
@@ -260,34 +260,34 @@ areas:
       existencia:
         documentos:
           - "Detalle de activos fijos por categoría (muebles, equipos, vehículos, edificios)"
-          - "Actas de baja o disposición de activos durante el período"
-          - "Pólizas de seguro vigentes sobre activos significativos"
+          - "Actas de baja o disposiciÃ3n de activos durante el período"
+          - "PÃ3lizas de seguro vigentes sobre activos significativos"
           - "Escrituras de inmuebles o títulos de propiedad"
         preguntas:
-          - "¿Se realizó un inventario físico de activos fijos en el período?"
-          - "¿Existen activos totalmente depreciados que aún se usan?"
+          - "¿Se realizÃ3 un inventario físico de activos fijos en el período?"
+          - "¿Existen activos totalmente depreciados que aÃon se usan?"
           - "¿Hubo adquisiciones o bajas significativas en el período?"
           - "¿Existen activos en leasing o arrendamiento financiero?"
         procedimientos:
-          - "Inspección física de activos significativos"
+          - "InspecciÃ3n física de activos significativos"
           - "Conciliar detalle de activos vs saldo contable"
-          - "Verificar cálculo de depreciación por categoría"
+          - "Verificar cálculo de depreciaciÃ3n por categoría"
           - "Revisar adquisiciones del período y su soporte"
       valuacion:
         documentos:
-          - "Tabla de depreciación actualizada al cierre"
-          - "Política contable de vida útil por categoría"
-          - "Avalúos técnicos (si se usa modelo de revaluación)"
-          - "Facturas de adquisición de activos del período"
+          - "Tabla de depreciaciÃ3n actualizada al cierre"
+          - "Política contable de vida Ãotil por categoría"
+          - "AvalÃoos técnicos (si se usa modelo de revaluaciÃ3n)"
+          - "Facturas de adquisiciÃ3n de activos del período"
         preguntas:
-          - "¿Cuál es el método de depreciación utilizado?"
-          - "¿Se revisaron las vidas útiles en el período?"
-          - "¿Existen indicios de deterioro en algún activo?"
-          - "¿Se aplica modelo de costo o de revaluación?"
+          - "¿Cuál es el método de depreciaciÃ3n utilizado?"
+          - "¿Se revisaron las vidas Ãotiles en el período?"
+          - "¿Existen indicios de deterioro en algÃon activo?"
+          - "¿Se aplica modelo de costo o de revaluaciÃ3n?"
         procedimientos:
-          - "Recalcular depreciación de muestra de activos"
-          - "Evaluar indicios de deterioro (NIC 36 / Sección 17)"
-          - "Verificar consistencia de vidas útiles con política"
+          - "Recalcular depreciaciÃ3n de muestra de activos"
+          - "Evaluar indicios de deterioro (NIC 36 / SecciÃ3n 17)"
+          - "Verificar consistencia de vidas Ãotiles con política"
       derechos:
         documentos:
           - "Contratos de arrendamiento o leasing vigentes"
@@ -297,37 +297,37 @@ areas:
           - "¿Hay activos de terceros registrados como propios?"
         procedimientos:
           - "Verificar que los activos registrados son de propiedad de la empresa"
-          - "Revisar revelación de activos dados en garantía"
+          - "Revisar revelaciÃ3n de activos dados en garantía"
 
   "410":
     nombre: "Obligaciones por Beneficios a Empleados"
     aseveraciones:
       integridad:
         documentos:
-          - "Roles de pago de los últimos 3 meses del período"
+          - "Roles de pago de los Ãoltimos 3 meses del período"
           - "Planilla del IESS (aportaciones patronales y personales)"
           - "Cálculo de provisiones: décimos, vacaciones, fondos de reserva"
           - "Detalle de liquidaciones de haberes pagadas en el período"
         preguntas:
           - "¿Cuántos empleados tiene la empresa al cierre?"
-          - "¿Existen empleados con contrato de plazo fijo próximo a vencer?"
+          - "¿Existen empleados con contrato de plazo fijo prÃ3ximo a vencer?"
           - "¿Se han pagado todos los beneficios sociales del período?"
           - "¿Hay empleados con vacaciones acumuladas sin pagar?"
         procedimientos:
-          - "Recalcular provisión de vacaciones por empleado"
+          - "Recalcular provisiÃ3n de vacaciones por empleado"
           - "Verificar aportaciones al IESS vs planilla"
           - "Conciliar saldo contable de beneficios vs cálculo actuarial"
       valuacion:
         documentos:
-          - "Cálculo actuarial de jubilación patronal (si aplica)"
+          - "Cálculo actuarial de jubilaciÃ3n patronal (si aplica)"
           - "Política de reconocimiento de beneficios post-empleo"
         preguntas:
-          - "¿La empresa tiene obligación de jubilación patronal?"
-          - "¿Se contrató un actuario para el cálculo?"
+          - "¿La empresa tiene obligaciÃ3n de jubilaciÃ3n patronal?"
+          - "¿Se contratÃ3 un actuario para el cálculo?"
           - "¿Cuántos empleados tienen más de 10 años en la empresa?"
         procedimientos:
           - "Verificar razonabilidad del cálculo actuarial"
-          - "Revisar hipótesis utilizadas: tasa de descuento, rotación"
+          - "Revisar hipÃ3tesis utilizadas: tasa de descuento, rotaciÃ3n"
 
   "300.1":
     nombre: "Préstamos Corrientes"
@@ -335,7 +335,7 @@ areas:
       integridad:
         documentos:
           - "Contratos de préstamo vigentes con instituciones financieras"
-          - "Tablas de amortización actualizadas al cierre"
+          - "Tablas de amortizaciÃ3n actualizadas al cierre"
           - "Estados de cuenta de préstamos al cierre del período"
           - "Certificados de saldo emitidos por las entidades financieras"
         preguntas:
@@ -344,9 +344,9 @@ areas:
           - "¿Se han cumplido todas las cuotas del período?"
           - "¿Hay préstamos con partes relacionadas?"
         procedimientos:
-          - "Conciliar saldo contable vs tabla de amortización"
-          - "Verificar clasificación corriente vs no corriente"
-          - "Confirmar saldo con institución financiera"
+          - "Conciliar saldo contable vs tabla de amortizaciÃ3n"
+          - "Verificar clasificaciÃ3n corriente vs no corriente"
+          - "Confirmar saldo con instituciÃ3n financiera"
       valuacion:
         documentos:
           - "Cálculo de intereses devengados al cierre"
@@ -364,63 +364,63 @@ areas:
       integridad:
         documentos:
           - "Contratos de préstamo a largo plazo vigentes"
-          - "Tablas de amortización con detalle de porción no corriente"
+          - "Tablas de amortizaciÃ3n con detalle de porciÃ3n no corriente"
           - "Certificados de saldo de largo plazo al cierre"
         preguntas:
           - "¿Cuál es el vencimiento de cada préstamo a largo plazo?"
-          - "¿Existe riesgo de reclasificación a corriente por incumplimiento?"
+          - "¿Existe riesgo de reclasificaciÃ3n a corriente por incumplimiento?"
           - "¿Se han refinanciado préstamos en el período?"
         procedimientos:
-          - "Verificar correcta separación porción corriente vs no corriente"
+          - "Verificar correcta separaciÃ3n porciÃ3n corriente vs no corriente"
           - "Revisar cláusulas de vencimiento anticipado"
-          - "Confirmar saldo con institución financiera"
+          - "Confirmar saldo con instituciÃ3n financiera"
       valuacion:
         documentos:
           - "Análisis de tasas de interés efectivas vs nominales"
-          - "Detalle de costos de transacción capitalizados"
+          - "Detalle de costos de transacciÃ3n capitalizados"
         preguntas:
           - "¿Se aplica tasa de interés efectiva o nominal?"
-          - "¿Existen comisiones o costos de estructuración capitalizados?"
+          - "¿Existen comisiones o costos de estructuraciÃ3n capitalizados?"
         procedimientos:
-          - "Verificar aplicación de tasa de interés efectiva (NIIF)"
-          - "Revisar amortización de costos de transacción"
+          - "Verificar aplicaciÃ3n de tasa de interés efectiva (NIIF)"
+          - "Revisar amortizaciÃ3n de costos de transacciÃ3n"
 
   "325":
     nombre: "Pasivos por Impuestos Diferidos"
     aseveraciones:
       valuacion:
         documentos:
-          - "Conciliación tributaria del período completa"
+          - "ConciliaciÃ3n tributaria del período completa"
           - "Detalle de diferencias temporarias imponibles"
           - "Cálculo del pasivo por impuesto diferido"
-          - "Declaración de impuesto a la renta del período anterior"
+          - "DeclaraciÃ3n de impuesto a la renta del período anterior"
         preguntas:
           - "¿Cuáles son las principales diferencias temporarias imponibles?"
           - "¿Se ha verificado el cálculo con un experto tributario?"
           - "¿Existen diferencias permanentes significativas?"
           - "¿Cuál es la tasa de IR aplicable para el diferido?"
         procedimientos:
-          - "Verificar identificación de todas las diferencias temporarias"
+          - "Verificar identificaciÃ3n de todas las diferencias temporarias"
           - "Recalcular pasivo diferido aplicando tasa vigente"
-          - "Revisar consistencia con declaración tributaria"
+          - "Revisar consistencia con declaraciÃ3n tributaria"
       integridad:
         documentos:
           - "Movimiento del pasivo diferido durante el período"
-          - "Conciliación entre gasto de IR contable vs tributario"
+          - "ConciliaciÃ3n entre gasto de IR contable vs tributario"
         preguntas:
           - "¿Se han identificado todas las diferencias temporarias?"
           - "¿Existen diferencias de períodos anteriores sin reversar?"
         procedimientos:
           - "Conciliar saldo inicial + cargo/abono del período"
-          - "Verificar reversión de diferencias de períodos anteriores"
+          - "Verificar reversiÃ3n de diferencias de períodos anteriores"
 
   "1900":
     nombre: "Gasto Impuesto a la Renta"
     aseveraciones:
       valuacion:
         documentos:
-          - "Conciliación tributaria completa del período"
-          - "Declaración de impuesto a la renta (Formulario 101)"
+          - "ConciliaciÃ3n tributaria completa del período"
+          - "DeclaraciÃ3n de impuesto a la renta (Formulario 101)"
           - "Cálculo del anticipo de impuesto a la renta"
           - "Detalle de gastos no deducibles del período"
           - "Detalle de retenciones en la fuente recibidas"
@@ -430,20 +430,20 @@ areas:
           - "¿Se ha calculado el anticipo mínimo?"
           - "¿Hay diferencias entre el IR corriente y el diferido?"
         procedimientos:
-          - "Verificar conciliación tributaria (utilidad contable → base imponible)"
+          - "Verificar conciliaciÃ3n tributaria (utilidad contable â†' base imponible)"
           - "Recalcular IR corriente sobre base imponible"
-          - "Revisar gastos no deducibles más comunes: multas, exceso de nómina"
+          - "Revisar gastos no deducibles más comunes: multas, exceso de nÃ3mina"
           - "Conciliar retenciones recibidas vs formulario 103"
       integridad:
         documentos:
           - "Formularios de retenciones en la fuente recibidas (ATS)"
-          - "Comprobantes de retención recibidos en el período"
+          - "Comprobantes de retenciÃ3n recibidos en el período"
         preguntas:
           - "¿Se han registrado todas las retenciones recibidas?"
           - "¿Existe crédito tributario de períodos anteriores?"
         procedimientos:
           - "Conciliar retenciones contabilizadas vs ATS del SRI"
-          - "Verificar aplicación de crédito tributario anterior"
+          - "Verificar aplicaciÃ3n de crédito tributario anterior"
       presentacion:
         documentos:
           - "Notas a los estados financieros sobre impuestos"
@@ -452,7 +452,7 @@ areas:
           - "¿Se revelan las diferencias temporarias en notas?"
           - "¿La tasa efectiva de IR es consistente con la tasa nominal?"
         procedimientos:
-          - "Revisar adecuación de revelaciones de impuestos en EEFF"
+          - "Revisar adecuaciÃ3n de revelaciones de impuestos en EEFF"
           - "Calcular tasa efectiva y compararla con tasa nominal"
 
   "1600":
@@ -461,7 +461,7 @@ areas:
       integridad:
         documentos:
           - "Detalle de gastos por cuenta y naturaleza"
-          - "Roles de pago del período (si incluye nómina)"
+          - "Roles de pago del período (si incluye nÃ3mina)"
           - "Facturas de gastos significativos (arriendos, servicios, honorarios)"
           - "Contratos de servicios recurrentes vigentes"
           - "Detalle de depreciaciones y amortizaciones del período"
@@ -476,24 +476,24 @@ areas:
           - "Verificar devengamiento de gastos al cierre"
       valuacion:
         documentos:
-          - "Conciliación tributaria (gastos deducibles vs no deducibles)"
-          - "Detalle de gastos de representación y su límite deducible"
-          - "Soporte de gastos de viaje y movilización"
+          - "ConciliaciÃ3n tributaria (gastos deducibles vs no deducibles)"
+          - "Detalle de gastos de representaciÃ3n y su límite deducible"
+          - "Soporte de gastos de viaje y movilizaciÃ3n"
         preguntas:
-          - "¿Los gastos de representación están dentro del límite deducible?"
+          - "¿Los gastos de representaciÃ3n están dentro del límite deducible?"
           - "¿Existen multas o sanciones registradas como gasto?"
-          - "¿Hay pagos al exterior sin retención aplicada?"
+          - "¿Hay pagos al exterior sin retenciÃ3n aplicada?"
         procedimientos:
-          - "Identificar gastos no deducibles para conciliación tributaria"
+          - "Identificar gastos no deducibles para conciliaciÃ3n tributaria"
           - "Verificar retenciones en la fuente aplicadas a pagos de servicios"
-          - "Revisar gastos de gestión vs límite del 2% de ingresos gravados"
+          - "Revisar gastos de gestiÃ3n vs límite del 2% de ingresos gravados"
       presentacion:
         documentos:
-          - "Clasificación de gastos por función o naturaleza"
+          - "ClasificaciÃ3n de gastos por funciÃ3n o naturaleza"
           - "Detalle de gastos financieros separados de administrativos"
         preguntas:
           - "¿Los gastos financieros están correctamente separados?"
           - "¿Existen reclasificaciones entre gastos operativos y no operativos?"
         procedimientos:
-          - "Verificar correcta clasificación entre gastos operativos y financieros"
-          - "Revisar presentación de gastos extraordinarios o no recurrentes"
+          - "Verificar correcta clasificaciÃ3n entre gastos operativos y financieros"
+          - "Revisar presentaciÃ3n de gastos extraordinarios o no recurrentes"

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
@@ -14,9 +14,9 @@ def _normalizar_etapa(etapa: str | None) -> str:
     valor = str(etapa or "").strip().lower()
     aliases = {
         "planificacion": "planificacion",
-        "planificaciÃ³n": "planificacion",
+        "planificación": "planificacion",
         "ejecucion": "ejecucion",
-        "ejecuciÃ³n": "ejecucion",
+        "ejecución": "ejecucion",
         "cierre": "cierre",
     }
     return aliases.get(valor, "ejecucion")

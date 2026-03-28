@@ -4,8 +4,12 @@ Usa el TB, perfil, ranking y hallazgos del cliente activo.
 """
 from __future__ import annotations
 
+import re
+from pathlib import Path
 from typing import Any
+
 import pandas as pd
+import yaml
 
 
 def _fmt_money(v: Any) -> str:
@@ -13,6 +17,82 @@ def _fmt_money(v: Any) -> str:
         return f"${float(v):,.2f}"
     except Exception:
         return "$0.00"
+
+
+def _infer_cliente_from_sistema(sistema: str) -> str:
+    """
+    Tries to infer client id from the system prompt field: 'ID sistema: <cliente>'.
+    """
+    if not sistema:
+        return ""
+    m = re.search(r"ID sistema:\s*([^\n\r]+)", sistema)
+    if not m:
+        return ""
+    return m.group(1).strip()
+
+
+def _cargar_contexto_persistente(cliente: str) -> str:
+    """
+    Always reads perfil.yaml + hallazgos saved under client folder.
+    Returns a compact context block to append to system prompt.
+    """
+    if not cliente:
+        return ""
+
+    base = Path(__file__).resolve().parents[1]
+    cdir = base / "data" / "clientes" / cliente
+    if not cdir.exists():
+        return ""
+
+    # 1) perfil.yaml (source of truth for client profile)
+    perfil_raw = ""
+    perfil_path = cdir / "perfil.yaml"
+    if perfil_path.exists():
+        try:
+            perfil_obj = yaml.safe_load(
+                perfil_path.read_text(encoding="utf-8", errors="replace")
+            ) or {}
+            # Keep text compact to control prompt size
+            perfil_raw = str(perfil_obj)[:7000]
+        except Exception:
+            try:
+                perfil_raw = perfil_path.read_text(
+                    encoding="utf-8", errors="replace"
+                )[:7000]
+            except Exception:
+                perfil_raw = ""
+
+    # 2) any findings files in client folder tree
+    hallazgo_chunks: list[str] = []
+    try:
+        files = [
+            p for p in cdir.rglob("*")
+            if p.is_file() and "hallazgo" in p.name.lower()
+        ]
+        files = sorted(files)[:20]  # bound number of files
+        for p in files:
+            try:
+                txt = p.read_text(encoding="utf-8", errors="replace")
+                hallazgo_chunks.append(
+                    f"[{p.relative_to(cdir)}]\n{txt[:1800]}"
+                )
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    hallazgos_raw = "\n\n".join(hallazgo_chunks)
+    if len(hallazgos_raw) > 10000:
+        hallazgos_raw = hallazgos_raw[:10000]
+
+    if not perfil_raw and not hallazgos_raw:
+        return ""
+
+    return (
+        "\n\nCONTEXTO PERSISTENTE DEL ENCARGO (leer siempre antes de responder):\n"
+        f"- Fuente perfil.yaml:\n{perfil_raw if perfil_raw else 'No disponible'}\n\n"
+        f"- Hallazgos guardados en carpeta cliente:\n{hallazgos_raw if hallazgos_raw else 'Sin archivos de hallazgos detectados'}\n"
+    )
 
 
 def construir_contexto_sistema(
@@ -147,6 +227,7 @@ INSTRUCCIONES:
 def generar_respuesta_asistente(
     messages: list[dict[str, str]],
     sistema: str,
+    cliente: str | None = None,
 ) -> str:
     """
     Calls DeepSeek with full conversation history.
@@ -164,6 +245,10 @@ def generar_respuesta_asistente(
         )
 
     try:
+        _cliente_ctx = (cliente or "").strip() or _infer_cliente_from_sistema(sistema)
+        contexto_persistente = _cargar_contexto_persistente(_cliente_ctx)
+        sistema_final = f"{sistema}{contexto_persistente}" if contexto_persistente else sistema
+
         client = OpenAI(
             api_key=key,
             base_url="https://api.deepseek.com",
@@ -171,7 +256,7 @@ def generar_respuesta_asistente(
         response = client.chat.completions.create(
             model="deepseek-chat",
             messages=[
-                {"role": "system", "content": sistema},
+                {"role": "system", "content": sistema_final},
                 *messages,
             ],
             max_tokens=600,

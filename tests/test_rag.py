@@ -1,4 +1,4 @@
-﻿"""
+"""
 Unit tests for the RAG knowledge pipeline.
 Tests loader, chunking and retriever without requiring
 ChromaDB to be populated (uses mocks where needed).

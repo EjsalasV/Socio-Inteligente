@@ -1,4 +1,4 @@
-﻿"""
+"""
 Constantes globales de SocioAI.
 Punto único de verdad para valores fijos del sistema.
 """

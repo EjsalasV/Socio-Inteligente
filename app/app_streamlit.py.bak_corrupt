@@ -1,0 +1,3367 @@
+"""
+SocioAI - Interfaz Web con Streamlit.
+
+Refactor incremental para convertir "Vista por area" en un workspace operativo
+sin romper el flujo existente.
+"""
+
+from __future__ import annotations
+
+import sys
+import os
+from pathlib import Path
+
+# Add project root to sys.path so all internal modules
+# are importable both locally and on Streamlit Cloud
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+ sys.path.insert(0, str(_PROJECT_ROOT))
+
+from datetime import datetime
+from typing import Any
+
+import pandas as pd
+import streamlit as st
+
+from analysis.lector_tb import leer_tb, obtener_resumen_tb, obtener_diagnostico_tb
+from analysis.ranking_areas import calcular_ranking_areas, obtener_indicadores_clave
+from analysis.variaciones import calcular_variaciones, resumen_variaciones
+from analysis.expert_flags import detectar_expert_flags
+from domain.services.leer_perfil import leer_perfil, obtener_datos_clave
+from app.views.view_cliente import (
+ render_sidebar_summary,
+ render_area_header,
+ render_area_kpis,
+ render_por_que_importa,
+ render_profile_editorial_intro,
+ render_profile_card_title,
+)
+from app.utils.theme_engine import inject_sovereign_theme
+from app.views.view_ranking import (
+ render_contexto_tab,
+ render_briefing_tab,
+ render_procedimientos_tab,
+ render_cobertura_tab,
+ render_hallazgos_tab,
+ render_trial_balance_editorial,
+ render_variaciones_editorial,
+ render_mayor_critico_editorial,
+)
+from app.views.view_area import (
+ render_cierre_tab,
+ render_decision_cierre_helper,
+ render_seguimiento_tab,
+ render_historial_tab,
+ render_export_block,
+)
+from app.views.view_area_premium import render_area_premium, _render_cierre_cards
+from app.views.view_estados_financieros_premium import (
+ render_estados_financieros_premium,
+)
+from app.views.view_dashboard_premium import render_dashboard_overview_premium
+from app.views.view_risk_engine_premium import render_risk_engine_premium
+from app.views.view_materialidad import render_calidad_tab
+from app.views.view_chat import render_briefing_ia_tab, render_chat_tab
+from app.views.view_memoria import render_memoria_tab
+
+# Servicios opcionales (degradacion segura)
+try:
+ from domain.services.estado_area_yaml import (
+ cargar_estado_area,
+ guardar_estado_area,
+ extraer_hallazgos_abiertos,
+ obtener_pendientes_area,
+ obtener_procedimientos_area,
+ )
+except Exception:
+ cargar_estado_area = None
+ guardar_estado_area = None
+ extraer_hallazgos_abiertos = None
+ obtener_pendientes_area = None
+ obtener_procedimientos_area = None
+
+try:
+ from domain.services.cobertura_aseveraciones import evaluar_cobertura_aseveraciones
+except Exception:
+ evaluar_cobertura_aseveraciones = None
+
+try:
+ from domain.services.area_briefing import (
+ construir_foco_auditoria,
+ construir_foco_holding,
+ construir_lectura_inicial,
+ construir_resumen_area,
+ top_cuentas_significativas,
+ )
+except Exception:
+ construir_foco_auditoria = None
+ construir_foco_holding = None
+ construir_lectura_inicial = None
+ construir_resumen_area = None
+ top_cuentas_significativas = None
+
+try:
+ from domain.services.riesgos_area import detectar_riesgos_area
+except Exception:
+ detectar_riesgos_area = None
+
+try:
+ from domain.services.riesgos_automaticos_service import detectar_riesgos_area as detectar_riesgos_area_auto
+except Exception:
+ detectar_riesgos_area_auto = None
+
+try:
+ from domain.services.procedimientos_area import (
+ procedimientos_por_area,
+ procedimientos_por_area_estructurados,
+ )
+except Exception:
+ procedimientos_por_area = None
+ procedimientos_por_area_estructurados = None
+
+try:
+ from llm.cierre_area_llm import revisar_cierre_area_llm
+except Exception:
+ revisar_cierre_area_llm = None
+
+try:
+ from llm.chat_area_service import consultar_socio
+except Exception:
+ consultar_socio = None
+
+try:
+ from domain.catalogos_python.aseveraciones_ls import ASEVERACIONES_LS
+except Exception:
+ ASEVERACIONES_LS = {}
+
+try:
+ from domain.services.materialidad_service import calcular_materialidad
+except Exception:
+ calcular_materialidad = None
+
+try:
+ from domain.services.export_area_service import (
+ build_area_resumen_markdown,
+ build_area_cierre_markdown,
+ save_area_markdown,
+ )
+except Exception:
+ build_area_resumen_markdown = None
+ build_area_cierre_markdown = None
+ save_area_markdown = None
+
+try:
+ from domain.services.historial_area_service import (
+ cargar_historial_area,
+ agregar_evento_historial_area,
+ resumir_historial_area,
+ )
+except Exception:
+ cargar_historial_area = None
+ agregar_evento_historial_area = None
+ resumir_historial_area = None
+
+try:
+ from domain.services.metodologia_calidad_service import evaluar_alertas_metodologia
+except Exception:
+ evaluar_alertas_metodologia = None
+
+try:
+ from infra.repositories.catalogo_repository import obtener_area_por_codigo
+except Exception:
+ obtener_area_por_codigo = None
+
+try:
+ from analysis.lector_mayor import (
+ mayor_existe,
+ obtener_mayor_cliente,
+ filtrar_por_ls,
+ buscar_movimientos,
+ resumen_mayor,
+ )
+except Exception:
+ mayor_existe = None
+ obtener_mayor_cliente = None
+ filtrar_por_ls = None
+ buscar_movimientos = None
+ resumen_mayor = None
+
+try:
+ from llm.llm_client import _get_deepseek_key
+except Exception:
+ _get_deepseek_key = None
+
+try:
+ # Preferred remote persistence backend: Supabase
+ from infra.repositories import supabase_repository as _sheets_repo
+ guardar_cliente_sheets = getattr(
+ _sheets_repo, "guardar_cliente_sheets", None
+ )
+ cargar_clientes_sheets = getattr(
+ _sheets_repo, "cargar_clientes_sheets", None
+ )
+ eliminar_cliente_sheets = getattr(
+ _sheets_repo, "eliminar_cliente_sheets", None
+ )
+ sheets_disponible = getattr(
+ _sheets_repo, "sheets_disponible", None
+ )
+ obtener_ultimo_error_sheets = getattr(
+ _sheets_repo, "obtener_ultimo_error_sheets", None
+ )
+ diagnosticar_sheets = getattr(
+ _sheets_repo, "diagnosticar_sheets", None
+ )
+ diagnosticar_config_supabase = getattr(
+ _sheets_repo, "diagnosticar_config_supabase", None
+ )
+ guardar_tb_storage = getattr(
+ _sheets_repo, "guardar_tb_storage", None
+ )
+ cargar_tb_storage = getattr(
+ _sheets_repo, "cargar_tb_storage", None
+ )
+ existe_tb_storage = getattr(
+ _sheets_repo, "existe_tb_storage", None
+ )
+ eliminar_tb_storage = getattr(
+ _sheets_repo, "eliminar_tb_storage", None
+ )
+ _sheets_ok = True
+ _sheets_import_error = ""
+except Exception:
+ try:
+  # Fallback legacy backend: Google Sheets
+  from infra.repositories import sheets_repository as _sheets_repo
+  guardar_cliente_sheets = getattr(
+   _sheets_repo, "guardar_cliente_sheets", None
+  )
+  cargar_clientes_sheets = getattr(
+   _sheets_repo, "cargar_clientes_sheets", None
+  )
+  eliminar_cliente_sheets = getattr(
+   _sheets_repo, "eliminar_cliente_sheets", None
+  )
+  sheets_disponible = getattr(
+   _sheets_repo, "sheets_disponible", None
+  )
+  obtener_ultimo_error_sheets = getattr(
+   _sheets_repo, "obtener_ultimo_error_sheets", None
+  )
+  diagnosticar_sheets = getattr(
+   _sheets_repo, "diagnosticar_sheets", None
+  )
+  diagnosticar_config_supabase = getattr(
+   _sheets_repo, "diagnosticar_config_supabase", None
+  )
+  guardar_tb_storage = getattr(
+   _sheets_repo, "guardar_tb_storage", None
+  )
+  cargar_tb_storage = getattr(
+   _sheets_repo, "cargar_tb_storage", None
+  )
+  existe_tb_storage = getattr(
+   _sheets_repo, "existe_tb_storage", None
+  )
+  eliminar_tb_storage = getattr(
+   _sheets_repo, "eliminar_tb_storage", None
+  )
+  _sheets_ok = True
+  _sheets_import_error = ""
+ except Exception:
+  guardar_cliente_sheets = None
+  cargar_clientes_sheets = None
+  eliminar_cliente_sheets = None
+  sheets_disponible = None
+  obtener_ultimo_error_sheets = None
+  diagnosticar_sheets = None
+  diagnosticar_config_supabase = None
+  guardar_tb_storage = None
+  cargar_tb_storage = None
+  existe_tb_storage = None
+  eliminar_tb_storage = None
+  _sheets_ok = False
+  _sheets_import_error = str(sys.exc_info()[1] or "")
+
+
+@st.cache_data(ttl=300)
+def cached_leer_tb(cliente: str):
+ return leer_tb(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_ranking_areas(cliente: str):
+ return calcular_ranking_areas(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_variaciones(cliente: str):
+ return calcular_variaciones(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_resumen_tb(cliente: str):
+ return obtener_resumen_tb(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_indicadores(cliente: str):
+ return obtener_indicadores_clave(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_leer_perfil(cliente: str):
+ return leer_perfil(cliente)
+
+
+@st.cache_data(ttl=300)
+def cached_datos_clave(cliente: str):
+ return obtener_datos_clave(cliente)
+
+
+if hasattr(sys.stdout, "reconfigure"):
+ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+ sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+
+# ============================================================
+# Configuracion
+# ============================================================
+st.set_page_config(
+ page_title="SocioAI - Auditoria Inteligente",
+ page_icon="",
+ layout="wide",
+ initial_sidebar_state="expanded",
+)
+
+# Global Sovereign theme injector (centralized design engine)
+inject_sovereign_theme()
+
+
+# ============================================================
+# Helpers defensivos
+# ============================================================
+def safe_call(func: Any, *args: Any, default: Any = None, **kwargs: Any) -> Any:
+ if func is None:
+ return default
+ try:
+ return func(*args, **kwargs)
+ except Exception:
+ return default
+
+
+def _obtener_admin_password() -> str:
+ """Load admin password from secrets or env."""
+ try:
+ import streamlit as st
+ val = st.secrets.get("ADMIN_PASSWORD", "")
+ if val and str(val).strip():
+ return str(val).strip()
+ except Exception:
+ pass
+ return os.environ.get("ADMIN_PASSWORD", "socioai2025")
+
+
+def _limpiar_cliente_session(cliente_id: str) -> int:
+ """
+ Removes ALL session data related to a client:
+ - All keys containing the client name
+ - Active client references if they match
+ - Upload keys, perfil, mayor, TB tipo
+ """
+ keys_to_delete = []
+
+ # Keys containing client name
+ for k in list(st.session_state.keys()):
+ if cliente_id in str(k):
+ keys_to_delete.append(k)
+
+ # Active client keys if they point to this client
+ active_keys = [
+ "cliente_activo", "etapa_activa",
+ "setup_cliente_sel", "auditor_nombre",
+ ]
+ for k in active_keys:
+ if st.session_state.get(k) == cliente_id:
+ keys_to_delete.append(k)
+
+ # Remove duplicates
+ keys_to_delete = list(set(keys_to_delete))
+
+ for k in keys_to_delete:
+ try:
+ del st.session_state[k]
+ except KeyError:
+ pass
+
+ # Also clear module-level caches
+ try:
+ from analysis.lector_tb import clear_tb_cache
+ clear_tb_cache(cliente_id)
+ except Exception:
+ pass
+ try:
+ from domain.services.leer_perfil import clear_perfil_cache
+ clear_perfil_cache(cliente_id)
+ except Exception:
+ pass
+
+ # Also delete from remote persistence (Supabase/Sheets)
+ if _sheets_ok and eliminar_cliente_sheets:
+ safe_call(
+ eliminar_cliente_sheets,
+ cliente_id,
+ default=False,
+ )
+ if callable(eliminar_tb_storage):
+ safe_call(
+ eliminar_tb_storage,
+ cliente_id,
+ default=False,
+ )
+ # Invalidate cache
+ if "sheets_clientes_cache" in st.session_state:
+ del st.session_state["sheets_clientes_cache"]
+
+ return len(keys_to_delete)
+
+
+def _get_clientes_dinamicos() -> list[str]:
+ """
+ Returns clients from:
+ 1. Remote persistence (Supabase/Sheets)
+ 2. Local repo folders (demo clients)
+ 3. Session-created clients (this session only)
+ Excludes deleted clients.
+ """
+ _borrados = st.session_state.get(
+ "clientes_borrados_sesion", []
+ )
+
+ # 1. From remote persistence (persistent)
+ _sheets_clientes: list[str] = []
+ if _sheets_ok and sheets_disponible and \
+ safe_call(sheets_disponible, default=False):
+ _cache_key = "sheets_clientes_cache"
+ # Cache for 60 seconds to avoid too many API calls
+ _cache_time_key = "sheets_clientes_cache_time"
+ import time
+ _now = time.time()
+ _last = st.session_state.get(
+ _cache_time_key, 0
+ )
+ if _now - _last > 60 or \
+ _cache_key not in st.session_state:
+ _raw = safe_call(
+ cargar_clientes_sheets, default=[]
+ ) or []
+ _ids = [
+ c["cliente_id"] for c in _raw
+ if c.get("cliente_id")
+ ]
+ st.session_state[_cache_key] = _ids
+ st.session_state[_cache_time_key] = _now
+
+ # Also restore perfil cache for each client
+ for c in _raw:
+ _cid = c.get("cliente_id", "")
+ _pf = c.get("perfil", {})
+ if _cid and _pf:
+ try:
+ from domain.services.leer_perfil \
+ import set_perfil_cache
+ set_perfil_cache(_cid, _pf)
+ except Exception:
+ pass
+ st.session_state[
+ f"perfil_upload_{_cid}"
+ ] = _pf
+
+ _sheets_clientes = st.session_state.get(
+ _cache_key, []
+ )
+
+ # 2. From repo folders
+ _base_path = Path("data/clientes")
+ _base = sorted([
+ d.name for d in _base_path.iterdir()
+ if d.is_dir()
+ ]) if _base_path.exists() else []
+
+ # 3. Session-created
+ _nuevos = st.session_state.get(
+ "clientes_creados_sesion", []
+ )
+
+ _todos = list(dict.fromkeys(
+ _sheets_clientes + _base + _nuevos
+ ))
+ return [c for c in _todos if c not in _borrados]
+
+
+def _normalizar_tb_desde_bytes(tb_bytes: bytes) -> pd.DataFrame:
+ import io
+ from analysis.lector_tb import (
+ _normalizar_columnas,
+ _mapear_columnas_canonicas,
+ _validar_tb,
+ _enriquecer_tb,
+ )
+
+ raw = pd.read_excel(
+ io.BytesIO(tb_bytes),
+ sheet_name=0,
+ engine="openpyxl",
+ )
+ raw = raw.dropna(how="all").reset_index(drop=True)
+ raw = _normalizar_columnas(raw)
+ raw = _mapear_columnas_canonicas(raw)
+ raw = _validar_tb(raw)
+ raw = _enriquecer_tb(raw)
+ return raw
+
+
+def fmt_num(value: Any, decimals: int = 2) -> str:
+ try:
+ return f"{float(value):,.{decimals}f}"
+ except Exception:
+ return "0.00"
+
+
+def fmt_money(value: Any) -> str:
+ try:
+ return f"${float(value):,.2f}"
+ except Exception:
+ return "$0.00"
+
+
+def normalize_text(value: Any) -> str:
+ if value is None:
+ return ""
+ return str(value).strip()
+
+
+def get_first(data: dict[str, Any], keys: list[str], default: Any = None) -> Any:
+ for k in keys:
+ if k in data and data[k] is not None:
+ return data[k]
+ return default
+
+
+def is_holding_profile(perfil: dict[str, Any] | None) -> bool:
+ perfil = perfil or {}
+ if not isinstance(perfil, dict):
+ return False
+ cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
+ contexto = perfil.get("contexto_negocio", {}) if isinstance(perfil.get("contexto_negocio"), dict) else {}
+ industria = perfil.get("industria_inteligente", {}) if isinstance(perfil.get("industria_inteligente"), dict) else {}
+ blob = " ".join(
+ [
+ str(cliente.get("sector", "")),
+ str(cliente.get("subsector", "")),
+ str(contexto.get("actividad_principal", "")),
+ str(industria.get("sector_base", "")),
+ str(industria.get("subtipo_negocio", "")),
+ ]
+ ).lower()
+ return "holding" in blob or "sociedad_cartera" in blob or "cartera" in blob
+
+
+def infer_area_options(
+ ranking_areas: pd.DataFrame | None,
+ tb: pd.DataFrame | None,
+ cliente: str,
+) -> list[tuple[str, str]]:
+ """
+ Returns only areas that have actual data for this client.
+ Priority: areas present in ranking_areas WITH saldo > 0,
+ ordered by score descending.
+ Fallback: areas found in TB ls column.
+ """
+ options: list[tuple[str, str]] = []
+
+ # -- Primary: ranking with real saldo ----------------------
+ if ranking_areas is not None and not ranking_areas.empty:
+ needed = {"area", "nombre"}
+ if needed.issubset(set(ranking_areas.columns)):
+ # Filter: only areas present with actual balance
+ mask_present = pd.Series([True] * len(ranking_areas))
+ if "con_saldo" in ranking_areas.columns:
+ mask_present = ranking_areas["con_saldo"].astype(bool)
+ elif "saldo_total" in ranking_areas.columns:
+ mask_present = ranking_areas["saldo_total"].apply(
+ lambda x: abs(float(x or 0)) > 0.01
+ )
+ elif "estado_presencia" in ranking_areas.columns:
+ mask_present = ranking_areas["estado_presencia"].astype(
+ str
+ ).isin({"con_saldo", "sin_saldo"})
+
+ df_present = ranking_areas[mask_present].copy()
+
+ # Sort by score descending so highest-risk areas appear first
+ if "score_riesgo" in df_present.columns:
+ df_present = df_present.sort_values(
+ "score_riesgo", ascending=False
+ )
+
+ for _, row in df_present.iterrows():
+ code = normalize_text(row.get("area", ""))
+ name = normalize_text(row.get("nombre", ""))
+ if code:
+ score = row.get("score_riesgo")
+ score_txt = (
+ f" [{float(score):.0f}]" if score is not None else ""
+ )
+ label = (
+ f"{code} - {name}{score_txt}" if name else code
+ )
+ options.append((code, label))
+
+ # -- Fallback: read ls column from TB directly --------------
+ if not options and tb is not None and not tb.empty:
+ ls_col = next(
+ (c for c in ["ls", "l/s", "l_s", "L/S"] if c in tb.columns),
+ None,
+ )
+ if ls_col:
+ present_ls = sorted(
+ {
+ normalize_text(v)
+ for v in tb[ls_col].dropna().tolist()
+ if normalize_text(v)
+ }
+ )
+
+ def _label(code: str) -> str:
+ area = safe_call(obtener_area_por_codigo, code, default=None)
+ if isinstance(area, dict):
+ title = normalize_text(area.get("titulo", ""))
+ if title:
+ return f"{code} - {title}"
+ return f"{code} - area {code}"
+
+ for code in present_ls:
+ options.append((code, _label(code)))
+
+ # -- Last resort --------------------------------------------
+ if not options:
+ options = [("140", "140 - Efectivo y Equivalentes")]
+
+ return options
+
+
+def build_area_df(tb: pd.DataFrame | None, variaciones: pd.DataFrame | None, codigo_ls: str) -> pd.DataFrame:
+ """
+ Intenta construir un DataFrame de area compatible con servicios legacy.
+ """
+ codigo_ls_norm = str(codigo_ls or "").strip().replace(".0", "")
+
+ def _norm(v: Any) -> str:
+ return str(v or "").strip().replace(".0", "")
+
+ def _mask_ls(series: pd.Series, code: str) -> pd.Series:
+ s = series.astype(str).str.strip().str.replace(r"\.0+$", "", regex=True)
+ code = str(code).strip().replace(".0", "")
+ # Match exact code or subcode (e.g. 200, 200.1, 200.2)
+ return s.str.match(rf"^{code}(\.|$)", na=False)
+
+ if variaciones is not None and not variaciones.empty:
+ for col in ["ls", "l/s", "l_s", "L/S"]:
+ if col in variaciones.columns:
+ area = variaciones[
+ _mask_ls(variaciones[col], codigo_ls_norm)
+ ].copy()
+ if not area.empty:
+ return area
+
+ if tb is not None and not tb.empty:
+ # Preferred: filter by L/S area code
+ ls_col = next(
+ (c for c in ["ls", "l/s", "l_s", "L/S", "linea_significancia"] if c in tb.columns),
+ None,
+ )
+ codigo_col = None
+ nombre_col = None
+ saldo_col = None
+ saldo_prev_col = None
+ for c in ["codigo", "numero_de_cuenta", "cuenta", "cod_cuenta"]:
+ if c in tb.columns:
+ codigo_col = c
+ break
+ for c in ["nombre", "nombre_cuenta", "descripcion"]:
+ if c in tb.columns:
+ nombre_col = c
+ break
+ for c in ["saldo_2025", "saldo_preliminar", "saldo_actual", "saldo"]:
+ if c in tb.columns:
+ saldo_col = c
+ break
+ for c in ["saldo_2024", "saldo_anterior", "saldo_base"]:
+ if c in tb.columns:
+ saldo_prev_col = c
+ break
+
+ if ls_col and saldo_col:
+ mask = _mask_ls(tb[ls_col], codigo_ls_norm)
+ sub = tb[mask].copy()
+ if not sub.empty:
+ out = pd.DataFrame()
+ out["numero_cuenta"] = (
+ sub[codigo_col].astype(str) if codigo_col else ""
+ )
+ out["nombre_cuenta"] = sub[nombre_col] if nombre_col else ""
+ out["saldo_actual"] = pd.to_numeric(sub[saldo_col], errors="coerce").fillna(0.0)
+ out["saldo_anterior"] = (
+ pd.to_numeric(sub[saldo_prev_col], errors="coerce").fillna(0.0)
+ if saldo_prev_col
+ else 0.0
+ )
+ out["variacion_absoluta"] = out["saldo_actual"] - out["saldo_anterior"]
+ out["abs_variacion_absoluta"] = out["variacion_absoluta"].abs()
+ out["flag_movimiento_relevante"] = out["abs_variacion_absoluta"] > 0
+ out["flag_sin_base"] = True
+ out["ls"] = codigo_ls_norm
+ return out
+
+ # Fallback: filtrar por prefijo de numero de cuenta
+ if codigo_col and saldo_col:
+ mask = tb[codigo_col].astype(str).str.startswith(codigo_ls_norm)
+ sub = tb[mask].copy()
+ if not sub.empty:
+ out = pd.DataFrame()
+ out["numero_cuenta"] = sub[codigo_col].astype(str)
+ out["nombre_cuenta"] = sub[nombre_col] if nombre_col else ""
+ out["saldo_actual"] = pd.to_numeric(sub[saldo_col], errors="coerce").fillna(0.0)
+ out["saldo_anterior"] = (
+ pd.to_numeric(sub[saldo_prev_col], errors="coerce").fillna(0.0)
+ if saldo_prev_col
+ else 0.0
+ )
+ out["variacion_absoluta"] = out["saldo_actual"] - out["saldo_anterior"]
+ out["abs_variacion_absoluta"] = out["variacion_absoluta"].abs()
+ out["flag_movimiento_relevante"] = out["abs_variacion_absoluta"] > 0
+ out["flag_sin_base"] = True
+ out["ls"] = codigo_ls_norm
+ return out
+
+ return pd.DataFrame()
+
+
+def prepare_area_workspace(
+ cliente: str,
+ etapa: str,
+ codigo_ls: str,
+ perfil: dict[str, Any] | None,
+ tb: pd.DataFrame | None,
+ variaciones: pd.DataFrame | None,
+ ranking_areas: pd.DataFrame | None,
+) -> dict[str, Any]:
+ perfil = perfil or {}
+
+ estado_area = safe_call(cargar_estado_area, cliente, codigo_ls, default={}) or {}
+ area_df = build_area_df(tb, variaciones, codigo_ls)
+
+ # Nombre y score desde ranking cuando exista
+ area_name = f"Area {codigo_ls}"
+ area_score = None
+ saldo_total = 0.0
+ pct_total = 0.0
+ materialidad_relativa = 0.0
+ justificacion = ""
+ prioridad = "media"
+ expert_flags_count = 0
+ expert_flags: list[dict[str, Any]] = []
+ materialidad_sugerida = 0.0
+ materialidad_ejecucion = 0.0
+ trivialidad = 0.0
+
+ if ranking_areas is not None and not ranking_areas.empty and "area" in ranking_areas.columns:
+ rows = ranking_areas[ranking_areas["area"].astype(str).str.strip() == str(codigo_ls).strip()]
+ if not rows.empty:
+ row0 = rows.iloc[0]
+ area_name = normalize_text(row0.get("nombre", "")) or area_name
+ area_score = row0.get("score_riesgo")
+ saldo_total = float(row0.get("saldo_total", 0) or 0)
+ pct_total = float(row0.get("pct_total", 0) or 0)
+ materialidad_relativa = float(row0.get("materialidad_relativa", 0) or 0)
+ justificacion = normalize_text(row0.get("justificacion", ""))
+ prioridad = normalize_text(row0.get("prioridad", "media")) or "media"
+ expert_flags_count = int(row0.get("expert_flags_count", 0) or 0)
+ raw_flags = row0.get("expert_flags", [])
+ expert_flags = raw_flags if isinstance(raw_flags, list) else []
+ materialidad_sugerida = float(row0.get("materialidad_sugerida", 0) or 0)
+ materialidad_ejecucion = float(row0.get("materialidad_ejecucion", 0) or 0)
+ trivialidad = float(row0.get("trivialidad", 0) or 0)
+
+ if not area_name or area_name == f"Area {codigo_ls}":
+ area_name = normalize_text(estado_area.get("nombre", "")) or area_name
+
+ # Materialidad (fallback si ranking no viene enriquecido)
+ if materialidad_ejecucion <= 0:
+ mat = safe_call(calcular_materialidad, cliente, default={}) or {}
+ materialidad_sugerida = float(mat.get("materialidad_sugerida", 0) or 0)
+ materialidad_ejecucion = float(mat.get("materialidad_desempeno", 0) or 0)
+ trivialidad = float(mat.get("error_trivial", 0) or 0)
+ if materialidad_ejecucion > 0:
+ materialidad_relativa = (saldo_total / materialidad_ejecucion) * 100 if saldo_total else 0.0
+
+ # Riesgos
+ riesgos = safe_call(detectar_riesgos_area, area_df, str(codigo_ls), perfil, default=[]) or []
+ riesgo_estado = normalize_text(estado_area.get("riesgo", ""))
+ if not riesgo_estado and riesgos:
+ niveles = [normalize_text(r.get("nivel", "")).upper() for r in riesgos]
+ if "ALTO" in niveles:
+ riesgo_estado = "ALTO"
+ elif "MEDIO" in niveles:
+ riesgo_estado = "MEDIO"
+ elif "BAJO" in niveles:
+ riesgo_estado = "BAJO"
+
+ # Flags expertas directas (fallback si ranking no las trae)
+ if not expert_flags:
+ expert_flags = safe_call(
+ detectar_expert_flags,
+ codigo_area=str(codigo_ls),
+ perfil=perfil,
+ metricas_area={
+ "saldo_total": saldo_total,
+ "pct_total": pct_total,
+ "materialidad_relativa": materialidad_relativa,
+ "variacion_abs_total": float(area_df.get("abs_variacion_absoluta", pd.Series(dtype=float)).sum())
+ if not area_df.empty
+ else 0.0,
+ },
+ default=[],
+ ) or []
+ expert_flags_count = len(expert_flags)
+
+ # Procedimientos
+ proc_estado = safe_call(obtener_procedimientos_area, estado_area, default=[]) or []
+ if not proc_estado:
+ proc_estado = safe_call(procedimientos_por_area_estructurados, str(codigo_ls), perfil, riesgos, default=[]) or []
+
+ if proc_estado and isinstance(proc_estado[0], str):
+ proc_estado = [
+ {"id": f"proc_{idx+1}", "descripcion": desc, "estado": "planificado"}
+ for idx, desc in enumerate(proc_estado)
+ ]
+
+ proc_df = pd.DataFrame(proc_estado) if proc_estado else pd.DataFrame(columns=["id", "descripcion", "estado"])
+ if "estado" not in proc_df.columns:
+ proc_df["estado"] = "planificado"
+ if "descripcion" not in proc_df.columns:
+ proc_df["descripcion"] = ""
+
+ done_states = {"ejecutado", "completado", "cerrado", "no_aplicable", "no_aplica"}
+ pending_count = int((~proc_df["estado"].astype(str).str.lower().isin(done_states)).sum()) if not proc_df.empty else 0
+
+ # Hallazgos
+ hallazgos = safe_call(extraer_hallazgos_abiertos, estado_area, default=[]) or []
+ if not hallazgos:
+ raw_hallazgos = estado_area.get("hallazgos_abiertos", []) or []
+ for h in raw_hallazgos:
+ if isinstance(h, dict):
+ desc = normalize_text(h.get("descripcion", ""))
+ if desc:
+ hallazgos.append(desc)
+ elif normalize_text(h):
+ hallazgos.append(normalize_text(h))
+
+ # Cobertura
+ cobertura = safe_call(
+ evaluar_cobertura_aseveraciones,
+ codigo_ls=str(codigo_ls),
+ procedimientos=proc_df.to_dict("records") if not proc_df.empty else [],
+ hallazgos_abiertos=hallazgos,
+ default=None,
+ )
+
+ if cobertura is None:
+ esperadas = ASEVERACIONES_LS.get(str(codigo_ls), []) if isinstance(ASEVERACIONES_LS, dict) else []
+ cobertura = {
+ "esperadas": esperadas,
+ "cubiertas": [],
+ "debiles": [],
+ "no_cubiertas": esperadas,
+ "excluidas_no_aplica": [],
+ "cobertura_porcentaje": 0.0,
+ "conclusion": "sin_mapeo",
+ }
+
+ # Briefing
+ area_summary = safe_call(construir_resumen_area, area_df, default={}) or {}
+ lectura = safe_call(construir_lectura_inicial, str(codigo_ls), area_df, perfil, default="") or ""
+ focos = safe_call(construir_foco_auditoria, str(codigo_ls), perfil, area_df, default=[]) or []
+ if not isinstance(focos, list):
+ focos = []
+ foco_holding = safe_call(construir_foco_holding, str(codigo_ls), perfil, area_df, default=[]) or []
+ if not isinstance(foco_holding, list):
+ foco_holding = []
+
+ if not area_summary:
+ area_summary = {
+ "cuentas": int(len(area_df)) if not area_df.empty else 0,
+ "saldo_actual": float(area_df.get("saldo_actual", pd.Series(dtype=float)).sum()) if not area_df.empty else saldo_total,
+ "variacion_neta": float(area_df.get("variacion_absoluta", pd.Series(dtype=float)).sum()) if not area_df.empty else 0.0,
+ "variacion_acumulada": float(area_df.get("abs_variacion_absoluta", pd.Series(dtype=float)).sum()) if not area_df.empty else 0.0,
+ "cuentas_relevantes": int(area_df.get("flag_movimiento_relevante", pd.Series(dtype=bool)).sum()) if not area_df.empty else 0,
+ }
+
+ if not lectura:
+ lectura = (
+ f"El area {area_name} (L/S {codigo_ls}) presenta saldo {fmt_money(area_summary.get('saldo_actual', 0))} "
+ f"y variacion neta {fmt_money(area_summary.get('variacion_neta', 0))}."
+ )
+
+ # Cierre
+ cierre_texto = safe_call(revisar_cierre_area_llm, cliente, str(codigo_ls), etapa=etapa, default="") or ""
+ pendientes = safe_call(obtener_pendientes_area, estado_area, default=[]) or []
+
+ if not cierre_texto:
+ cierre_texto = (
+ f"Revision de cierre para {area_name}. "
+ f"Cobertura actual: {fmt_num(cobertura.get('cobertura_porcentaje', 0), 1)}%."
+ )
+
+ if not justificacion:
+ justificacion = (
+ f"Impacto relativo {fmt_num(materialidad_relativa, 1)}% sobre materialidad de ejecucion; "
+ f"{expert_flags_count} bandera(s) experta(s)."
+ )
+
+ ws_base = {
+ "codigo_ls": str(codigo_ls),
+ "area_name": area_name,
+ "etapa": etapa,
+ "area_score": area_score,
+ "riesgo": riesgo_estado or "N/A",
+ "coverage": float(cobertura.get("cobertura_porcentaje", 0) or 0),
+ "hallazgos": hallazgos,
+ "hallazgos_count": len(hallazgos),
+ "proc_df": proc_df,
+ "pending_count": pending_count,
+ "estado_area": estado_area,
+ "area_df": area_df,
+ "area_summary": area_summary,
+ "riesgos": riesgos,
+ "focos": focos,
+ "foco_holding": foco_holding,
+ "es_holding": is_holding_profile(perfil),
+ "lectura": lectura,
+ "cobertura": cobertura,
+ "cierre_texto": cierre_texto,
+ "pendientes": pendientes,
+ "materialidad_relativa": materialidad_relativa,
+ "materialidad_sugerida": materialidad_sugerida,
+ "materialidad_ejecucion": materialidad_ejecucion,
+ "trivialidad": trivialidad,
+ "expert_flags": expert_flags,
+ "expert_flags_count": expert_flags_count,
+ "justificacion": justificacion,
+ "prioridad": prioridad,
+ "perfil": perfil,
+ "contexto": perfil,
+ }
+
+ area_info = {
+ "nombre": area_name,
+ "codigo_ls": str(codigo_ls),
+ "saldo": saldo_total,
+ "variacion_pct": float(pct_total / 100.0) if pct_total else 0.0,
+ "score_riesgo": float(area_score or 0.0) if area_score is not None else 0.0,
+ "cobertura": float(cobertura.get("cobertura_porcentaje", 0) or 0),
+ "estado": str(ws_base.get("estado_presencia", "NO_PRESENTE")).upper(),
+ }
+ ws_base["area_info"] = area_info
+ ws_base["materialidad_desempeno"] = materialidad_ejecucion
+ ws_base["sector"] = normalize_text(
+ perfil.get("cliente", {}).get("sector", perfil.get("sector", ""))
+ if isinstance(perfil, dict)
+ else ""
+ ).lower()
+ ws_base["marco_niif"] = normalize_text(
+ perfil.get("encargo", {}).get("marco_referencial", "")
+ if isinstance(perfil, dict)
+ else ""
+ )
+ ws_base["cliente"] = cliente
+
+ riesgos_automaticos = safe_call(detectar_riesgos_area_auto, ws_base, default=[]) or []
+ if not isinstance(riesgos_automaticos, list):
+ riesgos_automaticos = []
+ ws_base["riesgos_automaticos"] = riesgos_automaticos
+
+ calidad_eval = safe_call(
+ evaluar_alertas_metodologia,
+ cliente,
+ str(codigo_ls),
+ ws_base,
+ default={},
+ ) or {}
+
+ ws_base["calidad_metodologia"] = calidad_eval if isinstance(calidad_eval, dict) else {}
+ return ws_base
+
+
+
+
+def render_consultar_socio_tab(ws: dict[str, Any], cliente: str) -> None:
+ st.subheader("Consulta al Socio")
+
+ if consultar_socio is None:
+ st.info("Servicio de chat no disponible en este entorno.")
+ return
+
+ chat_key = f"chat_area_{cliente}_{ws.get('codigo_ls', 'na')}"
+ if chat_key not in st.session_state:
+ st.session_state[chat_key] = []
+
+ pregunta = st.text_input("Haz una pregunta sobre esta area", key=f"q_{chat_key}")
+
+ if st.button("Consultar", key=f"b_{chat_key}"):
+ respuesta = safe_call(consultar_socio, pregunta, ws, default="No se pudo obtener respuesta.")
+ st.session_state[chat_key].append(("Usuario", pregunta))
+ st.session_state[chat_key].append(("Socio", respuesta))
+
+ for rol, msg in st.session_state[chat_key]:
+ if rol == "Usuario":
+ st.markdown(f"**Tu:** {msg}")
+ else:
+ st.markdown(f"**Socio:** {msg}")
+
+
+def render_welcome_screen():
+ """Full-page welcome screen."""
+ st.markdown("<div class='sv-hide-sidebar'></div>", unsafe_allow_html=True)
+
+ st.markdown("""
+ <div style="display:flex; justify-content:center;
+ align-items:center; min-height:80vh;">
+ <div class="welcome-bg">
+ <div style="text-align:center;">
+ <div style="font-size:4rem; margin-bottom:0.5rem;">SA</div>
+ <div class="welcome-logo">SocioAI</div>
+ <div class="welcome-sub">
+ Plataforma Inteligente de Auditoria Financiera
+ </div>
+ <div style="color:#A8C4E0; font-size:0.9rem;
+ margin-bottom:2.5rem; line-height:1.6;">
+ Analisis de riesgo - Briefings con IA - Programas de auditoria<br>
+ Ranking de areas - Reporte PDF ejecutivo
+ </div>
+ </div>
+ </div>
+ </div>
+ """, unsafe_allow_html=True)
+
+ col1, col2, col3 = st.columns([1, 1, 1])
+ with col2:
+ if st.button(
+ "Comenzar",
+ key="btn_welcome_start",
+ width="stretch",
+ type="primary",
+ ):
+ st.session_state["app_screen"] = "setup"
+ st.rerun()
+
+
+def render_setup_screen(clientes_disponibles: list[str]):
+ """Client setup screen: auditor + client + upload."""
+ st.markdown("<div class='sv-hide-sidebar'></div>", unsafe_allow_html=True)
+
+ st.markdown("""
+ <div style="text-align:center; padding:1.2rem 0 0.2rem 0;">
+ <span style="font-size:1.95rem; font-weight:900;
+ color:#003366;">SocioAI</span>
+ <div style="color:#6B778C; font-size:0.98rem;
+ margin-top:0.25rem;">
+ Configura tu sesion de auditoria
+ </div>
+ </div>
+ <div class="setup-hero">
+ <div class="setup-hero-title">Iniciemos tu analisis</div>
+ <div class="setup-hero-sub">
+ Completa 3 pasos para entrar al dashboard:
+ selecciona cliente, sube tu Trial Balance y define la etapa.
+ </div>
+ <span class="setup-step">1. Cliente</span>
+ <span class="setup-step">2. Archivos</span>
+ <span class="setup-step">3. Etapa</span>
+ </div>
+ """, unsafe_allow_html=True)
+
+ main_col, _ = st.columns([2, 1])
+ with main_col:
+
+ # -- Auditor name --------------------------------------
+ st.markdown(
+ "<div class='section-header'>Auditor</div>",
+ unsafe_allow_html=True,
+ )
+ nombre_auditor = st.text_input(
+ "Nombre del auditor",
+ placeholder="ej: Erick Salas",
+ key="setup_auditor",
+ label_visibility="collapsed",
+ )
+
+ st.markdown("<div style='margin-top:1.2rem;'></div>",
+ unsafe_allow_html=True)
+
+ # -- Client selection ----------------------------------
+ st.markdown(
+ "<div class='section-header'>Cliente</div>",
+ unsafe_allow_html=True,
+ )
+
+ modo = st.radio(
+ "Modo",
+ ["Seleccionar cliente existente", "Crear cliente nuevo"],
+ key="setup_modo",
+ horizontal=True,
+ label_visibility="collapsed",
+ )
+
+ cliente_elegido = ""
+
+ if modo == "Seleccionar cliente existente":
+ if clientes_disponibles:
+ st.markdown("**Clientes disponibles:**")
+ # Check if any client has session data loaded
+ clientes_con_datos = [
+ c for c in clientes_disponibles
+ if any(
+ c in str(k)
+ for k in st.session_state.keys()
+ if any(
+ prefix in str(k)
+ for prefix in [
+ "tb_upload_", "perfil_upload_",
+ "mayor_upload_",
+ ]
+ )
+ )
+ ]
+ for c in clientes_disponibles:
+ label = c.replace("_", " ").title()
+ is_selected = (
+ st.session_state.get("setup_cliente_sel") == c
+ )
+ has_data = c in clientes_con_datos
+
+ card_class = (
+ "client-card client-card-selected"
+ if is_selected
+ else "client-card"
+ )
+
+ # Data badge
+ data_badge = (
+ "<span style='background:#E3FCEF; color:#006644;"
+ " padding:2px 8px; border-radius:10px;"
+ " font-size:0.75rem; font-weight:700;"
+ " margin-left:8px;'>Con datos</span>"
+ if has_data else
+ "<span style='background:#F4F5F7; color:#6B778C;"
+ " padding:2px 8px; border-radius:10px;"
+ " font-size:0.75rem;'>Sin datos</span>"
+ )
+
+ st.markdown(
+ f"""<div class="{card_class}">
+ <div class="client-card-title">
+ {label} {data_badge}
+ </div>
+ <div class="client-card-sub">{c}</div>
+ </div>""",
+ unsafe_allow_html=True,
+ )
+
+ btn_col1, btn_col2 = st.columns([3, 1])
+ with btn_col1:
+ if st.button(
+ "Seleccionar",
+ key=f"sel_{c}",
+ width="stretch",
+ ):
+ st.session_state["setup_cliente_sel"] = c
+ st.rerun()
+
+ with btn_col2:
+ if st.button(
+ "Borrar",
+ key=f"del_{c}",
+ width="stretch",
+ help="Borra los datos cargados de este cliente",
+ ):
+ # Open delete confirmation for this client
+ st.session_state[
+ "delete_confirm_cliente"
+ ] = c
+ st.rerun()
+
+ # -- Delete confirmation dialog ------------------------
+ cliente_a_borrar = st.session_state.get(
+ "delete_confirm_cliente", ""
+ )
+ if cliente_a_borrar:
+ st.markdown("<div style='margin-top:1rem;'></div>",
+ unsafe_allow_html=True)
+ st.markdown(
+ f"<div class='check-item check-fail'>"
+ f"<span class='check-icon'></span>"
+ f"<span>Vas a borrar los datos de "
+ f"<b>{cliente_a_borrar}</b> "
+ f"de esta sesion. "
+ f"Ingresa la contrase?a para confirmar."
+ f"</span></div>",
+ unsafe_allow_html=True,
+ )
+
+ conf_col1, conf_col2, conf_col3 = st.columns(
+ [2, 1, 1]
+ )
+ with conf_col1:
+ pwd_input = st.text_input(
+ "Contrase?a de administrador",
+ type="password",
+ key="delete_pwd_input",
+ label_visibility="collapsed",
+ placeholder="Contrase?a...",
+ )
+ with conf_col2:
+ if st.button(
+ "Confirmar borrado",
+ key="btn_confirm_delete",
+ width="stretch",
+ ):
+ admin_pwd = _obtener_admin_password()
+ if pwd_input == admin_pwd:
+ # Real delete: clear all session data
+ n = _limpiar_cliente_session(cliente_a_borrar)
+
+ # Remove from dynamic clients list
+ _creados = st.session_state.get(
+ "clientes_creados_sesion", []
+ )
+ if cliente_a_borrar in _creados:
+ _creados = [
+ c for c in _creados
+ if c != cliente_a_borrar
+ ]
+ st.session_state[
+ "clientes_creados_sesion"
+ ] = _creados
+
+ # Add to permanent blocklist for this session
+ _borrados = st.session_state.get(
+ "clientes_borrados_sesion", []
+ )
+ if cliente_a_borrar not in _borrados:
+ _borrados.append(cliente_a_borrar)
+ st.session_state[
+ "clientes_borrados_sesion"
+ ] = _borrados
+
+ # Clear active client if it was deleted
+ if st.session_state.get(
+ "setup_cliente_sel"
+ ) == cliente_a_borrar:
+ del st.session_state["setup_cliente_sel"]
+
+ if st.session_state.get(
+ "cliente_activo"
+ ) == cliente_a_borrar:
+ del st.session_state["cliente_activo"]
+
+ # Clean up confirmation state
+ del st.session_state["delete_confirm_cliente"]
+ for k in ["delete_pwd_input"]:
+ if k in st.session_state:
+ del st.session_state[k]
+
+ st.success(
+ f"Cliente **{cliente_a_borrar}** "
+ f"eliminado completamente ({n} "
+ f"entradas borradas)."
+ )
+ st.rerun()
+ else:
+ st.error("Contrase?a incorrecta.")
+
+ with conf_col3:
+ if st.button(
+ "Cancelar",
+ key="btn_cancel_delete",
+ width="stretch",
+ ):
+ del st.session_state[
+ "delete_confirm_cliente"
+ ]
+ if "delete_pwd_input" in st.session_state:
+ del st.session_state["delete_pwd_input"]
+ st.rerun()
+
+ cliente_elegido = st.session_state.get(
+ "setup_cliente_sel", ""
+ )
+ else:
+ st.info(
+ "No hay clientes guardados. "
+ "Crea uno nuevo."
+ )
+ else:
+ st.markdown("**Identificador del cliente** (sin espacios)")
+ cliente_id_input = st.text_input(
+ "ID -nico",
+ placeholder="ej: empresa_abc_2025",
+ key="setup_cliente_id",
+ help="Identificador interno. Solo letras, n-meros y guiones bajos.",
+ )
+ # Clean ID: only alphanumeric and underscores
+ if cliente_id_input.strip():
+ import re as _re
+ cliente_elegido = _re.sub(
+ r"[^a-z0-9_]", "_",
+ cliente_id_input.strip().lower()
+ ).strip("_")
+ if cliente_elegido:
+ st.caption(
+ f"ID interno: `{cliente_elegido}`"
+ )
+ else:
+ st.warning(
+ "ID inv-lido. Usa solo letras y n-meros."
+ )
+ cliente_elegido = ""
+
+ st.markdown("<div style='margin-top:1.2rem;'></div>",
+ unsafe_allow_html=True)
+
+ # -- Stage selection -----------------------------------
+ st.markdown("<div style='margin-top:1.2rem;'></div>",
+ unsafe_allow_html=True)
+ st.markdown(
+ "<div class='section-header'>Etapa</div>",
+ unsafe_allow_html=True,
+ )
+ etapa_setup = st.selectbox(
+ "Etapa de auditoria",
+ ["planificacion", "ejecucion", "cierre"],
+ key="setup_etapa",
+ label_visibility="collapsed",
+ )
+
+ # -- File uploads --------------------------------------
+ st.markdown(
+ "<div class='section-header'>Archivos</div>",
+ unsafe_allow_html=True,
+ )
+ # -- Check if client already has data -----------------
+ _tiene_tb_repo = (
+ (Path("data/clientes") / cliente_elegido / "tb.xlsx")
+ .exists()
+ if cliente_elegido else False
+ )
+ _tiene_tb_session = (
+ f"tb_upload_{cliente_elegido}"
+ in st.session_state
+ if cliente_elegido else False
+ )
+ _tiene_tb_remote = (
+ bool(
+ _sheets_ok
+ and callable(existe_tb_storage)
+ and cliente_elegido
+ and safe_call(
+ existe_tb_storage,
+ cliente_elegido,
+ default=False,
+ )
+ )
+ if cliente_elegido else False
+ )
+ _tiene_tb = _tiene_tb_repo or _tiene_tb_session or _tiene_tb_remote
+
+ if _tiene_tb and cliente_elegido:
+ st.markdown(
+ f"<div class='check-item check-ok'>"
+ f"<span class='check-icon'>-</span>"
+ f"<span>Trial Balance ya disponible para "
+ f"<b>{cliente_elegido}</b>. "
+ f"Puedes subir uno nuevo para actualizarlo.</span>"
+ f"</div>",
+ unsafe_allow_html=True,
+ )
+
+ up_col1, up_col2 = st.columns(2)
+ with up_col1:
+ tb_label = (
+ "Trial Balance (.xlsx) - actualizar"
+ if _tiene_tb
+ else "Trial Balance (.xlsx) *"
+ )
+ uploaded_tb = st.file_uploader(
+ tb_label,
+ type=["xlsx"],
+ key="setup_tb",
+ help=(
+ "Opcional - ya tienes TB cargado"
+ if _tiene_tb
+ else "Obligatorio para el analisis"
+ ),
+ )
+
+ # TB type selector (preliminar vs final)
+ tb_tipo = st.radio(
+ "Tipo de TB",
+ ["preliminar", "final"],
+ key="setup_tb_tipo",
+ horizontal=True,
+ help=(
+ "Preliminar: saldos de avance. "
+ "Final: saldos definitivos al cierre."
+ ),
+ )
+
+ with up_col2:
+ uploaded_mayor = st.file_uploader(
+ "Libro Mayor (.xlsx) - opcional",
+ type=["xlsx"],
+ key="setup_mayor",
+ )
+
+ if modo == "Crear cliente nuevo":
+ st.markdown("<div style='margin-top:.5rem;'></div>", unsafe_allow_html=True)
+ render_profile_editorial_intro()
+ st.markdown(
+ """
+ <div class="risk-high" style="margin:0 0 .9rem 0;">
+ <b>Nota de calidad:</b> Completar estos campos fortalece el criterio del Risk Engine,
+ recomendaciones NIIF/NIA y consistencia del cierre.
+ </div>
+ """,
+ unsafe_allow_html=True,
+ )
+
+ # -- Section 1: Basic data -----------------------------
+ with st.container():
+ render_profile_card_title(
+ "Datos basicos",
+ "Nombre de firma, sector y marco normativo del encargo.",
+ )
+ p1, p2 = st.columns(2)
+ with p1:
+ perfil_nombre = st.text_input(
+ "Nombre legal del cliente *",
+ placeholder="ABC Corporation S.A.",
+ key="pf_nombre",
+ )
+ perfil_ruc = st.text_input(
+ "RUC / NIT",
+ placeholder="1234567890001",
+ key="pf_ruc",
+ )
+ perfil_sector = st.selectbox(
+ "Sector",
+ [
+ "comerciales", "servicios",
+ "holding", "manufactura",
+ "financiero", "agricultura",
+ "sin_fines_de_lucro", "otro",
+ ],
+ key="pf_sector",
+ )
+ perfil_tipo = st.selectbox(
+ "Tipo de entidad",
+ [
+ "SOCIEDAD_ANONIMA",
+ "COMPANIA_LIMITADA",
+ "SAS", "COOPERATIVA",
+ "ONG", "PERSONA_NATURAL",
+ "otro",
+ ],
+ key="pf_tipo",
+ )
+ with p2:
+ perfil_periodo = st.number_input(
+ "A-o del encargo",
+ min_value=2020, max_value=2030,
+ value=2025, key="pf_periodo",
+ )
+ perfil_marco = st.selectbox(
+ "Marco referencial",
+ ["NIIF_PYMES", "NIIF_COMPLETAS", "otro"],
+ key="pf_marco",
+ )
+ perfil_riesgo = st.selectbox(
+ "Riesgo global estimado",
+ ["bajo", "medio", "medio_alto", "alto"],
+ key="pf_riesgo",
+ )
+ perfil_moneda = st.selectbox(
+ "Moneda funcional",
+ ["USD", "EUR", "COP", "PEN", "MXN", "otro"],
+ key="pf_moneda",
+ )
+
+ st.markdown("<div style='margin-top:1rem;'></div>",
+ unsafe_allow_html=True)
+
+ # -- Section 2: Operational flags ---------------------
+ with st.container():
+ render_profile_card_title(
+ "Caracteristicas operativas",
+ "Este bloque alimenta la priorizacion de pruebas por area.",
+ )
+ op1, op2, op3 = st.columns(3)
+ with op1:
+ pf_partes_rel = st.checkbox(
+ "Tiene partes relacionadas",
+ key="pf_partes_rel",
+ help="Socios, subsidiarias, empresas vinculadas",
+ )
+ pf_inventarios = st.checkbox(
+ "Inventarios significativos",
+ key="pf_inventarios",
+ )
+ pf_cartera = st.checkbox(
+ "Cartera significativa (CxC)",
+ key="pf_cartera",
+ )
+ with op2:
+ pf_prestamos_socios = st.checkbox(
+ "Pr-stamos a socios",
+ key="pf_prestamos_socios",
+ )
+ pf_anticipos = st.checkbox(
+ "Anticipos a proveedores",
+ key="pf_anticipos",
+ )
+ pf_reembolsos = st.checkbox(
+ "Reembolsos de gastos",
+ key="pf_reembolsos",
+ )
+ with op3:
+ pf_operaciones_ext = st.checkbox(
+ "Operaciones en el exterior",
+ key="pf_operaciones_ext",
+ )
+ pf_primera_auditoria = st.checkbox(
+ "Primera auditoria",
+ key="pf_primera_auditoria",
+ )
+ pf_empleados = st.checkbox(
+ "Tiene empleados",
+ key="pf_empleados",
+ value=True,
+ )
+
+ st.markdown("<div style='margin-top:0.5rem;'></div>",
+ unsafe_allow_html=True)
+
+ # -- Section 3: Risk flags -----------------------------
+ with st.container():
+ render_profile_card_title(
+ "Banderas de riesgo",
+ "Controles de alerta temprana para riesgo de incorreccion material.",
+ )
+ rf1, rf2 = st.columns(2)
+ with rf1:
+ pf_doc_debil = st.checkbox(
+ "Documentaci-n d-bil",
+ key="pf_doc_debil",
+ )
+ pf_riesgo_tributario = st.checkbox(
+ "Riesgo tributario",
+ key="pf_riesgo_tributario",
+ )
+ with rf2:
+ pf_ajustes_cierre = st.checkbox(
+ "Ajustes frecuentes al cierre",
+ key="pf_ajustes_cierre",
+ )
+ pf_negocio_marcha = st.checkbox(
+ "Riesgo negocio en marcha",
+ key="pf_negocio_marcha",
+ )
+
+ # Build complete perfil_form dict
+ perfil_form = {
+ "cliente": {
+ "nombre_legal": perfil_nombre or "Cliente",
+ "nombre_corto": (
+ perfil_nombre.split()[0]
+ if perfil_nombre else "Cliente"
+ ),
+ "ruc": perfil_ruc,
+ "tipo_entidad": perfil_tipo,
+ "sector": perfil_sector,
+ "moneda_funcional": perfil_moneda,
+ "pais": "Ecuador",
+ "domicilio": "",
+ },
+ "encargo": {
+ "anio_activo": int(perfil_periodo),
+ "marco_referencial": perfil_marco,
+ "tipo_encargo": "auditoria_externa",
+ "fase_actual": etapa_setup,
+ "primera_auditoria": pf_primera_auditoria,
+ },
+ "riesgo_global": {
+ "nivel": perfil_riesgo,
+ "riesgo_negocio_en_marcha": pf_negocio_marcha,
+ "requiere_enfoque_reforzado": (
+ perfil_riesgo in ["alto", "medio_alto"]
+ ),
+ },
+ "contexto_negocio": {
+ "tiene_partes_relacionadas": pf_partes_rel,
+ "tiene_operaciones_extranjero": pf_operaciones_ext,
+ "actividad_principal": perfil_sector,
+ "descripcion_breve_negocio": "",
+ "pertenece_a_grupo": pf_partes_rel,
+ "regulador_principal": "SUPERCIAS",
+ },
+ "operacion": {
+ "tiene_cartera_significativa": pf_cartera,
+ "tiene_provision_cartera": pf_cartera,
+ "tiene_inventarios_significativos": pf_inventarios,
+ "tiene_prestamos_socios": pf_prestamos_socios,
+ "tiene_anticipos_proveedores": pf_anticipos,
+ "maneja_reembolsos_gastos": pf_reembolsos,
+ },
+ "nomina": {
+ "tiene_empleados": pf_empleados,
+ },
+ "banderas_generales": {
+ "documentacion_debil": pf_doc_debil,
+ "riesgo_tributario_general": pf_riesgo_tributario,
+ "ajustes_cierre_frecuentes": pf_ajustes_cierre,
+ },
+ "materialidad": {
+ "estado_materialidad": "preliminar",
+ "base_utilizada": (
+ "ingresos" if perfil_sector == "servicios"
+ else "activos"
+ ),
+ "preliminar": {},
+ "final": {},
+ },
+ "industria_inteligente": {
+ "sector_base": perfil_sector,
+ "subtipo_negocio": perfil_sector,
+ "tags": [
+ t for t, v in [
+ ("partes_relacionadas", pf_partes_rel),
+ ("inventarios_significativos", pf_inventarios),
+ ("cartera_significativa", pf_cartera),
+ ("prestamos_socios", pf_prestamos_socios),
+ ("anticipos_proveedores", pf_anticipos),
+ ("reembolsos_gastos", pf_reembolsos),
+ ("operaciones_extranjero", pf_operaciones_ext),
+ ("tiene_empleados", pf_empleados),
+ ]
+ if v
+ ],
+ },
+ "tesoreria": {
+ "tiene_caja": True,
+ "usa_efectivo_intensivo": False,
+ "numero_bancos_nacionales": 1,
+ },
+ "notas_generales": {
+ "resumen_cliente": (
+ f"Cliente creado desde formulario. "
+ f"Sector: {perfil_sector}. "
+ f"Marco: {perfil_marco}."
+ ),
+ },
+ "reguladores_secundarios": ["SRI"],
+ }
+ else:
+ # Existing client - use defaults
+ perfil_nombre = cliente_elegido
+ perfil_form = None
+
+ st.markdown("<div style='margin-top:1.5rem;'></div>",
+ unsafe_allow_html=True)
+
+ # -- Validation & Enter --------------------------------
+ puede_entrar = bool(
+ cliente_elegido and (_tiene_tb or uploaded_tb)
+ )
+
+ if not puede_entrar:
+ faltante = []
+ if not cliente_elegido:
+ faltante.append("seleccionar o crear un cliente")
+ if not (_tiene_tb or uploaded_tb):
+ faltante.append("subir el Trial Balance (.xlsx)")
+ st.warning(
+ "Para continuar debes: "
+ + " y ".join(faltante) + "."
+ )
+
+ if st.button(
+ "Confirmar Perfil y Entrar al analisis",
+ key="btn_setup_enter",
+ width="stretch",
+ type="primary",
+ disabled=not puede_entrar,
+ ):
+ # Save everything to session state
+ st.session_state["cliente_activo"] = cliente_elegido
+ st.session_state["etapa_activa"] = etapa_setup
+ st.session_state["auditor_nombre"] = nombre_auditor
+
+ # Process TB
+ if uploaded_tb:
+ try:
+ tb_bytes = uploaded_tb.getvalue()
+ raw = _normalizar_tb_desde_bytes(tb_bytes)
+ st.session_state[
+ f"tb_upload_{cliente_elegido}"
+ ] = raw
+ st.session_state[
+ f"tb_tipo_{cliente_elegido}"
+ ] = tb_tipo
+ if _sheets_ok and callable(guardar_tb_storage):
+ _tb_saved = safe_call(
+ guardar_tb_storage,
+ cliente_elegido,
+ tb_bytes,
+ "tb_latest.xlsx",
+ default=False,
+ )
+ if _tb_saved:
+ st.success(
+ "TB guardado en almacenamiento remoto."
+ )
+ except Exception as e:
+ st.error(f"Error procesando TB: {e}")
+ elif _tiene_tb_remote and not _tiene_tb_session:
+ tb_bytes = safe_call(
+ cargar_tb_storage,
+ cliente_elegido,
+ "tb_latest.xlsx",
+ default=None,
+ )
+ if isinstance(tb_bytes, (bytes, bytearray)) and tb_bytes:
+ try:
+ raw = _normalizar_tb_desde_bytes(bytes(tb_bytes))
+ st.session_state[
+ f"tb_upload_{cliente_elegido}"
+ ] = raw
+ st.session_state[
+ f"tb_tipo_{cliente_elegido}"
+ ] = tb_tipo
+ st.info(
+ "TB restaurado desde almacenamiento remoto."
+ )
+ except Exception as e:
+ st.error(f"Error restaurando TB remoto: {e}")
+ elif _tiene_tb_session:
+ # Keep existing, just update tipo
+ st.session_state[
+ f"tb_tipo_{cliente_elegido}"
+ ] = tb_tipo
+
+ # Save perfil in session when using form
+ if perfil_form is not None:
+ st.session_state[
+ f"perfil_upload_{cliente_elegido}"
+ ] = perfil_form
+
+ # Save to remote persistence
+ # (new client or existing one with available perfil)
+ _perfil_to_save = None
+ if isinstance(perfil_form, dict) and perfil_form:
+ _perfil_to_save = perfil_form
+ else:
+ _pk = f"perfil_upload_{cliente_elegido}"
+ _p_session = st.session_state.get(_pk, {})
+ if isinstance(_p_session, dict) and _p_session:
+ _perfil_to_save = _p_session
+ else:
+ _p_repo = safe_call(
+ leer_perfil, cliente_elegido, default={}
+ ) or {}
+ if isinstance(_p_repo, dict) and _p_repo:
+ _perfil_to_save = _p_repo
+
+ if (
+ _sheets_ok
+ and guardar_cliente_sheets
+ and isinstance(_perfil_to_save, dict)
+ and _perfil_to_save
+ ):
+ _saved = safe_call(
+ guardar_cliente_sheets,
+ cliente_elegido,
+ _perfil_to_save,
+ default=False,
+ )
+ if _saved:
+ # Invalidate cache so new client appears
+ if "sheets_clientes_cache" in st.session_state:
+ del st.session_state[
+ "sheets_clientes_cache"
+ ]
+ st.success(
+ "Cliente guardado en persistencia remota."
+ )
+ else:
+ _err = safe_call(
+ obtener_ultimo_error_sheets,
+ default="",
+ ) if obtener_ultimo_error_sheets else ""
+ st.warning(
+ "No se pudo guardar en persistencia remota. "
+ "Verifica credenciales de Supabase (o Sheets fallback)."
+ )
+ if _err:
+ st.error(f"Detalle persistencia: {_err}")
+
+ # Process mayor
+ if uploaded_mayor:
+ import io
+
+ df_mayor_up = pd.read_excel(
+ io.BytesIO(uploaded_mayor.read()),
+ sheet_name=0, engine="openpyxl",
+ )
+ st.session_state[
+ f"mayor_upload_{cliente_elegido}"
+ ] = df_mayor_up
+
+ # Register new client in session list
+ if modo == "Crear cliente nuevo" and cliente_elegido:
+ _creados = st.session_state.get(
+ "clientes_creados_sesion", []
+ )
+ if cliente_elegido not in _creados:
+ _creados.append(cliente_elegido)
+ st.session_state[
+ "clientes_creados_sesion"
+ ] = _creados
+
+ # Explicit persistence on new-client creation
+ _perfil_new = st.session_state.get(
+ f"perfil_upload_{cliente_elegido}", {}
+ )
+ if (
+ _sheets_ok
+ and guardar_cliente_sheets
+ and isinstance(_perfil_new, dict)
+ and _perfil_new
+ ):
+ _saved_new = safe_call(
+ guardar_cliente_sheets,
+ cliente_elegido,
+ _perfil_new,
+ default=False,
+ )
+ if _saved_new:
+ if "sheets_clientes_cache" in st.session_state:
+ del st.session_state["sheets_clientes_cache"]
+ st.success(
+ "Cliente nuevo guardado en persistencia remota."
+ )
+
+ st.session_state["app_screen"] = "dashboard"
+ st.rerun()
+
+ # Back button
+ st.markdown("<div style='margin-top:1rem;'></div>",
+ unsafe_allow_html=True)
+ if st.button("Volver", key="btn_setup_back"):
+ st.session_state["app_screen"] = "welcome"
+ st.rerun()
+
+
+# -- Screen router ----------------------------------------------
+if "app_screen" not in st.session_state:
+ st.session_state["app_screen"] = "welcome"
+
+if st.session_state["app_screen"] == "welcome":
+ render_welcome_screen()
+ st.stop()
+
+if st.session_state["app_screen"] == "setup":
+ render_setup_screen(_get_clientes_dinamicos())
+ st.stop()
+
+# -- From here: dashboard screen --------------------------------
+# Override sidebar defaults with setup values
+if "cliente_activo" in st.session_state:
+ _cliente_override = st.session_state["cliente_activo"]
+if "etapa_activa" in st.session_state:
+ _etapa_override = st.session_state["etapa_activa"]
+
+
+# ============================================================
+# Sidebar
+# ============================================================
+st.sidebar.title("Configuracion")
+
+clientes_disponibles = _get_clientes_dinamicos()
+
+if not clientes_disponibles:
+ st.sidebar.warning("No hay clientes disponibles en data/clientes/. Usando modo carga manual.")
+ clientes_disponibles = ["cliente_demo"]
+
+# Default to setup values if coming from setup screen
+_default_cliente = st.session_state.get(
+ "cliente_activo", clientes_disponibles[0]
+ if clientes_disponibles else ""
+)
+_default_etapa = st.session_state.get(
+ "etapa_activa", "planificacion"
+)
+
+_clientes_opts = list(clientes_disponibles)
+if _default_cliente and _default_cliente not in _clientes_opts:
+ _clientes_opts = [_default_cliente] + _clientes_opts
+
+cliente_seleccionado = st.sidebar.selectbox(
+ "Seleccionar cliente",
+ options=_clientes_opts,
+ index=_clientes_opts.index(_default_cliente)
+ if _default_cliente in _clientes_opts else 0,
+)
+
+etapa_seleccionada = st.sidebar.selectbox(
+ "Etapa",
+ options=["planificacion", "ejecucion", "cierre"],
+ index=["planificacion", "ejecucion", "cierre"].index(
+ _default_etapa
+ ),
+)
+
+if st.sidebar.button("Cargar cliente", width="stretch"):
+ st.session_state.cliente_cargado = cliente_seleccionado
+
+if st.sidebar.button(
+ "Volver al inicio",
+ key="btn_back_home",
+ width="stretch",
+):
+ st.session_state["app_screen"] = "welcome"
+ st.rerun()
+
+auditor = st.session_state.get("auditor_nombre", "")
+if auditor:
+ st.sidebar.caption(f"Auditor: {auditor}")
+
+st.sidebar.divider()
+st.sidebar.markdown("**Cargar archivos del cliente**")
+
+# TB uploader
+uploaded_tb = st.sidebar.file_uploader(
+ "Trial Balance (.xlsx)",
+ type=["xlsx"],
+ key="uploader_tb",
+ help="Sube el tb.xlsx del cliente seleccionado",
+)
+if uploaded_tb is not None:
+ try:
+ tb_bytes = uploaded_tb.getvalue()
+ raw = _normalizar_tb_desde_bytes(tb_bytes)
+ st.session_state[
+ f"tb_upload_{cliente_seleccionado}"
+ ] = raw
+ if _sheets_ok and callable(guardar_tb_storage):
+ _saved_tb_side = safe_call(
+ guardar_tb_storage,
+ cliente_seleccionado,
+ tb_bytes,
+ "tb_latest.xlsx",
+ default=False,
+ )
+ if _saved_tb_side:
+ st.sidebar.caption("TB persistido en remoto")
+ st.sidebar.success(
+ f"TB cargado: {len(raw)} filas"
+ )
+ except Exception as e:
+ st.sidebar.error(f"Error procesando TB: {e}")
+
+# Perfil uploader
+uploaded_perfil = st.sidebar.file_uploader(
+ "Perfil del cliente (.yaml)",
+ type=["yaml", "yml"],
+ key="uploader_perfil",
+ help="Sube el perfil.yaml del cliente (opcional)",
+)
+if uploaded_perfil is not None:
+ try:
+ import yaml as _yaml
+
+ perfil_data = _yaml.safe_load(
+ uploaded_perfil.read().decode("utf-8")
+ )
+ st.session_state[
+ f"perfil_upload_{cliente_seleccionado}"
+ ] = perfil_data
+ st.sidebar.success("Perfil cargado")
+ except Exception as e:
+ st.sidebar.error(f"Error leyendo perfil: {e}")
+
+# Mayor uploader (optional)
+uploaded_mayor = st.sidebar.file_uploader(
+ "Libro Mayor (.xlsx) - opcional",
+ type=["xlsx"],
+ key="uploader_mayor",
+ help="Sube el mayor.xlsx del cliente (opcional)",
+)
+if uploaded_mayor is not None:
+ try:
+ import io
+
+ df_mayor_up = pd.read_excel(
+ io.BytesIO(uploaded_mayor.read()),
+ sheet_name=0,
+ engine="openpyxl",
+ )
+ st.session_state[
+ f"mayor_upload_{cliente_seleccionado}"
+ ] = df_mayor_up
+ st.sidebar.success(
+ f"Mayor cargado: {len(df_mayor_up)} movimientos"
+ )
+ except Exception as e:
+ st.sidebar.error(f"Error leyendo mayor: {e}")
+
+if "cliente_cargado" not in st.session_state:
+ st.session_state.cliente_cargado = cliente_seleccionado
+
+cliente = st.session_state.cliente_cargado
+
+
+# ============================================================
+# Carga de datos base
+# ============================================================
+# -- Perfil: uploaded file takes priority ------------------
+_perfil_key = f"perfil_upload_{cliente}"
+_perfil_key_active = f"perfil_upload_{st.session_state.get('cliente_activo', '')}"
+
+_perfil_from_session = None
+for _k in [_perfil_key, _perfil_key_active]:
+ if _k in st.session_state and isinstance(
+ st.session_state.get(_k), dict
+ ) and st.session_state[_k]:
+ _perfil_from_session = st.session_state[_k]
+ break
+
+if _perfil_from_session is not None:
+ perfil = _perfil_from_session
+else:
+ perfil = safe_call(leer_perfil, cliente, default={}) or {}
+
+# Populate module cache so internal services find perfil
+if isinstance(perfil, dict) and perfil:
+ try:
+ from domain.services.leer_perfil import set_perfil_cache
+ set_perfil_cache(cliente, perfil)
+ except Exception:
+ pass
+
+datos_clave = safe_call(cached_datos_clave, cliente, default={}) or {}
+# -- TB: uploaded file takes priority ----------------------
+_tb_key = f"tb_upload_{cliente}"
+_tb_key_active = f"tb_upload_{st.session_state.get('cliente_activo', '')}"
+
+_tb_from_session = None
+for _k in [_tb_key, _tb_key_active]:
+ if _k in st.session_state and isinstance(
+ st.session_state.get(_k), pd.DataFrame
+ ) and not st.session_state[_k].empty:
+ _tb_from_session = st.session_state[_k]
+ break
+
+if _tb_from_session is not None:
+ tb = _tb_from_session
+else:
+ tb = pd.DataFrame()
+ if _sheets_ok and callable(cargar_tb_storage):
+ _tb_remote_bytes = safe_call(
+ cargar_tb_storage,
+ cliente,
+ "tb_latest.xlsx",
+ default=None,
+ )
+ if isinstance(_tb_remote_bytes, (bytes, bytearray)) and _tb_remote_bytes:
+ try:
+ tb = _normalizar_tb_desde_bytes(bytes(_tb_remote_bytes))
+ st.session_state[f"tb_upload_{cliente}"] = tb
+ except Exception:
+ tb = pd.DataFrame()
+ if tb is None or (isinstance(tb, pd.DataFrame) and tb.empty):
+ tb = safe_call(leer_tb, cliente, default=pd.DataFrame())
+
+# Populate module cache so internal services
+# (ranking, materialidad, contexto) can find the TB
+if isinstance(tb, pd.DataFrame) and not tb.empty:
+ try:
+ from analysis.lector_tb import set_tb_cache
+ set_tb_cache(cliente, tb)
+ except Exception:
+ pass
+
+# Debug indicator (remove after confirming fix)
+if isinstance(tb, pd.DataFrame) and not tb.empty:
+ print(f"[OK] TB activo para {cliente}: {len(tb)} filas")
+else:
+ print(f"[WARN] Sin TB para {cliente} - keys disponibles: "
+ f"{[k for k in st.session_state.keys() if 'tb_upload' in str(k)]}")
+
+# Pass the already-loaded tb DataFrame directly
+# so uploaded TBs are used, not just file-based ones
+if isinstance(tb, pd.DataFrame) and not tb.empty:
+ from analysis.lector_tb import obtener_resumen_tb as _get_resumen
+ try:
+ resumen_tb = _get_resumen(cliente, df=tb) or {}
+ except TypeError:
+ # Fallback if signature doesn't match yet
+ resumen_tb = safe_call(
+ obtener_resumen_tb, cliente, default={}
+ ) or {}
+else:
+ resumen_tb = safe_call(
+ obtener_resumen_tb, cliente, default={}
+ ) or {}
+diag_tb = safe_call(obtener_diagnostico_tb, cliente, default={}) or {}
+ranking_areas = safe_call(cached_ranking_areas, cliente, default=pd.DataFrame())
+indicadores = safe_call(cached_indicadores, cliente, default={}) or {}
+variaciones = safe_call(cached_variaciones, cliente, default=pd.DataFrame())
+
+# Build lightweight ranking/variaciones from uploaded TB when available
+if _tb_from_session is not None and isinstance(tb, pd.DataFrame) and not tb.empty:
+ try:
+ tb_cols = {str(c).strip().lower(): c for c in tb.columns}
+ col_ls = next((tb_cols[k] for k in ["ls", "l/s", "l_s"] if k in tb_cols), None)
+ col_nombre = next((tb_cols[k] for k in ["agrupacion", "nombre cuenta", "nombre_cuenta", "nombre"] if k in tb_cols), None)
+ col_s24 = next((tb_cols[k] for k in ["saldo 2024", "saldo_2024"] if k in tb_cols), None)
+ col_s25 = next((tb_cols[k] for k in ["saldo 2025", "saldo_2025", "saldo preliminar", "saldo_preliminar"] if k in tb_cols), None)
+
+ if col_ls and col_s25:
+ tmp = tb.copy()
+ tmp["_ls"] = tmp[col_ls].astype(str).str.strip().str.replace(r"\.0+$", "", regex=True)
+ tmp["_s25"] = pd.to_numeric(tmp[col_s25], errors="coerce").fillna(0.0)
+ tmp["_s24"] = pd.to_numeric(tmp[col_s24], errors="coerce").fillna(0.0) if col_s24 else 0.0
+ tmp["_nombre"] = tmp[col_nombre].astype(str) if col_nombre else tmp["_ls"]
+
+ # Variaciones
+ tmp["_impacto"] = tmp["_s25"] - tmp["_s24"]
+ variaciones = tmp[["_ls", "_nombre", "_s25", "_impacto"]].copy()
+ variaciones.columns = ["codigo", "nombre", "saldo", "impacto"]
+ variaciones["impacto_abs"] = variaciones["impacto"].abs()
+ variaciones = variaciones.sort_values("impacto_abs", ascending=False).drop(columns=["impacto_abs"])
+
+ # Ranking por LS
+ grp = tmp.groupby("_ls", as_index=False).agg(
+ saldo_total=("_s25", "sum"),
+ impacto_total=("_impacto", "sum"),
+ )
+ name_map = tmp.groupby("_ls")["_nombre"].first().to_dict()
+ grp["area"] = grp["_ls"]
+ grp["nombre"] = grp["_ls"].map(name_map).astype(str).str[:50]
+ grp["con_saldo"] = grp["saldo_total"].abs() > 0.01
+ if grp["saldo_total"].abs().max() > 0:
+ grp["score_riesgo"] = (
+ grp["saldo_total"].abs() / grp["saldo_total"].abs().max() * 100
+ ).round(1)
+ else:
+ grp["score_riesgo"] = 0.0
+ grp["prioridad"] = grp["score_riesgo"].apply(
+ lambda x: "alta" if x >= 70 else "media" if x >= 40 else "baja"
+ )
+ ranking_areas = grp[["area", "nombre", "score_riesgo", "prioridad", "saldo_total", "con_saldo"]].sort_values(
+ "score_riesgo", ascending=False
+ )
+ except Exception:
+ pass
+
+# -- Mayor: uploaded file takes priority -------------------
+_mayor_key = f"mayor_upload_{cliente}"
+if _mayor_key in st.session_state and isinstance(
+ st.session_state[_mayor_key], pd.DataFrame
+):
+ df_mayor = st.session_state[_mayor_key]
+elif mayor_existe and safe_call(
+ mayor_existe, cliente, default=False
+):
+ df_mayor = safe_call(
+ obtener_mayor_cliente, cliente, default=None
+ )
+else:
+ df_mayor = None
+
+if isinstance(diag_tb, dict):
+ rows_loaded = int(diag_tb.get("rows_loaded", 0) or 0)
+ rows_saldo_no_cero = int(diag_tb.get("rows_saldo_no_cero", 0) or 0)
+ if rows_loaded > 0 and rows_saldo_no_cero == 0:
+ st.warning(
+ "Se carg- el TB pero no se detectaron saldos no cero. Revisar mapeo de columnas para este cliente."
+ )
+ elif rows_loaded == 0:
+ st.warning("No se pudieron cargar filas del TB para el cliente seleccionado.")
+
+# Selected area - driven by ranking click,
+# not sidebar dropdown
+_area_key = f"selected_area_{cliente}"
+if _area_key not in st.session_state:
+ # Default to top area from ranking
+ if (
+ isinstance(ranking_areas, pd.DataFrame)
+ and not ranking_areas.empty
+ and "area" in ranking_areas.columns
+ ):
+ _mask = pd.Series([True]*len(ranking_areas))
+ if "con_saldo" in ranking_areas.columns:
+ _mask = ranking_areas[
+ "con_saldo"
+ ].astype(bool)
+ _top = ranking_areas[_mask]
+ if not _top.empty:
+ st.session_state[_area_key] = str(
+ _top.iloc[0]["area"]
+ )
+ else:
+ st.session_state[_area_key] = "14"
+ else:
+ st.session_state[_area_key] = "14"
+
+selected_area_code = st.session_state[_area_key]
+
+if st.sidebar.button("Limpiar cache", width="stretch"):
+ st.cache_data.clear()
+ st.rerun()
+
+# RAG status
+st.sidebar.divider()
+try:
+ from infra.rag.vector_store import esta_indexado, total_indexado
+ if esta_indexado():
+ st.sidebar.caption(
+ f"Base normativa: {total_indexado()} chunks indexados"
+ )
+ else:
+ st.sidebar.caption("Base normativa: no indexada")
+ st.sidebar.caption("Ejecuta: python -m app.cli_commands indexar")
+except Exception:
+ pass
+
+render_sidebar_summary(cliente, perfil, datos_clave, ranking_areas)
+# Remote persistence connection indicator
+st.sidebar.divider()
+_sheets_ready = bool(
+ _sheets_ok and safe_call(
+ sheets_disponible, default=False
+ )
+)
+if _sheets_ready:
+ st.sidebar.caption("Persistencia remota conectada")
+else:
+ st.sidebar.caption("Modo local (sin persistencia)")
+ if _sheets_import_error:
+ st.sidebar.caption(f"Sheets import: {_sheets_import_error}")
+ with st.sidebar.expander("Configurar Supabase manualmente", expanded=False):
+ _rt_url = st.text_input(
+ "SUPABASE_URL",
+ value=st.session_state.get("runtime_supabase_url", ""),
+ key="rt_supabase_url_input",
+ placeholder="https://xxx.supabase.co",
+ )
+ _rt_key = st.text_input(
+ "SUPABASE_ANON_KEY",
+ value=st.session_state.get("runtime_supabase_key", ""),
+ key="rt_supabase_key_input",
+ type="password",
+ placeholder="eyJhbGciOi...",
+ )
+ if st.button(
+ "Guardar credenciales runtime",
+ key="btn_save_runtime_supabase",
+ width="stretch",
+ ):
+ _url_rt = _rt_url.strip()
+ _key_rt = _rt_key.strip()
+ st.session_state["runtime_supabase_url"] = _url_rt
+ st.session_state["runtime_supabase_key"] = _key_rt
+ # Process-level fallback for repository reads
+ os.environ["SUPABASE_URL_RUNTIME"] = _url_rt
+ os.environ["SUPABASE_ANON_KEY_RUNTIME"] = _key_rt
+ # Also expose standard names in process env
+ os.environ["SUPABASE_URL"] = _url_rt
+ os.environ["SUPABASE_ANON_KEY"] = _key_rt
+ st.sidebar.success("Credenciales runtime guardadas.")
+
+if st.sidebar.button(
+ "Probar persistencia",
+ key="btn_test_sheets",
+ width="stretch",
+):
+ if not _sheets_ok or not callable(diagnosticar_sheets):
+ st.sidebar.warning(" Diagnostico avanzado no disponible.")
+ _rows_basic = safe_call(cargar_clientes_sheets, default=[]) or []
+ _err_basic = safe_call(
+ obtener_ultimo_error_sheets, default=""
+ ) if callable(obtener_ultimo_error_sheets) else ""
+ st.sidebar.caption(
+ f"B-sico: rows={len(_rows_basic)} | "
+ f"sheets_ok={_sheets_ok}"
+ )
+ if _sheets_import_error:
+ st.sidebar.error(f"ImportError: {_sheets_import_error}")
+ if _err_basic:
+ st.sidebar.error(f"Detalle: {_err_basic}")
+ # Do not stop app render
+ else:
+ _diag = safe_call(diagnosticar_sheets, default={}) or {}
+ _rows = safe_call(cargar_clientes_sheets, default=[]) or []
+ if _diag.get("ok"):
+ st.sidebar.success(
+ f"Conexi-n OK. Clientes remotos: {len(_rows)}"
+ )
+ if _diag.get("spreadsheet_title"):
+ st.sidebar.caption(
+ f"Sheet: {_diag.get('spreadsheet_title')}"
+ )
+ else:
+ st.sidebar.error("Falla en diagnostico de persistencia.")
+ st.sidebar.write(
+ f"auth={_diag.get('auth_ok')} | "
+ f"open={_diag.get('open_ok')} | "
+ f"sheet={_diag.get('sheet_ok')} | "
+ f"read={_diag.get('read_ok')} | "
+ f"write={_diag.get('write_ok')}"
+ )
+ _err = _diag.get("error", "") or safe_call(
+ obtener_ultimo_error_sheets,
+ default="",
+ )
+ if _err:
+ st.sidebar.error(f"Detalle: {_err}")
+ _cfg = safe_call(
+ diagnosticar_config_supabase, default={}
+ ) if callable(diagnosticar_config_supabase) else {}
+ if _cfg:
+ st.sidebar.caption(
+ "Keys detectadas (nombres): "
+ f"{_cfg.get('secrets_keys', [])}"
+ )
+ st.sidebar.caption(
+ "Env detectadas: "
+ f"{_cfg.get('env_keys', [])}"
+ )
+ st.sidebar.caption(
+ "Direct keys present: "
+ f"{_cfg.get('direct_present', {})}"
+ )
+ st.sidebar.caption(
+ "Runtime keys present: "
+ f"{_cfg.get('runtime_present', {})}"
+ )
+ st.sidebar.caption(
+ f"has_url={_cfg.get('has_url')} | "
+ f"has_key={_cfg.get('has_key')}"
+ )
+ with st.sidebar.expander("Debug config persistencia", expanded=False):
+ st.json(_cfg, expanded=False)
+ else:
+ st.sidebar.caption("Debug config persistencia no disponible.")
+
+
+# ============================================================
+# Header principal
+# ============================================================
+st.markdown("""
+ <div class="socioai-header">
+ <div class="socioai-logo">SA</div>
+ <div>
+ <h1>SocioAI</h1>
+ <p>Plataforma Inteligente de Auditoria Financiera</p>
+ </div>
+ </div>
+ """, unsafe_allow_html=True)
+
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("Cliente", normalize_text(get_first(datos_clave, ["nombre"], perfil.get("cliente", {}).get("nombre_legal", "N/A"))) or "N/A")
+c2.metric("RUC", normalize_text(get_first(datos_clave, ["ruc"], perfil.get("cliente", {}).get("ruc", "N/A"))) or "N/A")
+c3.metric("Sector", normalize_text(get_first(datos_clave, ["sector"], perfil.get("cliente", {}).get("sector", "N/A"))) or "N/A")
+c4.metric("Moneda", normalize_text(get_first(datos_clave, ["moneda"], perfil.get("cliente", {}).get("moneda_funcional", "N/A"))) or "N/A")
+
+st.divider()
+
+
+# ============================================================
+# Tabs principales
+# ============================================================
+tab1, tab_risk, tab2, tab3, tab4, tab_mem, tab5 = st.tabs([
+ "Dashboard",
+ "Risk Engine",
+ "Areas",
+ "Estados Financieros",
+ "Inteligencia IA",
+ "Memoria del Cliente",
+ "Datos",
+])
+
+
+def _calcular_estado_encargo(
+ ranking_areas: pd.DataFrame | None,
+ cliente: str,
+) -> dict[str, Any]:
+ """
+ Calculates engagement completion status
+ based on area states in session_state and ranking.
+ """
+ if not isinstance(ranking_areas, pd.DataFrame) \
+ or ranking_areas.empty:
+ return {
+ "areas": [],
+ "pct_completado": 0,
+ "total": 0,
+ "completas": 0,
+ "en_proceso": 0,
+ "no_iniciadas": 0,
+ }
+
+ mask = pd.Series([True] * len(ranking_areas))
+ if "con_saldo" in ranking_areas.columns:
+ mask = ranking_areas["con_saldo"].astype(bool)
+ df_areas = ranking_areas[mask].copy()
+
+ areas_estado = []
+ for _, row in df_areas.iterrows():
+ codigo = str(row.get("area", "")).strip()
+ nombre_a = str(row.get("nombre", codigo))
+ score = float(row.get("score_riesgo", 0) or 0)
+ prior = str(row.get("prioridad", "baja")).lower()
+
+ # Check state from session
+ _estado_key = f"area_estado_{cliente}_{codigo}"
+ _estado_yaml = st.session_state.get(
+ _estado_key, ""
+ )
+
+ # Also check saved YAML state
+ try:
+ from domain.services.estado_area_yaml import (
+ cargar_estado_area,
+ )
+ _yaml = cargar_estado_area(cliente, codigo)
+ _estado_yaml = (
+ _yaml.get("estado_area", "") or _estado_yaml
+ )
+ except Exception:
+ pass
+
+ # Determine semaphore
+ _estados_completos = {
+ "cerrada", "lista_para_cierre", "completada"
+ }
+ _estados_proceso = {
+ "en_revision", "en_ejecucion",
+ "pendiente_cliente", "en_proceso",
+ }
+
+ if _estado_yaml in _estados_completos:
+ semaforo = "completa"
+ emoji = ""
+ elif _estado_yaml in _estados_proceso:
+ semaforo = "en_proceso"
+ emoji = ""
+ else:
+ semaforo = "no_iniciada"
+ emoji = ""
+
+ areas_estado.append({
+ "codigo": codigo,
+ "nombre": nombre_a,
+ "score": score,
+ "prioridad": prior,
+ "semaforo": semaforo,
+ "emoji": emoji,
+ "estado_txt": _estado_yaml or "No iniciada",
+ })
+
+ total = len(areas_estado)
+ completas = sum(
+ 1 for a in areas_estado if a["semaforo"] == "completa"
+ )
+ en_proceso = sum(
+ 1 for a in areas_estado
+ if a["semaforo"] == "en_proceso"
+ )
+ no_iniciadas = total - completas - en_proceso
+
+ pct = int((completas / total * 100)) if total > 0 else 0
+
+ return {
+ "areas": areas_estado,
+ "pct_completado": pct,
+ "total": total,
+ "completas": completas,
+ "en_proceso": en_proceso,
+ "no_iniciadas": no_iniciadas,
+ }
+
+
+with tab1:
+ render_dashboard_overview_premium(
+ cliente=cliente,
+ datos_clave=datos_clave if isinstance(datos_clave, dict) else {},
+ perfil=perfil if isinstance(perfil, dict) else {},
+ resumen_tb=resumen_tb if isinstance(resumen_tb, dict) else {},
+ indicadores=indicadores if isinstance(indicadores, dict) else {},
+ ranking_areas=ranking_areas if isinstance(ranking_areas, pd.DataFrame) else None,
+ variaciones=variaciones if isinstance(variaciones, pd.DataFrame) else None,
+ )
+
+with tab_risk:
+ render_risk_engine_premium(
+ cliente=cliente,
+ ranking_areas=ranking_areas if isinstance(ranking_areas, pd.DataFrame) else None,
+ indicadores=indicadores if isinstance(indicadores, dict) else {},
+ variaciones=variaciones if isinstance(variaciones, pd.DataFrame) else None,
+ perfil=perfil if isinstance(perfil, dict) else {},
+ )
+
+
+with tab2:
+ # -- Build area list -----------------------------------
+ _area_key = f"selected_area_{cliente}"
+ _selected = st.session_state.get(_area_key, "")
+
+ # Get areas with saldo from ranking
+ _areas_list: list[dict] = []
+ if (
+ isinstance(ranking_areas, pd.DataFrame)
+ and not ranking_areas.empty
+ ):
+ _needed = {"area", "nombre", "score_riesgo"}
+ if _needed.issubset(set(ranking_areas.columns)):
+ _mask2 = pd.Series(
+ [True] * len(ranking_areas)
+ )
+ if "con_saldo" in ranking_areas.columns:
+ _mask2 = ranking_areas[
+ "con_saldo"
+ ].astype(bool)
+ for _, _row in ranking_areas[
+ _mask2
+ ].iterrows():
+ _areas_list.append({
+ "codigo": str(
+ _row.get("area", "")
+ ).strip(),
+ "nombre": str(
+ _row.get("nombre", "")
+ ),
+ "score": float(
+ _row.get("score_riesgo", 0) or 0
+ ),
+ "prioridad": str(
+ _row.get("prioridad", "baja")
+ ).upper(),
+ "saldo": float(
+ _row.get("saldo_total", 0) or 0
+ ),
+ })
+
+ if not _areas_list:
+ st.info(
+ "Sube un Trial Balance para ver las areas."
+ )
+ else:
+ col_rank2, col_ws2 = st.columns([1, 2])
+
+ with col_rank2:
+ st.markdown(
+ "<div class='section-header'>"
+ "Ranking de areas</div>",
+ unsafe_allow_html=True,
+ )
+ st.caption(
+ "Haz clic en un area para verla "
+ "en detalle"
+ )
+
+ for _area in _areas_list:
+ _cod = _area["codigo"]
+ _score = _area["score"]
+ _is_sel = (_cod == _selected)
+
+ # Color by score
+ _sc = (
+ "#DE350B" if _score >= 70
+ else "#FF8B00" if _score >= 40
+ else "#00875A"
+ )
+ # Card style
+ _border = (
+ "3px solid #003366"
+ if _is_sel
+ else "1px solid #DFE1E6"
+ )
+ _bg = "#EBF2FF" if _is_sel else "#FFFFFF"
+ _bar_w = min(int(_score), 100)
+
+ st.markdown(
+ f"""
+ <div style="background:{_bg};
+ border:{_border};
+ border-radius:10px 10px 0 0;
+ padding:0.7rem 1rem 0.4rem 1rem;
+ margin-bottom:0;">
+ <div style="display:flex;
+ justify-content:space-between;
+ align-items:center;">
+ <div>
+ <span style="font-weight:700;
+ color:#003366;
+ font-size:0.9rem;">
+ {_cod}
+ </span>
+ <span style="color:#6B778C;
+ font-size:0.82rem;
+ margin-left:6px;">
+ {_area['nombre'][:22]}
+ </span>
+ </div>
+ <span style="background:{_sc};
+ color:white;
+ padding:2px 8px;
+ border-radius:10px;
+ font-size:0.75rem;
+ font-weight:700;">
+ {_score:.0f}
+ </span>
+ </div>
+ <div style="background:#F4F5F7;
+ border-radius:3px;
+ height:4px;
+ margin-top:5px;
+ overflow:hidden;">
+ <div style="background:{_sc};
+ width:{_bar_w}%;
+ height:100%;
+ border-radius:3px;">
+ </div>
+ </div>
+ </div>
+ """,
+ unsafe_allow_html=True,
+ )
+ # Button sits flush below the card
+ st.markdown(
+ "<div style='margin-top:0; "
+ "margin-bottom:0.5rem;'>",
+ unsafe_allow_html=True,
+ )
+ _btn = st.button(
+ "Abrir area" if not _is_sel
+ else "Area activa",
+ key=f"sel_area_{cliente}_{_cod}",
+ width="stretch",
+ type="primary" if _is_sel else "secondary",
+ )
+ st.markdown("</div>", unsafe_allow_html=True)
+ if _btn:
+ st.session_state[_area_key] = _cod
+ st.rerun()
+
+ with col_ws2:
+ # Always read fresh from session after rerun
+ selected_area_code = st.session_state.get(
+ _area_key,
+ _areas_list[0]["codigo"] if _areas_list else "14",
+ )
+ # Update global selected_area_code for other tabs
+ st.session_state[f"selected_area_{cliente}"] = \
+ selected_area_code
+
+ ws = prepare_area_workspace(
+ cliente=cliente,
+ etapa=etapa_seleccionada,
+ codigo_ls=selected_area_code,
+ perfil=perfil,
+ tb=tb,
+ variaciones=variaciones,
+ ranking_areas=ranking_areas,
+ )
+ render_area_premium(ws, cliente, datos_clave, perfil)
+ st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+ inner_tabs = st.tabs([
+ "Resumen",
+ "Trabajo",
+ "Calidad",
+ "Cierre",
+ "Requerimientos",
+ ])
+ with inner_tabs[0]:
+ render_contexto_tab(ws)
+ with st.expander(
+ "Briefing del area",
+ expanded=False,
+ ):
+ render_briefing_tab(ws)
+ with st.expander(
+ "Procedimientos",
+ expanded=False,
+ ):
+ render_procedimientos_tab(ws)
+ with inner_tabs[1]:
+ left_w, right_w = st.columns(2)
+ with left_w:
+ render_hallazgos_tab(ws)
+ with right_w:
+ render_seguimiento_tab(ws, cliente)
+ st.divider()
+ with st.expander(
+ "Historial de cambios",
+ expanded=False,
+ ):
+ render_historial_tab(ws, cliente)
+ with inner_tabs[2]:
+ with st.expander(
+ "Cobertura de aseveraciones",
+ expanded=True,
+ ):
+ render_cobertura_tab(ws)
+ with st.expander(
+ "Revision de calidad",
+ expanded=False,
+ ):
+ render_calidad_tab(ws)
+ with inner_tabs[3]:
+ _render_cierre_cards(ws)
+ with inner_tabs[4]:
+ _render_requerimientos_tab(ws)
+
+
+with tab3:
+ render_estados_financieros_premium(
+ cliente=cliente,
+ tb=tb if isinstance(tb, pd.DataFrame) else None,
+ variaciones=variaciones if isinstance(variaciones, pd.DataFrame) else None,
+ datos_clave=datos_clave if isinstance(datos_clave, dict) else {},
+ perfil=perfil if isinstance(perfil, dict) else {},
+ )
+
+
+with tab4:
+ try:
+ from llm.asistente_llm import (
+ construir_contexto_sistema,
+ generar_respuesta_asistente,
+ )
+ _chat_ok = True
+ except Exception:
+ _chat_ok = False
+
+ if not _chat_ok:
+ st.error("No se pudo cargar el asistente de chat.")
+ else:
+ _sistema_chat = construir_contexto_sistema(
+ cliente=cliente,
+ perfil=perfil if isinstance(perfil, dict) else {},
+ resumen_tb=resumen_tb if isinstance(resumen_tb, dict) else {},
+ ranking_areas=ranking_areas if isinstance(ranking_areas, pd.DataFrame) else None,
+ variaciones=variaciones if isinstance(variaciones, pd.DataFrame) else None,
+ etapa=etapa_seleccionada,
+ )
+
+ def _chat_call(prompt: str, system: str, fallback: str) -> str:
+ try:
+ return generar_respuesta_asistente(
+ [{"role": "user", "content": prompt}],
+ system or _sistema_chat,
+ cliente=cliente,
+ )
+ except Exception:
+ return fallback
+
+ render_chat_tab(
+ cliente=cliente,
+ cached_leer_perfil=cached_leer_perfil,
+ llamar_llm_seguro=_chat_call,
+ ranking_areas=ranking_areas if isinstance(ranking_areas, pd.DataFrame) else None,
+ variaciones=variaciones if isinstance(variaciones, pd.DataFrame) else None,
+ )
+
+with tab_mem:
+ render_memoria_tab(
+ cliente=cliente,
+ perfil=perfil if isinstance(perfil, dict) else {},
+ ranking_areas=ranking_areas if isinstance(ranking_areas, pd.DataFrame) else None,
+ )
+
+
+def _build_chart_data(
+ tb: pd.DataFrame | None,
+ ranking_areas: pd.DataFrame | None,
+ resumen_tb: dict,
+) -> dict[str, Any]:
+ """
+ Prepares data structures for the 3 financial charts.
+ Returns a dict with keys: areas_bar, balance_stack, riesgo_line.
+ Returns empty dicts per key if data is insufficient.
+ """
+ result = {
+ "areas_bar": {},
+ "balance_stack": {},
+ "riesgo_line": {},
+ }
+
+ # -- Chart 1: Evoluci-n por area (2024 vs 2025) ------------
+ if (
+ isinstance(tb, pd.DataFrame)
+ and not tb.empty
+ and "saldo_2024" in tb.columns
+ and "saldo_2025" in tb.columns
+ and isinstance(ranking_areas, pd.DataFrame)
+ and not ranking_areas.empty
+ and "area" in ranking_areas.columns
+ and "con_saldo" in ranking_areas.columns
+ ):
+ # Only areas with real balance, top 8 by score
+ df_rank = ranking_areas.copy()
+ if "score_riesgo" in df_rank.columns:
+ df_rank = df_rank.sort_values("score_riesgo", ascending=False)
+
+ present = df_rank[df_rank["con_saldo"].astype(bool)].head(8)
+
+ nombres_areas = []
+ vals_2024 = []
+ vals_2025 = []
+
+ ls_col = next(
+ (c for c in ["ls", "l/s", "l_s"] if c in tb.columns), None
+ )
+
+ for _, row in present.iterrows():
+ codigo = str(row.get("area", "")).strip()
+ nombre = str(row.get("nombre", codigo))[:20]
+
+ if ls_col:
+ mask = tb[ls_col].astype(str).str.strip() == codigo
+ sub = tb[mask]
+ else:
+ sub = tb[tb["codigo"].astype(str).str.startswith(codigo)]
+
+ s24 = abs(float(
+ pd.to_numeric(sub["saldo_2024"], errors="coerce")
+ .fillna(0).sum()
+ ))
+ s25 = abs(float(
+ pd.to_numeric(sub["saldo_2025"], errors="coerce")
+ .fillna(0).sum()
+ ))
+
+ if s24 > 0 or s25 > 0:
+ nombres_areas.append(f"{codigo}\n{nombre}")
+ vals_2024.append(s24)
+ vals_2025.append(s25)
+
+ if nombres_areas:
+ result["areas_bar"] = {
+ "nombres": nombres_areas,
+ "vals_2024": vals_2024,
+ "vals_2025": vals_2025,
+ }
+
+ # -- Chart 2: Composici-n del balance ---------------------
+ activo = abs(float(resumen_tb.get("ACTIVO", 0) or 0))
+ pasivo = abs(float(resumen_tb.get("PASIVO", 0) or 0))
+ patrimonio = abs(float(resumen_tb.get("PATRIMONIO", 0) or 0))
+ ingresos = abs(float(resumen_tb.get("INGRESOS", 0) or 0))
+ gastos = abs(float(resumen_tb.get("GASTOS", 0) or 0))
+
+ if activo + pasivo + patrimonio > 0:
+ result["balance_stack"] = {
+ "activo": activo,
+ "pasivo": pasivo,
+ "patrimonio": patrimonio,
+ "ingresos": ingresos,
+ "gastos": gastos,
+ }
+
+ # -- Chart 3: Riesgo por area (2024 estimado vs 2025) ------
+ # Since we only have 2 periods, estimate 2024 score from
+ # saldo_2024 proportions vs saldo_2025
+ if (
+ isinstance(ranking_areas, pd.DataFrame)
+ and not ranking_areas.empty
+ and "score_riesgo" in ranking_areas.columns
+ and result["areas_bar"]
+ ):
+ nombres_r = []
+ scores_r = []
+
+ df_r = ranking_areas.copy()
+ if "score_riesgo" in df_r.columns:
+ df_r = df_r.sort_values("score_riesgo", ascending=False)
+
+ present_r = df_r[df_r["con_saldo"].astype(bool)].head(6)
+
+ bar = result["areas_bar"]
+ for _, row in present_r.iterrows():
+ codigo = str(row.get("area", "")).strip()
+ nombre = str(row.get("nombre", codigo))[:15]
+ score_25 = float(row.get("score_riesgo", 0) or 0)
+
+ # Estimate 2024 score based on saldo ratio
+ idx = next(
+ (i for i, n in enumerate(bar["nombres"])
+ if n.startswith(codigo)), None
+ )
+ if idx is not None and bar["vals_2025"][idx] > 0:
+ ratio = bar["vals_2024"][idx] / bar["vals_2025"][idx]
+ score_24 = round(score_25 * ratio * 0.9, 1)
+ else:
+ score_24 = round(score_25 * 0.85, 1)
+
+ nombres_r.append(f"{codigo} {nombre}")
+ scores_r.append((score_24, score_25))
+
+ if nombres_r:
+ result["riesgo_line"] = {
+ "nombres": nombres_r,
+ "scores": scores_r,
+ }
+
+ return result
+
+
+with tab5:
+ d_tab1, d_tab2, d_tab3, d_tab4, d_tab5 = st.tabs([
+ "Variaciones", "Trial Balance",
+ "Analisis Financiero", "Hallazgos",
+ "Mayor",
+ ])
+
+ with d_tab1:
+ _mat_v = safe_call(calcular_materialidad, cliente, default={}) or {}
+ _me_v = float(
+ _mat_v.get("materialidad_desempeno", 0)
+ or _mat_v.get("materialidad_ejecucion", 0)
+ or 0
+ )
+ resumen_var = safe_call(resumen_variaciones, cliente, default={}) or {}
+ v1, v2, v3 = st.columns(3)
+ v1.metric("Cuentas con variaci-n", resumen_var.get("total_cuentas_variacion", 0))
+ v2.metric("Mayor variaci-n", fmt_money(resumen_var.get("mayor_variacion", 0)))
+ v3.metric("Suma variaciones", fmt_money(resumen_var.get("suma_variaciones", 0)))
+ _sector_v = normalize_text(
+ get_first(
+ datos_clave,
+ ["sector"],
+ perfil.get("cliente", {}).get("sector", ""),
+ )
+ )
+ render_variaciones_editorial(
+ variaciones=variaciones,
+ materialidad_ejecucion=_me_v,
+ sector=_sector_v,
+ )
+
+ with d_tab2:
+ _mat = safe_call(calcular_materialidad, cliente, default={}) or {}
+ _me = float(
+ _mat.get("materialidad_desempeno", 0)
+ or _mat.get("materialidad_ejecucion", 0)
+ or 0
+ )
+ _riesgos_auto_tb = []
+ if selected_area_code:
+ _ws_tb = prepare_area_workspace(
+ cliente=cliente,
+ etapa=etapa_seleccionada,
+ codigo_ls=selected_area_code,
+ perfil=perfil,
+ tb=tb,
+ variaciones=variaciones,
+ ranking_areas=ranking_areas,
+ )
+ _ra = _ws_tb.get("riesgos_automaticos", [])
+ if isinstance(_ra, list):
+ _riesgos_auto_tb = _ra
+
+ c_tb_main, c_tb_side = st.columns([3, 1], gap="large")
+ with c_tb_main:
+ render_trial_balance_editorial(
+ tb=tb,
+ materialidad_ejecucion=_me,
+ )
+ with c_tb_side:
+ _items = []
+ for r in _riesgos_auto_tb[:6]:
+ _items.append(
+ f"<li style='margin:.35rem 0;'><b>{normalize_text(r.get('tipo', 'RIESGO'))}</b>: "
+ f"{normalize_text(r.get('descripcion', 'Sin descripci-n'))}</li>"
+ )
+ _items_html = "".join(_items) if _items else (
+ "<li style='margin:.35rem 0;'>Sin alertas autom-ticas para el area activa.</li>"
+ )
+ st.markdown(
+ f"""
+ <div class="ai-memo">
+ <div style="font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;font-weight:800;opacity:.9;">
+ Hallazgos IA
+ </div>
+ <div style="font-size:1.28rem;font-weight:700;margin:.2rem 0 .35rem 0;">
+ Riesgos Autom-ticos
+ </div>
+ <div style="font-size:.9rem;opacity:.95;">
+ Materialidad de Ejecuci-n (ME): <b>{fmt_money(_me)}</b>
+ </div>
+ <ul style="margin:.55rem 0 0 .95rem;padding:0;font-size:.92rem;line-height:1.45;">
+ {_items_html}
+ </ul>
+ </div>
+ """,
+ unsafe_allow_html=True,
+ )
+
+ with d_tab3:
+ st.markdown(
+ "<div class='section-header'>Analisis Financiero</div>",
+ unsafe_allow_html=True,
+ )
+
+ chart_data = _build_chart_data(tb, ranking_areas, resumen_tb)
+
+ try:
+ import plotly.graph_objects as go
+
+ # -- Chart 1: Evoluci-n 2024 vs 2025 por area -----
+ bar_d = chart_data.get("areas_bar", {})
+ if bar_d:
+ st.markdown("**Evoluci-n de saldo por area - 2024 vs 2025**")
+ fig_bar = go.Figure()
+ fig_bar.add_trace(go.Bar(
+ name="2024",
+ x=bar_d["nombres"],
+ y=bar_d["vals_2024"],
+ marker_color="#A8C4E0",
+ text=[f"${v:,.0f}" for v in bar_d["vals_2024"]],
+ textposition="outside",
+ textfont=dict(size=10),
+ ))
+ fig_bar.add_trace(go.Bar(
+ name="2025",
+ x=bar_d["nombres"],
+ y=bar_d["vals_2025"],
+ marker_color="#003366",
+ text=[f"${v:,.0f}" for v in bar_d["vals_2025"]],
+ textposition="outside",
+ textfont=dict(size=10),
+ ))
+ fig_bar.update_layout(
+ barmode="group",
+ plot_bgcolor="white",
+ paper_bgcolor="white",
+ font=dict(color="#172B4D", size=11),
+ height=340,
+ margin=dict(l=10, r=10, t=30, b=60),
+ legend=dict(
+ orientation="h", y=1.1, x=0.5,
+ xanchor="center"
+ ),
+ yaxis=dict(
+ showgrid=True,
+ gridcolor="#F4F5F7",
+ tickformat="$,.0f",
+ ),
+ xaxis=dict(tickangle=-20),
+ )
+ st.plotly_chart(fig_bar, width="stretch")
+ else:
+ st.info(
+ "Sin datos comparativos 2024/2025. "
+ "Verificar columnas saldo_2024 y saldo_2025 en el TB."
+ )
+
+ st.divider()
+
+ col_left, col_right = st.columns(2)
+
+ # -- Chart 2: Composici-n del balance -------------
+ with col_left:
+ bal_d = chart_data.get("balance_stack", {})
+ if bal_d:
+ st.markdown("**Composici-n del balance**")
+ categorias = []
+ valores = []
+ colores = []
+
+ mapping = [
+ ("Activo", bal_d["activo"], "#003366"),
+ ("Pasivo", bal_d["pasivo"], "#DE350B"),
+ ("Patrimonio", bal_d["patrimonio"], "#00875A"),
+ ("Ingresos", bal_d["ingresos"], "#0066CC"),
+ ("Gastos", bal_d["gastos"], "#FF8B00"),
+ ]
+ for label, val, color in mapping:
+ if val > 0:
+ categorias.append(label)
+ valores.append(val)
+ colores.append(color)
+
+ if categorias:
+ fig_stack = go.Figure(go.Bar(
+ x=categorias,
+ y=valores,
+ marker_color=colores,
+ text=[f"${v:,.0f}" for v in valores],
+ textposition="outside",
+ textfont=dict(size=10),
+ ))
+ fig_stack.update_layout(
+ plot_bgcolor="white",
+ paper_bgcolor="white",
+ font=dict(color="#172B4D", size=11),
+ height=300,
+ margin=dict(l=10, r=10, t=20, b=20),
+ yaxis=dict(
+ showgrid=True,
+ gridcolor="#F4F5F7",
+ tickformat="$,.0f",
+ ),
+ showlegend=False,
+ )
+ st.plotly_chart(
+ fig_stack, width="stretch"
+ )
+ else:
+ st.info("Sin datos de balance.")
+
+ # -- Chart 3: Tendencia de riesgo ------------------
+ with col_right:
+ riesgo_d = chart_data.get("riesgo_line", {})
+ if riesgo_d:
+ st.markdown("**Tendencia de score de riesgo por area**")
+ fig_line = go.Figure()
+
+ periodos = ["2024 (est.)", "2025"]
+ colores_line = [
+ "#003366", "#0066CC", "#DE350B",
+ "#00875A", "#FF8B00", "#6554C0",
+ ]
+
+ for i, (nombre, (s24, s25)) in enumerate(
+ zip(
+ riesgo_d["nombres"],
+ riesgo_d["scores"],
+ )
+ ):
+ color_l = colores_line[i % len(colores_line)]
+ fig_line.add_trace(go.Scatter(
+ x=periodos,
+ y=[s24, s25],
+ mode="lines+markers+text",
+ name=nombre,
+ line=dict(color=color_l, width=2),
+ marker=dict(size=8, color=color_l),
+ text=[f"{s24:.0f}", f"{s25:.0f}"],
+ textposition="top center",
+ textfont=dict(size=9),
+ ))
+
+ fig_line.update_layout(
+ plot_bgcolor="white",
+ paper_bgcolor="white",
+ font=dict(color="#172B4D", size=11),
+ height=300,
+ margin=dict(l=10, r=10, t=20, b=20),
+ legend=dict(
+ font=dict(size=9),
+ orientation="v",
+ x=1.01,
+ ),
+ yaxis=dict(
+ showgrid=True,
+ gridcolor="#F4F5F7",
+ range=[0, 100],
+ title="Score",
+ ),
+ xaxis=dict(title="Per-odo"),
+ )
+ st.plotly_chart(
+ fig_line, width="stretch"
+ )
+ else:
+ st.info("Sin datos de tendencia de riesgo.")
+
+ except Exception as e:
+ st.warning(f"Error generando gr-ficos: {e}")
+
+ st.divider()
+
+ # -- Ratios y benchmark (existing, keep below charts) --
+ from analysis.ratios import resumen_ratios
+ from analysis.benchmark import resumen_benchmark
+
+ col_r, col_b = st.columns(2)
+ with col_r:
+ st.markdown("**Ratios financieros**")
+ ratios_data = resumen_ratios(cliente)
+ if ratios_data:
+ df_ratios = pd.DataFrame(ratios_data)
+ show_r = [
+ c for c in ["ratio", "valor", "interpretacion"]
+ if c in df_ratios.columns
+ ]
+ _rows = []
+ for _, _r in df_ratios[show_r].head(18).iterrows():
+ _ratio = normalize_text(_r.get("ratio", ""))
+ _valor = normalize_text(_r.get("valor", ""))
+ _interp = normalize_text(_r.get("interpretacion", ""))
+ _rows.append(
+ f"<tr class='tb-row'>"
+ f"<td class='tb-detail-name'>{_ratio}</td>"
+ f"<td style='text-align:right;font-weight:700;color:#041627;'>{_valor}</td>"
+ f"<td style='font-size:.78rem;color:#64748B;'>{_interp}</td>"
+ f"</tr>"
+ )
+ st.markdown(
+ f"""
+ <div class="tb-shell">
+ <div class="tb-card">
+ <table class="tb-table">
+ <thead>
+ <tr>
+ <th>Ratio</th>
+ <th style="text-align:right;">Valor</th>
+ <th>Interpretaci-n</th>
+ </tr>
+ </thead>
+ <tbody>{''.join(_rows)}</tbody>
+ </table>
+ </div>
+ </div>
+ """,
+ unsafe_allow_html=True,
+ )
+ else:
+ st.info("Sin datos de ratios.")
+ with col_b:
+ st.markdown("**Benchmark sectorial**")
+ bench = resumen_benchmark(cliente)
+ if bench.get("total", 0) > 0:
+ bb1, bb2, bb3 = st.columns(3)
+ bb1.metric("OK", bench["ok"])
+ bb2.metric("Alerta", bench["alerta"])
+ bb3.metric("Cr-tico", bench["critico"])
+ else:
+ st.info("Sin benchmark disponible.")
+
+ with d_tab4:
+ st.markdown("<div class='section-header'>Gesti-n de Hallazgos</div>",
+ unsafe_allow_html=True)
+ from domain.services.hallazgos_service import (
+ cargar_hallazgos_gestion, crear_hallazgo,
+ actualizar_estado_hallazgo, resumen_hallazgos,
+ )
+ from domain.services.export_service import (
+ exportar_hallazgos_excel, exportar_resumen_txt
+ )
+ res_h = resumen_hallazgos(cliente)
+ hh1, hh2, hh3, hh4 = st.columns(4)
+ hh1.metric("Total", res_h["total"])
+ hh2.metric("Abiertos", res_h["abiertos"])
+ hh3.metric("Cerrados", res_h["cerrados"])
+ hh4.metric("Alto riesgo", res_h["alto_riesgo_abiertos"])
+ with st.expander("Registrar nuevo hallazgo"):
+ ca, cb = st.columns(2)
+ with ca:
+ di = st.text_area("Descripci-n", key="h_desc")
+ ai_input = st.text_input("area L/S", key="h_area")
+ with cb:
+ asv = st.text_input("Afirmaci-n", key="h_asev")
+ niv = st.selectbox("Nivel", ["alto","medio","bajo"],
+ key="h_nivel")
+ resp = st.text_input("Responsable", key="h_resp")
+ if st.button("Guardar hallazgo", key="h_save"):
+ if di and ai_input:
+ nuevo_h = crear_hallazgo(
+ cliente, ai_input, di, asv, niv, resp
+ )
+ st.success(f"Hallazgo {nuevo_h['id']} creado.")
+ st.rerun()
+ todos_h = cargar_hallazgos_gestion(cliente)
+ if todos_h:
+ filtro_h = st.selectbox(
+ "Filtrar", ["todos","abierto","cerrado"], key="h_filtro"
+ )
+ lista_h = todos_h if filtro_h == "todos" else [
+ h for h in todos_h if h.get("estado") == filtro_h
+ ]
+ for h in lista_h:
+ ic = {"alto":"","medio":"","bajo":""}.get(
+ h.get("nivel",""), "-"
+ )
+ with st.expander(
+ f"{ic} {h.get('id')} | {h.get('codigo_area')} | "
+ f"{h.get('estado')} | {h.get('descripcion','')[:50]}"
+ ):
+ st.json(h)
+ if h.get("estado") == "abierto":
+ nc = st.text_input("Nota cierre",
+ key=f"nc_{h['id']}")
+ if st.button("Cerrar", key=f"ch_{h['id']}"):
+ actualizar_estado_hallazgo(
+ cliente, h["id"], "cerrado", nc
+ )
+ st.rerun()
+ else:
+ st.info("Sin hallazgos registrados.")
+ ec1, ec2 = st.columns(2)
+ with ec1:
+ if st.button("Exportar hallazgos Excel", key="exp_h"):
+ r = exportar_hallazgos_excel(cliente)
+ st.success(f"Exportado: {r}") if r else st.warning("Sin datos.")
+ with ec2:
+ if st.button("Exportar resumen TXT", key="exp_r"):
+ r = exportar_resumen_txt(
+ cliente,
+ ranking_areas if isinstance(ranking_areas, pd.DataFrame)
+ else None
+ )
+ st.success(f"Exportado: {r}") if r else st.error("Error.")
+
+ with d_tab5:
+ _mat_m = safe_call(calcular_materialidad, cliente, default={}) or {}
+ _me_m = float(
+ _mat_m.get("materialidad_desempeno", 0)
+ or _mat_m.get("materialidad_ejecucion", 0)
+ or 0
+ )
+ if isinstance(df_mayor, pd.DataFrame) and not df_mayor.empty:
+ res_m = safe_call(resumen_mayor, df_mayor, default={}) or {}
+ mk1, mk2, mk3, mk4 = st.columns(4)
+ mk1.metric("Total movimientos", res_m.get("total_movimientos", 0))
+ mk2.metric("Total debe", fmt_money(res_m.get("total_debe", 0)))
+ mk3.metric("Total haber", fmt_money(res_m.get("total_haber", 0)))
+ mk4.metric("Cuentas distintas", res_m.get("cuentas_distintas", 0))
+
+ render_mayor_critico_editorial(
+ df_mayor=df_mayor,
+ materialidad_ejecucion=_me_m,
+ selected_area_code=selected_area_code or "",
+ )
+
+st.divider()
+f1, f2, f3 = st.columns(3)
+f1.caption("SocioAI - Auditoria Inteligente con IA")
+f2.caption("Ultima actualizacion: 2026-03-17")
+f3.caption("Modo: analisis + workspace por area")
+

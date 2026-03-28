@@ -47,7 +47,13 @@ export default function ClientSwitcher({ clienteId: overrideClienteId }: Props) 
 
   function buildRoute(nextId: string): string {
     if (moduleKey === "risk-engine") return `/risk-engine/${nextId}`;
+    if (moduleKey === "trial-balance") return `/trial-balance/${nextId}`;
+    if (moduleKey === "estados-financieros") return `/estados-financieros/${nextId}`;
     if (moduleKey === "areas") return `/areas/${nextId}/130`;
+    if (moduleKey === "perfil") return `/perfil/${nextId}`;
+    if (moduleKey === "socio-chat") return `/socio-chat/${nextId}`;
+    if (moduleKey === "client-memory") return `/client-memory/${nextId}`;
+    if (moduleKey === "reportes") return `/reportes/${nextId}`;
     return `/dashboard/${nextId}`;
   }
 

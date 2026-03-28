@@ -1,4 +1,5 @@
-﻿"""
+# -*- coding: utf-8 -*-
+"""
 SocioAI - Interfaz Web con Streamlit.
 
 Refactor incremental para convertir "Vista por area" en un workspace operativo
@@ -48,7 +49,7 @@ from app.views.view_area import (
     render_historial_tab,
     render_export_block,
 )
-from app.views.view_area_premium import render_area_premium
+from app.views.view_area_premium import render_area_premium, _render_cierre_cards
 from app.views.view_estados_financieros_premium import (
     render_estados_financieros_premium,
 )
@@ -56,6 +57,8 @@ from app.views.view_dashboard_premium import render_dashboard_overview_premium
 from app.views.view_risk_engine_premium import render_risk_engine_premium
 from app.views.view_materialidad import render_calidad_tab
 from app.views.view_chat import render_briefing_ia_tab, render_chat_tab
+from app.utils.theme_engine import inject_sovereign_theme, render_editorial_table
+from app.utils.ui_components import inject_head
 
 # Servicios opcionales (degradacion segura)
 try:
@@ -322,650 +325,15 @@ if hasattr(sys.stderr, "reconfigure"):
 # Configuracion
 # ============================================================
 st.set_page_config(
-    page_title="SocioAI - Auditoria Inteligente",
-    page_icon="📊",
+    page_title="SocioAI - Auditoría Inteligente",
+    page_icon="📘",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-st.markdown("""
-<style>
-  /* ── Global ── */
-  html, body, [class*="css"] {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      color: #172B4D;
-  }
-  .main { background-color: #FFFFFF; }
-  .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
-
-  /* ── Sidebar ── */
-  [data-testid="stSidebar"] {
-      background: linear-gradient(180deg, #003366 0%, #0066CC 100%);
-      border-right: none;
-  }
-  [data-testid="stSidebar"] * {
-      color: #FFFFFF !important;
-  }
-  [data-testid="stSidebar"] label,
-  [data-testid="stSidebar"] .stSelectbox label,
-  [data-testid="stSidebar"] .stTextInput label,
-  [data-testid="stSidebar"] p,
-  [data-testid="stSidebar"] span,
-  [data-testid="stSidebar"] small,
-  [data-testid="stSidebar"] .stCaption {
-      color: #FFFFFF !important;
-  }
-  [data-testid="stSidebar"] input,
-  [data-testid="stSidebar"] [data-baseweb="select"] div,
-  [data-testid="stSidebar"] [data-baseweb="input"] input {
-      color: #172B4D !important;
-      background-color: #FFFFFF !important;
-  }
-  [data-testid="stSidebar"] [data-baseweb="select"] svg {
-      fill: #003366 !important;
-  }
-  [data-testid="stSidebar"] hr {
-      border-color: rgba(255,255,255,0.25) !important;
-  }
-  [data-testid="stSidebar"] .stButton button {
-      background: rgba(255,255,255,0.15) !important;
-      color: #FFFFFF !important;
-      border: 1px solid rgba(255,255,255,0.35) !important;
-      border-radius: 6px;
-  }
-  [data-testid="stSidebar"] .stButton button:hover {
-      background: rgba(255,255,255,0.28) !important;
-  }
-
-  /* ── Header banner ── */
-  .socioai-header {
-      background: linear-gradient(135deg, #003366 0%, #0066CC 60%, #00A3E0 100%);
-      padding: 1.5rem 2rem;
-      border-radius: 12px;
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      box-shadow: 0 4px 16px rgba(0,51,102,0.18);
-  }
-  .socioai-header h1 {
-      color: #FFFFFF !important;
-      font-size: 2rem !important;
-      font-weight: 800 !important;
-      margin: 0 !important;
-      letter-spacing: -0.5px;
-  }
-  .socioai-header p {
-      color: #A8C8F0 !important;
-      margin: 0 !important;
-      font-size: 0.95rem;
-  }
-  .socioai-logo {
-      font-size: 2.8rem;
-      line-height: 1;
-  }
-
-  /* ── Metric cards ── */
-  [data-testid="metric-container"] {
-      background: #F4F5F7;
-      border: 1px solid #DFE1E6;
-      border-radius: 10px;
-      padding: 1rem;
-      transition: box-shadow 0.2s;
-  }
-  [data-testid="metric-container"]:hover {
-      box-shadow: 0 4px 12px rgba(0,51,102,0.10);
-  }
-  [data-testid="metric-container"] [data-testid="stMetricLabel"] {
-      color: #6B778C !important;
-      font-size: 0.8rem !important;
-      font-weight: 600 !important;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-  }
-  [data-testid="metric-container"] [data-testid="stMetricValue"] {
-      color: #003366 !important;
-      font-weight: 700 !important;
-  }
-
-  /* ── Tabs ── */
-  [data-testid="stTabs"] [role="tab"] {
-      font-weight: 600;
-      color: #6B778C;
-      border-bottom: 3px solid transparent;
-      padding: 0.5rem 1rem;
-  }
-  [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
-      color: #003366 !important;
-      border-bottom: 3px solid #003366 !important;
-  }
-
-  /* ── Buttons ── */
-  .stButton button {
-      background: #003366 !important;
-      color: #FFFFFF !important;
-      border: none !important;
-      border-radius: 6px !important;
-      font-weight: 600 !important;
-      padding: 0.4rem 1.2rem !important;
-      transition: background 0.2s !important;
-  }
-  .stButton button:hover {
-      background: #0066CC !important;
-  }
-
-  /* ── DataFrames ── */
-  [data-testid="stDataFrame"] {
-      border: 1px solid #DFE1E6;
-      border-radius: 8px;
-      overflow: hidden;
-  }
-
-  /* ── Expanders ── */
-  [data-testid="stExpander"] {
-      border: 1px solid #DFE1E6 !important;
-      border-radius: 8px !important;
-      margin-bottom: 0.5rem;
-  }
-
-  /* ── Alerts ── */
-  .stSuccess { background: #E3FCEF !important; border-left: 4px solid #00875A !important; }
-  .stWarning { background: #FFFAE6 !important; border-left: 4px solid #FF8B00 !important; }
-  .stError   { background: #FFEBE6 !important; border-left: 4px solid #DE350B !important; }
-  .stInfo    { background: #E6F0FF !important; border-left: 4px solid #0066CC !important; }
-
-  /* ── Risk badge ── */
-  .badge-alto   { background:#DE350B; color:#fff; padding:2px 10px; border-radius:12px; font-size:0.78rem; font-weight:700; }
-  .badge-medio  { background:#FF8B00; color:#fff; padding:2px 10px; border-radius:12px; font-size:0.78rem; font-weight:700; }
-  .badge-bajo   { background:#00875A; color:#fff; padding:2px 10px; border-radius:12px; font-size:0.78rem; font-weight:700; }
-
-  /* ── Divider ── */
-  hr { border-color: #DFE1E6 !important; margin: 1.2rem 0 !important; }
-
-  /* ── Chat messages ── */
-  [data-testid="stChatMessage"] {
-      border-radius: 10px;
-      margin-bottom: 0.5rem;
-  }
-
-  /* ── KPI Cards ── */
-  .kpi-card {
-      background: #FFFFFF;
-      border: 1px solid #DFE1E6;
-      border-radius: 12px;
-      padding: 1.2rem 1.4rem;
-      margin-bottom: 0.5rem;
-      box-shadow: 0 2px 8px rgba(0,51,102,0.06);
-      transition: box-shadow 0.2s;
-  }
-  .kpi-card:hover { box-shadow: 0 4px 16px rgba(0,51,102,0.12); }
-  .kpi-label {
-      color: #6B778C;
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      margin-bottom: 0.3rem;
-  }
-  .kpi-value {
-      color: #003366;
-      font-size: 1.6rem;
-      font-weight: 800;
-      line-height: 1.1;
-  }
-  .kpi-sub {
-      color: #6B778C;
-      font-size: 0.78rem;
-      margin-top: 0.2rem;
-  }
-  .kpi-alto   { border-left: 4px solid #DE350B; }
-  .kpi-medio  { border-left: 4px solid #FF8B00; }
-  .kpi-bajo   { border-left: 4px solid #00875A; }
-  .kpi-info   { border-left: 4px solid #0066CC; }
-
-  /* ── Section headers ── */
-  .section-header {
-      color: #003366;
-      font-size: 1.1rem;
-      font-weight: 700;
-      border-bottom: 2px solid #DFE1E6;
-      padding-bottom: 0.4rem;
-      margin: 1rem 0 0.8rem 0;
-  }
-
-  /* ── AI response container ── */
-  .ai-response {
-      background: #F4F5F7;
-      border-left: 4px solid #0066CC;
-      border-radius: 0 8px 8px 0;
-      padding: 1rem 1.2rem;
-      margin-top: 0.5rem;
-      font-size: 0.92rem;
-  }
-
-  /* ── Checklist item ── */
-  .check-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.6rem;
-      padding: 0.55rem 0.8rem;
-      border-radius: 8px;
-      margin-bottom: 0.35rem;
-      font-size: 0.88rem;
-  }
-  .check-ok   { background:#E3FCEF; color:#006644; }
-  .check-warn { background:#FFFAE6; color:#974F0C; }
-  .check-fail { background:#FFEBE6; color:#BF2600; }
-  .check-icon { font-size: 1rem; flex-shrink: 0; margin-top:1px; }
-
-  /* ── Status badge ── */
-  .status-badge {
-      display: inline-block;
-      padding: 3px 12px;
-      border-radius: 20px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-  }
-  .badge-ok   { background:#E3FCEF; color:#006644; }
-  .badge-warn { background:#FFFAE6; color:#974F0C; }
-  .badge-fail { background:#FFEBE6; color:#BF2600; }
-
-  /* ── Fix buttons visibility ── */
-  .stButton > button {
-      background-color: #003366 !important;
-      color: #FFFFFF !important;
-      border: 2px solid #003366 !important;
-      border-radius: 8px !important;
-      font-weight: 700 !important;
-      padding: 0.5rem 1.2rem !important;
-      transition: all 0.2s !important;
-  }
-  .stButton > button:hover {
-      background-color: #0066CC !important;
-      border-color: #0066CC !important;
-      color: #FFFFFF !important;
-  }
-  .stButton > button[kind="primary"] {
-      background-color: #003366 !important;
-      color: #FFFFFF !important;
-  }
-  .stDownloadButton > button {
-      background-color: #00875A !important;
-      color: #FFFFFF !important;
-      border: 2px solid #00875A !important;
-      border-radius: 8px !important;
-      font-weight: 700 !important;
-  }
-  .stDownloadButton > button:hover {
-      background-color: #006644 !important;
-      border-color: #006644 !important;
-  }
-
-  /* ── Welcome screen ── */
-  .welcome-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 80vh;
-      text-align: center;
-      padding: 2rem;
-  }
-  .welcome-logo {
-      font-size: 3.5rem;
-      font-weight: 900;
-      color: #FFFFFF;
-      letter-spacing: -1px;
-      margin-bottom: 0.5rem;
-  }
-  .welcome-sub {
-      font-size: 1.1rem;
-      color: #A8C4E0;
-      margin-bottom: 2.5rem;
-  }
-  .welcome-bg {
-      background: linear-gradient(135deg, #001a40 0%, #003366 60%, #0055A5 100%);
-      border-radius: 20px;
-      padding: 4rem 3rem;
-      margin: 2rem auto;
-      max-width: 700px;
-      box-shadow: 0 20px 60px rgba(0,51,102,0.3);
-  }
-  .client-card {
-      background: #FFFFFF;
-      border: 2px solid #DFE1E6;
-      border-radius: 12px;
-      padding: 1.2rem 1.5rem;
-      margin-bottom: 0.6rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: left;
-  }
-  .client-card:hover {
-      border-color: #003366;
-      box-shadow: 0 4px 16px rgba(0,51,102,0.15);
-  }
-  .client-card-selected {
-      border-color: #003366 !important;
-      background: #EBF2FF !important;
-  }
-  .client-card-title {
-      font-weight: 700;
-      color: #003366;
-      font-size: 1rem;
-  }
-  .client-card-sub {
-      color: #6B778C;
-      font-size: 0.82rem;
-      margin-top: 2px;
-  }
-  .setup-hero {
-      background: linear-gradient(135deg, #EAF2FF 0%, #F5F9FF 100%);
-      border: 1px solid #D5E2F5;
-      border-radius: 16px;
-      padding: 1.2rem 1.4rem;
-      margin: 1rem 0 1.2rem 0;
-  }
-  .setup-hero-title {
-      color: #003366;
-      font-size: 1.45rem;
-      font-weight: 900;
-      margin-bottom: 0.25rem;
-  }
-  .setup-hero-sub {
-      color: #44546A;
-      font-size: 0.92rem;
-      line-height: 1.5;
-  }
-  .setup-step {
-      display: inline-block;
-      background: #FFFFFF;
-      border: 1px solid #B3C8E8;
-      color: #003366;
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 0.76rem;
-      font-weight: 700;
-      margin-right: 6px;
-      margin-top: 8px;
-  }
-  /* ── Sidebar buttons ── */
-  [data-testid="stSidebar"] .stButton > button {
-      background-color: #FFFFFF !important;
-      color: #003366 !important;
-      border: 2px solid #003366 !important;
-      border-radius: 8px !important;
-      font-weight: 600 !important;
-  }
-  [data-testid="stSidebar"] .stButton > button:hover {
-      background-color: #003366 !important;
-      color: #FFFFFF !important;
-  }
-  [data-testid="stSidebar"] .stFileUploader label {
-      color: #172B4D !important;
-      font-weight: 600 !important;
-  }
-  [data-testid="stSidebar"] .stFileUploader
-      [data-testid="stFileUploaderDropzone"] {
-      background-color: #F4F5F7 !important;
-      border: 2px dashed #003366 !important;
-      border-radius: 8px !important;
-  }
-  [data-testid="stSidebar"] .stFileUploader
-      [data-testid="stFileUploaderDropzone"] p {
-      color: #003366 !important;
-      font-weight: 600 !important;
-  }
-  [data-testid="stSidebar"] .stSelectbox label,
-  [data-testid="stSidebar"] .stTextInput label,
-  [data-testid="stSidebar"] .stRadio label,
-  [data-testid="stSidebar"] p,
-  [data-testid="stSidebar"] .stCaption {
-      color: #172B4D !important;
-  }
-  /* File uploader button inside sidebar */
-  [data-testid="stSidebar"]
-      [data-testid="stFileUploaderDropzoneInstructions"] {
-      color: #003366 !important;
-  }
-  [data-testid="stSidebar"] .stFileUploader button {
-      background-color: #003366 !important;
-      color: #FFFFFF !important;
-      border-radius: 6px !important;
-  }
-
-  /* ── Premium Area Workspace ── */
-  .premium-hero{
-      background:#ffffff;
-      border:1px solid #E2E8F0;
-      border-radius:24px;
-      padding:28px 32px;
-      box-shadow:0 8px 30px rgba(2,6,23,.06);
-  }
-  .premium-badge{
-      display:inline-block;
-      padding:6px 12px;
-      border-radius:999px;
-      font-size:11px;
-      font-weight:800;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-  }
-  .badge-risk-high{background:#ba1a1a;color:#fff;}
-  .badge-risk-medium{background:#f59e0b;color:#fff;}
-  .badge-risk-low{background:#059669;color:#fff;}
-  .badge-state{background:#e2e8f0;color:#475569;}
-  .premium-stat{
-      background:#fff;
-      border:1px solid #E2E8F0;
-      border-radius:20px;
-      padding:20px 22px;
-      box-shadow:0 6px 18px rgba(15,23,42,.05);
-  }
-  .premium-stat-title{
-      font-size:11px;
-      font-weight:800;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      color:#64748b;
-  }
-  .premium-stat-value{
-      font-size:34px;
-      font-weight:800;
-      color:#041627;
-      line-height:1.05;
-      margin-top:10px;
-  }
-  .premium-stat-sub{
-      font-size:12px;
-      color:#64748b;
-      margin-top:10px;
-  }
-  .premium-stat-danger{border-left:5px solid #ba1a1a;}
-  .premium-stat-warn{border-left:5px solid #f59e0b;}
-  .premium-stat-ok{border-left:5px solid #059669;}
-  .decision-block{
-      border-radius:32px;
-      padding:34px;
-      color:#fff;
-      box-shadow:0 18px 40px rgba(186,26,26,.24);
-  }
-  .decision-danger{
-      background:linear-gradient(135deg,#ba1a1a 0%,#93000a 100%);
-  }
-  .decision-ok{
-      background:linear-gradient(135deg,#047857 0%,#065f46 100%);
-      box-shadow:0 18px 40px rgba(4,120,87,.24);
-  }
-  .executive-summary{
-      background:#f8fafc;
-      border:1px solid #E2E8F0;
-      border-radius:24px;
-      padding:24px 26px;
-      position:relative;
-  }
-  .executive-label{
-      display:inline-block;
-      background:#fff;
-      border:1px solid #E2E8F0;
-      border-radius:999px;
-      padding:6px 12px;
-      font-size:10px;
-      font-weight:800;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      color:#64748b;
-      margin-bottom:14px;
-  }
-  .ai-opinion{
-      background:#fff;
-      border:2px solid #041627;
-      border-radius:28px;
-      overflow:hidden;
-      box-shadow:0 18px 40px rgba(15,23,42,.10);
-  }
-  .ai-opinion-head{
-      background:#041627;
-      color:#fff;
-      padding:14px 20px;
-      font-size:10px;
-      font-weight:800;
-      letter-spacing:.14em;
-      text-transform:uppercase;
-  }
-  .ai-opinion-body{
-      padding:26px;
-      color:#1e293b;
-      line-height:1.75;
-  }
-  .side-card{
-      background:#fff;
-      border:1px solid #E2E8F0;
-      border-radius:28px;
-      padding:24px;
-      box-shadow:0 10px 30px rgba(15,23,42,.06);
-  }
-  .task-item{
-      border:1px solid #E2E8F0;
-      border-radius:16px;
-      padding:14px 16px;
-      margin-bottom:10px;
-      background:#fff;
-  }
-  .task-priority-high{
-      background:#ba1a1a;
-      color:#fff;
-      border-radius:999px;
-      padding:3px 8px;
-      font-size:9px;
-      font-weight:800;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-  }
-  .task-priority-medium{
-      background:#fef3c7;
-      color:#92400e;
-      border-radius:999px;
-      padding:3px 8px;
-      font-size:9px;
-      font-weight:800;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-  }
-  .task-priority-low{
-      background:#e2e8f0;
-      color:#475569;
-      border-radius:999px;
-      padding:3px 8px;
-      font-size:9px;
-      font-weight:800;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-  }
-  .alert-critical{
-      background:#041627;
-      color:#fff;
-      border-left:10px solid #ba1a1a;
-      border-radius:24px;
-      padding:22px;
-  }
-  .alert-medium{
-      background:#fff;
-      border:1px solid #E2E8F0;
-      border-radius:24px;
-      padding:22px;
-  }
-  @media (max-width: 900px) {
-      .premium-hero { padding:18px 18px; border-radius:18px; }
-      .premium-hero-title { font-size:30px !important; }
-      .premium-stat-value { font-size:24px; }
-      .ai-opinion-body { padding:18px; }
-      .decision-block { padding:20px; border-radius:20px; }
-  }
-</style>
-""", unsafe_allow_html=True)
-
-# Sovereign visual system override (navy + gray + dark green)
-st.markdown(
-    """
-    <style>
-      :root {
-        --soc-navy: #041627;
-        --soc-navy-soft: #1a2b3c;
-        --soc-gray-50: #f7fafc;
-        --soc-gray-100: #f1f4f6;
-        --soc-gray-200: #e2e8f0;
-        --soc-gray-500: #64748b;
-        --soc-green: #0f766e;
-      }
-
-      .main {
-        background: linear-gradient(180deg, var(--soc-gray-50) 0%, #f4f7fb 100%) !important;
-      }
-
-      [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, var(--soc-navy) 0%, #0b2238 100%) !important;
-      }
-
-      [data-testid="metric-container"] {
-        background: #ffffff !important;
-        border: 1px solid var(--soc-gray-200) !important;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05) !important;
-      }
-
-      [data-testid="stTabs"] [role="tab"] {
-        color: var(--soc-gray-500) !important;
-        border-bottom: 2px solid transparent !important;
-      }
-      [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
-        color: var(--soc-navy) !important;
-        border-bottom: 2px solid var(--soc-green) !important;
-      }
-
-      .stButton button {
-        background: var(--soc-navy) !important;
-        color: #fff !important;
-        border: 1px solid var(--soc-navy) !important;
-        border-radius: 10px !important;
-      }
-      .stButton button:hover {
-        background: var(--soc-green) !important;
-        border-color: var(--soc-green) !important;
-      }
-
-      .section-header {
-        color: var(--soc-navy) !important;
-        border-bottom-color: var(--soc-gray-200) !important;
-      }
-
-      .kpi-info, .kpi-card {
-        border-color: var(--soc-gray-200) !important;
-      }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# Global Sovereign theme + runtime overrides (alerts/tables)
+inject_sovereign_theme()
+inject_head()
 
 
 # ============================================================
@@ -978,6 +346,26 @@ def safe_call(func: Any, *args: Any, default: Any = None, **kwargs: Any) -> Any:
         return func(*args, **kwargs)
     except Exception:
         return default
+
+
+def _ui_card(message: str) -> None:
+    st.markdown(f"<div class='sovereign-card'>{message}</div>", unsafe_allow_html=True)
+
+
+def _ui_info(message: str) -> None:
+    _ui_card(str(message))
+
+
+def _ui_success(message: str) -> None:
+    _ui_card(str(message))
+
+
+def _ui_warning(message: str) -> None:
+    _ui_card(str(message))
+
+
+def _ui_error(message: str) -> None:
+    _ui_card(str(message))
 
 
 def _obtener_admin_password() -> str:
@@ -1160,7 +548,10 @@ def fmt_num(value: Any, decimals: int = 2) -> str:
 
 def fmt_money(value: Any) -> str:
     try:
-        return f"${float(value):,.2f}"
+        v = float(value)
+        if v < 0:
+            return f"(${abs(v):,.2f})"
+        return f"${v:,.2f}"
     except Exception:
         return "$0.00"
 
@@ -1203,18 +594,18 @@ def infer_area_options(
     cliente: str,
 ) -> list[tuple[str, str]]:
     """
-    Returns only areas that have actual data for this client.
-    Priority: areas present in ranking_areas WITH saldo > 0,
+    Returns only reas that have actual data for this client.
+    Priority: reas present in ranking_areas WITH saldo > 0,
     ordered by score descending.
-    Fallback: areas found in TB ls column.
+    Fallback: reas found in TB ls column.
     """
     options: list[tuple[str, str]] = []
 
-    # ── Primary: ranking with real saldo ──────────────────────
+    # -- Primary: ranking with real saldo ----------------------
     if ranking_areas is not None and not ranking_areas.empty:
         needed = {"area", "nombre"}
         if needed.issubset(set(ranking_areas.columns)):
-            # Filter: only areas present with actual balance
+            # Filter: only reas present with actual balance
             mask_present = pd.Series([True] * len(ranking_areas))
             if "con_saldo" in ranking_areas.columns:
                 mask_present = ranking_areas["con_saldo"].astype(bool)
@@ -1229,7 +620,7 @@ def infer_area_options(
 
             df_present = ranking_areas[mask_present].copy()
 
-            # Sort by score descending so highest-risk areas appear first
+            # Sort by score descending so highest-risk reas appear first
             if "score_riesgo" in df_present.columns:
                 df_present = df_present.sort_values(
                     "score_riesgo", ascending=False
@@ -1244,11 +635,11 @@ def infer_area_options(
                         f" [{float(score):.0f}]" if score is not None else ""
                     )
                     label = (
-                        f"{code} — {name}{score_txt}" if name else code
+                        f"{code} - {name}{score_txt}" if name else code
                     )
                     options.append((code, label))
 
-    # ── Fallback: read ls column from TB directly ──────────────
+    # -- Fallback: read ls column from TB directly --------------
     if not options and tb is not None and not tb.empty:
         ls_col = next(
             (c for c in ["ls", "l/s", "l_s", "L/S"] if c in tb.columns),
@@ -1268,15 +659,15 @@ def infer_area_options(
                 if isinstance(area, dict):
                     title = normalize_text(area.get("titulo", ""))
                     if title:
-                        return f"{code} — {title}"
-                return f"{code} — Área {code}"
+                        return f"{code} - {title}"
+                return f"{code} - Área {code}"
 
             for code in present_ls:
                 options.append((code, _label(code)))
 
-    # ── Last resort ────────────────────────────────────────────
+    # -- Last resort --------------------------------------------
     if not options:
-        options = [("140", "140 — Efectivo y Equivalentes")]
+        options = [("140", "140 - Efectivo y Equivalentes")]
 
     return options
 
@@ -1640,7 +1031,7 @@ def render_consultar_socio_tab(ws: dict[str, Any], cliente: str) -> None:
     st.subheader("Consulta al Socio")
 
     if consultar_socio is None:
-        st.info("Servicio de chat no disponible en este entorno.")
+        _ui_info("Servicio de chat no disponible en este entorno.")
         return
 
     chat_key = f"chat_area_{cliente}_{ws.get('codigo_ls', 'na')}"
@@ -1663,29 +1054,18 @@ def render_consultar_socio_tab(ws: dict[str, Any], cliente: str) -> None:
 
 def render_welcome_screen():
     """Full-page welcome screen."""
-    # Hide sidebar on welcome screen
-    st.markdown("""
-    <style>
-    [data-testid="stSidebar"] { display: none; }
-    [data-testid="collapsedControl"] { display: none; }
-    </style>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='sv-hide-sidebar'></div>", unsafe_allow_html=True)
 
     st.markdown("""
-    <div style="display:flex; justify-content:center;
-                align-items:center; min-height:80vh;">
-      <div class="welcome-bg">
-        <div style="text-align:center;">
-          <div style="font-size:4rem; margin-bottom:0.5rem;">📊</div>
-          <div class="welcome-logo">SocioAI</div>
-          <div class="welcome-sub">
-            Plataforma Inteligente de Auditoría Financiera
-          </div>
-          <div style="color:#A8C4E0; font-size:0.9rem;
-                      margin-bottom:2.5rem; line-height:1.6;">
-            Análisis de riesgo · Briefings con IA · Programas de auditoría<br>
-            Ranking de áreas · Reporte PDF ejecutivo
-          </div>
+    <div style="display:flex; justify-content:center; align-items:center; min-height:80vh;">
+      <div class="sovereign-card" style="max-width:840px; width:100%; padding:2.8rem 2.4rem; text-align:center;">
+        <div class="sv-serif" style="font-size:4.4rem; font-weight:700; color:#041627; margin-bottom:0.35rem; line-height:1;">Socio AI</div>
+        <div class="sv-serif" style="font-size:1.15rem; color:#1a2b3c; font-style:italic; margin-bottom:1.2rem;">
+          Centro de Mando de Auditora - Sovereign Intelligence
+        </div>
+        <div style="color:#64748B; font-size:0.95rem; margin-bottom:1.4rem; line-height:1.7;">
+          Análisis de riesgo  Briefings con IA  Programas de auditoría<br>
+          Ranking de reas  Reporte PDF ejecutivo
         </div>
       </div>
     </div>
@@ -1694,7 +1074,7 @@ def render_welcome_screen():
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
         if st.button(
-            "🚀 Comenzar",
+            "Comenzar",
             key="btn_welcome_start",
             width="stretch",
             type="primary",
@@ -1705,25 +1085,19 @@ def render_welcome_screen():
 
 def render_setup_screen(clientes_disponibles: list[str]):
     """Client setup screen: auditor + client + upload."""
-    # Hide sidebar on setup screen
-    st.markdown("""
-    <style>
-    [data-testid="stSidebar"] { display: none; }
-    [data-testid="collapsedControl"] { display: none; }
-    </style>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='sv-hide-sidebar'></div>", unsafe_allow_html=True)
 
     st.markdown("""
     <div style="text-align:center; padding:1.2rem 0 0.2rem 0;">
       <span style="font-size:1.95rem; font-weight:900;
-                   color:#003366;">📊 SocioAI</span>
+                   color:#003366;">   SocioAI</span>
       <div style="color:#6B778C; font-size:0.98rem;
                   margin-top:0.25rem;">
         Configura tu sesión de auditoría
       </div>
     </div>
     <div class="setup-hero">
-      <div class="setup-hero-title">Iniciemos tu análisis</div>
+      <div class="setup-hero-title">Iniciemos tu anlisis</div>
       <div class="setup-hero-sub">
         Completa 3 pasos para entrar al dashboard:
         selecciona cliente, sube tu Trial Balance y define la etapa.
@@ -1737,9 +1111,9 @@ def render_setup_screen(clientes_disponibles: list[str]):
     main_col, _ = st.columns([2, 1])
     with main_col:
 
-        # ── Auditor name ──────────────────────────────────────
+        # -- Auditor name --------------------------------------
         st.markdown(
-            "<div class='section-header'>👤 Auditor</div>",
+            "<div class='sv-heading'>   Auditor</div>",
             unsafe_allow_html=True,
         )
         nombre_auditor = st.text_input(
@@ -1752,9 +1126,9 @@ def render_setup_screen(clientes_disponibles: list[str]):
         st.markdown("<div style='margin-top:1.2rem;'></div>",
                     unsafe_allow_html=True)
 
-        # ── Client selection ──────────────────────────────────
+        # -- Client selection ----------------------------------
         st.markdown(
-            "<div class='section-header'>🏢 Cliente</div>",
+            "<div class='sv-heading'> - Cliente</div>",
             unsafe_allow_html=True,
         )
 
@@ -1804,7 +1178,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         "<span style='background:#E3FCEF; color:#006644;"
                         " padding:2px 8px; border-radius:10px;"
                         " font-size:0.75rem; font-weight:700;"
-                        " margin-left:8px;'>✅ Con datos</span>"
+                        " margin-left:8px;'>Con datos</span>"
                         if has_data else
                         "<span style='background:#F4F5F7; color:#6B778C;"
                         " padding:2px 8px; border-radius:10px;"
@@ -1814,7 +1188,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     st.markdown(
                         f"""<div class="{card_class}">
                             <div class="client-card-title">
-                                🏢 {label} {data_badge}
+                                {label} {data_badge}
                             </div>
                             <div class="client-card-sub">{c}</div>
                         </div>""",
@@ -1833,7 +1207,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
 
                     with btn_col2:
                         if st.button(
-                            "🗑️ Borrar",
+                            "Borrar",
                             key=f"del_{c}",
                             width="stretch",
                             help="Borra los datos cargados de este cliente",
@@ -1844,7 +1218,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                             ] = c
                             st.rerun()
 
-                # ── Delete confirmation dialog ────────────────────────
+                # -- Delete confirmation dialog ------------------------
                 cliente_a_borrar = st.session_state.get(
                     "delete_confirm_cliente", ""
                 )
@@ -1853,11 +1227,11 @@ def render_setup_screen(clientes_disponibles: list[str]):
                                 unsafe_allow_html=True)
                     st.markdown(
                         f"<div class='check-item check-fail'>"
-                        f"<span class='check-icon'>⚠️</span>"
+                        f"<span class='check-icon'>   -</span>"
                         f"<span>Vas a borrar los datos de "
                         f"<b>{cliente_a_borrar}</b> "
                         f"de esta sesión. "
-                        f"Ingresa la contraseña para confirmar."
+                        f"Ingresa la contrasea para confirmar."
                         f"</span></div>",
                         unsafe_allow_html=True,
                     )
@@ -1875,7 +1249,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         )
                     with conf_col2:
                         if st.button(
-                            "✅ Confirmar borrado",
+                            "Confirmar borrado",
                             key="btn_confirm_delete",
                             width="stretch",
                         ):
@@ -1924,18 +1298,18 @@ def render_setup_screen(clientes_disponibles: list[str]):
                                     if k in st.session_state:
                                         del st.session_state[k]
 
-                                st.success(
-                                    f"✅ Cliente **{cliente_a_borrar}** "
+                                _ui_success(
+                                    f"Cliente **{cliente_a_borrar}** "
                                     f"eliminado completamente ({n} "
                                     f"entradas borradas)."
                                 )
                                 st.rerun()
                             else:
-                                st.error("❌ Contraseña incorrecta.")
+                                _ui_error("Contrasea incorrecta.")
 
                     with conf_col3:
                         if st.button(
-                            "✗ Cancelar",
+                            "Cancelar",
                             key="btn_cancel_delete",
                             width="stretch",
                         ):
@@ -1950,17 +1324,17 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     "setup_cliente_sel", ""
                 )
             else:
-                st.info(
+                _ui_info(
                     "No hay clientes guardados. "
                     "Crea uno nuevo."
                 )
         else:
             st.markdown("**Identificador del cliente** (sin espacios)")
             cliente_id_input = st.text_input(
-                "ID único",
+                "ID onico",
                 placeholder="ej: empresa_abc_2025",
                 key="setup_cliente_id",
-                help="Identificador interno. Solo letras, números y guiones bajos.",
+                help="Identificador interno. Solo letras, nomeros y guiones bajos.",
             )
             # Clean ID: only alphanumeric and underscores
             if cliente_id_input.strip():
@@ -1971,22 +1345,22 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 ).strip("_")
                 if cliente_elegido:
                     st.caption(
-                        f"✅ ID interno: `{cliente_elegido}`"
+                        f"ID interno: `{cliente_elegido}`"
                     )
                 else:
-                    st.warning(
-                        "ID inválido. Usa solo letras y números."
+                    _ui_warning(
+                        "ID invlido. Usa solo letras y nomeros."
                     )
                     cliente_elegido = ""
 
         st.markdown("<div style='margin-top:1.2rem;'></div>",
                     unsafe_allow_html=True)
 
-        # ── Stage selection ───────────────────────────────────
+        # -- Stage selection -----------------------------------
         st.markdown("<div style='margin-top:1.2rem;'></div>",
                     unsafe_allow_html=True)
         st.markdown(
-            "<div class='section-header'>📋 Etapa</div>",
+            "<div class='sv-heading'> 1 Etapa</div>",
             unsafe_allow_html=True,
         )
         etapa_setup = st.selectbox(
@@ -1996,12 +1370,12 @@ def render_setup_screen(clientes_disponibles: list[str]):
             label_visibility="collapsed",
         )
 
-        # ── File uploads ──────────────────────────────────────
+        # -- File uploads --------------------------------------
         st.markdown(
-            "<div class='section-header'>📂 Archivos</div>",
+            "<div class='sv-heading'>  Archivos</div>",
             unsafe_allow_html=True,
         )
-        # ── Check if client already has data ─────────────────
+        # -- Check if client already has data -----------------
         _tiene_tb_repo = (
             (Path("data/clientes") / cliente_elegido / "tb.xlsx")
             .exists()
@@ -2030,7 +1404,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
         if _tiene_tb and cliente_elegido:
             st.markdown(
                 f"<div class='check-item check-ok'>"
-                f"<span class='check-icon'>✅</span>"
+                f"<span class='check-icon'>✓</span>"
                 f"<span>Trial Balance ya disponible para "
                 f"<b>{cliente_elegido}</b>. "
                 f"Puedes subir uno nuevo para actualizarlo.</span>"
@@ -2041,7 +1415,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
         up_col1, up_col2 = st.columns(2)
         with up_col1:
             tb_label = (
-                "Trial Balance (.xlsx) — actualizar"
+                "Trial Balance (.xlsx) - actualizar"
                 if _tiene_tb
                 else "Trial Balance (.xlsx) *"
             )
@@ -2050,9 +1424,9 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 type=["xlsx"],
                 key="setup_tb",
                 help=(
-                    "Opcional — ya tienes TB cargado"
+                    "Opcional - ya tienes TB cargado"
                     if _tiene_tb
-                    else "Obligatorio para el análisis"
+                    else "Obligatorio para el anlisis"
                 ),
             )
 
@@ -2070,7 +1444,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
 
         with up_col2:
             uploaded_mayor = st.file_uploader(
-                "Libro Mayor (.xlsx) — opcional",
+                "Libro Mayor (.xlsx) - opcional",
                 type=["xlsx"],
                 key="setup_mayor",
             )
@@ -2081,18 +1455,18 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 unsafe_allow_html=True,
             )
             st.markdown(
-                "<div class='section-header'>"
-                "📋 Datos del cliente</div>",
+                "<div class='sv-heading'>"
+                " 1 Datos del cliente</div>",
                 unsafe_allow_html=True,
             )
             st.caption(
-                "Completa los datos para un análisis "
-                "más preciso. Todos son opcionales "
+                "Completa los datos para un anlisis "
+                "ms preciso. Todos son opcionales "
                 "excepto el nombre."
             )
 
-            # ── Section 1: Basic data ─────────────────────────────
-            st.markdown("**Datos básicos**")
+            # -- Section 1: Basic data -----------------------------
+            st.markdown("**Datos bsicos**")
             p1, p2 = st.columns(2)
             with p1:
                 perfil_nombre = st.text_input(
@@ -2128,7 +1502,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 )
             with p2:
                 perfil_periodo = st.number_input(
-                    "Año del encargo",
+                    "Ao del encargo",
                     min_value=2020, max_value=2030,
                     value=2025, key="pf_periodo",
                 )
@@ -2151,11 +1525,11 @@ def render_setup_screen(clientes_disponibles: list[str]):
             st.markdown("<div style='margin-top:1rem;'></div>",
                         unsafe_allow_html=True)
 
-            # ── Section 2: Operational flags ─────────────────────
-            st.markdown("**Características operativas**")
+            # -- Section 2: Operational flags ---------------------
+            st.markdown("**Caractersticas operativas**")
             st.caption(
-                "Esta información mejora el ranking de riesgo "
-                "y las recomendaciones por área."
+                "Esta informacin mejora el ranking de riesgo "
+                "y las recomendaciones por rea."
             )
             op1, op2, op3 = st.columns(3)
             with op1:
@@ -2174,7 +1548,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 )
             with op2:
                 pf_prestamos_socios = st.checkbox(
-                    "Préstamos a socios",
+                    "Prstamos a socios",
                     key="pf_prestamos_socios",
                 )
                 pf_anticipos = st.checkbox(
@@ -2203,12 +1577,12 @@ def render_setup_screen(clientes_disponibles: list[str]):
             st.markdown("<div style='margin-top:0.5rem;'></div>",
                         unsafe_allow_html=True)
 
-            # ── Section 3: Risk flags ─────────────────────────────
+            # -- Section 3: Risk flags -----------------------------
             st.markdown("**Banderas de riesgo**")
             rf1, rf2 = st.columns(2)
             with rf1:
                 pf_doc_debil = st.checkbox(
-                    "Documentación débil",
+                    "Documentacin dbil",
                     key="pf_doc_debil",
                 )
                 pf_riesgo_tributario = st.checkbox(
@@ -2319,14 +1693,14 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 "reguladores_secundarios": ["SRI"],
             }
         else:
-            # Existing client — use defaults
+            # Existing client - use defaults
             perfil_nombre = cliente_elegido
             perfil_form = None
 
         st.markdown("<div style='margin-top:1.5rem;'></div>",
                     unsafe_allow_html=True)
 
-        # ── Validation & Enter ────────────────────────────────
+        # -- Validation & Enter --------------------------------
         puede_entrar = bool(
             cliente_elegido and (_tiene_tb or uploaded_tb)
         )
@@ -2337,13 +1711,13 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 faltante.append("seleccionar o crear un cliente")
             if not (_tiene_tb or uploaded_tb):
                 faltante.append("subir el Trial Balance (.xlsx)")
-            st.warning(
+            _ui_warning(
                 "Para continuar debes: "
                 + " y ".join(faltante) + "."
             )
 
         if st.button(
-            "✅ Entrar al análisis",
+            "Entrar al anlisis",
             key="btn_setup_enter",
             width="stretch",
             type="primary",
@@ -2374,11 +1748,11 @@ def render_setup_screen(clientes_disponibles: list[str]):
                             default=False,
                         )
                         if _tb_saved:
-                            st.success(
-                                "✅ TB guardado en almacenamiento remoto."
+                            _ui_success(
+                                "TB guardado en almacenamiento remoto."
                             )
                 except Exception as e:
-                    st.error(f"Error procesando TB: {e}")
+                    _ui_error(f"Error procesando TB: {e}")
             elif _tiene_tb_remote and not _tiene_tb_session:
                 tb_bytes = safe_call(
                     cargar_tb_storage,
@@ -2395,11 +1769,11 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         st.session_state[
                             f"tb_tipo_{cliente_elegido}"
                         ] = tb_tipo
-                        st.info(
-                            "ℹ️ TB restaurado desde almacenamiento remoto."
+                        _ui_info(
+                            "1  - TB restaurado desde almacenamiento remoto."
                         )
                     except Exception as e:
-                        st.error(f"Error restaurando TB remoto: {e}")
+                        _ui_error(f"Error restaurando TB remoto: {e}")
             elif _tiene_tb_session:
                 # Keep existing, just update tipo
                 st.session_state[
@@ -2447,20 +1821,20 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         del st.session_state[
                             "sheets_clientes_cache"
                         ]
-                    st.success(
-                        "✅ Cliente guardado en persistencia remota."
+                    _ui_success(
+                        "Cliente guardado en persistencia remota."
                     )
                 else:
                     _err = safe_call(
                         obtener_ultimo_error_sheets,
                         default="",
                     ) if obtener_ultimo_error_sheets else ""
-                    st.warning(
-                        "⚠️ No se pudo guardar en persistencia remota. "
+                    _ui_warning(
+                        "   - No se pudo guardar en persistencia remota. "
                         "Verifica credenciales de Supabase (o Sheets fallback)."
                     )
                     if _err:
-                        st.error(f"Detalle persistencia: {_err}")
+                        _ui_error(f"Detalle persistencia: {_err}")
 
             # Process mayor
             if uploaded_mayor:
@@ -2504,8 +1878,8 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     if _saved_new:
                         if "sheets_clientes_cache" in st.session_state:
                             del st.session_state["sheets_clientes_cache"]
-                        st.success(
-                            "✅ Cliente nuevo guardado en persistencia remota."
+                        _ui_success(
+                            "Cliente nuevo guardado en persistencia remota."
                         )
 
             st.session_state["app_screen"] = "dashboard"
@@ -2514,12 +1888,12 @@ def render_setup_screen(clientes_disponibles: list[str]):
     # Back button
     st.markdown("<div style='margin-top:1rem;'></div>",
                 unsafe_allow_html=True)
-    if st.button("← Volver", key="btn_setup_back"):
+    if st.button(" - Volver", key="btn_setup_back"):
         st.session_state["app_screen"] = "welcome"
         st.rerun()
 
 
-# ══ Screen router ══════════════════════════════════════════════
+# -- Screen router ----------------------------------------------
 if "app_screen" not in st.session_state:
     st.session_state["app_screen"] = "welcome"
 
@@ -2531,7 +1905,7 @@ if st.session_state["app_screen"] == "setup":
     render_setup_screen(_get_clientes_dinamicos())
     st.stop()
 
-# ── From here: dashboard screen ────────────────────────────────
+# -- From here: dashboard screen --------------------------------
 # Override sidebar defaults with setup values
 if "cliente_activo" in st.session_state:
     _cliente_override = st.session_state["cliente_activo"]
@@ -2582,7 +1956,7 @@ if st.sidebar.button("Cargar cliente", width="stretch"):
     st.session_state.cliente_cargado = cliente_seleccionado
 
 if st.sidebar.button(
-    "← Volver al inicio",
+    " - Volver al inicio",
     key="btn_back_home",
     width="stretch",
 ):
@@ -2591,10 +1965,10 @@ if st.sidebar.button(
 
 auditor = st.session_state.get("auditor_nombre", "")
 if auditor:
-    st.sidebar.caption(f"👤 Auditor: {auditor}")
+    st.sidebar.caption(f"   Auditor: {auditor}")
 
 st.sidebar.divider()
-st.sidebar.markdown("**📂 Cargar archivos del cliente**")
+st.sidebar.markdown("**  Cargar archivos del cliente**")
 
 # TB uploader
 uploaded_tb = st.sidebar.file_uploader(
@@ -2619,9 +1993,9 @@ if uploaded_tb is not None:
                 default=False,
             )
             if _saved_tb_side:
-                st.sidebar.caption("☁️ TB persistido en remoto")
+                st.sidebar.caption("-  - TB persistido en remoto")
         st.sidebar.success(
-            f"✅ TB cargado: {len(raw)} filas"
+            f"TB cargado: {len(raw)} filas"
         )
     except Exception as e:
         st.sidebar.error(f"Error procesando TB: {e}")
@@ -2643,13 +2017,13 @@ if uploaded_perfil is not None:
         st.session_state[
             f"perfil_upload_{cliente_seleccionado}"
         ] = perfil_data
-        st.sidebar.success("✅ Perfil cargado")
+        st.sidebar.success("Perfil cargado")
     except Exception as e:
         st.sidebar.error(f"Error leyendo perfil: {e}")
 
 # Mayor uploader (optional)
 uploaded_mayor = st.sidebar.file_uploader(
-    "Libro Mayor (.xlsx) — opcional",
+    "Libro Mayor (.xlsx) - opcional",
     type=["xlsx"],
     key="uploader_mayor",
     help="Sube el mayor.xlsx del cliente (opcional)",
@@ -2667,7 +2041,7 @@ if uploaded_mayor is not None:
             f"mayor_upload_{cliente_seleccionado}"
         ] = df_mayor_up
         st.sidebar.success(
-            f"✅ Mayor cargado: {len(df_mayor_up)} movimientos"
+            f"Mayor cargado: {len(df_mayor_up)} movimientos"
         )
     except Exception as e:
         st.sidebar.error(f"Error leyendo mayor: {e}")
@@ -2681,7 +2055,7 @@ cliente = st.session_state.cliente_cargado
 # ============================================================
 # Carga de datos base
 # ============================================================
-# ── Perfil: uploaded file takes priority ──────────────────
+# -- Perfil: uploaded file takes priority ------------------
 _perfil_key = f"perfil_upload_{cliente}"
 _perfil_key_active = f"perfil_upload_{st.session_state.get('cliente_activo', '')}"
 
@@ -2707,7 +2081,7 @@ if isinstance(perfil, dict) and perfil:
         pass
 
 datos_clave = safe_call(cached_datos_clave, cliente, default={}) or {}
-# ── TB: uploaded file takes priority ──────────────────────
+# -- TB: uploaded file takes priority ----------------------
 _tb_key = f"tb_upload_{cliente}"
 _tb_key_active = f"tb_upload_{st.session_state.get('cliente_activo', '')}"
 
@@ -2752,7 +2126,7 @@ if isinstance(tb, pd.DataFrame) and not tb.empty:
 if isinstance(tb, pd.DataFrame) and not tb.empty:
     print(f"[OK] TB activo para {cliente}: {len(tb)} filas")
 else:
-    print(f"[WARN] Sin TB para {cliente} — keys disponibles: "
+    print(f"[WARN] Sin TB para {cliente} - keys disponibles: "
           f"{[k for k in st.session_state.keys() if 'tb_upload' in str(k)]}")
 
 # Pass the already-loaded tb DataFrame directly
@@ -2822,7 +2196,7 @@ if _tb_from_session is not None and isinstance(tb, pd.DataFrame) and not tb.empt
     except Exception:
         pass
 
-# ── Mayor: uploaded file takes priority ───────────────────
+# -- Mayor: uploaded file takes priority -------------------
 _mayor_key = f"mayor_upload_{cliente}"
 if _mayor_key in st.session_state and isinstance(
     st.session_state[_mayor_key], pd.DataFrame
@@ -2841,13 +2215,13 @@ if isinstance(diag_tb, dict):
     rows_loaded = int(diag_tb.get("rows_loaded", 0) or 0)
     rows_saldo_no_cero = int(diag_tb.get("rows_saldo_no_cero", 0) or 0)
     if rows_loaded > 0 and rows_saldo_no_cero == 0:
-        st.warning(
-            "Se cargó el TB pero no se detectaron saldos no cero. Revisar mapeo de columnas para este cliente."
+        _ui_warning(
+            "Se carg el TB pero no se detectaron saldos no cero. Revisar mapeo de columnas para este cliente."
         )
     elif rows_loaded == 0:
-        st.warning("No se pudieron cargar filas del TB para el cliente seleccionado.")
+        _ui_warning("No se pudieron cargar filas del TB para el cliente seleccionado.")
 
-# Selected area — driven by ranking click,
+# Selected area - driven by ranking click,
 # not sidebar dropdown
 _area_key = f"selected_area_{cliente}"
 if _area_key not in st.session_state:
@@ -2901,9 +2275,9 @@ _sheets_ready = bool(
     )
 )
 if _sheets_ready:
-    st.sidebar.caption("☁️ Persistencia remota conectada")
+    st.sidebar.caption("-  - Persistencia remota conectada")
 else:
-    st.sidebar.caption("💾 Modo local (sin persistencia)")
+    st.sidebar.caption(" TM34 Modo local (sin persistencia)")
     if _sheets_import_error:
         st.sidebar.caption(f"Sheets import: {_sheets_import_error}")
     with st.sidebar.expander("Configurar Supabase manualmente", expanded=False):
@@ -2938,18 +2312,18 @@ else:
             st.sidebar.success("Credenciales runtime guardadas.")
 
 if st.sidebar.button(
-    "🔎 Probar persistencia",
+    " -12 Probar persistencia",
     key="btn_test_sheets",
     width="stretch",
 ):
     if not _sheets_ok or not callable(diagnosticar_sheets):
-        st.sidebar.warning("⚠️ Diagnóstico avanzado no disponible.")
+        st.sidebar.warning("   - Diagnstico avanzado no disponible.")
         _rows_basic = safe_call(cargar_clientes_sheets, default=[]) or []
         _err_basic = safe_call(
             obtener_ultimo_error_sheets, default=""
         ) if callable(obtener_ultimo_error_sheets) else ""
         st.sidebar.caption(
-            f"Básico: rows={len(_rows_basic)} | "
+            f"Bsico: rows={len(_rows_basic)} | "
             f"sheets_ok={_sheets_ok}"
         )
         if _sheets_import_error:
@@ -2962,14 +2336,14 @@ if st.sidebar.button(
         _rows = safe_call(cargar_clientes_sheets, default=[]) or []
         if _diag.get("ok"):
             st.sidebar.success(
-                f"Conexión OK. Clientes remotos: {len(_rows)}"
+                f"Conexin OK. Clientes remotos: {len(_rows)}"
             )
             if _diag.get("spreadsheet_title"):
                 st.sidebar.caption(
                     f"Sheet: {_diag.get('spreadsheet_title')}"
                 )
         else:
-            st.sidebar.error("❌ Falla en diagnóstico de persistencia.")
+            st.sidebar.error("-' Falla en diagnstico de persistencia.")
             st.sidebar.write(
                 f"auth={_diag.get('auth_ok')} | "
                 f"open={_diag.get('open_ok')} | "
@@ -3008,7 +2382,7 @@ if st.sidebar.button(
                     f"has_key={_cfg.get('has_key')}"
                 )
                 with st.sidebar.expander("Debug config persistencia", expanded=False):
-                    st.write(_cfg)
+                    st.code(str(_cfg), language="python")
             else:
                 st.sidebar.caption("Debug config persistencia no disponible.")
 
@@ -3017,11 +2391,13 @@ if st.sidebar.button(
 # Header principal
 # ============================================================
 st.markdown("""
-    <div class="socioai-header">
-        <div class="socioai-logo">📊</div>
-        <div>
-            <h1>SocioAI</h1>
-            <p>Plataforma Inteligente de Auditoría Financiera</p>
+    <div class="sovereign-card" style="padding:1.25rem 1.5rem; margin-bottom:1rem;">
+        <div style="display:flex; align-items:center; gap:.8rem;">
+            <div style="font-size:2rem; line-height:1;">  </div>
+            <div>
+                <h1 class="sv-serif" style="margin:0; font-size:2rem; color:#041627;">SocioAI</h1>
+                <p style="margin:.15rem 0 0 0; color:#64748B;">Plataforma Inteligente de Auditora Financiera</p>
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -3042,9 +2418,9 @@ tab1, tab_risk, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Dashboard",
     "🛡️ Risk Engine",
     "🎯 Áreas",
-    "💼 Estados Financieros",
-    "🤖 Inteligencia IA",
-    "📋 Datos",
+    "📘 Estados Financieros",
+    "🧠 Inteligencia IA",
+    "📁 Datos",
 ])
 
 
@@ -3059,7 +2435,7 @@ def _calcular_estado_encargo(
     if not isinstance(ranking_areas, pd.DataFrame) \
             or ranking_areas.empty:
         return {
-            "areas": [],
+            "reas": [],
             "pct_completado": 0,
             "total": 0,
             "completas": 0,
@@ -3108,13 +2484,13 @@ def _calcular_estado_encargo(
 
         if _estado_yaml in _estados_completos:
             semaforo = "completa"
-            emoji = "🟢"
+            emoji = "  "
         elif _estado_yaml in _estados_proceso:
             semaforo = "en_proceso"
-            emoji = "🟡"
+            emoji = "  "
         else:
             semaforo = "no_iniciada"
-            emoji = "🔴"
+            emoji = " - "
 
         areas_estado.append({
             "codigo": codigo,
@@ -3139,7 +2515,7 @@ def _calcular_estado_encargo(
     pct = int((completas / total * 100)) if total > 0 else 0
 
     return {
-        "areas": areas_estado,
+        "reas": areas_estado,
         "pct_completado": pct,
         "total": total,
         "completas": completas,
@@ -3157,9 +2533,10 @@ with tab1:
         indicadores=indicadores if isinstance(indicadores, dict) else {},
         ranking_areas=ranking_areas if isinstance(ranking_areas, pd.DataFrame) else None,
         variaciones=variaciones if isinstance(variaciones, pd.DataFrame) else None,
+        tb=tb if isinstance(tb, pd.DataFrame) else None,
     )
     st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
-    # ── KPI Row ──────────────────────────────────────────────
+    # -- KPI Row ----------------------------------------------
     activo = resumen_tb.get("ACTIVO", 0)
     pasivo = resumen_tb.get("PASIVO", 0)
     patrimonio = resumen_tb.get("PATRIMONIO", 0)
@@ -3170,72 +2547,66 @@ with tab1:
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         st.markdown(f"""
-        <div class="kpi-card kpi-info">
+        <div class="sovereign-card kpi-info">
             <div class="kpi-label">Activos Totales</div>
-            <div class="kpi-value">${float(activo):,.0f}</div>
+            <div class="kpi-value">{fmt_money(activo)}</div>
             <div class="kpi-sub">Balance general</div>
         </div>""", unsafe_allow_html=True)
     with k2:
         st.markdown(f"""
-        <div class="kpi-card kpi-info">
+        <div class="sovereign-card kpi-info">
             <div class="kpi-label">Patrimonio</div>
             <div class="kpi-value">${float(patrimonio):,.0f}</div>
-            <div class="kpi-sub">Vs pasivos ${float(pasivo):,.0f}</div>
+            <div class="kpi-sub">Vs pasivos {fmt_money(pasivo)}</div>
         </div>""", unsafe_allow_html=True)
     with k3:
         color_riesgo = "kpi-alto" if n_alto > 0 else "kpi-bajo"
         st.markdown(f"""
-        <div class="kpi-card {color_riesgo}">
+        <div class="sovereign-card {color_riesgo}">
             <div class="kpi-label">Áreas Alto Riesgo</div>
             <div class="kpi-value">{n_alto}</div>
-            <div class="kpi-sub">{n_medio} medio · {n_bajo} bajo</div>
+            <div class="kpi-sub">{n_medio} medio  {n_bajo} bajo</div>
         </div>""", unsafe_allow_html=True)
     with k4:
         tb_count = int(tb.shape[0]) if isinstance(tb, pd.DataFrame) else 0
         st.markdown(f"""
-        <div class="kpi-card kpi-info">
+        <div class="sovereign-card kpi-info">
             <div class="kpi-label">Cuentas en TB</div>
             <div class="kpi-value">{tb_count}</div>
             <div class="kpi-sub">Trial Balance cargado</div>
         </div>""", unsafe_allow_html=True)
 
-    st.markdown("<div class='section-header'>Distribución de Riesgo por Áreas</div>",
+    st.markdown("<div class='sv-heading'>Distribución de Riesgo por Áreas</div>",
                 unsafe_allow_html=True)
 
     col_pie, col_top = st.columns([1, 2])
     with col_pie:
-        try:
-            import plotly.express as px
-            if n_alto + n_medio + n_bajo > 0:
-                fig_pie = px.pie(
-                    names=["Alto", "Medio", "Bajo"],
-                    values=[n_alto, n_medio, n_bajo],
-                    color_discrete_map={
-                        "Alto": "#DE350B",
-                        "Medio": "#FF8B00",
-                        "Bajo": "#00875A",
-                    },
-                    hole=0.5,
-                )
-                fig_pie.update_layout(
-                    plot_bgcolor="white",
-                    paper_bgcolor="white",
-                    font_color="#172B4D",
-                    height=250,
-                    margin=dict(l=0, r=0, t=20, b=0),
-                    legend=dict(orientation="h", y=-0.15),
-                    showlegend=True,
-                )
-                fig_pie.update_traces(
-                    textposition="inside",
-                    textinfo="percent",
-                )
-                st.plotly_chart(fig_pie, width="stretch")
-        except Exception:
-            st.metric("Alto", n_alto)
+        total_risk = max(1, n_alto + n_medio + n_bajo)
+        blocks = [
+            ("Alto", n_alto, "#DE350B"),
+            ("Medio", n_medio, "#FF8B00"),
+            ("Bajo", n_bajo, "#00875A"),
+        ]
+        rows = "".join(
+            [
+                f"""
+                <div class="sovereign-card" style="padding:.7rem .8rem; margin-bottom:.45rem;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+                    <span style="font-size:.78rem;font-weight:700;color:#334155;">{lbl}</span>
+                    <span style="font-size:.74rem;font-weight:800;color:{clr};">{cnt} ({(cnt/total_risk)*100:.1f}%)</span>
+                  </div>
+                  <div style="margin-top:.38rem;height:6px;background:#E2E8F0;border-radius:999px;overflow:hidden;">
+                    <div style="height:100%;width:{(cnt/total_risk)*100:.1f}%;background:{clr};"></div>
+                  </div>
+                </div>
+                """
+                for lbl, cnt, clr in blocks
+            ]
+        )
+        st.markdown(rows, unsafe_allow_html=True)
 
     with col_top:
-        st.markdown("<div class='section-header'>Top Áreas por Score</div>",
+        st.markdown("<div class='sv-heading'>Top Áreas por Score</div>",
                     unsafe_allow_html=True)
         if isinstance(ranking_areas, pd.DataFrame) and not ranking_areas.empty:
             for _, row in ranking_areas.head(5).iterrows():
@@ -3250,9 +2621,9 @@ with tab1:
                 )
                 bar_w = min(int(score), 100)
                 st.markdown(f"""
-                <div class="kpi-card" style="padding:0.8rem 1rem; margin-bottom:0.4rem;">
+                <div class="sovereign-card" style="padding:0.8rem 1rem; margin-bottom:0.4rem;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:700; color:#003366;">{area_c} — {nombre_a}</span>
+                        <span style="font-weight:700; color:#003366;">{area_c} - {nombre_a}</span>
                         <span style="background:{color_badge}; color:white; padding:2px 10px;
                                border-radius:12px; font-size:0.75rem; font-weight:700;">
                             {score:.1f}
@@ -3268,9 +2639,9 @@ with tab1:
                     </div>
                 </div>""", unsafe_allow_html=True)
         else:
-            st.info("Sin datos de ranking disponibles.")
+            _ui_info("Sin datos de ranking disponibles.")
 
-    # ── Data source indicator ─────────────────────────────────
+    # -- Data source indicator ---------------------------------
     _tb_loaded = (
         isinstance(tb, pd.DataFrame) and not tb.empty
     )
@@ -3279,29 +2650,53 @@ with tab1:
     )
     _from_upload = f"tb_upload_{cliente}" in st.session_state
 
+    st.markdown("<div class='sv-heading'>Estado de Carga</div>", unsafe_allow_html=True)
     src1, src2, src3 = st.columns(3)
-    with src1:
-        if _tb_loaded and _from_upload:
-            st.success("✅ TB cargado desde archivo")
-        elif _tb_loaded:
-            st.success("✅ TB cargado desde repo")
-        else:
-            st.warning(
-                "⚠️ Sin TB — sube el archivo en el sidebar"
-            )
-    with src2:
-        if _perfil_loaded:
-            st.success("✅ Perfil disponible")
-        else:
-            st.info("ℹ️ Sin perfil — usando defaults")
-    with src3:
-        if df_mayor is not None:
-            st.success("✅ Libro Mayor disponible")
-        else:
-            st.info("ℹ️ Sin Mayor cargado")
+    tb_msg = (
+        "TB cargado desde archivo"
+        if _tb_loaded and _from_upload
+        else "TB cargado desde repositorio"
+        if _tb_loaded
+        else "Sin TB - sube el archivo en el sidebar"
+    )
+    tb_col = "#047857" if _tb_loaded else "#B45309"
+    perfil_msg = "Perfil disponible" if _perfil_loaded else "Sin perfil - usando defaults"
+    perfil_col = "#047857" if _perfil_loaded else "#64748B"
+    mayor_msg = "Libro Mayor disponible" if df_mayor is not None else "Sin Mayor cargado"
+    mayor_col = "#047857" if df_mayor is not None else "#64748B"
 
-    # ── Client info card ─────────────────────────────────────
-    st.markdown("<div class='section-header'>Información del Encargo</div>",
+    with src1:
+        st.markdown(
+            f"""
+            <div class="sovereign-card" style="padding:1rem 1.1rem;">
+              <div class="kpi-label">Trial Balance</div>
+              <div style="font-weight:700;color:{tb_col};margin-top:.25rem;">{tb_msg}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with src2:
+        st.markdown(
+            f"""
+            <div class="sovereign-card" style="padding:1rem 1.1rem;">
+              <div class="kpi-label">Perfil</div>
+              <div style="font-weight:700;color:{perfil_col};margin-top:.25rem;">{perfil_msg}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with src3:
+        st.markdown(
+            f"""
+            <div class="sovereign-card" style="padding:1rem 1.1rem;">
+              <div class="kpi-label">Libro Mayor</div>
+              <div style="font-weight:700;color:{mayor_col};margin-top:.25rem;">{mayor_msg}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div class='sv-heading'>Informacin del Encargo</div>",
                 unsafe_allow_html=True)
     nombre_c = normalize_text(get_first(
         datos_clave, ["nombre"],
@@ -3323,18 +2718,18 @@ with tab1:
         perfil.get("riesgo_global", {}).get("nivel", "N/A")
     )
     color_rg = (
-        "#DE350B" if "alto" in riesgo_g
-        else "#FF8B00" if "medio" in riesgo_g
-        else "#00875A"
+        "#BA1A1A" if "alto" in riesgo_g
+        else "#B45309" if "medio" in riesgo_g
+        else "#047857"
     )
     st.markdown(f"""
-    <div class="kpi-card kpi-info" style="padding:1rem 1.4rem;">
+    <div class="sovereign-card" style="padding:1rem 1.4rem;">
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr; gap:1rem;">
             <div><div class="kpi-label">Cliente</div>
                  <div style="font-weight:700; color:#003366;">{nombre_c}</div></div>
             <div><div class="kpi-label">Sector</div>
                  <div style="font-weight:600;">{sector_c}</div></div>
-            <div><div class="kpi-label">Período</div>
+            <div><div class="kpi-label">Perodo</div>
                  <div style="font-weight:600;">{periodo_c}</div></div>
             <div><div class="kpi-label">Marco</div>
                  <div style="font-weight:600;">{marco_c}</div></div>
@@ -3344,9 +2739,9 @@ with tab1:
         </div>
     </div>""", unsafe_allow_html=True)
 
-    # ── Engagement Status ─────────────────────────────────
+    # -- Engagement Status ---------------------------------
     st.markdown(
-        "<div class='section-header'>"
+        "<div class='sv-heading'>"
         "Estado del Encargo</div>",
         unsafe_allow_html=True,
     )
@@ -3363,14 +2758,14 @@ with tab1:
     _no_ini = _estado_enc["no_iniciadas"]
 
     prog_color = (
-        "#00875A" if _pct >= 80
-        else "#FF8B00" if _pct >= 40
-        else "#DE350B"
+        "#047857" if _pct >= 80
+        else "#B45309" if _pct >= 40
+        else "#BA1A1A"
     )
 
     st.markdown(
         f"""
-        <div class="kpi-card kpi-info"
+        <div class="sovereign-card"
              style="padding:1rem 1.4rem;">
           <div style="display:flex;
                       justify-content:space-between;
@@ -3403,7 +2798,7 @@ with tab1:
                       grid-template-columns:1fr 1fr 1fr;
                       gap:0.5rem; text-align:center;">
             <div>
-              <div style="font-size:1.4rem;">🟢</div>
+              <div style="font-size:1.4rem;">  </div>
               <div style="font-weight:700;
                           color:#006644;
                           font-size:1.1rem;">
@@ -3415,7 +2810,7 @@ with tab1:
               </div>
             </div>
             <div>
-              <div style="font-size:1.4rem;">🟡</div>
+              <div style="font-size:1.4rem;">  </div>
               <div style="font-weight:700;
                           color:#974F0C;
                           font-size:1.1rem;">
@@ -3427,7 +2822,7 @@ with tab1:
               </div>
             </div>
             <div>
-              <div style="font-size:1.4rem;">🔴</div>
+              <div style="font-size:1.4rem;"> - </div>
               <div style="font-weight:700;
                           color:#BF2600;
                           font-size:1.1rem;">
@@ -3445,13 +2840,13 @@ with tab1:
     )
 
     # Semaphore table by area
-    if _estado_enc["areas"]:
+    if _estado_enc["reas"]:
         st.markdown(
             "<div style='margin-top:0.8rem;'></div>",
             unsafe_allow_html=True,
         )
         for area_e in sorted(
-            _estado_enc["areas"],
+            _estado_enc["reas"],
             key=lambda x: x["score"],
             reverse=True,
         ):
@@ -3480,7 +2875,7 @@ with tab1:
                     <span style="font-weight:700;
                                  color:#003366;">
                       {area_e['emoji']}
-                      {area_e['codigo']} —
+                      {area_e['codigo']} -
                       {area_e['nombre'][:35]}
                     </span>
                     <span style="color:#6B778C;
@@ -3499,15 +2894,15 @@ with tab1:
                 unsafe_allow_html=True,
             )
 
-    # ── PDF Export ────────────────────────────────────────────
+    # -- PDF Export --------------------------------------------
     st.markdown(
-        "<div class='section-header'>Exportar Reporte</div>",
+        "<div class='sv-heading'>Exportar Reporte</div>",
         unsafe_allow_html=True,
     )
     col_pdf, col_info = st.columns([1, 3])
     with col_pdf:
         if st.button(
-            "📄 Generar PDF",
+            "  Generar PDF",
             key="btn_gen_pdf",
             width="stretch",
             type="primary",
@@ -3531,19 +2926,19 @@ with tab1:
                     )
                     st.session_state["pdf_bytes"] = pdf_bytes
                     st.session_state["pdf_filename"] = nombre_archivo
-                    st.success("✅ PDF listo para descargar.")
+                    _ui_success("PDF listo para descargar.")
                 except Exception as e:
-                    st.error(f"Error generando PDF: {e}")
+                    _ui_error(f"Error generando PDF: {e}")
 
     with col_info:
         st.caption(
-            "El reporte incluye: balance general, ranking de áreas "
+            "El reporte incluye: balance general, ranking de reas "
             "por riesgo, top variaciones y estado de cierre."
         )
 
     if st.session_state.get("pdf_bytes"):
         st.download_button(
-            label="⬇️ Descargar PDF",
+            label="  - Descargar PDF",
             data=st.session_state["pdf_bytes"],
             file_name=st.session_state.get(
                 "pdf_filename", f"SocioAI_{cliente}.pdf"
@@ -3574,10 +2969,10 @@ def _render_cierre_cards(ws: dict[str, Any]) -> None:
         calidad.get("resumen", {}).get("alertas_criticas", 0) or 0
     )
 
-    # ── Estado general ────────────────────────────────────────
+    # -- Estado general ----------------------------------------
     if lista_para_cerrar:
         badge_cls = "badge-ok"
-        badge_txt = "✅ Lista para cerrar"
+        badge_txt = "Lista para cerrar"
         st.markdown(
             f"<span class='status-badge {badge_cls}'>"
             f"{badge_txt}</span>",
@@ -3585,7 +2980,7 @@ def _render_cierre_cards(ws: dict[str, Any]) -> None:
         )
     else:
         badge_cls = "badge-fail"
-        badge_txt = "⛔ No lista para cerrar"
+        badge_txt = "o- No lista para cerrar"
         st.markdown(
             f"<span class='status-badge {badge_cls}'>"
             f"{badge_txt}</span>",
@@ -3594,9 +2989,9 @@ def _render_cierre_cards(ws: dict[str, Any]) -> None:
 
     st.markdown("")  # spacer
 
-    # ── Checklist cards ───────────────────────────────────────
+    # -- Checklist cards ---------------------------------------
     st.markdown(
-        "<div class='section-header'>Checklist de cierre</div>",
+        "<div class='sv-heading'>Checklist de cierre</div>",
         unsafe_allow_html=True,
     )
 
@@ -3604,7 +2999,7 @@ def _render_cierre_cards(ws: dict[str, Any]) -> None:
         (
             cobertura >= 80,
             f"Cobertura de aseveraciones: {cobertura:.1f}%",
-            "Cobertura insuficiente (mínimo 80%)",
+            "Cobertura insuficiente (mnimo 80%)",
         ),
         (
             hallazgos_count == 0,
@@ -3618,13 +3013,13 @@ def _render_cierre_cards(ws: dict[str, Any]) -> None:
         ),
         (
             alertas_criticas == 0,
-            "Sin alertas metodológicas críticas",
-            f"{alertas_criticas} alerta(s) crítica(s) de calidad",
+            "Sin alertas metodolgicas crticas",
+            f"{alertas_criticas} alerta(s) crtica(s) de calidad",
         ),
         (
             nivel_riesgo not in {"alto", "medio_alto"},
             "Nivel de riesgo controlado",
-            f"Riesgo del área: {nivel_riesgo.upper()}",
+            f"Riesgo del rea: {nivel_riesgo.upper()}",
         ),
     ]
 
@@ -3632,63 +3027,63 @@ def _render_cierre_cards(ws: dict[str, Any]) -> None:
         if ok:
             st.markdown(
                 f"<div class='check-item check-ok'>"
-                f"<span class='check-icon'>✅</span>"
+                f"<span class='check-icon'>✓</span>"
                 f"<span>{msg_ok}</span></div>",
                 unsafe_allow_html=True,
             )
         else:
             st.markdown(
                 f"<div class='check-item check-fail'>"
-                f"<span class='check-icon'>⚠️</span>"
+                f"<span class='check-icon'>   -</span>"
                 f"<span>{msg_fail}</span></div>",
                 unsafe_allow_html=True,
             )
 
-    # ── Acciones recomendadas ─────────────────────────────────
+    # -- Acciones recomendadas ---------------------------------
     acciones = []
     if pending_count > 0:
         acciones.append("Completar procedimientos pendientes con evidencia.")
     if hallazgos_count > 0:
         acciones.append(
-            "Resolver hallazgos abiertos o documentar plan de remediación."
+            "Resolver hallazgos abiertos o documentar plan de remediacin."
         )
     if cobertura < 80:
         acciones.append(
-            "Fortalecer cobertura en aseveraciones débiles o no cubiertas."
+            "Fortalecer cobertura en aseveraciones dbiles o no cubiertas."
         )
     if alertas_criticas > 0:
         acciones.append(
-            "Resolver alertas metodológicas críticas (ver tab Calidad)."
+            "Resolver alertas metodolgicas crticas (ver tab Calidad)."
         )
     if not acciones:
         acciones.append(
-            "Documentar conclusión final y referencias cruzadas de evidencia."
+            "Documentar conclusin final y referencias cruzadas de evidencia."
         )
 
     if acciones:
         st.markdown(
-            "<div class='section-header' style='margin-top:1rem;'>"
-            "Próximas acciones</div>",
+            "<div class='sv-heading' style='margin-top:1rem;'>"
+            "Prximas acciones</div>",
             unsafe_allow_html=True,
         )
         for a in acciones:
             st.markdown(
                 f"<div class='check-item check-warn'>"
-                f"<span class='check-icon'>→</span>"
+                f"<span class='check-icon'> TM</span>"
                 f"<span>{a}</span></div>",
                 unsafe_allow_html=True,
             )
 
-    # ── Seguimiento manual (colapsado) ────────────────────────
-    with st.expander("📝 Registrar estado y conclusión", expanded=False):
+    # -- Seguimiento manual (colapsado) ------------------------
+    with st.expander(" - Registrar estado y conclusin", expanded=False):
         render_cierre_tab(ws)
 
 
 def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
-    """Requerimientos de auditoría por área y aseveración."""
+    """Requerimientos de auditoría por Área y aseveración."""
     st.markdown(
-        "<div class='section-header'>"
-        "📎 Guía de Requerimientos</div>",
+        "<div class='sv-heading'>"
+        " 12 Gua de Requerimientos</div>",
         unsafe_allow_html=True,
     )
 
@@ -3705,8 +3100,8 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
         area_req = {}
 
     if not area_req:
-        st.info(
-            f"No hay guía de requerimientos configurada "
+        _ui_info(
+            f"No hay gua de requerimientos configurada "
             f"para {area_name} (L/S {codigo_ls}). "
             f"Puedes agregarla en "
             f"data/catalogos/requerimientos_por_area.yaml"
@@ -3715,10 +3110,10 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
 
     asev_data = area_req.get("aseveraciones", {})
     if not asev_data:
-        st.info("Sin aseveraciones configuradas para esta área.")
+        _ui_info("Sin aseveraciones configuradas para esta rea.")
         return
 
-    # ── Filter by aseveracion ─────────────────────────────────
+    # -- Filter by aseveracion ---------------------------------
     asev_options = list(asev_data.keys())
     sel_asev = st.multiselect(
         "Filtrar por aseveración",
@@ -3729,11 +3124,11 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
 
     st.divider()
 
-    # ── Render by type ────────────────────────────────────────
+    # -- Render by type ----------------------------------------
     tipo_icons = {
-        "documento": "📄",
-        "pregunta": "❓",
-        "procedimiento": "🔧",
+        "documento": " ",
+        "pregunta": "-",
+        "procedimiento": " -",
     }
     tipo_labels = {
         "documento": "Documentos a solicitar",
@@ -3806,9 +3201,9 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
 
     st.divider()
 
-    # ── Download checklist ────────────────────────────────────
+    # -- Download checklist ------------------------------------
     st.markdown(
-        "<div class='section-header'>Exportar checklist</div>",
+        "<div class='sv-heading'>Exportar checklist</div>",
         unsafe_allow_html=True,
     )
 
@@ -3832,7 +3227,7 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
             df_check = pd.DataFrame(checklist)
             df_check.columns = [
                 "Aseveración", "Tipo",
-                "Descripción", "Completado",
+                "Descripcin", "Completado",
             ]
             # Generate and cache CSV in session_state
             _csv_key = f"req_csv_data_{codigo_ls}"
@@ -3846,7 +3241,7 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                 )
 
             st.download_button(
-                "⬇️ Descargar checklist (.csv)",
+                "  - Descargar checklist (.csv)",
                 data=st.session_state[_csv_key],
                 file_name=(
                     f"requerimientos_{codigo_ls}_"
@@ -3885,7 +3280,7 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
 
                     story = []
                     story.append(Paragraph(
-                        "Requerimientos de Auditoría",
+                        "Requerimientos de Auditora",
                         ParagraphStyle(
                             "title", fontSize=16,
                             fontName="Helvetica-Bold",
@@ -3893,7 +3288,7 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                         ),
                     ))
                     story.append(Paragraph(
-                        f"{area_name} · L/S {codigo_ls}",
+                        f"{area_name}  L/S {codigo_ls}",
                         ParagraphStyle(
                             "sub", fontSize=10,
                             textColor=colors.Color(0.44,0.47,0.52),
@@ -3912,14 +3307,14 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                         tipo = str(item["tipo"])
                         desc = str(item["descripcion"])
                         icon = {
-                            "documento": "📄",
-                            "pregunta": "❓",
-                            "procedimiento": "🔧",
-                        }.get(tipo, "•")
+                            "documento": " ",
+                            "pregunta": "-",
+                            "procedimiento": " -",
+                        }.get(tipo, "")
 
                         row = [[
                             Paragraph(
-                                f"<b>{asev}</b> · {icon} {tipo.title()}",
+                                f"<b>{asev}</b>  {icon} {tipo.title()}",
                                 ParagraphStyle(
                                     "lbl", fontSize=8,
                                     textColor=NAVY,
@@ -3933,7 +3328,7 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                                 ),
                             ),
                             Paragraph(
-                                "☐",
+                                "-",
                                 ParagraphStyle(
                                     "chk", fontSize=12,
                                     alignment=1,
@@ -3963,7 +3358,7 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                     st.session_state[_pdf_key] = buf.read()
 
                 st.download_button(
-                    "⬇️ Descargar checklist (.pdf)",
+                    "  - Descargar checklist (.pdf)",
                     data=st.session_state[_pdf_key],
                     file_name=(
                         f"requerimientos_{codigo_ls}.pdf"
@@ -3975,7 +3370,7 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
             except Exception as e:
                 st.caption(f"PDF no disponible: {e}")
     else:
-        st.info("Sin items para exportar con los filtros actuales.")
+        _ui_info("Sin items para exportar con los filtros actuales.")
 
 
 with tab_risk:
@@ -3989,11 +3384,11 @@ with tab_risk:
 
 
 with tab2:
-    # ── Build area list ───────────────────────────────────
+    # -- Build area list -----------------------------------
     _area_key = f"selected_area_{cliente}"
     _selected = st.session_state.get(_area_key, "")
 
-    # Get areas with saldo from ranking
+    # Get reas with saldo from ranking
     _areas_list: list[dict] = []
     if (
         isinstance(ranking_areas, pd.DataFrame)
@@ -4030,21 +3425,21 @@ with tab2:
                 })
 
     if not _areas_list:
-        st.info(
-            "Sube un Trial Balance para ver las áreas."
+        _ui_info(
+            "Sube un Trial Balance para ver las reas."
         )
     else:
         col_rank2, col_ws2 = st.columns([1, 2])
 
         with col_rank2:
             st.markdown(
-                "<div class='section-header'>"
+                "<div class='sv-heading'>"
                 "Ranking de Áreas</div>",
                 unsafe_allow_html=True,
             )
             st.caption(
-                "Haz clic en un área para verla "
-                "en detalle →"
+                "Haz clic en un rea para verla "
+                "en detalle  TM"
             )
 
             for _area in _areas_list:
@@ -4120,8 +3515,8 @@ with tab2:
                     unsafe_allow_html=True,
                 )
                 _btn = st.button(
-                    "▶ Abrir área" if not _is_sel
-                    else "✅ Área activa",
+                    "Abrir rea" if not _is_sel
+                    else "Área activa",
                     key=f"sel_area_{cliente}_{_cod}",
                     width="stretch",
                     type="primary" if _is_sel else "secondary",
@@ -4154,21 +3549,21 @@ with tab2:
             st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
             inner_tabs = st.tabs([
-                "📋 Resumen",
-                "⚙️ Trabajo",
-                "🔍 Calidad",
-                "🏁 Cierre",
-                "📎 Requerimientos",
+                " 1 Resumen",
+                "  - Trabajo",
+                " -- Calidad",
+                " -- Cierre",
+                " 12 Requerimientos",
             ])
             with inner_tabs[0]:
                 render_contexto_tab(ws)
                 with st.expander(
-                    "📌 Briefing del área",
+                    " ' Briefing del rea",
                     expanded=False,
                 ):
                     render_briefing_tab(ws)
                 with st.expander(
-                    "📂 Procedimientos",
+                    "  Procedimientos",
                     expanded=False,
                 ):
                     render_procedimientos_tab(ws)
@@ -4180,18 +3575,18 @@ with tab2:
                     render_seguimiento_tab(ws, cliente)
                 st.divider()
                 with st.expander(
-                    "🕐 Historial de cambios",
+                    " - Historial de cambios",
                     expanded=False,
                 ):
                     render_historial_tab(ws, cliente)
             with inner_tabs[2]:
                 with st.expander(
-                    "🔬 Cobertura de aseveraciones",
+                    " - Cobertura de aseveraciones",
                     expanded=True,
                 ):
                     render_cobertura_tab(ws)
                 with st.expander(
-                    "✅ Revisión de calidad",
+                    "Revisión de calidad",
                     expanded=False,
                 ):
                     render_calidad_tab(ws)
@@ -4212,7 +3607,7 @@ with tab3:
 
 
 with tab4:
-    # ── API key check ─────────────────────────────────────
+    # -- API key check -------------------------------------
     try:
         import streamlit as st
         _api_key_ok = bool(
@@ -4229,20 +3624,20 @@ with tab4:
         )
 
     if not _api_key_ok:
-        st.warning(
-            "⚠️ **Sin API key configurada.** "
+        _ui_warning(
+            "   - **Sin API key configurada.** "
             "Para usar la IA, agrega `DEEPSEEK_API_KEY` "
-            "en Streamlit Cloud → tu app → "
-            "Settings → Secrets.",
-            icon="🔑",
+            "en Streamlit Cloud  TM tu app  TM "
+            "Settings  TM Secrets.",
+            icon=" - ",
         )
 
     ia_tab1, ia_tab2, ia_tab3 = st.tabs([
-        "💡 Briefing", "📝 Programa", "💬 Chat"
+        " TM Briefing", " - Programa", " TM Chat"
     ])
 
     with ia_tab1:
-        st.markdown("<div class='section-header'>Briefing de Área</div>",
+        st.markdown("<div class='sv-heading'>Briefing de Área</div>",
                     unsafe_allow_html=True)
         col_b1, col_b2 = st.columns(2)
         with col_b1:
@@ -4259,7 +3654,7 @@ with tab4:
             )
 
         if st.button(
-            "🤖 Generar Briefing con IA",
+            "Generar Briefing con IA",
             key="btn_briefing_ia",
             type="primary",
         ):
@@ -4267,10 +3662,10 @@ with tab4:
                 globals().get("_get_deepseek_key")
             ) else ""
             if not _key_check:
-                st.warning(
-                    "⚠️ Sin DEEPSEEK_API_KEY. "
-                    "Agrégala en Streamlit Cloud → "
-                    "Settings → Secrets."
+                _ui_warning(
+                    "   - Sin DEEPSEEK_API_KEY. "
+                    "Agrgala en Streamlit Cloud  TM "
+                    "Settings  TM Secrets."
                 )
             else:
                 with st.spinner("Generando briefing..."):
@@ -4284,7 +3679,7 @@ with tab4:
                         ) else None
 
                         if _tb_for_brief is None:
-                            st.warning(
+                            _ui_warning(
                                 "Sube el Trial Balance "
                                 "primero para un briefing "
                                 "con datos reales."
@@ -4316,27 +3711,27 @@ with tab4:
                                     unsafe_allow_html=True,
                                 )
                             else:
-                                st.info(
-                                    "El modelo no devolvió "
+                                _ui_info(
+                                    "El modelo no devolvi "
                                     "respuesta. Verifica la "
                                     "API key."
                                 )
                     except Exception as e:
-                        st.error(f"Error en briefing: {e}")
+                        _ui_error(f"Error en briefing: {e}")
 
         st.caption(
             "Requiere DEEPSEEK_API_KEY en "
-            "Streamlit Cloud → Settings → Secrets."
+            "Streamlit Cloud  TM Settings  TM Secrets."
         )
 
     with ia_tab2:
-        st.markdown("<div class='section-header'>Programa de Auditoría</div>",
+        st.markdown("<div class='sv-heading'>Programa de Auditora</div>",
                     unsafe_allow_html=True)
         from domain.services.programa_ia_service import generar_programa_auditoria_ia
         col_p1, col_p2 = st.columns(2)
         with col_p1:
             area_prog = st.text_input(
-                "Código área L/S",
+                "Cdigo rea L/S",
                 value=selected_area_code or "14",
                 key="prog_area",
             )
@@ -4361,8 +3756,8 @@ with tab4:
 
     with ia_tab3:
         st.markdown(
-            "<div class='section-header'>"
-            "🤖 Asistente SocioAI</div>",
+            "<div class='sv-heading'>"
+            "Asistente SocioAI</div>",
             unsafe_allow_html=True,
         )
 
@@ -4377,7 +3772,7 @@ with tab4:
             _asistente_ok = False
 
         if not _asistente_ok:
-            st.error("Error cargando el asistente.")
+            _ui_error("Error cargando el asistente.")
         else:
             # Build system context
             _sistema = construir_contexto_sistema(
@@ -4387,22 +3782,6 @@ with tab4:
                 ranking_areas=ranking_areas,
                 variaciones=variaciones,
                 etapa=etapa_seleccionada,
-            )
-
-            st.markdown(
-                """
-                <style>
-                  .chat-shell { background:#ffffff; border:1px solid #E2E8F0; border-radius:18px; padding:14px 16px; box-shadow:0 12px 28px rgba(15,23,42,.06); }
-                  .chat-kicker { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#0f766e; font-weight:800; }
-                  .chat-title { font-family:'Newsreader',serif; font-size:30px; color:#041627; line-height:1.05; margin-top:4px; }
-                  .chat-sub { color:#64748B; font-size:12px; margin-top:4px; }
-                  .ctx-card { background:#1a2b3c; color:#fff; border-radius:14px; padding:12px 14px; }
-                  .ctx-lbl { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#89d3d4; font-weight:800; }
-                  .ctx-val { font-size:14px; font-weight:700; margin-top:2px; }
-                  .ref-item { background:#fff; border:1px solid #E2E8F0; border-radius:10px; padding:8px 10px; margin-bottom:8px; }
-                </style>
-                """,
-                unsafe_allow_html=True,
             )
 
             _cliente_info_card = perfil.get("cliente", {}) if isinstance(perfil, dict) else {}
@@ -4422,7 +3801,7 @@ with tab4:
                 <div class="chat-shell">
                   <div class="chat-kicker">Socio Chat</div>
                   <div class="chat-title">Asistente de Criterio Experto</div>
-                  <div class="chat-sub">Cliente: {normalize_text(_cliente_info_card.get('nombre_legal', cliente)) or cliente} · Etapa: {etapa_seleccionada}</div>
+                  <div class="chat-sub">Cliente: {normalize_text(_cliente_info_card.get('nombre_legal', cliente)) or cliente}  Etapa: {etapa_seleccionada}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -4442,16 +3821,16 @@ with tab4:
                     unsafe_allow_html=True,
                 )
             with cctx2:
-                st.markdown("**Referencias Técnicas**")
+                st.markdown("**Referencias Tcnicas**")
                 st.markdown(
                     """
-                    <div class="ref-item"><b>NIIF 15</b><br><span style="font-size:11px;color:#64748B;">Obligaciones de desempeño y reconocimiento de ingresos.</span></div>
-                    <div class="ref-item"><b>NIA 315</b><br><span style="font-size:11px;color:#64748B;">Identificación y valoración de riesgos de incorrección material.</span></div>
+                    <div class="ref-item"><b>NIIF 15</b><br><span style="font-size:11px;color:#64748B;">Obligaciones de desempeo y reconocimiento de ingresos.</span></div>
+                    <div class="ref-item"><b>NIA 315</b><br><span style="font-size:11px;color:#64748B;">Identificacin y valoracin de riesgos de incorreccin material.</span></div>
                     """,
                     unsafe_allow_html=True,
                 )
 
-            # ── Perfil completeness check ─────────────────
+            # -- Perfil completeness check -----------------
             _perfil_score = 0
             _perfil_missing = []
             _cliente_info = perfil.get("cliente", {}) if isinstance(perfil, dict) else {}
@@ -4483,11 +3862,11 @@ with tab4:
             if _pct_perfil < 80:
                 st.markdown(
                     f"<div class='check-item check-warn'>"
-                    f"<span class='check-icon'>💡</span>"
-                    f"<span>El perfil del cliente está "
+                    f"<span class='check-icon'> TM</span>"
+                    f"<span>El perfil del cliente est "
                     f"<b>{_pct_perfil}% completo</b>. "
                     f"Puedes pedirme que complete la "
-                    f"información faltante: "
+                    f"informacin faltante: "
                     f"<i>{', '.join(_perfil_missing)}</i>"
                     f"</span></div>",
                     unsafe_allow_html=True,
@@ -4504,7 +3883,7 @@ with tab4:
                     "<div style='color:#6B778C; "
                     "font-size:0.88rem; "
                     "margin-bottom:0.8rem;'>"
-                    "💡 Sugerencias para empezar:"
+                    " TM Sugerencias para empezar:"
                     "</div>",
                     unsafe_allow_html=True,
                 )
@@ -4554,7 +3933,7 @@ with tab4:
                             f"padding:0.7rem 1rem;"
                             f"margin:0.4rem 0 0.4rem 20%;"
                             f"font-size:0.9rem;'>"
-                            f"👤 {msg['content']}"
+                            f"   {msg['content']}"
                             f"</div>",
                             unsafe_allow_html=True,
                         )
@@ -4566,7 +3945,7 @@ with tab4:
                             f"padding:0.7rem 1rem;"
                             f"margin:0.4rem 20% 0.4rem 0;"
                             f"font-size:0.9rem;'>"
-                            f"🤖 {msg['content']}"
+                            f"{msg['content']}"
                             f"</div>",
                             unsafe_allow_html=True,
                         )
@@ -4582,13 +3961,13 @@ with tab4:
                     "Escribe tu pregunta",
                     key=f"chat_input_{cliente}",
                     placeholder=(
-                        "ej: ¿Qué área tiene mayor riesgo?"
+                        "ej: Qu rea tiene mayor riesgo"
                     ),
                     label_visibility="collapsed",
                 )
             with btn_col:
                 send = st.button(
-                    "Enviar →",
+                    "Enviar  TM",
                     key=f"chat_send_{cliente}",
                     width="stretch",
                     type="primary",
@@ -4599,7 +3978,7 @@ with tab4:
                     "role": "user",
                     "content": user_input.strip(),
                 })
-                with st.spinner("SocioAI está pensando..."):
+                with st.spinner("SocioAI est pensando..."):
                     resp = generar_respuesta_asistente(
                         st.session_state[_hist_key],
                         _sistema,
@@ -4613,7 +3992,7 @@ with tab4:
             # Clear chat button
             if st.session_state[_hist_key]:
                 if st.button(
-                    "🗑️ Limpiar conversación",
+                    "Limpiar conversación",
                     key=f"clear_chat_{cliente}",
                 ):
                     st.session_state[_hist_key] = []
@@ -4636,7 +4015,7 @@ def _build_chart_data(
         "riesgo_line": {},
     }
 
-    # ── Chart 1: Evolución por área (2024 vs 2025) ────────────
+    # -- Chart 1: Evolucin por rea (2024 vs 2025) ------------
     if (
         isinstance(tb, pd.DataFrame)
         and not tb.empty
@@ -4647,7 +4026,7 @@ def _build_chart_data(
         and "area" in ranking_areas.columns
         and "con_saldo" in ranking_areas.columns
     ):
-        # Only areas with real balance, top 8 by score
+        # Only reas with real balance, top 8 by score
         df_rank = ranking_areas.copy()
         if "score_riesgo" in df_rank.columns:
             df_rank = df_rank.sort_values("score_riesgo", ascending=False)
@@ -4693,7 +4072,7 @@ def _build_chart_data(
                 "vals_2025": vals_2025,
             }
 
-    # ── Chart 2: Composición del balance ─────────────────────
+    # -- Chart 2: Composicin del balance ---------------------
     activo = abs(float(resumen_tb.get("ACTIVO", 0) or 0))
     pasivo = abs(float(resumen_tb.get("PASIVO", 0) or 0))
     patrimonio = abs(float(resumen_tb.get("PATRIMONIO", 0) or 0))
@@ -4709,7 +4088,7 @@ def _build_chart_data(
             "gastos": gastos,
         }
 
-    # ── Chart 3: Riesgo por área (2024 estimado vs 2025) ──────
+    # -- Chart 3: Riesgo por rea (2024 estimado vs 2025) ------
     # Since we only have 2 periods, estimate 2024 score from
     # saldo_2024 proportions vs saldo_2025
     if (
@@ -4758,13 +4137,15 @@ def _build_chart_data(
 
 with tab5:
     d_tab1, d_tab2, d_tab3, d_tab4, d_tab5 = st.tabs([
-        "📈 Variaciones", "🔢 Trial Balance",
-        "📊 Análisis Financiero", "🗂️ Hallazgos",
-        "📒 Mayor",
+        "Variaciones",
+        "Trial Balance",
+        "Análisis Financiero",
+        "Hallazgos",
+        "Mayor",
     ])
 
     with d_tab1:
-        st.markdown("<div class='section-header'>Variaciones Significativas</div>",
+        st.markdown("<div class='sv-heading'>Variaciones Significativas</div>",
                     unsafe_allow_html=True)
         resumen_var = safe_call(resumen_variaciones, cliente, default={}) or {}
         v1, v2, v3 = st.columns(3)
@@ -4783,15 +4164,15 @@ with tab5:
                 show_var["saldo"] = show_var["saldo"].apply(fmt_money)
             if "impacto" in show_var.columns:
                 show_var["impacto"] = show_var["impacto"].apply(fmt_money)
-            st.dataframe(show_var, width="stretch", hide_index=True)
+            render_editorial_table(show_var)
         else:
-            st.info("Sin variaciones significativas detectadas.")
+            _ui_info("Sin variaciones significativas detectadas.")
 
     with d_tab2:
-        st.markdown("<div class='section-header'>Trial Balance</div>",
+        st.markdown("<div class='sv-heading'>Trial Balance</div>",
                     unsafe_allow_html=True)
         if not isinstance(tb, pd.DataFrame) or tb.empty:
-            st.error("No se pudo cargar el trial balance.")
+            _ui_error("No se pudo cargar el trial balance.")
         else:
             tb_filtrado = tb.copy()
             if "tipo_cuenta" in tb_filtrado.columns:
@@ -4804,7 +4185,7 @@ with tab5:
                     tb_filtrado = tb_filtrado[
                         tb_filtrado["tipo_cuenta"].astype(str).isin(sel_tipos)
                     ]
-            st.dataframe(tb_filtrado, width="stretch", hide_index=True)
+            render_editorial_table(tb_filtrado)
             num_col = next(
                 (c for c in ["saldo", "saldo_2025", "saldo_actual"]
                  if c in tb_filtrado.columns), None
@@ -4820,7 +4201,7 @@ with tab5:
 
     with d_tab3:
         st.markdown(
-            "<div class='section-header'>Análisis Financiero</div>",
+            "<div class='sv-heading'>Análisis Financiero</div>",
             unsafe_allow_html=True,
         )
 
@@ -4829,10 +4210,10 @@ with tab5:
         try:
             import plotly.graph_objects as go
 
-            # ── Chart 1: Evolución 2024 vs 2025 por área ─────
+            # -- Chart 1: Evolucin 2024 vs 2025 por rea -----
             bar_d = chart_data.get("areas_bar", {})
             if bar_d:
-                st.markdown("**Evolución de saldo por área · 2024 vs 2025**")
+                st.markdown("**Evolucin de saldo por rea  2024 vs 2025**")
                 fig_bar = go.Figure()
                 fig_bar.add_trace(go.Bar(
                     name="2024",
@@ -4872,7 +4253,7 @@ with tab5:
                 )
                 st.plotly_chart(fig_bar, width="stretch")
             else:
-                st.info(
+                _ui_info(
                     "Sin datos comparativos 2024/2025. "
                     "Verificar columnas saldo_2024 y saldo_2025 en el TB."
                 )
@@ -4881,11 +4262,11 @@ with tab5:
 
             col_left, col_right = st.columns(2)
 
-            # ── Chart 2: Composición del balance ─────────────
+            # -- Chart 2: Composicin del balance -------------
             with col_left:
                 bal_d = chart_data.get("balance_stack", {})
                 if bal_d:
-                    st.markdown("**Composición del balance**")
+                    st.markdown("**Composicin del balance**")
                     categorias = []
                     valores = []
                     colores = []
@@ -4929,13 +4310,13 @@ with tab5:
                             fig_stack, width="stretch"
                         )
                 else:
-                    st.info("Sin datos de balance.")
+                    _ui_info("Sin datos de balance.")
 
-            # ── Chart 3: Tendencia de riesgo ──────────────────
+            # -- Chart 3: Tendencia de riesgo ------------------
             with col_right:
                 riesgo_d = chart_data.get("riesgo_line", {})
                 if riesgo_d:
-                    st.markdown("**Tendencia de score de riesgo por área**")
+                    st.markdown("**Tendencia de score de riesgo por rea**")
                     fig_line = go.Figure()
 
                     periodos = ["2024 (est.)", "2025"]
@@ -4980,20 +4361,20 @@ with tab5:
                             range=[0, 100],
                             title="Score",
                         ),
-                        xaxis=dict(title="Período"),
+                        xaxis=dict(title="Perodo"),
                     )
                     st.plotly_chart(
                         fig_line, width="stretch"
                     )
                 else:
-                    st.info("Sin datos de tendencia de riesgo.")
+                    _ui_info("Sin datos de tendencia de riesgo.")
 
         except Exception as e:
-            st.warning(f"Error generando gráficos: {e}")
+            _ui_warning(f"Error generando grficos: {e}")
 
         st.divider()
 
-        # ── Ratios y benchmark (existing, keep below charts) ──
+        # -- Ratios y benchmark (existing, keep below charts) --
         from analysis.ratios import resumen_ratios
         from analysis.benchmark import resumen_benchmark
 
@@ -5007,13 +4388,9 @@ with tab5:
                     c for c in ["ratio", "valor", "interpretacion"]
                     if c in df_ratios.columns
                 ]
-                st.dataframe(
-                    df_ratios[show_r],
-                    width="stretch",
-                    hide_index=True,
-                )
+                render_editorial_table(df_ratios[show_r])
             else:
-                st.info("Sin datos de ratios.")
+                _ui_info("Sin datos de ratios.")
         with col_b:
             st.markdown("**Benchmark sectorial**")
             bench = resumen_benchmark(cliente)
@@ -5021,12 +4398,12 @@ with tab5:
                 bb1, bb2, bb3 = st.columns(3)
                 bb1.metric("OK", bench["ok"])
                 bb2.metric("Alerta", bench["alerta"])
-                bb3.metric("Crítico", bench["critico"])
+                bb3.metric("Crtico", bench["critico"])
             else:
-                st.info("Sin benchmark disponible.")
+                _ui_info("Sin benchmark disponible.")
 
     with d_tab4:
-        st.markdown("<div class='section-header'>Gestión de Hallazgos</div>",
+        st.markdown("<div class='sv-heading'>Gestin de Hallazgos</div>",
                     unsafe_allow_html=True)
         from domain.services.hallazgos_service import (
             cargar_hallazgos_gestion, crear_hallazgo,
@@ -5044,10 +4421,10 @@ with tab5:
         with st.expander("Registrar nuevo hallazgo"):
             ca, cb = st.columns(2)
             with ca:
-                di = st.text_area("Descripción", key="h_desc")
+                di = st.text_area("Descripcin", key="h_desc")
                 ai_input = st.text_input("Área L/S", key="h_area")
             with cb:
-                asv = st.text_input("Afirmación", key="h_asev")
+                asv = st.text_input("Afirmacin", key="h_asev")
                 niv = st.selectbox("Nivel", ["alto","medio","bajo"],
                                    key="h_nivel")
                 resp = st.text_input("Responsable", key="h_resp")
@@ -5056,7 +4433,7 @@ with tab5:
                     nuevo_h = crear_hallazgo(
                         cliente, ai_input, di, asv, niv, resp
                     )
-                    st.success(f"Hallazgo {nuevo_h['id']} creado.")
+                    _ui_success(f"Hallazgo {nuevo_h['id']} creado.")
                     st.rerun()
         todos_h = cargar_hallazgos_gestion(cliente)
         if todos_h:
@@ -5067,8 +4444,8 @@ with tab5:
                 h for h in todos_h if h.get("estado") == filtro_h
             ]
             for h in lista_h:
-                ic = {"alto":"🔴","medio":"🟡","bajo":"🟢"}.get(
-                    h.get("nivel",""), "⚪"
+                ic = {"alto":" - ","medio":"  ","bajo":"  "}.get(
+                    h.get("nivel",""), "a"
                 )
                 with st.expander(
                     f"{ic} {h.get('id')} | {h.get('codigo_area')} | "
@@ -5084,12 +4461,12 @@ with tab5:
                             )
                             st.rerun()
         else:
-            st.info("Sin hallazgos registrados.")
+            _ui_info("Sin hallazgos registrados.")
         ec1, ec2 = st.columns(2)
         with ec1:
             if st.button("Exportar hallazgos Excel", key="exp_h"):
                 r = exportar_hallazgos_excel(cliente)
-                st.success(f"Exportado: {r}") if r else st.warning("Sin datos.")
+                _ui_success(f"Exportado: {r}") if r else _ui_warning("Sin datos.")
         with ec2:
             if st.button("Exportar resumen TXT", key="exp_r"):
                 r = exportar_resumen_txt(
@@ -5097,18 +4474,18 @@ with tab5:
                     ranking_areas if isinstance(ranking_areas, pd.DataFrame)
                     else None
                 )
-                st.success(f"Exportado: {r}") if r else st.error("Error.")
+                _ui_success(f"Exportado: {r}") if r else _ui_error("Error.")
 
     with d_tab5:
         st.markdown(
-            "<div class='section-header'>Libro Mayor</div>",
+            "<div class='sv-heading'>Libro Mayor</div>",
             unsafe_allow_html=True,
         )
 
         if df_mayor is None or (
             isinstance(df_mayor, pd.DataFrame) and df_mayor.empty
         ):
-            st.info(
+            _ui_info(
                 "No se encontró mayor.xlsx para este cliente. "
                 "Carga el archivo en: "
                 f"data/clientes/{cliente}/mayor.xlsx"
@@ -5119,7 +4496,7 @@ with tab5:
                 "descripcion | referencia | debe | haber | saldo | tipo |"
             )
         else:
-            # ── Summary KPIs ──────────────────────────────────
+            # -- Summary KPIs ----------------------------------
             res_m = safe_call(
                 resumen_mayor, df_mayor, default={}
             ) or {}
@@ -5143,9 +4520,9 @@ with tab5:
 
             st.divider()
 
-            # ── Filters ───────────────────────────────────────
+            # -- Filters ---------------------------------------
             st.markdown(
-                "<div class='section-header'>Filtros</div>",
+                "<div class='sv-heading'>Filtros</div>",
                 unsafe_allow_html=True,
             )
             f1, f2, f3, f4 = st.columns([1, 1, 2, 1])
@@ -5158,26 +4535,26 @@ with tab5:
                 )
             with f2:
                 filtro_cuenta = st.text_input(
-                    "Código cuenta",
+                    "Cdigo cuenta",
                     key="m_cuenta",
                     placeholder="ej. 1.02",
                 )
             with f3:
                 filtro_texto = st.text_input(
-                    "Buscar en descripción / referencia",
+                    "Buscar en descripcin / referencia",
                     key="m_texto",
                     placeholder="ej. VPP, honorarios...",
                 )
             with f4:
                 filtro_monto = st.number_input(
-                    "Monto mínimo",
+                    "Monto mnimo",
                     min_value=0.0,
                     value=0.0,
                     step=100.0,
                     key="m_monto",
                 )
 
-            # ── Apply filters ─────────────────────────────────
+            # -- Apply filters ---------------------------------
             df_view = df_mayor.copy()
 
             if filtro_ls.strip() and filtrar_por_ls:
@@ -5217,7 +4594,7 @@ with tab5:
                 f"{len(df_mayor)} movimientos"
             )
 
-            # ── Table ─────────────────────────────────────────
+            # -- Table -----------------------------------------
             show_cols = [
                 c for c in [
                     "fecha", "numero_cuenta", "nombre_cuenta",
@@ -5235,30 +4612,24 @@ with tab5:
                 if "fecha" in disp.columns:
                     disp["fecha"] = disp["fecha"].astype(str).str[:10]
 
-                st.dataframe(
-                    disp,
-                    width="stretch",
-                    hide_index=True,
-                )
+                render_editorial_table(disp)
 
                 # Download filtered mayor
                 csv_bytes = df_view[show_cols].to_csv(
                     index=False
                 ).encode("utf-8")
                 st.download_button(
-                    "⬇️ Exportar filtrado (.csv)",
+                    "  - Exportar filtrado (.csv)",
                     data=csv_bytes,
                     file_name=f"mayor_{cliente}_{filtro_ls or 'all'}.csv",
                     mime="text/csv",
                     key="dl_mayor_csv",
                 )
             else:
-                st.info("Sin movimientos para los filtros aplicados.")
+                _ui_info("Sin movimientos para los filtros aplicados.")
 
 st.divider()
 f1, f2, f3 = st.columns(3)
-f1.caption("SocioAI - Auditoria Inteligente con IA")
+f1.caption("SocioAI - Auditora Inteligente con IA")
 f2.caption("Ultima actualizacion: 2026-03-17")
 f3.caption("Modo: analisis + workspace por area")
-
-

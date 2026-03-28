@@ -5,17 +5,20 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "socio-ai"
 version = "1.0.0"
-description = "Plataforma inteligente de auditoría financiera con IA"
+description = "Plataforma inteligente de auditoria financiera con IA"
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "Proprietary"}
-authors = [{name = "SocioAI Team"}]
-keywords = ["auditoría", "finanzas", "IA", "LLM"]
+license = { text = "Proprietary" }
+authors = [{ name = "SocioAI Team" }]
+keywords = ["auditoria", "finanzas", "IA", "LLM"]
 
 dependencies = [
     "streamlit>=1.28.0",
     "click>=8.1.0",
     "pydantic>=2.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.32.0",
+    "PyJWT>=2.9.0",
     "pandas>=2.0.0",
     "openpyxl>=3.1.0",
     "numpy>=1.24.0",
@@ -47,11 +50,11 @@ dev = [
 socio-ai = "app.cli_commands:main"
 
 [tool.setuptools]
-packages = ["app", "core", "domain", "analysis", "llm", "infra"]
+packages = ["app", "core", "domain", "analysis", "llm", "infra", "backend"]
 
 [tool.black]
 line-length = 100
-target-version = ['py39']
+target-version = ["py39"]
 
 [tool.mypy]
 python_version = "3.9"
@@ -61,4 +64,18 @@ disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --cov=app,core,domain,analysis,llm,infra"
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["app", "domain", "analysis", "llm", "infra", "backend"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "app/app_streamlit.py",
+    "app/views/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+fail_under = 60

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
@@ -109,7 +109,7 @@ def render_calidad_tab(ws: dict[str, Any]) -> None:
     guia_det = calidad.get("aseveraciones_guia_detalle", {}) if isinstance(calidad.get("aseveraciones_guia_detalle", {}), dict) else {}
     asev = guia_det.get("aseveraciones_sugeridas", []) if isinstance(guia_det.get("aseveraciones_sugeridas", []), list) else []
     nota = normalize_text(guia_det.get("nota", "")) or "Guia referencial, no exhaustiva."
-    st.write(", ".join([str(x) for x in asev]) if asev else "Sin guía específica disponible")
+    st.markdown(", ".join([str(x) for x in asev]) if asev else "Sin guía específica disponible")
     st.caption(
         "Esta guía es referencial y puede complementarse según el juicio profesional y la naturaleza del saldo."
     )

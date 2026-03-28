@@ -1,0 +1,71 @@
+import { authFetchJson, TokenExpiredError } from "../api";
+import type { ApiEnvelope } from "../contracts";
+import type { DashboardData, DashboardResponse } from "../../types/dashboard";
+
+type UnknownRecord = Record<string, unknown>;
+
+function asNumber(value: unknown, fallback: number = 0): number {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function asString(value: unknown, fallback: string = ""): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeDashboardPayload(clienteId: string, raw: UnknownRecord): DashboardData {
+  const balance = isRecord(raw.balance) ? raw.balance : {};
+  const progreso = isRecord(raw.progreso) ? raw.progreso : {};
+  const topAreasRaw = Array.isArray(raw.top_areas) ? raw.top_areas : [];
+
+  return {
+    activo: asNumber(balance.activo, 0),
+    pasivo: asNumber(balance.pasivo, 0),
+    patrimonio: asNumber(balance.patrimonio, 0),
+    ingresos: asNumber(balance.ingresos, 0),
+    gastos: asNumber(balance.gastos, 0),
+    riesgo_global: asString(raw.riesgo_global, "MEDIO"),
+    progreso_auditoria: asNumber(progreso.pct_completado, 0),
+    cliente_id: asString(raw.cliente_id, clienteId),
+    periodo: asString(raw.periodo, "Actual"),
+    nombre_cliente: asString(raw.nombre_cliente, clienteId),
+    sector: asString(raw.sector, ""),
+    materialidad_global: asNumber(raw.materialidad_global, 0),
+    top_areas: topAreasRaw
+      .map((item) => {
+        if (!isRecord(item)) return null;
+        return {
+          codigo: asString(item.codigo, ""),
+          nombre: asString(item.nombre, ""),
+          score_riesgo: asNumber(item.score_riesgo, 0),
+          prioridad: asString(item.prioridad, "baja"),
+          saldo_total: asNumber(item.saldo_total, 0),
+          con_saldo: Boolean(item.con_saldo),
+        };
+      })
+      .filter((item): item is DashboardData["top_areas"][number] => item !== null),
+  };
+}
+
+export async function getDashboardData(clienteId: string): Promise<DashboardData> {
+  try {
+    const response = await authFetchJson<ApiEnvelope<DashboardResponse> | DashboardResponse>(
+      `/dashboard/${clienteId}`,
+    );
+
+    const payload = isRecord(response) && "data" in response && isRecord(response.data)
+      ? (response.data as UnknownRecord)
+      : (response as UnknownRecord);
+
+    return normalizeDashboardPayload(clienteId, payload);
+  } catch (error) {
+    if (error instanceof TokenExpiredError) {
+      throw new TokenExpiredError("La sesion expiro. Vuelve a iniciar sesion.");
+    }
+    throw error;
+  }
+}

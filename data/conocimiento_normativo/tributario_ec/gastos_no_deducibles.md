@@ -1,4 +1,4 @@
-﻿# Gastos No Deducibles — Ecuador
+ï»¿# Gastos No Deducibles â€" Ecuador
 
 ## Marco Legal
 - LRTI Art. 10: Deducciones permitidas
@@ -27,8 +27,8 @@ socios y sus familiares **no son deducibles**.
 - Gastos médicos personales (salvo los de empleados)
 - Vehículos de uso personal
 
-### 4. Depreciación sobre Valor de Revaluación
-La depreciación que excede la calculada sobre el costo histórico
+### 4. DepreciaciÃ3n sobre Valor de RevaluaciÃ3n
+La depreciaciÃ3n que excede la calculada sobre el costo histÃ3rico
 no es deducible fiscalmente.
 - Aplica cuando la entidad realiza revaluaciones de PPE
 - La diferencia genera un activo por impuesto diferido
@@ -38,14 +38,14 @@ Las pérdidas derivadas de la venta de activos a partes relacionadas
 **no son deducibles**.
 
 ### 6. Provisiones No Admitidas
-- Provisión de cuentas incobrables: solo deducible hasta el 1% de
+- ProvisiÃ3n de cuentas incobrables: solo deducible hasta el 1% de
   la cartera comercial (LRTI Art. 10 num. 11)
 - Provisiones genéricas o estimadas no son deducibles
 - El exceso genera activo por impuesto diferido
 
-### 7. Intereses a Partes Relacionadas (Subcapitalización)
+### 7. Intereses a Partes Relacionadas (SubcapitalizaciÃ3n)
 Los intereses pagados a partes relacionadas que excedan las tasas
-de mercado o los límites de subcapitalización no son deducibles.
+de mercado o los límites de subcapitalizaciÃ3n no son deducibles.
 - Límite: deuda con relacionadas no puede exceder 300% del patrimonio
 
 ### 8. Regalías y Servicios al Exterior
@@ -60,23 +60,23 @@ en el período actual generalmente no son deducibles en el período actual.
 
 | Gasto | Límite | Norma |
 |-------|--------|-------|
-| Provisión cuentas incobrables | 1% cartera comercial | LRTI Art. 10.11 |
-| Viáticos y gastos de viaje | Límites según tabla SRI | RLRTI Art. 28 |
+| ProvisiÃ3n cuentas incobrables | 1% cartera comercial | LRTI Art. 10.11 |
+| Viáticos y gastos de viaje | Límites segÃon tabla SRI | RLRTI Art. 28 |
 | Intereses locales | Tasas BCE vigentes | LRTI Art. 10.2 |
 | Arrendamiento mercantil | Monto cuota - componente capital | RLRTI |
 
-## Gastos con Retención Obligatoria
+## Gastos con RetenciÃ3n Obligatoria
 Si no se retiene el impuesto correspondiente, el gasto puede
 considerarse no deducible:
-- Pagos a no residentes sin retención aplicada
-- Honorarios sin retención del 10%
+- Pagos a no residentes sin retenciÃ3n aplicada
+- Honorarios sin retenciÃ3n del 10%
 
 ## Alertas de Auditoría
-- Identificar todos los gastos no deducibles en la conciliación
-- Verificar que se aplica la retención correcta en pagos con obligación
+- Identificar todos los gastos no deducibles en la conciliaciÃ3n
+- Verificar que se aplica la retenciÃ3n correcta en pagos con obligaciÃ3n
 - Revisar provisiones que exceden límites fiscales
-- Evaluar subcapitalización si hay deuda significativa con relacionadas
+- Evaluar subcapitalizaciÃ3n si hay deuda significativa con relacionadas
 - Confirmar que no hay gastos personales del accionista en resultados
 
 ---
-*Fuente: SRI Ecuador — www.sri.gob.ec*
+*Fuente: SRI Ecuador â€" www.sri.gob.ec*

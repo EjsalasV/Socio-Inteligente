@@ -1,36 +1,36 @@
-﻿# Sección 23 — Ingresos de Actividades Ordinarias (NIIF para PYMES)
+ï»¿# SecciÃ3n 23 â€" Ingresos de Actividades Ordinarias (NIIF para PYMES)
 
 ## Alcance
-Esta sección aplica al contabilizar ingresos procedentes de:
+Esta secciÃ3n aplica al contabilizar ingresos procedentes de:
 - Venta de bienes
-- Prestación de servicios
-- Contratos de construcción
+- PrestaciÃ3n de servicios
+- Contratos de construcciÃ3n
 - Uso por terceros de activos (intereses, regalías, dividendos)
 
 ## Principio de Reconocimiento
 Los ingresos se reconocen cuando:
-1. Es probable que fluyan beneficios económicos a la entidad
+1. Es probable que fluyan beneficios econÃ3micos a la entidad
 2. Los ingresos pueden medirse con fiabilidad
 
 ## Venta de Bienes
 Reconocer cuando se cumplan **todas** las condiciones:
 - La entidad ha transferido los riesgos y beneficios del bien
-- No retiene control ni gestión continua
+- No retiene control ni gestiÃ3n continua
 - El importe puede medirse con fiabilidad
 - Es probable el cobro
 - Los costos pueden medirse con fiabilidad
 
-## Prestación de Servicios
-Reconocer según el **grado de terminación** del servicio al cierre
-(método del porcentaje de terminación), cuando:
+## PrestaciÃ3n de Servicios
+Reconocer segÃon el **grado de terminaciÃ3n** del servicio al cierre
+(método del porcentaje de terminaciÃ3n), cuando:
 - El importe puede medirse con fiabilidad
 - Es probable el cobro
-- El grado de terminación puede medirse con fiabilidad
+- El grado de terminaciÃ3n puede medirse con fiabilidad
 - Los costos incurridos pueden medirse con fiabilidad
 
-## Contratos de Construcción
+## Contratos de ConstrucciÃ3n
 Cuando el resultado puede estimarse con fiabilidad:
-- Reconocer ingresos y costos según grado de terminación
+- Reconocer ingresos y costos segÃon grado de terminaciÃ3n
 - Cuando no puede estimarse: reconocer solo en medida de costos recuperables
 
 ## Intereses, Regalías y Dividendos
@@ -38,11 +38,11 @@ Cuando el resultado puede estimarse con fiabilidad:
 | Tipo | Criterio de Reconocimiento |
 |------|---------------------------|
 | Intereses | Método del interés efectivo |
-| Regalías | Base de acumulación (devengo) |
+| Regalías | Base de acumulaciÃ3n (devengo) |
 | Dividendos | Cuando se establece el derecho a recibirlos |
 
-## Medición
-Los ingresos se miden por el **valor razonable** de la contraprestación
+## MediciÃ3n
+Los ingresos se miden por el **valor razonable** de la contraprestaciÃ3n
 recibida o por recibir, neta de:
 - Descuentos comerciales
 - Descuentos por volumen
@@ -60,4 +60,4 @@ recibida o por recibir, neta de:
 - Identificar ingresos diferidos no reconocidos
 
 ---
-*Fuente: IASB — NIIF para las PYMES (2015/2019)*
+*Fuente: IASB â€" NIIF para las PYMES (2015/2019)*

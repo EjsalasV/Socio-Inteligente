@@ -1,15 +1,15 @@
-﻿# Retenciones en la Fuente — Ecuador
+ï»¿# Retenciones en la Fuente â€" Ecuador
 
 ## Marco Legal
 - Ley de Régimen Tributario Interno (LRTI)
-- Reglamento para la Aplicación de la LRTI (RLRTI)
+- Reglamento para la AplicaciÃ3n de la LRTI (RLRTI)
 - Resoluciones del SRI
 
-## Retención en la Fuente del Impuesto a la Renta
+## RetenciÃ3n en la Fuente del Impuesto a la Renta
 
-### Agentes de Retención
+### Agentes de RetenciÃ3n
 Están obligados a retener:
-- Entidades del sector público
+- Entidades del sector pÃoblico
 - Sociedades (compañías, asociaciones, fundaciones)
 - Personas naturales obligadas a llevar contabilidad
 
@@ -30,13 +30,13 @@ Están obligados a retener:
 |----------|--------|
 | Servicios entre sociedades | 2% |
 | Honorarios y comisiones a sociedades | 2% |
-| Publicidad y comunicación | 1% |
+| Publicidad y comunicaciÃ3n | 1% |
 | Transporte privado de personas | 1% |
 | Seguros y reaseguros | 1% |
 | Pagos al exterior (tarifa general) | 25% |
 | Dividendos al exterior | 25% (o convenio) |
 
-### Retención sobre Compras de Bienes
+### RetenciÃ3n sobre Compras de Bienes
 
 | Concepto | Tarifa |
 |----------|--------|
@@ -44,17 +44,17 @@ Están obligados a retener:
 | Compra de bienes inmuebles | 1% |
 | Repuestos y herramientas | 1% |
 
-## Retención del IVA
+## RetenciÃ3n del IVA
 
-### Agentes de Retención del IVA
-- Entidades del sector público: retienen 100% del IVA
+### Agentes de RetenciÃ3n del IVA
+- Entidades del sector pÃoblico: retienen 100% del IVA
 - Sociedades emisoras de tarjetas: retienen 100% del IVA
 - Exportadores habituales: retienen 100% del IVA
 - Sociedades en general: retienen 30% en bienes, 70% en servicios
 - Personas naturales obligadas a llevar contabilidad: 30% bienes, 70% servicios
 
-### Plazos de Declaración
-Según el noveno dígito del RUC, entre el 10 y 28 de cada mes.
+### Plazos de DeclaraciÃ3n
+SegÃon el noveno dígito del RUC, entre el 10 y 28 de cada mes.
 
 ## Sanciones por Incumplimiento
 - No retener: multa del 100% del valor no retenido
@@ -62,10 +62,10 @@ Según el noveno dígito del RUC, entre el 10 y 28 de cada mes.
 - No pagar: intereses calculados con tasa del Banco Central del Ecuador
 
 ## Alertas de Auditoría
-- Verificar que se retiene sobre todos los pagos sujetos a retención
+- Verificar que se retiene sobre todos los pagos sujetos a retenciÃ3n
 - Revisar que las tarifas aplicadas sean las vigentes
 - Confirmar que las declaraciones se realizaron en los plazos correctos
-- Verificar que el beneficiario recibió el comprobante de retención
+- Verificar que el beneficiario recibiÃ3 el comprobante de retenciÃ3n
 
 ---
-*Fuente: SRI Ecuador — www.sri.gob.ec*
+*Fuente: SRI Ecuador â€" www.sri.gob.ec*

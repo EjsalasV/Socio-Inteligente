@@ -1,4 +1,4 @@
-﻿"""
+"""
 Unit tests covering the 5 bug fixes applied to SocioAI.
 """
 import pytest

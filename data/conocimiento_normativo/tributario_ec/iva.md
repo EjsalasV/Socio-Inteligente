@@ -1,16 +1,16 @@
-﻿# IVA — Impuesto al Valor Agregado (Ecuador)
+ï»¿# IVA â€" Impuesto al Valor Agregado (Ecuador)
 
 ## Marco Legal
 - LRTI Título Segundo: Del Impuesto al Valor Agregado
-- RLRTI: Reglamento de aplicación
+- RLRTI: Reglamento de aplicaciÃ3n
 
 ## Tarifa del IVA
 
-| Tarifa | Aplicación |
+| Tarifa | AplicaciÃ3n |
 |--------|------------|
 | 15% | Tarifa general (vigente 2024-2025) |
 | 0% | Bienes y servicios exentos |
-| 5% | Servicios de construcción de vivienda (cuando aplica) |
+| 5% | Servicios de construcciÃ3n de vivienda (cuando aplica) |
 
 *Verificar tarifa vigente al momento del encargo en www.sri.gob.ec*
 
@@ -19,7 +19,7 @@
 ### Bienes con 0%
 - Productos alimenticios de origen agrícola, avícola, pecuario
 - Leches en estado natural, pasteurizada, homogeneizada o crema de leche
-- Pan, azúcar, panela, sal, manteca, margarina, avena, maicena
+- Pan, azÃocar, panela, sal, manteca, margarina, avena, maicena
 - Medicamentos y drogas de uso humano
 - Papel y libros
 
@@ -27,13 +27,13 @@
 - Transporte de pasajeros y carga fluvial y terrestre
 - Servicios de salud
 - Servicios de arrendamiento de inmuebles destinados a vivienda
-- Servicios públicos de energía eléctrica, agua potable, alcantarillado
-- Educación
+- Servicios pÃoblicos de energía eléctrica, agua potable, alcantarillado
+- EducaciÃ3n
 
-## Declaración del IVA
-- Declaración mensual: formulario 104
+## DeclaraciÃ3n del IVA
+- DeclaraciÃ3n mensual: formulario 104
 - Formulario 104A: personas naturales no obligadas a llevar contabilidad
-- Plazo: según noveno dígito del RUC (entre el 10 y 28 de cada mes)
+- Plazo: segÃon noveno dígito del RUC (entre el 10 y 28 de cada mes)
 
 ## Crédito Tributario del IVA
 
@@ -44,21 +44,21 @@
 
 ### Factor de Proporcionalidad (Crédito Parcial)
 Factor = Ventas gravadas / (Ventas gravadas + Ventas tarifa 0%)
-Crédito tributario = IVA pagado × Factor
+Crédito tributario = IVA pagado Ã- Factor
 
 ## IVA en Importaciones
-- IVA se paga en aduana al momento de la importación
+- IVA se paga en aduana al momento de la importaciÃ3n
 - Sirve como crédito tributario si el bien se usa en actividades gravadas
 
-## Retención del IVA
-Ver archivo retenciones.md para detalle de porcentajes de retención.
+## RetenciÃ3n del IVA
+Ver archivo retenciones.md para detalle de porcentajes de retenciÃ3n.
 
 ## Alertas de Auditoría
 - Verificar tarifa correcta aplicada en facturas
 - Revisar factor de proporcionalidad si hay ventas mixtas
 - Confirmar crédito tributario de IVA en balance
-- Evaluar IVA de importaciones y su correcta contabilización
+- Evaluar IVA de importaciones y su correcta contabilizaciÃ3n
 - Revisar declaraciones mensuales y su consistencia con los libros
 
 ---
-*Fuente: SRI Ecuador — www.sri.gob.ec*
+*Fuente: SRI Ecuador â€" www.sri.gob.ec*

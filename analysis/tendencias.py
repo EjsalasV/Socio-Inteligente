@@ -1,4 +1,4 @@
-﻿"""
+"""
 Módulo de análisis de tendencias para auditoría.
 Detecta patrones de evolución en cuentas y áreas del TB.
 """

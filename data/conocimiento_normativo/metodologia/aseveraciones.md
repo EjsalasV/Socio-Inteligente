@@ -1,61 +1,61 @@
-﻿# Afirmaciones de Auditoría — Guía Metodológica SocioAI
+ï»¿# Afirmaciones de Auditoría â€" Guía MetodolÃ3gica SocioAI
 
-## Definición
-Las afirmaciones son declaraciones implícitas o explícitas de la dirección
+## DefiniciÃ3n
+Las afirmaciones son declaraciones implícitas o explícitas de la direcciÃ3n
 incorporadas en los estados financieros. El auditor debe obtener evidencia
-sobre cada afirmación relevante.
+sobre cada afirmaciÃ3n relevante.
 
 ## Afirmaciones para Clases de Transacciones
 
-| Afirmación | Definición | Ejemplo de Riesgo |
+| AfirmaciÃ3n | DefiniciÃ3n | Ejemplo de Riesgo |
 |------------|------------|-------------------|
 | **Ocurrencia** | Las transacciones ocurrieron y corresponden a la entidad | Ventas ficticias |
 | **Integridad** | Todas las transacciones están registradas | Pasivos no registrados |
 | **Exactitud** | Los importes son correctos | Errores de cálculo |
 | **Corte** | Las transacciones se registran en el período correcto | Ventas anticipadas |
-| **Clasificación** | Las transacciones están en las cuentas correctas | Gastos capitalizados incorrectamente |
+| **ClasificaciÃ3n** | Las transacciones están en las cuentas correctas | Gastos capitalizados incorrectamente |
 
 ## Afirmaciones para Saldos de Cuentas
 
-| Afirmación | Definición | Ejemplo de Riesgo |
+| AfirmaciÃ3n | DefiniciÃ3n | Ejemplo de Riesgo |
 |------------|------------|-------------------|
 | **Existencia** | Los activos y pasivos existen | Activos fantasma |
 | **Derechos y Obligaciones** | La entidad tiene derechos sobre activos y obligaciones sobre pasivos | Activos ajenos registrados |
 | **Integridad** | Todos los saldos están registrados | Deudas no declaradas |
-| **Valuación** | Los saldos están a importes apropiados | Deterioro no reconocido |
+| **ValuaciÃ3n** | Los saldos están a importes apropiados | Deterioro no reconocido |
 
-## Afirmaciones para Presentación y Revelación
+## Afirmaciones para PresentaciÃ3n y RevelaciÃ3n
 
-| Afirmación | Definición |
+| AfirmaciÃ3n | DefiniciÃ3n |
 |------------|------------|
 | **Ocurrencia** | Los eventos revelados han ocurrido |
 | **Derechos y Obligaciones** | Los eventos revelados corresponden a la entidad |
 | **Integridad** | Todas las revelaciones requeridas están incluidas |
-| **Clasificación** | La información está presentada apropiadamente |
-| **Exactitud y Valuación** | La información revelada es correcta |
+| **ClasificaciÃ3n** | La informaciÃ3n está presentada apropiadamente |
+| **Exactitud y ValuaciÃ3n** | La informaciÃ3n revelada es correcta |
 
-## Mapeo Afirmaciones → Procedimientos
+## Mapeo Afirmaciones â†' Procedimientos
 
-| Afirmación | Procedimientos Típicos |
+| AfirmaciÃ3n | Procedimientos Típicos |
 |------------|----------------------|
-| Existencia | Inspección física, confirmación externa, observación |
-| Integridad | Búsqueda de pasivos no registrados, procedimientos analíticos |
-| Valuación | Recálculo, verificación de precios, evaluación de estimaciones |
-| Corte | Prueba de corte, revisión de facturas periféricas |
-| Presentación | Revisión de notas, comparación con marco normativo |
+| Existencia | InspecciÃ3n física, confirmaciÃ3n externa, observaciÃ3n |
+| Integridad | BÃosqueda de pasivos no registrados, procedimientos analíticos |
+| ValuaciÃ3n | Recálculo, verificaciÃ3n de precios, evaluaciÃ3n de estimaciones |
+| Corte | Prueba de corte, revisiÃ3n de facturas periféricas |
+| PresentaciÃ3n | RevisiÃ3n de notas, comparaciÃ3n con marco normativo |
 
-## Afirmaciones de Mayor Riesgo por Área
+## Afirmaciones de Mayor Riesgo por Ã-rea
 
-| Área | Afirmación Principal | Razón |
+| Ã-rea | AfirmaciÃ3n Principal | RazÃ3n |
 |------|---------------------|-------|
-| Efectivo | Existencia | Riesgo de apropiación indebida |
-| CxC | Valuación | Riesgo de sobrevaluación por cartera irrecuperable |
-| Inventarios | Existencia + Valuación | Conteo físico y costo vs VNR |
-| PPE | Valuación | Depreciación y deterioro |
-| Inversiones | Valuación | VPP o valor razonable |
+| Efectivo | Existencia | Riesgo de apropiaciÃ3n indebida |
+| CxC | ValuaciÃ3n | Riesgo de sobrevaluaciÃ3n por cartera irrecuperable |
+| Inventarios | Existencia + ValuaciÃ3n | Conteo físico y costo vs VNR |
+| PPE | ValuaciÃ3n | DepreciaciÃ3n y deterioro |
+| Inversiones | ValuaciÃ3n | VPP o valor razonable |
 | CxP | Integridad | Riesgo de subregistro |
 | Ingresos | Ocurrencia + Corte | Fraude y reconocimiento adelantado |
-| Gastos | Ocurrencia + Clasificación | Gastos personales o capitalizados |
+| Gastos | Ocurrencia + ClasificaciÃ3n | Gastos personales o capitalizados |
 
 ---
-*Metodología interna SocioAI — basada en NIA 315 y NIA 500*
+*Metodología interna SocioAI â€" basada en NIA 315 y NIA 500*

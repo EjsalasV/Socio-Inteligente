@@ -1,4 +1,4 @@
-﻿"""
+"""
 Servicio de exportación de reportes de auditoría.
 Genera archivos Excel y texto plano por cliente.
 """

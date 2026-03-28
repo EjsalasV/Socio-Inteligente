@@ -1,4 +1,4 @@
-﻿"""
+"""
 LLM client unificado — soporta DeepSeek y OpenAI con la misma interfaz.
 Selecciona el provider desde config.yaml.
 """

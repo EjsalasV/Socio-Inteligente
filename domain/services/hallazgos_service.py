@@ -1,4 +1,4 @@
-﻿"""
+"""
 Servicio de gestión de hallazgos de auditoría.
 Permite crear, actualizar, listar y cerrar hallazgos por cliente y área.
 """

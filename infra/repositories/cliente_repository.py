@@ -1,4 +1,4 @@
-﻿"""
+"""
 Repositorio para cargar y guardar datos de clientes.
 
 Funciones para acceder a los archivos YAML y Excel de clientes
@@ -7,6 +7,7 @@ en la estructura: data/clientes/{cliente}/
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -33,6 +34,45 @@ def cargar_perfil(cliente: str) -> dict:
     except Exception as e:
         print(f"[ERROR] Error cargando perfil de {cliente}: {e}")
         return {}
+
+
+def guardar_cliente(cliente_id: str, data: dict) -> bool:
+    """
+    Guarda perfil del cliente en data/clientes/{cliente_id}/perfil.yaml.
+
+    Requisitos:
+    - Crear ruta con os.makedirs(..., exist_ok=True)
+    - Persistir diccionario con yaml.safe_dump
+    """
+    try:
+        cid = str(cliente_id or "").strip()
+        if not cid:
+            return False
+        if not isinstance(data, dict):
+            data = {}
+
+        dir_path = CLIENTES_PATH / cid
+        os.makedirs(dir_path, exist_ok=True)
+        perfil_path = dir_path / "perfil.yaml"
+
+        with open(perfil_path, "w", encoding="utf-8") as f:
+            yaml.safe_dump(
+                data,
+                f,
+                default_flow_style=False,
+                allow_unicode=True,
+                sort_keys=False,
+            )
+
+        print(f"[OK] Perfil guardado en: {perfil_path}")
+        return True
+    except Exception as e:
+        print(f"[ERROR] Error guardando perfil de {cliente_id}: {e}")
+        return False
+
+
+# Alias backward-compatible if caller expects save()
+save = guardar_cliente
 
 
 def cargar_tb(cliente: str) -> pd.DataFrame:

@@ -30,3 +30,38 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: |
           python -m pytest tests/ -v --tb=short
+
+  contract-types:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Export OpenAPI
+        run: |
+          python -m backend.scripts.export_openapi
+
+      - name: Install frontend deps
+        run: |
+          cd frontend
+          npm install
+
+      - name: Ensure frontend types are synced
+        run: |
+          cd frontend
+          npm run check:types-sync

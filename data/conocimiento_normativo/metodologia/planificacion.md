@@ -1,29 +1,29 @@
-﻿# Planificación de la Auditoría — Guía Metodológica SocioAI
+ï»¿# PlanificaciÃ3n de la Auditoría â€" Guía MetodolÃ3gica SocioAI
 
 ## Fases de la Auditoría
 
-### 1. Planificación Preliminar
-**Objetivo**: Obtener comprensión suficiente para planificar el encargo.
+### 1. PlanificaciÃ3n Preliminar
+**Objetivo**: Obtener comprensiÃ3n suficiente para planificar el encargo.
 
 Actividades:
-- Aceptación/continuación del cliente
-- Evaluación del riesgo global
-- Determinación de la materialidad preliminar
-- Identificación de áreas de enfoque
-- Asignación del equipo
+- AceptaciÃ3n/continuaciÃ3n del cliente
+- EvaluaciÃ3n del riesgo global
+- DeterminaciÃ3n de la materialidad preliminar
+- IdentificaciÃ3n de áreas de enfoque
+- AsignaciÃ3n del equipo
 
 **Outputs en SocioAI**:
 - Perfil del cliente cargado
 - Materialidad preliminar calculada
 - Ranking de áreas inicial
 
-### 2. Planificación Detallada
+### 2. PlanificaciÃ3n Detallada
 **Objetivo**: Diseñar los procedimientos de auditoría específicos.
 
 Actividades:
-- Comprensión detallada de procesos clave
-- Evaluación del control interno
-- Identificación de riesgos significativos
+- ComprensiÃ3n detallada de procesos clave
+- EvaluaciÃ3n del control interno
+- IdentificaciÃ3n de riesgos significativos
 - Diseño del programa de trabajo
 
 **Outputs en SocioAI**:
@@ -31,14 +31,14 @@ Actividades:
 - Aseveraciones por área definidas
 - Procedimientos sugeridos por área
 
-### 3. Ejecución
+### 3. EjecuciÃ3n
 **Objetivo**: Ejecutar los procedimientos y obtener evidencia.
 
 Actividades:
 - Pruebas de controles (si se confía en controles)
 - Pruebas sustantivas (detalle y analíticas)
-- Evaluación de estimaciones contables
-- Revisión de partes relacionadas
+- EvaluaciÃ3n de estimaciones contables
+- RevisiÃ3n de partes relacionadas
 
 **Outputs en SocioAI**:
 - Estado de procedimientos actualizado
@@ -49,30 +49,30 @@ Actividades:
 **Objetivo**: Concluir y emitir el informe.
 
 Actividades:
-- Revisión de eventos posteriores
-- Evaluación de incorrecciones no corregidas
-- Obtención de representaciones de la dirección
-- Revisión final de estados financieros y notas
-- Emisión del informe
+- RevisiÃ3n de eventos posteriores
+- EvaluaciÃ3n de incorrecciones no corregidas
+- ObtenciÃ3n de representaciones de la direcciÃ3n
+- RevisiÃ3n final de estados financieros y notas
+- EmisiÃ3n del informe
 
 **Outputs en SocioAI**:
-- Decisión de cierre por área
+- DecisiÃ3n de cierre por área
 - Hallazgos resueltos o documentados
 - Briefing de cierre generado
 
-## Documentación Requerida por Fase
+## DocumentaciÃ3n Requerida por Fase
 
-| Fase | Documentación Mínima |
+| Fase | DocumentaciÃ3n Mínima |
 |------|---------------------|
-| Planificación | Perfil cliente, materialidad, ranking áreas, programa trabajo |
-| Ejecución | Papeles de trabajo por área, evidencia, hallazgos |
-| Cierre | Conclusiones por área, evaluación incorrecciones, carta representación |
+| PlanificaciÃ3n | Perfil cliente, materialidad, ranking áreas, programa trabajo |
+| EjecuciÃ3n | Papeles de trabajo por área, evidencia, hallazgos |
+| Cierre | Conclusiones por área, evaluaciÃ3n incorrecciones, carta representaciÃ3n |
 
-## Comunicación Durante la Auditoría
+## ComunicaciÃ3n Durante la Auditoría
 
-### Con la Dirección
-- Comunicar asuntos que requieren acción inmediata
-- Solicitar información y documentación
+### Con la DirecciÃ3n
+- Comunicar asuntos que requieren acciÃ3n inmediata
+- Solicitar informaciÃ3n y documentaciÃ3n
 - Comunicar debilidades de control interno identificadas
 
 ### Con el Gobierno Corporativo
@@ -82,10 +82,10 @@ Actividades:
 
 ## Escepticismo Profesional
 El auditor debe mantener escepticismo profesional durante todo el encargo:
-- No asumir honestidad de la dirección sin evidencia
-- Cuestionar la coherencia de la información
+- No asumir honestidad de la direcciÃ3n sin evidencia
+- Cuestionar la coherencia de la informaciÃ3n
 - Evaluar críticamente la evidencia obtenida
 - Estar alerta a situaciones que indiquen posible fraude
 
 ---
-*Metodología interna SocioAI — basada en NIAs 200, 210, 300, 315, 330*
+*Metodología interna SocioAI â€" basada en NIAs 200, 210, 300, 315, 330*
