@@ -7,7 +7,14 @@ RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copiar solo lo necesario para FastAPI
+COPY backend ./backend
+COPY domain ./domain
+COPY analysis ./analysis
+COPY core ./core
+COPY infra ./infra
+COPY llm ./llm
+COPY app ./app
 
 ENV PORT=8000
 EXPOSE 8000
