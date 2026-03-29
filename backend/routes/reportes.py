@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import hashlib
+import json
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -19,10 +20,36 @@ from backend.services.rag_chat_service import generate_chat_response
 router = APIRouter(prefix="/reportes", tags=["reportes"])
 ROOT = Path(__file__).resolve().parents[2]
 EXPORTS_DIR = ROOT / "data" / "exports"
+REPORTS_META_DIR = ROOT / "data" / "clientes"
 
 
 def _safe_text(value: Any) -> str:
     return str(value or "").strip()
+
+
+def _history_path(cliente_id: str) -> Path:
+    return REPORTS_META_DIR / cliente_id / "reportes_historial.json"
+
+
+def _read_history(cliente_id: str) -> list[dict[str, Any]]:
+    path = _history_path(cliente_id)
+    if not path.exists():
+        return []
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    if not isinstance(payload, list):
+        return []
+    return [x for x in payload if isinstance(x, dict)]
+
+
+def _append_history(cliente_id: str, record: dict[str, Any]) -> None:
+    history = _read_history(cliente_id)
+    history.append(record)
+    path = _history_path(cliente_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(history[-50:], ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _ensure_required_sections(cliente_id: str, user: UserContext) -> tuple[Any, list[Any], str]:
@@ -31,7 +58,7 @@ def _ensure_required_sections(cliente_id: str, user: UserContext) -> tuple[Any, 
     hallazgos = read_hallazgos(cliente_id).strip()
     generated = _generate_tasks(cliente_id)
     merged = _merge_saved_tasks(cliente_id, generated)
-    gates = _quality_gates(cliente_id, merged)
+    gates, coverage = _quality_gates(cliente_id, merged)
     gates_map = {g.code: g.status for g in gates}
 
     errors: list[str] = []
@@ -41,6 +68,8 @@ def _ensure_required_sections(cliente_id: str, user: UserContext) -> tuple[Any, 
         errors.append("No existe conclusion tecnica en hallazgos.")
     if gates_map.get("REPORT") != "ok":
         errors.append("Gate REPORT debe estar en estado ok para emitir informe.")
+    if coverage.total_assertions > 0 and coverage.coverage_pct <= 0:
+        errors.append("No existe cobertura de afirmaciones documentada para las areas del cliente.")
     if errors:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -160,6 +189,19 @@ def get_executive_pdf(cliente_id: str, user: UserContext = Depends(get_current_u
     out_path.write_bytes(pdf_bytes)
 
     file_hash = hashlib.sha256(pdf_bytes).hexdigest()
+    _append_history(
+        cliente_id,
+        {
+            "kind": "executive_pdf",
+            "report_name": report_name,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "path": str(out_path),
+            "file_hash": file_hash,
+            "size_bytes": len(pdf_bytes),
+            "status": "success",
+            "origin": "motor_html_pdf",
+        },
+    )
     payload = PdfSummaryResponse(
         cliente_id=cliente_id,
         report_name=report_name,
@@ -208,6 +250,19 @@ def post_executive_memo(cliente_id: str, user: UserContext = Depends(get_current
     write_memo(cliente_id, memo)
     marker = f"## Memo Ejecutivo ({datetime.now(timezone.utc).date().isoformat()})"
     append_hallazgo(cliente_id, f"{marker}\n\n{memo}")
+    _append_history(
+        cliente_id,
+        {
+            "kind": "executive_memo",
+            "report_name": f"{cliente_id}_memo_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "path": "",
+            "file_hash": hashlib.sha256(memo.encode("utf-8")).hexdigest(),
+            "size_bytes": len(memo.encode("utf-8")),
+            "status": "success",
+            "origin": "openai_rag" if str(rag.get("answer") or "").strip() else "fallback",
+        },
+    )
 
     payload = ReportMemoResponse(
         cliente_id=cliente_id,
@@ -229,3 +284,22 @@ def get_executive_memo(cliente_id: str, user: UserContext = Depends(get_current_
         source="saved" if memo else "empty",
     )
     return ApiResponse(data=payload.model_dump())
+
+
+@router.get("/{cliente_id}/historial", response_model=ApiResponse)
+def get_report_history(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    generated = _generate_tasks(cliente_id)
+    merged = _merge_saved_tasks(cliente_id, generated)
+    gates, coverage = _quality_gates(cliente_id, merged)
+    gate_map = {g.code: g.status for g in gates}
+    history = _read_history(cliente_id)
+    return ApiResponse(
+        data={
+            "cliente_id": cliente_id,
+            "gates": [g.model_dump() for g in gates],
+            "gate_status": gate_map,
+            "coverage_summary": coverage.model_dump(),
+            "items": history,
+        }
+    )

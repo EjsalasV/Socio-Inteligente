@@ -15,7 +15,15 @@ type ChatMessage = {
   role: "user" | "assistant";
   text: string;
   timestamp: string;
-  citations?: Array<{ source: string; excerpt: string }>;
+  citations?: Array<{
+    source: string;
+    excerpt: string;
+    norma?: string;
+    version?: string;
+    vigente_desde?: string;
+    ultima_actualizacion?: string;
+    jurisdiccion?: string;
+  }>;
   confidence?: number;
 };
 
@@ -219,9 +227,12 @@ export default function SocioChatPage() {
                     <div className="mt-3 space-y-1">
                       <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Fuentes</p>
                       {msg.citations.slice(0, 2).map((c) => (
-                        <p key={`${msg.id}-${c.source}`} className="text-[11px] text-slate-500">
-                          {c.source}
-                        </p>
+                        <div key={`${msg.id}-${c.source}`} className="text-[11px] text-slate-500">
+                          <p>{c.source}</p>
+                          <p className="text-[10px] text-slate-400">
+                            {c.norma ? `${c.norma}` : "Norma"} · Vigente: {c.vigente_desde || "N/D"} · Actualizado: {c.ultima_actualizacion || "N/D"}
+                          </p>
+                        </div>
                       ))}
                     </div>
                   ) : null}

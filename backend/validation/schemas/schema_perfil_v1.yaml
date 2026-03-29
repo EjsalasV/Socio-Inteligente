@@ -1,0 +1,23 @@
+schema: schema_perfil_v1
+version: v1
+required:
+  - schema_version
+  - cliente
+  - encargo
+  - materialidad
+  - riesgo_global
+properties:
+  schema_version:
+    const: v1
+  cliente:
+    required: [nombre_legal, sector]
+  encargo:
+    required: [anio_activo, marco_referencial, fase_actual]
+    enum:
+      fase_actual: [planificacion, ejecucion, informe]
+  materialidad:
+    required: [estado_materialidad, final]
+  riesgo_global:
+    required: [nivel]
+  cuestionario_auditoria:
+    optional: [nomina, inventarios, ingresos_complejos, partes_relacionadas, multi_moneda]

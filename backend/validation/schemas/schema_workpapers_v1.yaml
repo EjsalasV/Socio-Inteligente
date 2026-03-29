@@ -1,0 +1,20 @@
+schema: schema_workpapers_v1
+version: v1
+required:
+  - schema_version
+  - cliente_id
+  - tasks
+properties:
+  schema_version:
+    const: v1
+  tasks:
+    item_required:
+      - id
+      - area_code
+      - area_name
+      - title
+      - prioridad
+      - required
+      - done
+      - evidence_note
+    prioridad_enum: [baja, media, alta, critica]

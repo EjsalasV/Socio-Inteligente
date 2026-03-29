@@ -1,0 +1,18 @@
+schema: schema_workflow_v1
+version: v1
+required:
+  - schema_version
+  - cliente_id
+  - phase
+  - gates
+properties:
+  schema_version:
+    const: v1
+  phase:
+    enum: [planificacion, ejecucion, informe]
+  gates:
+    item_required: [code, status, detail]
+    status_enum: [ok, blocked]
+  transitions:
+    optional: true
+    item_required: [at, from_phase, to_phase, user_id]

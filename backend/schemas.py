@@ -239,6 +239,8 @@ class ChatResponse(BaseModel):
     context_sources: list[str]
     citations: list[dict[str, str]] = Field(default_factory=list)
     confidence: float = 0.0
+    prompt_id: str = ""
+    prompt_version: str = ""
 
 
 class MetodoRequest(BaseModel):
@@ -252,6 +254,8 @@ class MetodoResponse(BaseModel):
     context_sources: list[str]
     citations: list[dict[str, str]] = Field(default_factory=list)
     confidence: float = 0.0
+    prompt_id: str = ""
+    prompt_version: str = ""
 
 
 class PdfSummaryResponse(BaseModel):
@@ -324,8 +328,16 @@ class QualityGateItem(BaseModel):
     detail: str
 
 
+class CoverageSummary(BaseModel):
+    total_assertions: int = 0
+    covered_assertions: int = 0
+    coverage_pct: float = 0.0
+    missing_by_area: dict[str, list[str]] = Field(default_factory=dict)
+
+
 class WorkpaperPlanResponse(BaseModel):
     cliente_id: str
     tasks: list[WorkpaperTask]
     gates: list[QualityGateItem]
     completion_pct: float
+    coverage_summary: CoverageSummary = Field(default_factory=CoverageSummary)

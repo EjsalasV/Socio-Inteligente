@@ -143,7 +143,7 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
     try:
         generated = _generate_tasks(cliente_id)
         merged = _merge_saved_tasks(cliente_id, generated)
-        gates = _quality_gates(cliente_id, merged)
+        gates, _coverage = _quality_gates(cliente_id, merged)
         workflow_gates = [
             DashboardWorkflowGate(code=g.code, title=g.title, status=g.status, detail=g.detail)
             for g in gates

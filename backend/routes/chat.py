@@ -38,6 +38,8 @@ def post_chat(
         context_sources=[str(x) for x in rag.get("context_sources", []) if str(x).strip()],
         citations=[c for c in rag.get("citations", []) if isinstance(c, dict)],
         confidence=float(rag.get("confidence", 0.0) or 0.0),
+        prompt_id=str((rag.get("prompt_meta") or {}).get("prompt_id") or ""),
+        prompt_version=str((rag.get("prompt_meta") or {}).get("prompt_version") or ""),
     )
     return ApiResponse(data=data.model_dump())
 
@@ -65,6 +67,8 @@ def post_metodologia(
         context_sources=[str(x) for x in rag.get("context_sources", []) if str(x).strip()],
         citations=[c for c in rag.get("citations", []) if isinstance(c, dict)],
         confidence=float(rag.get("confidence", 0.0) or 0.0),
+        prompt_id=str((rag.get("prompt_meta") or {}).get("prompt_id") or ""),
+        prompt_version=str((rag.get("prompt_meta") or {}).get("prompt_version") or ""),
     )
     return ApiResponse(data=data.model_dump())
 

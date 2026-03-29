@@ -1,0 +1,22 @@
+schema: schema_area_v1
+version: v1
+required:
+  - schema_version
+  - codigo
+  - nombre
+  - estado_area
+  - riesgo
+  - afirmaciones_criticas
+  - afirmaciones_coverage
+  - procedimientos
+  - hallazgos_abiertos
+  - conclusion
+properties:
+  schema_version:
+    const: v1
+  estado_area:
+    enum: [pendiente, en_proceso, en_ejecucion, concluida]
+  riesgo:
+    enum: [bajo, medio, alto, critico]
+  afirmaciones_coverage:
+    item_required: [nombre, covered, evidencia]

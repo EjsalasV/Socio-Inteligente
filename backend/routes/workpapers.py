@@ -6,9 +6,17 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.auth import authorize_cliente_access, get_current_user
 from backend.constants.runtime_config import get_runtime_config
-from backend.repositories.file_repository import read_hallazgos, read_perfil, read_workpapers, write_workpapers
+from backend.repositories.file_repository import (
+    list_area_codes,
+    read_area_yaml,
+    read_hallazgos,
+    read_perfil,
+    read_workpapers,
+    write_workpapers,
+)
 from backend.schemas import (
     ApiResponse,
+    CoverageSummary,
     QualityGateItem,
     UserContext,
     WorkpaperPlanResponse,
@@ -23,6 +31,8 @@ WORKFLOW_CFG = RUNTIME_CFG.get("workflow", {}) if isinstance(RUNTIME_CFG, dict) 
 THRESHOLDS = WORKFLOW_CFG.get("thresholds", {}) if isinstance(WORKFLOW_CFG, dict) else {}
 EXEC_MIN_PCT = float(THRESHOLDS.get("exec_required_completion_pct", 70.0) or 70.0)
 REPORT_MIN_PCT = float(THRESHOLDS.get("report_required_completion_pct", 95.0) or 95.0)
+EXEC_COVERAGE_HIGH_MIN_PCT = float(THRESHOLDS.get("exec_coverage_high_min_pct", 100.0) or 100.0)
+EXEC_COVERAGE_MEDIUM_MIN_PCT = float(THRESHOLDS.get("exec_coverage_medium_min_pct", 80.0) or 80.0)
 
 
 def _is_true(value: Any) -> bool:
@@ -298,7 +308,72 @@ def _merge_saved_tasks(cliente_id: str, generated: list[dict[str, Any]]) -> list
     return merged
 
 
-def _quality_gates(cliente_id: str, tasks: list[dict[str, Any]]) -> list[QualityGateItem]:
+def _compute_assertion_coverage(cliente_id: str, tasks: list[dict[str, Any]]) -> CoverageSummary:
+    area_codes = list_area_codes(cliente_id)
+    missing_by_area: dict[str, list[str]] = {}
+
+    total = 0
+    covered = 0
+
+    done_task_by_area: dict[str, list[dict[str, Any]]] = {}
+    for task in tasks:
+        if not bool(task.get("done", False)):
+            continue
+        area_code = str(task.get("area_code") or "").strip()
+        if not area_code:
+            continue
+        done_task_by_area.setdefault(area_code, []).append(task)
+
+    for area_code in area_codes:
+        area = read_area_yaml(cliente_id, area_code)
+        criticas = area.get("afirmaciones_criticas")
+        coverage_rows = area.get("afirmaciones_coverage")
+        if not isinstance(criticas, list):
+            criticas = []
+        if not isinstance(coverage_rows, list):
+            coverage_rows = []
+
+        covered_map: dict[str, bool] = {}
+        for row in coverage_rows:
+            if not isinstance(row, dict):
+                continue
+            nombre = str(row.get("nombre") or "").strip()
+            if not nombre:
+                continue
+            is_covered = bool(row.get("covered", False))
+            evidencia = str(row.get("evidencia") or "").strip()
+            covered_map[nombre] = is_covered and bool(evidencia)
+
+        area_missing: list[str] = []
+        for raw_assertion in criticas:
+            assertion = str(raw_assertion or "").strip()
+            if not assertion:
+                continue
+            total += 1
+            is_covered = covered_map.get(assertion, False)
+            if not is_covered:
+                area_tasks = done_task_by_area.get(area_code, [])
+                for t in area_tasks:
+                    if str(t.get("evidence_note") or "").strip():
+                        is_covered = True
+                        break
+            if is_covered:
+                covered += 1
+            else:
+                area_missing.append(assertion)
+        if area_missing:
+            missing_by_area[area_code] = area_missing
+
+    pct = (covered / total * 100.0) if total else 0.0
+    return CoverageSummary(
+        total_assertions=total,
+        covered_assertions=covered,
+        coverage_pct=round(pct, 2),
+        missing_by_area=missing_by_area,
+    )
+
+
+def _quality_gates(cliente_id: str, tasks: list[dict[str, Any]]) -> tuple[list[QualityGateItem], CoverageSummary]:
     perfil = read_perfil(cliente_id)
     encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
     cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
@@ -337,12 +412,63 @@ def _quality_gates(cliente_id: str, tasks: list[dict[str, Any]]) -> list[Quality
         for t in tasks
         if str(t.get("prioridad") or "").lower() == "alta" and bool(t.get("done", False))
     }
-    exec_ok = completion >= EXEC_MIN_PCT and (not high_priority_areas or high_priority_areas.issubset(high_priority_done)) and plan_ok
+    coverage = _compute_assertion_coverage(cliente_id, tasks)
+    high_risk_area_codes: set[str] = set()
+    medium_or_lower_area_codes: set[str] = set()
+    for area_code in list_area_codes(cliente_id):
+        area = read_area_yaml(cliente_id, area_code)
+        riesgo = str(area.get("riesgo") or "medio").strip().lower()
+        if riesgo in {"alto", "critico"}:
+            high_risk_area_codes.add(area_code)
+        else:
+            medium_or_lower_area_codes.add(area_code)
+
+    def _coverage_ok_for(codes: set[str], min_pct: float) -> bool:
+        if not codes:
+            return True
+        total_local = 0
+        covered_local = 0
+        for code in codes:
+            area = read_area_yaml(cliente_id, code)
+            criticas = area.get("afirmaciones_criticas")
+            cov_rows = area.get("afirmaciones_coverage")
+            if not isinstance(criticas, list):
+                continue
+            cov_map: dict[str, bool] = {}
+            if isinstance(cov_rows, list):
+                for row in cov_rows:
+                    if not isinstance(row, dict):
+                        continue
+                    n = str(row.get("nombre") or "").strip()
+                    if not n:
+                        continue
+                    cov_map[n] = bool(row.get("covered", False)) and bool(str(row.get("evidencia") or "").strip())
+            for assertion in criticas:
+                a = str(assertion or "").strip()
+                if not a:
+                    continue
+                total_local += 1
+                if cov_map.get(a, False):
+                    covered_local += 1
+        if total_local == 0:
+            return True
+        return (covered_local / total_local * 100.0) >= min_pct
+
+    coverage_high_ok = _coverage_ok_for(high_risk_area_codes, EXEC_COVERAGE_HIGH_MIN_PCT)
+    coverage_medium_ok = _coverage_ok_for(medium_or_lower_area_codes, EXEC_COVERAGE_MEDIUM_MIN_PCT)
+
+    exec_ok = (
+        completion >= EXEC_MIN_PCT
+        and (not high_priority_areas or high_priority_areas.issubset(high_priority_done))
+        and coverage_high_ok
+        and coverage_medium_ok
+        and plan_ok
+    )
 
     hallazgos_text = read_hallazgos(cliente_id)
     has_conclusion = len(hallazgos_text.strip()) >= 120
     close_done = "close-conclusion-230" in done_ids if "close-conclusion-230" in required_ids else True
-    report_ok = completion >= REPORT_MIN_PCT and has_conclusion and close_done and exec_ok
+    report_ok = completion >= REPORT_MIN_PCT and has_conclusion and close_done and exec_ok and coverage.coverage_pct > 0
 
     if not base_fields_ok:
         plan_detail = "Faltan datos base del perfil del cliente."
@@ -354,11 +480,24 @@ def _quality_gates(cliente_id: str, tasks: list[dict[str, Any]]) -> list[Quality
         plan_detail = "Perfil base, materialidad y planeacion documentados."
 
     if exec_ok:
-        exec_detail = f"Ejecucion suficiente ({completion:.1f}% de papeles requeridos)."
+        exec_detail = (
+            f"Ejecucion suficiente ({completion:.1f}% papeles, cobertura afirmaciones {coverage.coverage_pct:.1f}%)."
+        )
     else:
         missing_high = sorted(list(high_priority_areas - high_priority_done))
         if missing_high:
             exec_detail = f"Ejecucion insuficiente ({completion:.1f}%). Faltan areas criticas: {', '.join(missing_high)}."
+        elif not coverage_high_ok or not coverage_medium_ok:
+            details: list[str] = []
+            if not coverage_high_ok:
+                details.append(f"areas altas deben llegar a {EXEC_COVERAGE_HIGH_MIN_PCT:.0f}%")
+            if not coverage_medium_ok:
+                details.append(f"areas medias/bajas deben llegar a {EXEC_COVERAGE_MEDIUM_MIN_PCT:.0f}%")
+            missing_codes = ", ".join(sorted(coverage.missing_by_area.keys())[:6]) or "sin detalle"
+            exec_detail = (
+                f"Ejecucion insuficiente por cobertura de afirmaciones ({coverage.coverage_pct:.1f}%). "
+                f"Regla: {'; '.join(details)}. Faltantes en: {missing_codes}."
+            )
         else:
             exec_detail = f"Ejecucion insuficiente ({completion:.1f}%). Completa papeles requeridos."
 
@@ -371,7 +510,7 @@ def _quality_gates(cliente_id: str, tasks: list[dict[str, Any]]) -> list[Quality
     elif not has_conclusion:
         report_detail = "No listo: falta conclusion tecnica consolidada en hallazgos."
     else:
-        report_detail = "No listo para informe final."
+        report_detail = "No listo para informe final: cobertura de afirmaciones incompleta."
 
     gates = [
         QualityGateItem(
@@ -393,7 +532,7 @@ def _quality_gates(cliente_id: str, tasks: list[dict[str, Any]]) -> list[Quality
             detail=report_detail,
         ),
     ]
-    return gates
+    return gates, coverage
 
 
 @router.get("/{cliente_id}", response_model=ApiResponse)
@@ -406,13 +545,14 @@ def get_workpapers(cliente_id: str, user: UserContext = Depends(get_current_user
     required = [t for t in merged if bool(t.get("required", True))]
     required_done = [t for t in required if bool(t.get("done", False))]
     completion = (len(required_done) / len(required) * 100.0) if required else 0.0
-    gates = _quality_gates(cliente_id, merged)
+    gates, coverage = _quality_gates(cliente_id, merged)
 
     payload = WorkpaperPlanResponse(
         cliente_id=cliente_id,
         tasks=[WorkpaperTask(**task) for task in merged],
         gates=gates,
         completion_pct=round(completion, 2),
+        coverage_summary=coverage,
     )
     return ApiResponse(data=payload.model_dump())
 

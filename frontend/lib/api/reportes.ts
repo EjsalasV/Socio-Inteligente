@@ -17,6 +17,30 @@ export interface ReportMemoMeta {
   source: string;
 }
 
+export interface ReportHistoryItem {
+  kind: string;
+  report_name: string;
+  generated_at: string;
+  path: string;
+  file_hash: string;
+  size_bytes: number;
+  status: string;
+  origin: string;
+}
+
+export interface ReportHistoryPayload {
+  cliente_id: string;
+  gates: Array<{ code: string; title: string; status: "ok" | "blocked"; detail: string }>;
+  gate_status: Record<string, "ok" | "blocked" | string>;
+  coverage_summary: {
+    total_assertions: number;
+    covered_assertions: number;
+    coverage_pct: number;
+    missing_by_area: Record<string, string[]>;
+  };
+  items: ReportHistoryItem[];
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export async function generateExecutivePdf(clienteId: string): Promise<ExecutivePdfMeta> {
@@ -84,4 +108,71 @@ export async function downloadExecutivePdf(clienteId: string): Promise<{ blob: B
     throw new Error(`No se pudo descargar el archivo (${fileResponse.status}).`);
   }
   return { blob: await fileResponse.blob(), filename };
+}
+
+export async function downloadExecutivePdfByPath(
+  clienteId: string,
+  path: string,
+  filename: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("socio_token") : null;
+  if (!token) {
+    throw new Error("Missing JWT token in session");
+  }
+  const fileResponse = await fetch(`${API_BASE}/reportes/${clienteId}/executive-pdf/file?path=${encodeURIComponent(path)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!fileResponse.ok) {
+    throw new Error(`No se pudo descargar el archivo (${fileResponse.status}).`);
+  }
+  return { blob: await fileResponse.blob(), filename };
+}
+
+export async function getReportHistory(clienteId: string): Promise<ReportHistoryPayload> {
+  const response = await authFetchJson<ApiEnvelope<unknown>>(`/reportes/${clienteId}/historial`);
+  const raw = typeof response?.data === "object" && response.data !== null ? (response.data as Record<string, unknown>) : {};
+  const itemsRaw = Array.isArray(raw.items) ? raw.items : [];
+  const gatesRaw = Array.isArray(raw.gates) ? raw.gates : [];
+  const coverageRaw = typeof raw.coverage_summary === "object" && raw.coverage_summary !== null
+    ? (raw.coverage_summary as Record<string, unknown>)
+    : {};
+
+  return {
+    cliente_id: typeof raw.cliente_id === "string" ? raw.cliente_id : clienteId,
+    gate_status: typeof raw.gate_status === "object" && raw.gate_status !== null
+      ? (raw.gate_status as Record<string, "ok" | "blocked" | string>)
+      : {},
+    gates: gatesRaw.map((g) => {
+      const row = typeof g === "object" && g !== null ? (g as Record<string, unknown>) : {};
+      return {
+        code: typeof row.code === "string" ? row.code : "",
+        title: typeof row.title === "string" ? row.title : "",
+        status: (typeof row.status === "string" ? row.status : "blocked") as "ok" | "blocked",
+        detail: typeof row.detail === "string" ? row.detail : "",
+      };
+    }),
+    coverage_summary: {
+      total_assertions: typeof coverageRaw.total_assertions === "number" ? coverageRaw.total_assertions : 0,
+      covered_assertions: typeof coverageRaw.covered_assertions === "number" ? coverageRaw.covered_assertions : 0,
+      coverage_pct: typeof coverageRaw.coverage_pct === "number" ? coverageRaw.coverage_pct : 0,
+      missing_by_area: typeof coverageRaw.missing_by_area === "object" && coverageRaw.missing_by_area !== null
+        ? (coverageRaw.missing_by_area as Record<string, string[]>)
+        : {},
+    },
+    items: itemsRaw.map((item) => {
+      const row = typeof item === "object" && item !== null ? (item as Record<string, unknown>) : {};
+      return {
+        kind: typeof row.kind === "string" ? row.kind : "",
+        report_name: typeof row.report_name === "string" ? row.report_name : "",
+        generated_at: typeof row.generated_at === "string" ? row.generated_at : "",
+        path: typeof row.path === "string" ? row.path : "",
+        file_hash: typeof row.file_hash === "string" ? row.file_hash : "",
+        size_bytes: typeof row.size_bytes === "number" ? row.size_bytes : 0,
+        status: typeof row.status === "string" ? row.status : "unknown",
+        origin: typeof row.origin === "string" ? row.origin : "unknown",
+      };
+    }),
+  };
 }

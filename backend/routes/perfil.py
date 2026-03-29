@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.auth import authorize_cliente_access, get_current_user
 from backend.repositories.file_repository import append_audit_log, deep_merge_dict, read_perfil, write_perfil
 from backend.schemas import ApiResponse, ClienteProfile, UserContext
+from backend.validation import validate_perfil_doc_v1
 
 router = APIRouter(prefix="/perfil", tags=["perfil"])
 
@@ -22,6 +23,16 @@ def put_perfil(cliente_id: str, payload: dict, user: UserContext = Depends(get_c
     current = read_perfil(cliente_id)
     patch = payload if isinstance(payload, dict) else {}
     merged = deep_merge_dict(current, patch)
+    is_valid, errors = validate_perfil_doc_v1(merged)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "message": "Perfil invalido para schema v1.",
+                "errors": errors,
+                "schema_version": "v1",
+            },
+        )
     write_perfil(cliente_id, merged)
 
     changed_keys: list[str] = []

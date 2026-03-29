@@ -22,4 +22,10 @@ export interface WorkpaperPlanData {
   tasks: WorkpaperTask[];
   gates: QualityGateItem[];
   completion_pct: number;
+  coverage_summary: {
+    total_assertions: number;
+    covered_assertions: number;
+    coverage_pct: number;
+    missing_by_area: Record<string, string[]>;
+  };
 }

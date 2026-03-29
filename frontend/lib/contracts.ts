@@ -8,8 +8,18 @@ export type ChatResponse = {
   cliente_id: string;
   answer: string;
   context_sources: string[];
-  citations?: Array<{ source: string; excerpt: string }>;
+  citations?: Array<{
+    source: string;
+    excerpt: string;
+    norma?: string;
+    version?: string;
+    vigente_desde?: string;
+    ultima_actualizacion?: string;
+    jurisdiccion?: string;
+  }>;
   confidence?: number;
+  prompt_id?: string;
+  prompt_version?: string;
 };
 
 export type MetodoResponse = {
@@ -17,8 +27,18 @@ export type MetodoResponse = {
   area: string;
   explanation: string;
   context_sources: string[];
-  citations?: Array<{ source: string; excerpt: string }>;
+  citations?: Array<{
+    source: string;
+    excerpt: string;
+    norma?: string;
+    version?: string;
+    vigente_desde?: string;
+    ultima_actualizacion?: string;
+    jurisdiccion?: string;
+  }>;
   confidence?: number;
+  prompt_id?: string;
+  prompt_version?: string;
 };
 
 export type ApiEnvelope<T> = {

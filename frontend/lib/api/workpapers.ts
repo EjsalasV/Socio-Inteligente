@@ -20,6 +20,9 @@ function asNumber(value: unknown, fallback: number = 0): number {
 function normalizePlan(clienteId: string, raw: UnknownRecord): WorkpaperPlanData {
   const tasksRaw = Array.isArray(raw.tasks) ? raw.tasks : [];
   const gatesRaw = Array.isArray(raw.gates) ? raw.gates : [];
+  const coverageRaw = typeof raw.coverage_summary === "object" && raw.coverage_summary !== null
+    ? (raw.coverage_summary as UnknownRecord)
+    : {};
 
   return {
     cliente_id: asString(raw.cliente_id, clienteId),
@@ -57,6 +60,14 @@ function normalizePlan(clienteId: string, raw: UnknownRecord): WorkpaperPlanData
         };
       })
       .filter((x): x is WorkpaperPlanData["gates"][number] => x !== null),
+    coverage_summary: {
+      total_assertions: asNumber(coverageRaw.total_assertions, 0),
+      covered_assertions: asNumber(coverageRaw.covered_assertions, 0),
+      coverage_pct: asNumber(coverageRaw.coverage_pct, 0),
+      missing_by_area: typeof coverageRaw.missing_by_area === "object" && coverageRaw.missing_by_area !== null
+        ? (coverageRaw.missing_by_area as Record<string, string[]>)
+        : {},
+    },
   };
 }
 

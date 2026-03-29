@@ -11,6 +11,15 @@ from typing import Any
 import yaml
 
 from backend.constants.mapping import get_area_name
+from backend.repositories.supabase_memory import store as supabase_store
+from backend.validation import (
+    VALID_SCHEMA_VERSION,
+    normalize_area_doc_v1,
+    normalize_perfil_doc_v1,
+    normalize_workpapers_doc_v1,
+    normalize_workflow_doc_v1,
+    validate_workpapers_doc_v1,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_CLIENTES = ROOT / "data" / "clientes"
@@ -33,6 +42,10 @@ class FileRepository:
         return self.data_clientes / cliente_id
 
     def list_clientes(self) -> list[str]:
+        if supabase_store.is_configured():
+            remote = supabase_store.list_clientes()
+            if remote:
+                return sorted(remote)
         if not self.data_clientes.exists():
             return []
         return sorted([p.name for p in self.data_clientes.iterdir() if p.is_dir()])
@@ -46,15 +59,55 @@ class FileRepository:
         return {}
 
     def read_perfil(self, cliente_id: str) -> dict[str, Any]:
-        return self.read_yaml(self.cliente_dir(cliente_id) / "perfil.yaml")
+        if supabase_store.is_configured():
+            remote = supabase_store.fetch_single_json(
+                "cliente_perfiles",
+                {"cliente_id": cliente_id},
+                "perfil_json",
+            )
+            if isinstance(remote, dict) and remote:
+                return normalize_perfil_doc_v1(remote)
+        return normalize_perfil_doc_v1(self.read_yaml(self.cliente_dir(cliente_id) / "perfil.yaml"))
 
     def write_perfil(self, cliente_id: str, data: dict[str, Any]) -> None:
+        normalized = normalize_perfil_doc_v1(data)
         cdir = self.cliente_dir(cliente_id)
         cdir.mkdir(parents=True, exist_ok=True)
         p = cdir / "perfil.yaml"
-        p.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        p.write_text(yaml.safe_dump(normalized, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        if supabase_store.is_configured():
+            perfil_cliente = normalized.get("cliente", {}) if isinstance(normalized.get("cliente"), dict) else {}
+            supabase_store.upsert_row(
+                "clientes",
+                {
+                    "cliente_id": cliente_id,
+                    "nombre": str(perfil_cliente.get("nombre_legal") or cliente_id),
+                    "sector": str(perfil_cliente.get("sector") or ""),
+                    "schema_version": VALID_SCHEMA_VERSION,
+                },
+                on_conflict="cliente_id",
+            )
+            supabase_store.upsert_row(
+                "cliente_perfiles",
+                {
+                    "cliente_id": cliente_id,
+                    "perfil_json": normalized,
+                    "schema_version": VALID_SCHEMA_VERSION,
+                },
+                on_conflict="cliente_id",
+            )
 
     def read_hallazgos(self, cliente_id: str) -> str:
+        if supabase_store.is_configured():
+            remote = supabase_store.fetch_single_json(
+                "cliente_hallazgos",
+                {"cliente_id": cliente_id},
+                "hallazgos_json",
+            )
+            if isinstance(remote, dict):
+                text = str(remote.get("markdown") or "").strip()
+                if text:
+                    return text
         p = self.cliente_dir(cliente_id) / "hallazgos.md"
         if not p.exists():
             return ""
@@ -67,6 +120,16 @@ class FileRepository:
         previous = p.read_text(encoding="utf-8") if p.exists() else ""
         new_text = (previous + "\n\n" + content).strip() + "\n"
         p.write_text(new_text, encoding="utf-8")
+        if supabase_store.is_configured():
+            supabase_store.upsert_row(
+                "cliente_hallazgos",
+                {
+                    "cliente_id": cliente_id,
+                    "hallazgos_json": {"markdown": new_text},
+                    "schema_version": VALID_SCHEMA_VERSION,
+                },
+                on_conflict="cliente_id",
+            )
 
     def read_catalog_file(self, path: Path) -> str:
         if not path.exists():
@@ -79,37 +142,138 @@ class FileRepository:
             return []
         return sorted(areas_dir.glob("*.yaml"))
 
+    def list_area_codes(self, cliente_id: str) -> list[str]:
+        codes: list[str] = []
+        if supabase_store.is_configured():
+            rows = supabase_store.fetch_rows(
+                "cliente_areas",
+                filters={"cliente_id": cliente_id},
+                select="area_code",
+            )
+            for row in rows:
+                code = str(row.get("area_code") or "").strip()
+                if code:
+                    codes.append(code)
+        if not codes:
+            for path in self.list_area_files(cliente_id):
+                codes.append(path.stem)
+        return sorted(set(codes))
+
     def read_area_yaml(self, cliente_id: str, area_ls: str) -> dict[str, Any]:
+        if supabase_store.is_configured():
+            remote = supabase_store.fetch_single_json(
+                "cliente_areas",
+                {"cliente_id": cliente_id, "area_code": area_ls},
+                "area_json",
+            )
+            if isinstance(remote, dict) and remote:
+                return normalize_area_doc_v1(remote, area_code=area_ls)
         p = self.cliente_dir(cliente_id) / "areas" / f"{area_ls}.yaml"
-        return self.read_yaml(p)
+        return normalize_area_doc_v1(self.read_yaml(p), area_code=area_ls)
 
     def write_area_yaml(self, cliente_id: str, area_code: str, data: dict[str, Any]) -> None:
+        normalized = normalize_area_doc_v1(data, area_code=area_code)
         cdir = self.cliente_dir(cliente_id) / "areas"
         cdir.mkdir(parents=True, exist_ok=True)
         p = cdir / f"{area_code}.yaml"
-        p.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        p.write_text(yaml.safe_dump(normalized, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        if supabase_store.is_configured():
+            supabase_store.upsert_row(
+                "cliente_areas",
+                {
+                    "cliente_id": cliente_id,
+                    "area_code": area_code,
+                    "area_json": normalized,
+                    "schema_version": VALID_SCHEMA_VERSION,
+                },
+                on_conflict="cliente_id,area_code",
+            )
 
     def read_workpapers(self, cliente_id: str) -> list[dict[str, Any]]:
+        if supabase_store.is_configured():
+            remote = supabase_store.fetch_single_json(
+                "cliente_workpapers",
+                {"cliente_id": cliente_id},
+                "workpapers_json",
+            )
+            if isinstance(remote, dict):
+                normalized_remote = normalize_workpapers_doc_v1(remote, cliente_id=cliente_id)
+                tasks_remote = normalized_remote.get("tasks")
+                if isinstance(tasks_remote, list):
+                    return [t for t in tasks_remote if isinstance(t, dict)]
         p = self.cliente_dir(cliente_id) / "papeles_trabajo.yaml"
         data = self.read_yaml(p)
-        tasks = data.get("tasks") if isinstance(data, dict) else []
+        normalized = normalize_workpapers_doc_v1(data if isinstance(data, dict) else {}, cliente_id=cliente_id)
+        tasks = normalized.get("tasks")
         if not isinstance(tasks, list):
             return []
         return [t for t in tasks if isinstance(t, dict)]
 
+    def read_workflow(self, cliente_id: str) -> dict[str, Any]:
+        if supabase_store.is_configured():
+            remote = supabase_store.fetch_single_json(
+                "cliente_workflow",
+                {"cliente_id": cliente_id},
+                "workflow_json",
+            )
+            if isinstance(remote, dict):
+                return remote
+        p = self.cliente_dir(cliente_id) / "workflow.yaml"
+        data = self.read_yaml(p)
+        return data if isinstance(data, dict) else {}
+
+    def write_workflow(self, cliente_id: str, state: dict[str, Any]) -> None:
+        cdir = self.cliente_dir(cliente_id)
+        cdir.mkdir(parents=True, exist_ok=True)
+        p = cdir / "workflow.yaml"
+        p.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        if supabase_store.is_configured():
+            supabase_store.upsert_row(
+                "cliente_workflow",
+                {
+                    "cliente_id": cliente_id,
+                    "workflow_json": state,
+                    "schema_version": VALID_SCHEMA_VERSION,
+                },
+                on_conflict="cliente_id",
+            )
+
     def write_workpapers(self, cliente_id: str, tasks: list[dict[str, Any]]) -> None:
+        payload = normalize_workpapers_doc_v1({"tasks": tasks}, cliente_id=cliente_id)
+        is_valid, _ = validate_workpapers_doc_v1(payload, cliente_id=cliente_id)
+        if not is_valid:
+            # Fallback defensivo: persistimos igualmente en disco con formato minimo normalizado.
+            payload = normalize_workpapers_doc_v1({"tasks": tasks}, cliente_id=cliente_id)
+
         cdir = self.cliente_dir(cliente_id)
         cdir.mkdir(parents=True, exist_ok=True)
         p = cdir / "papeles_trabajo.yaml"
-        p.write_text(
-            yaml.safe_dump({"tasks": tasks}, allow_unicode=True, sort_keys=False),
-            encoding="utf-8",
-        )
+        p.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        if supabase_store.is_configured():
+            supabase_store.upsert_row(
+                "cliente_workpapers",
+                {
+                    "cliente_id": cliente_id,
+                    "workpapers_json": payload,
+                    "schema_version": VALID_SCHEMA_VERSION,
+                },
+                on_conflict="cliente_id",
+            )
 
     def memo_path(self, cliente_id: str) -> Path:
         return self.cliente_dir(cliente_id) / "memo_ejecutivo.md"
 
     def read_memo(self, cliente_id: str) -> str:
+        if supabase_store.is_configured():
+            remote = supabase_store.fetch_single_json(
+                "cliente_hallazgos",
+                {"cliente_id": cliente_id},
+                "hallazgos_json",
+            )
+            if isinstance(remote, dict):
+                memo = str(remote.get("memo_ejecutivo") or "").strip()
+                if memo:
+                    return memo
         p = self.memo_path(cliente_id)
         if not p.exists():
             return ""
@@ -119,6 +283,24 @@ class FileRepository:
         cdir = self.cliente_dir(cliente_id)
         cdir.mkdir(parents=True, exist_ok=True)
         self.memo_path(cliente_id).write_text(content.strip() + "\n", encoding="utf-8")
+        if supabase_store.is_configured():
+            current = supabase_store.fetch_single_json(
+                "cliente_hallazgos",
+                {"cliente_id": cliente_id},
+                "hallazgos_json",
+            ) or {}
+            if not isinstance(current, dict):
+                current = {}
+            current["memo_ejecutivo"] = content.strip()
+            supabase_store.upsert_row(
+                "cliente_hallazgos",
+                {
+                    "cliente_id": cliente_id,
+                    "hallazgos_json": current,
+                    "schema_version": VALID_SCHEMA_VERSION,
+                },
+                on_conflict="cliente_id",
+            )
 
     def list_documentos(self, cliente_id: str) -> list[dict[str, Any]]:
         cdir = self.cliente_dir(cliente_id)
@@ -226,8 +408,17 @@ class FileRepository:
         if not str(target).startswith(str(base)):
             return False
         if not target.exists():
-            return False
-        shutil.rmtree(target)
+            if not supabase_store.is_configured():
+                return False
+        else:
+            shutil.rmtree(target)
+        if supabase_store.is_configured():
+            supabase_store.delete_where("cliente_perfiles", {"cliente_id": cliente_id})
+            supabase_store.delete_where("cliente_areas", {"cliente_id": cliente_id})
+            supabase_store.delete_where("cliente_workflow", {"cliente_id": cliente_id})
+            supabase_store.delete_where("cliente_workpapers", {"cliente_id": cliente_id})
+            supabase_store.delete_where("cliente_hallazgos", {"cliente_id": cliente_id})
+            supabase_store.delete_where("clientes", {"cliente_id": cliente_id})
         return True
 
     def _read_tb(self, cliente_id: str) -> list[dict[str, Any]]:
@@ -522,6 +713,14 @@ def write_workpapers(cliente_id: str, tasks: list[dict[str, Any]]) -> None:
     repo.write_workpapers(cliente_id, tasks)
 
 
+def read_workflow(cliente_id: str) -> dict[str, Any]:
+    return repo.read_workflow(cliente_id)
+
+
+def write_workflow(cliente_id: str, state: dict[str, Any]) -> None:
+    repo.write_workflow(cliente_id, state)
+
+
 def read_memo(cliente_id: str) -> str:
     return repo.read_memo(cliente_id)
 
@@ -532,6 +731,14 @@ def write_memo(cliente_id: str, content: str) -> None:
 
 def list_documentos(cliente_id: str) -> list[dict[str, Any]]:
     return repo.list_documentos(cliente_id)
+
+
+def read_area_yaml(cliente_id: str, area_code: str) -> dict[str, Any]:
+    return repo.read_area_yaml(cliente_id, area_code)
+
+
+def list_area_codes(cliente_id: str) -> list[str]:
+    return repo.list_area_codes(cliente_id)
 
 
 def create_cliente(*, cliente_id: str, nombre: str, sector: str | None = None) -> dict[str, Any]:

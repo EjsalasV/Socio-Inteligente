@@ -19,8 +19,6 @@ type LoginApiResponse = {
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const DEMO_USER = "joaosalas123@gmail.com";
-const DEMO_PASS = "1234";
 
 function extractErrorMessage(payload: unknown, fallback: string): string {
   if (!payload || typeof payload !== "object") return fallback;
@@ -189,7 +187,7 @@ export default function LoginPage() {
               <div className="flex items-start gap-3 p-4 bg-[#f1f4f6] rounded-xl border border-[#c4c6cd]/35">
                 <span className="material-symbols-outlined text-[#041627] text-xl">info</span>
                 <p className="text-[13px] text-slate-600 font-medium">
-                  Acceso demo: usuario <b>joaosalas123@gmail.com</b> y clave <b>1234</b>.
+                  Usa tus credenciales autorizadas para este cliente. Si no tienes acceso, solicita alta al administrador.
                 </p>
               </div>
 
@@ -213,7 +211,7 @@ export default function LoginPage() {
           <div className="mt-8 text-center">
             <p className="text-[11px] uppercase tracking-widest font-medium text-slate-500">
               Problemas de acceso?{" "}
-              <a className="text-[#041627] hover:underline underline-offset-4 decoration-2" href="#">
+              <a className="text-[#041627] hover:underline underline-offset-4 decoration-2" href="mailto:soporte@socioai.app">
                 Contactar Soporte
               </a>
             </p>
@@ -227,13 +225,13 @@ export default function LoginPage() {
             © 2026 Socio AI. Todos los derechos reservados.
           </div>
           <div className="flex gap-6 md:gap-8 flex-wrap justify-center">
-            <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="#">
+            <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="https://socioai.app/privacy" target="_blank" rel="noreferrer">
               Privacy Policy
             </a>
-            <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="#">
+            <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="https://socioai.app/security" target="_blank" rel="noreferrer">
               Security Architecture
             </a>
-            <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="#">
+            <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="https://socioai.app/compliance" target="_blank" rel="noreferrer">
               Regulatory Compliance
             </a>
           </div>
