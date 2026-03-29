@@ -5,7 +5,6 @@ from typing import Any
 
 import yaml
 
-
 DATA_ROOT = Path(__file__).resolve().parents[2] / "data" / "catalogos"
 AREAS_PATH = DATA_ROOT / "areas.yaml"
 CORRESPONDENCIA_PATH = DATA_ROOT / "correspondencia.yaml"

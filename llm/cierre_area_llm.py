@@ -6,7 +6,10 @@ from domain.services.area_briefing import construir_foco_auditoria, construir_re
 from domain.context.contexto_auditoria import construir_contexto_auditoria
 from domain.services.leer_perfil import cargar_perfil, ruta_tb_cliente
 from analysis.lector_tb import leer_trial_balance
-from domain.services.procedimientos_area import procedimientos_por_area, procedimientos_por_area_estructurados
+from domain.services.procedimientos_area import (
+    procedimientos_por_area,
+    procedimientos_por_area_estructurados,
+)
 from domain.services.cobertura_aseveraciones import evaluar_cobertura_aseveraciones
 from domain.catalogos_python.aseveraciones_ls import ASEVERACIONES_LS
 from domain.services.estado_area_yaml import cargar_estado_area, extraer_hallazgos_abiertos
@@ -164,7 +167,9 @@ def revisar_cierre_area_llm(
         pendientes.append("Verificar ejecucion/evidencia de procedimientos clave del area.")
 
     if hallazgos:
-        pendientes.append(f"Resolver {len(hallazgos)} hallazgo(s) abierto(s) reportado(s) en perfil.")
+        pendientes.append(
+            f"Resolver {len(hallazgos)} hallazgo(s) abierto(s) reportado(s) en perfil."
+        )
 
     if no_cubiertas:
         pendientes.append(f"Cubrir aseveraciones no cubiertas: {', '.join(no_cubiertas[:3])}.")
@@ -219,4 +224,3 @@ def revisar_cierre_area_llm(
     lineas.append(conclusion)
 
     return "\n".join(lineas)
-

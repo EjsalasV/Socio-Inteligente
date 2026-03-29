@@ -1,6 +1,7 @@
 """
 Servicio de requerimientos de auditoría por área y aseveración.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,11 +9,7 @@ from typing import Any
 
 import yaml
 
-
-_RUTA = (
-    Path(__file__).resolve().parents[2]
-    / "data" / "catalogos" / "requerimientos_por_area.yaml"
-)
+_RUTA = Path(__file__).resolve().parents[2] / "data" / "catalogos" / "requerimientos_por_area.yaml"
 _CACHE: dict[str, Any] = {}
 
 
@@ -59,36 +56,40 @@ def construir_checklist(
 
     for asev, contenido in asev_data.items():
         # Filter by requested aseveraciones if provided
-        if aseveraciones and asev.lower() not in [
-            a.lower() for a in aseveraciones
-        ]:
+        if aseveraciones and asev.lower() not in [a.lower() for a in aseveraciones]:
             continue
 
         if not isinstance(contenido, dict):
             continue
 
         for doc in contenido.get("documentos", []):
-            checklist.append({
-                "aseveracion": asev,
-                "tipo": "documento",
-                "descripcion": str(doc),
-                "checked": False,
-            })
+            checklist.append(
+                {
+                    "aseveracion": asev,
+                    "tipo": "documento",
+                    "descripcion": str(doc),
+                    "checked": False,
+                }
+            )
 
         for preg in contenido.get("preguntas", []):
-            checklist.append({
-                "aseveracion": asev,
-                "tipo": "pregunta",
-                "descripcion": str(preg),
-                "checked": False,
-            })
+            checklist.append(
+                {
+                    "aseveracion": asev,
+                    "tipo": "pregunta",
+                    "descripcion": str(preg),
+                    "checked": False,
+                }
+            )
 
         for proc in contenido.get("procedimientos", []):
-            checklist.append({
-                "aseveracion": asev,
-                "tipo": "procedimiento",
-                "descripcion": str(proc),
-                "checked": False,
-            })
+            checklist.append(
+                {
+                    "aseveracion": asev,
+                    "tipo": "procedimiento",
+                    "descripcion": str(proc),
+                    "checked": False,
+                }
+            )
 
     return checklist

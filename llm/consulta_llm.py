@@ -64,14 +64,18 @@ def responder_consulta_area_llm(
     df_var = marcar_movimientos_relevantes(calcular_variaciones(df_tb))
     area_df = obtener_area(df_var, str(codigo_ls))
 
-    resumen = construir_resumen_area(area_df) if not area_df.empty else {
-        "cuentas": 0,
-        "saldo_actual": 0.0,
-        "variacion_neta": 0.0,
-        "variacion_acumulada": 0.0,
-        "cuentas_relevantes": 0,
-        "cuentas_sin_base": 0,
-    }
+    resumen = (
+        construir_resumen_area(area_df)
+        if not area_df.empty
+        else {
+            "cuentas": 0,
+            "saldo_actual": 0.0,
+            "variacion_neta": 0.0,
+            "variacion_acumulada": 0.0,
+            "cuentas_relevantes": 0,
+            "cuentas_sin_base": 0,
+        }
+    )
     riesgos = detectar_riesgos_area(area_df, str(codigo_ls), perfil) if not area_df.empty else []
     focos = construir_foco_auditoria(str(codigo_ls), perfil, area_df) if not area_df.empty else []
 
@@ -81,11 +85,15 @@ def responder_consulta_area_llm(
     cliente = contexto.get("cliente", {})
 
     top_riesgos = [r for r in riesgos if str(r.get("nivel", "")).upper() in {"ALTO", "MEDIO"}][:2]
-    top_focos = focos[:4] if focos else [
-        "Aterrizar el hecho economico con soporte primario.",
-        "Verificar reconocimiento, medicion y presentacion.",
-        "Conciliar movimientos contra auxiliares y evidencia externa.",
-    ]
+    top_focos = (
+        focos[:4]
+        if focos
+        else [
+            "Aterrizar el hecho economico con soporte primario.",
+            "Verificar reconocimiento, medicion y presentacion.",
+            "Conciliar movimientos contra auxiliares y evidencia externa.",
+        ]
+    )
     afirmaciones = _afirmaciones_por_area(str(codigo_ls))
 
     lectura = (
@@ -141,9 +149,9 @@ def responder_consulta_area_llm(
         bloques.append("")
         bloques.append("RESPALDO NORMATIVO (REFERENCIAL)")
         bloques.append("- NIIF/NIIF para PYMES: reconocimiento, medicion y revelacion del rubro.")
-        bloques.append("- NIA 315/330: respuesta a riesgos identificados y diseno de procedimientos.")
+        bloques.append(
+            "- NIA 315/330: respuesta a riesgos identificados y diseno de procedimientos."
+        )
         bloques.append("- NIA 500: suficiencia y adecuacion de evidencia de auditoria.")
 
     return "\n".join(bloques)
-
-

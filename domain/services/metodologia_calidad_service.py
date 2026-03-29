@@ -11,7 +11,9 @@ from infra.repositories.catalogo_repository import (
     obtener_aseveraciones_sugeridas_por_ls,
 )
 
-CATALOGO_PATH = Path(__file__).resolve().parents[2] / "data" / "catalogos" / "metodologia_calidad.yaml"
+CATALOGO_PATH = (
+    Path(__file__).resolve().parents[2] / "data" / "catalogos" / "metodologia_calidad.yaml"
+)
 
 
 def _safe_load_yaml(path: Path) -> dict[str, Any]:
@@ -101,32 +103,57 @@ def _area_nombre(ws_context: dict[str, Any]) -> str:
 
 
 def _is_revenue_area(codigo_ls: str, area_name: str) -> bool:
-    ingresos_codigos = set(_cat_get("grupos_area", "ingresos_codigos", default=["1500", "1501", "1700_ALT"]))
+    ingresos_codigos = set(
+        _cat_get("grupos_area", "ingresos_codigos", default=["1500", "1501", "1700_ALT"])
+    )
     code = str(codigo_ls).strip()
     txt = _norm(area_name)
     return code in ingresos_codigos or any(k in txt for k in ["ingres", "venta", "revenue"])
 
 
 def _is_expense_area(codigo_ls: str, area_name: str) -> bool:
-    gastos_codigos = set(_cat_get("grupos_area", "gastos_codigos", default=["1600", "1600.5", "1601", "1700", "1701", "1800", "1900"]))
+    gastos_codigos = set(
+        _cat_get(
+            "grupos_area",
+            "gastos_codigos",
+            default=["1600", "1600.5", "1601", "1700", "1701", "1800", "1900"],
+        )
+    )
     code = str(codigo_ls).strip()
     txt = _norm(area_name)
     return code in gastos_codigos or any(k in txt for k in ["gasto", "cost"])
 
 
 def _is_estimate_area(codigo_ls: str, area_name: str) -> bool:
-    estim_codigos = set(_cat_get("grupos_area", "estimaciones_codigos", default=["130.1", "110", "15", "325", "415", "420"]))
+    estim_codigos = set(
+        _cat_get(
+            "grupos_area",
+            "estimaciones_codigos",
+            default=["130.1", "110", "15", "325", "415", "420"],
+        )
+    )
     code = str(codigo_ls).strip()
     txt = _norm(area_name)
-    return code in estim_codigos or any(k in txt for k in ["estim", "deterioro", "provision", "incobr", "impuesto diferido", "actuar"])
+    return code in estim_codigos or any(
+        k in txt
+        for k in ["estim", "deterioro", "provision", "incobr", "impuesto diferido", "actuar"]
+    )
 
 
 def _is_holding_profile(perfil: dict[str, Any]) -> bool:
     if not isinstance(perfil, dict):
         return False
     cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
-    contexto = perfil.get("contexto_negocio", {}) if isinstance(perfil.get("contexto_negocio"), dict) else {}
-    industria = perfil.get("industria_inteligente", {}) if isinstance(perfil.get("industria_inteligente"), dict) else {}
+    contexto = (
+        perfil.get("contexto_negocio", {})
+        if isinstance(perfil.get("contexto_negocio"), dict)
+        else {}
+    )
+    industria = (
+        perfil.get("industria_inteligente", {})
+        if isinstance(perfil.get("industria_inteligente"), dict)
+        else {}
+    )
     blob = " ".join(
         [
             str(cliente.get("sector", "")),
@@ -139,7 +166,9 @@ def _is_holding_profile(perfil: dict[str, Any]) -> bool:
     return "holding" in blob or "sociedad_cartera" in blob or "cartera" in blob
 
 
-def _alerta(codigo: str, nivel: str, mensaje: str, critica: bool = False, detalle: str = "") -> dict[str, Any]:
+def _alerta(
+    codigo: str, nivel: str, mensaje: str, critica: bool = False, detalle: str = ""
+) -> dict[str, Any]:
     return {
         "codigo": codigo,
         "nivel": nivel,
@@ -149,17 +178,31 @@ def _alerta(codigo: str, nivel: str, mensaje: str, critica: bool = False, detall
     }
 
 
-def evaluar_rim_fraude(cliente: str, perfil: dict[str, Any] | None, contexto: dict[str, Any] | None) -> dict[str, Any]:
+def evaluar_rim_fraude(
+    cliente: str, perfil: dict[str, Any] | None, contexto: dict[str, Any] | None
+) -> dict[str, Any]:
     perfil = perfil or {}
     contexto = contexto or {}
     corpus = _collect_strings({"perfil": perfil, "contexto": contexto})
     rebut_keywords = [str(x).lower() for x in _cat_get("palabras_clave", "rebuttal", default=[])]
 
-    riesgos_ingresos = [str(x).lower() for x in _cat_get("fraude_presunto", "ingresos", default=["reconocimiento de ingresos"])]
-    riesgos_gerencia = [str(x).lower() for x in _cat_get("fraude_presunto", "gerencia", default=["evasion de controles por parte de la gerencia"])]
+    riesgos_ingresos = [
+        str(x).lower()
+        for x in _cat_get("fraude_presunto", "ingresos", default=["reconocimiento de ingresos"])
+    ]
+    riesgos_gerencia = [
+        str(x).lower()
+        for x in _cat_get(
+            "fraude_presunto", "gerencia", default=["evasion de controles por parte de la gerencia"]
+        )
+    ]
 
-    ingresos_presente = any(k in corpus for k in riesgos_ingresos) or "fraude" in corpus and "ingres" in corpus
-    gerencia_presente = any(k in corpus for k in riesgos_gerencia) or ("gerencia" in corpus and ("control" in corpus or "override" in corpus))
+    ingresos_presente = (
+        any(k in corpus for k in riesgos_ingresos) or "fraude" in corpus and "ingres" in corpus
+    )
+    gerencia_presente = any(k in corpus for k in riesgos_gerencia) or (
+        "gerencia" in corpus and ("control" in corpus or "override" in corpus)
+    )
 
     rebut_ing = any(k in corpus and "ingres" in corpus for k in rebut_keywords)
     rebut_ger = any(k in corpus and "gerencia" in corpus for k in rebut_keywords)
@@ -202,13 +245,17 @@ def evaluar_requerimiento_procedimientos_por_materialidad(
     procedimientos = _procedimientos_desde_contexto(ws_context)
     proc_count = len(procedimientos)
 
-    saldo = _to_float(ws_context.get("saldo_total", ws_context.get("area_summary", {}).get("saldo_actual", 0)))
+    saldo = _to_float(
+        ws_context.get("saldo_total", ws_context.get("area_summary", {}).get("saldo_actual", 0))
+    )
     materialidad_ejecucion = _to_float(ws_context.get("materialidad_ejecucion", 0))
     area_name = _area_nombre(ws_context)
     es_ingresos = _is_revenue_area(codigo_ls, area_name)
 
     material = materialidad_ejecucion > 0 and saldo >= materialidad_ejecucion
-    riesgo_fraude_relacionado = bool(es_ingresos and rim_eval and rim_eval.get("ingresos_presente", False))
+    riesgo_fraude_relacionado = bool(
+        es_ingresos and rim_eval and rim_eval.get("ingresos_presente", False)
+    )
 
     alertas: list[dict[str, Any]] = []
     if material and proc_count == 0:
@@ -244,8 +291,13 @@ def evaluar_pruebas_control_y_recorrido(ws_context: dict[str, Any]) -> dict[str,
     procedimientos = _procedimientos_desde_contexto(ws_context)
     texto_operativo = _texto_operativo(ws_context)
 
-    control_kw = [str(x).lower() for x in _cat_get("palabras_clave", "control_walkthrough", default=[])]
-    soporte_kw = [str(x).lower() for x in _cat_get("palabras_clave", "soporte_control_walkthrough", default=[])]
+    control_kw = [
+        str(x).lower() for x in _cat_get("palabras_clave", "control_walkthrough", default=[])
+    ]
+    soporte_kw = [
+        str(x).lower()
+        for x in _cat_get("palabras_clave", "soporte_control_walkthrough", default=[])
+    ]
 
     texto_proc = " ".join(
         [
@@ -276,20 +328,34 @@ def evaluar_pruebas_control_y_recorrido(ws_context: dict[str, Any]) -> dict[str,
     }
 
 
-def evaluar_ingresos_metodologia(codigo_ls: str, ws_context: dict[str, Any], perfil: dict[str, Any] | None) -> dict[str, Any]:
+def evaluar_ingresos_metodologia(
+    codigo_ls: str, ws_context: dict[str, Any], perfil: dict[str, Any] | None
+) -> dict[str, Any]:
     perfil = perfil or {}
     area_name = _area_nombre(ws_context)
     aplica = _is_revenue_area(codigo_ls, area_name)
     if not aplica:
-        return {"aplica": False, "marco": "no_aplica", "checklist": [], "faltantes": [], "alertas": []}
+        return {
+            "aplica": False,
+            "marco": "no_aplica",
+            "checklist": [],
+            "faltantes": [],
+            "alertas": [],
+        }
 
     procedimientos = _procedimientos_desde_contexto(ws_context)
-    texto = " ".join([str(p.get("descripcion", "")) for p in procedimientos]).lower() + " " + _texto_operativo(ws_context)
+    texto = (
+        " ".join([str(p.get("descripcion", "")) for p in procedimientos]).lower()
+        + " "
+        + _texto_operativo(ws_context)
+    )
     marco = _norm(perfil.get("encargo", {}).get("marco_referencial", ""))
 
     niif_completas = "completa" in marco and "pyme" not in marco
     if niif_completas:
-        checklist = [str(x) for x in _cat_get("palabras_clave", "ingresos_niif_completas", default=[])]
+        checklist = [
+            str(x) for x in _cat_get("palabras_clave", "ingresos_niif_completas", default=[])
+        ]
     else:
         checklist = [str(x) for x in _cat_get("palabras_clave", "ingresos_pymes", default=[])]
 
@@ -325,7 +391,9 @@ def evaluar_gastos_metodologia(codigo_ls: str, ws_context: dict[str, Any]) -> di
     resumen_kw = [str(x).lower() for x in _cat_get("palabras_clave", "resumen_gastos", default=[])]
     tiene_resumen_cruce = any(k in texto for k in resumen_kw)
 
-    saldo = _to_float(ws_context.get("saldo_total", ws_context.get("area_summary", {}).get("saldo_actual", 0)))
+    saldo = _to_float(
+        ws_context.get("saldo_total", ws_context.get("area_summary", {}).get("saldo_actual", 0))
+    )
     materialidad_ejecucion = _to_float(ws_context.get("materialidad_ejecucion", 0))
     pending_count = int(ws_context.get("pending_count", 0) or 0)
 
@@ -366,7 +434,11 @@ def evaluar_estimaciones_nia540(codigo_ls: str, ws_context: dict[str, Any]) -> d
         return {"aplica": False, "checklist": [], "enfoques_detectados": [], "alertas": []}
 
     procedimientos = _procedimientos_desde_contexto(ws_context)
-    texto = " ".join([str(p.get("descripcion", "")) for p in procedimientos]).lower() + " " + _texto_operativo(ws_context)
+    texto = (
+        " ".join([str(p.get("descripcion", "")) for p in procedimientos]).lower()
+        + " "
+        + _texto_operativo(ws_context)
+    )
     checklist = [str(x) for x in _cat_get("palabras_clave", "nia540_enfoques", default=[])]
     enfoques_detectados = [k for k in checklist if k.lower() in texto]
 
@@ -393,13 +465,17 @@ def evaluar_estimaciones_nia540(codigo_ls: str, ws_context: dict[str, Any]) -> d
     }
 
 
-def evaluar_sensibilidad_holding(codigo_ls: str, ws_context: dict[str, Any], perfil: dict[str, Any] | None) -> dict[str, Any]:
+def evaluar_sensibilidad_holding(
+    codigo_ls: str, ws_context: dict[str, Any], perfil: dict[str, Any] | None
+) -> dict[str, Any]:
     perfil = perfil or {}
     if not _is_holding_profile(perfil):
         return {"aplica": False, "observaciones": [], "alertas": []}
 
     code = str(codigo_ls).strip()
-    saldo = _to_float(ws_context.get("saldo_total", ws_context.get("area_summary", {}).get("saldo_actual", 0)))
+    saldo = _to_float(
+        ws_context.get("saldo_total", ws_context.get("area_summary", {}).get("saldo_actual", 0))
+    )
     observaciones: list[str] = []
     alertas: list[dict[str, Any]] = []
 
@@ -433,14 +509,18 @@ def evaluar_sensibilidad_holding(codigo_ls: str, ws_context: dict[str, Any], per
         )
     elif code == "1500":
         if abs(saldo) <= 0.01:
-            observaciones.append("Holding: ingresos con saldo cero no deben sobre-priorizarse por monto.")
+            observaciones.append(
+                "Holding: ingresos con saldo cero no deben sobre-priorizarse por monto."
+            )
         else:
             observaciones.append("Holding: distinguir ingreso operativo vs financiero/VPP/otros.")
 
     return {"aplica": True, "observaciones": observaciones, "alertas": alertas}
 
 
-def obtener_aseveraciones_guia_por_area_o_grupo(codigo_ls: str, area_nombre: str = "") -> dict[str, Any]:
+def obtener_aseveraciones_guia_por_area_o_grupo(
+    codigo_ls: str, area_nombre: str = ""
+) -> dict[str, Any]:
     """
     Compatibilidad de nombre legacy:
     ahora resuelve guia por codigo LS directamente, sin renombrar areas.
@@ -453,7 +533,9 @@ def obtener_aseveraciones_guia_por_area_o_grupo(codigo_ls: str, area_nombre: str
     if isinstance(guia, dict):
         titulo = str(guia.get("titulo_ls", "")).strip()
     if not titulo:
-        titulo = str(area.get("titulo", "")).strip() or (str(area_nombre).strip() if area_nombre else f"LS {codigo}")
+        titulo = str(area.get("titulo", "")).strip() or (
+            str(area_nombre).strip() if area_nombre else f"LS {codigo}"
+        )
 
     if not isinstance(guia, dict):
         return {
@@ -475,13 +557,17 @@ def obtener_aseveraciones_guia_por_area_o_grupo(codigo_ls: str, area_nombre: str
     }
 
 
-def evaluar_alertas_metodologia(cliente: str, codigo_ls: str, ws_context: dict[str, Any]) -> dict[str, Any]:
+def evaluar_alertas_metodologia(
+    cliente: str, codigo_ls: str, ws_context: dict[str, Any]
+) -> dict[str, Any]:
     ws_context = ws_context or {}
     perfil = ws_context.get("perfil", {}) if isinstance(ws_context, dict) else {}
     contexto = ws_context.get("contexto", perfil)
 
     rim = evaluar_rim_fraude(cliente, perfil, contexto)
-    req_proc = evaluar_requerimiento_procedimientos_por_materialidad(codigo_ls, ws_context, rim_eval=rim)
+    req_proc = evaluar_requerimiento_procedimientos_por_materialidad(
+        codigo_ls, ws_context, rim_eval=rim
+    )
     ctrl_walk = evaluar_pruebas_control_y_recorrido(ws_context)
     ingresos = evaluar_ingresos_metodologia(codigo_ls, ws_context, perfil)
     gastos = evaluar_gastos_metodologia(codigo_ls, ws_context)
@@ -518,4 +604,3 @@ def evaluar_alertas_metodologia(cliente: str, codigo_ls: str, ws_context: dict[s
         "alertas_criticas": criticas,
         "resumen": resumen,
     }
-

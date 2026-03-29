@@ -35,15 +35,12 @@ def _inject_assets_once() -> None:
         return
 
     st.markdown(
-        _html_block(
-            dedent(
-            """
+        _html_block(dedent("""
             <link rel="preconnect" href="https://fonts.googleapis.com">
             <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
             <link href="https://fonts.googleapis.com/css2-family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,600;0,700;1,700&family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet">
             
-            """
-        )),
+            """)),
         unsafe_allow_html=True,
     )
 
@@ -78,9 +75,27 @@ def _build_risks(ranking_areas: pd.DataFrame | None) -> list[dict[str, Any]]:
             return out[:3]
 
     return [
-        {"nombre": "14 - Ingresos (corte)", "score": 94.0, "nivel": "CRITICO", "chip_cls": "crit", "row_cls": ""},
-        {"nombre": "31 - Inventarios", "score": 82.0, "nivel": "ALTO", "chip_cls": "alto", "row_cls": "mid"},
-        {"nombre": "47 - Estimaciones", "score": 68.0, "nivel": "MEDIO", "chip_cls": "med", "row_cls": "low"},
+        {
+            "nombre": "14 - Ingresos (corte)",
+            "score": 94.0,
+            "nivel": "CRITICO",
+            "chip_cls": "crit",
+            "row_cls": "",
+        },
+        {
+            "nombre": "31 - Inventarios",
+            "score": 82.0,
+            "nivel": "ALTO",
+            "chip_cls": "alto",
+            "row_cls": "mid",
+        },
+        {
+            "nombre": "47 - Estimaciones",
+            "score": 68.0,
+            "nivel": "MEDIO",
+            "chip_cls": "med",
+            "row_cls": "low",
+        },
     ]
 
 
@@ -115,12 +130,28 @@ def _build_procedures(risks: list[dict[str, Any]]) -> list[dict[str, str]]:
                     "tag": "Estimaciones",
                 }
             )
-    return (items or [{"nia": "NIA 330", "title": "Respuesta a Riesgos Valorados", "desc": "Alinear pruebas con riesgo valorado.", "tag": "General"}])[:3]
+    return (
+        items
+        or [
+            {
+                "nia": "NIA 330",
+                "title": "Respuesta a Riesgos Valorados",
+                "desc": "Alinear pruebas con riesgo valorado.",
+                "tag": "General",
+            }
+        ]
+    )[:3]
 
 
 def _load_holding_guidance() -> str:
     try:
-        p = Path(__file__).resolve().parents[2] / "data" / "criterio_experto" / "por_sector" / "holding.md"
+        p = (
+            Path(__file__).resolve().parents[2]
+            / "data"
+            / "criterio_experto"
+            / "por_sector"
+            / "holding.md"
+        )
         if not p.exists():
             return ""
         return p.read_text(encoding="utf-8", errors="replace").strip()
@@ -134,11 +165,19 @@ def _pick_focus_account(
 ) -> tuple[str, str]:
     if isinstance(variaciones, pd.DataFrame) and not variaciones.empty:
         name_col = next(
-            (c for c in ["nombre_cuenta", "cuenta", "descripcion", "area_nombre"] if c in variaciones.columns),
+            (
+                c
+                for c in ["nombre_cuenta", "cuenta", "descripcion", "area_nombre"]
+                if c in variaciones.columns
+            ),
             None,
         )
         rel_col = next(
-            (c for c in ["variacion_relativa", "variacion_pct", "delta_pct"] if c in variaciones.columns),
+            (
+                c
+                for c in ["variacion_relativa", "variacion_pct", "delta_pct"]
+                if c in variaciones.columns
+            ),
             None,
         )
         if name_col:
@@ -155,7 +194,10 @@ def _pick_focus_account(
 
     if risks:
         return risks[0]["nombre"], "Riesgo priorizado por el motor de áreas."
-    return "Ingresos / Cuentas por cobrar", "Rubro sensible por exposici-n de corte y recuperabilidad."
+    return (
+        "Ingresos / Cuentas por cobrar",
+        "Rubro sensible por exposici-n de corte y recuperabilidad.",
+    )
 
 
 def render_risk_engine_premium(
@@ -172,7 +214,9 @@ def render_risk_engine_premium(
     procedures = _build_procedures(risks)
     _cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente", {}), dict) else {}
     sector = str(_cliente.get("sector", "")).lower()
-    is_holding = bool(perfil.get("es_holding")) or ("holding" in sector) or ("sociedad_cartera" in sector)
+    is_holding = (
+        bool(perfil.get("es_holding")) or ("holding" in sector) or ("sociedad_cartera" in sector)
+    )
     holding_guidance = _load_holding_guidance() if is_holding else ""
 
     alto = int(indicadores.get("areas_alto_riesgo", 0) or 0)
@@ -183,11 +227,31 @@ def render_risk_engine_premium(
     pct_subs = 100 - pct_ctrl
 
     heat_colors = [
-        "#b91c1c", "#dc2626", "#ef4444", "#f97316", "#fb923c",
-        "#dc2626", "#ef4444", "#f97316", "#fb923c", "#facc15",
-        "#ef4444", "#f97316", "#facc15", "#34d399", "#22c55e",
-        "#f97316", "#fb923c", "#34d399", "#22c55e", "#16a34a",
-        "#fb923c", "#facc15", "#34d399", "#16a34a", "#15803d",
+        "#b91c1c",
+        "#dc2626",
+        "#ef4444",
+        "#f97316",
+        "#fb923c",
+        "#dc2626",
+        "#ef4444",
+        "#f97316",
+        "#fb923c",
+        "#facc15",
+        "#ef4444",
+        "#f97316",
+        "#facc15",
+        "#34d399",
+        "#22c55e",
+        "#f97316",
+        "#fb923c",
+        "#34d399",
+        "#22c55e",
+        "#16a34a",
+        "#fb923c",
+        "#facc15",
+        "#34d399",
+        "#16a34a",
+        "#15803d",
     ]
     hot_idxs = {0, 2, 10}
     cell_parts: list[str] = []
@@ -195,17 +259,15 @@ def render_risk_engine_premium(
         inner = '<span class="rk-dot"></span>' if idx in hot_idxs else ""
         if idx in hot_idxs:
             cell_parts.append(
-                f"<div class=\"rk-cell hot\" style=\"background:{color};cursor:pointer;\" "
+                f'<div class="rk-cell hot" style="background:{color};cursor:pointer;" '
                 f"onclick=\"var el=document.getElementById('riesgos-criticos'); if(el){{el.scrollIntoView({{behavior:'smooth'}});}}\" "
-                f"title=\"Ver riesgos criticos\">{inner}</div>"
+                f'title="Ver riesgos criticos">{inner}</div>'
             )
         else:
             cell_parts.append(f'<div class="rk-cell" style="background:{color};">{inner}</div>')
     cells = "".join(cell_parts)
 
-    risk_cards = "".join(
-        [
-            f"""
+    risk_cards = "".join([f"""
             <div class="rk-risk-card {r['row_cls']}">
                 <div>
                     <div style="font-weight:700;font-size:.88rem;">{r['nombre']}</div>
@@ -216,14 +278,9 @@ def render_risk_engine_premium(
                     <div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:#94A3B8;">Score</div>
                 </div>
             </div>
-            """
-            for r in risks
-        ]
-    )
+            """ for r in risks])
 
-    proc_cards = "".join(
-        [
-            f"""
+    proc_cards = "".join([f"""
             <div class="rk-proc-item">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
                     <span class="rk-nia">{p['nia']}</span>
@@ -233,15 +290,24 @@ def render_risk_engine_premium(
                 <div style="font-size:.82rem;color:#475569;margin-top:.22rem;line-height:1.45;">{p['desc']}</div>
                 <div style="margin-top:.35rem;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:#0f766e;font-weight:800;">Vinculado a: {p['tag']}</div>
             </div>
-            """
-            for p in procedures
-        ]
-    )
+            """ for p in procedures])
 
-    global_level = str(perfil.get("riesgo_global", {}).get("nivel", "medio")).upper() if isinstance(perfil.get("riesgo_global", {}), dict) else "MEDIO"
-    ai_insight = "Se detecta correlacion atipica entre devoluciones y reconocimiento de ingresos de cierre."
-    if isinstance(variaciones, pd.DataFrame) and not variaciones.empty and "variacion_relativa" in variaciones.columns:
-        max_rel = _safe_float(pd.to_numeric(variaciones["variacion_relativa"], errors="coerce").abs().max(), 0.0)
+    global_level = (
+        str(perfil.get("riesgo_global", {}).get("nivel", "medio")).upper()
+        if isinstance(perfil.get("riesgo_global", {}), dict)
+        else "MEDIO"
+    )
+    ai_insight = (
+        "Se detecta correlacion atipica entre devoluciones y reconocimiento de ingresos de cierre."
+    )
+    if (
+        isinstance(variaciones, pd.DataFrame)
+        and not variaciones.empty
+        and "variacion_relativa" in variaciones.columns
+    ):
+        max_rel = _safe_float(
+            pd.to_numeric(variaciones["variacion_relativa"], errors="coerce").abs().max(), 0.0
+        )
         ai_insight = f"La variacion relativa maxima observada es {max_rel:.1f}%, lo que sugiere reforzar pruebas de corte y estimaciones clave."
     if is_holding:
         holding_note = (
@@ -257,8 +323,7 @@ def render_risk_engine_premium(
             + holding_note
         )
 
-    ui_html = dedent(
-        f"""
+    ui_html = dedent(f"""
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2-family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,600;0,700;1,700&family=Material+Symbols+Outlined:wght@400;700&display=swap" rel="stylesheet">
@@ -287,8 +352,7 @@ def render_risk_engine_premium(
             <div class="rk-col-7 rk-proc"><div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.65rem;"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1; color:#0f766e;">bolt</span><h2 class="rk-serif" style="font-size:1.55rem;margin:0;">Socio AI - Sugerencia de Procedimientos</h2></div>{proc_cards}</div>
         </div>
         <div class="rk-root rk-footer"><span>Socio AI Risk Engine v2.4.0</span><span>Documentation - Methodology - Audit Standards</span></div>
-        """
-    )
+        """)
     components.html(ui_html, height=1120, scrolling=False)
 
     legend_cols = st.columns(4)
@@ -316,21 +380,31 @@ def render_risk_engine_premium(
         cols = st.columns(5)
         for ctl in range(1, 6):
             label = _emoji_for_cell(inh, ctl)
-            if cols[ctl - 1].button(label, key=f"rk_cell_{cliente}_{inh}_{ctl}", help=f"Inherente {inh} / Control {ctl}"):
+            if cols[ctl - 1].button(
+                label, key=f"rk_cell_{cliente}_{inh}_{ctl}", help=f"Inherente {inh} / Control {ctl}"
+            ):
                 st.session_state[selected_key] = (inh, ctl)
 
     inherente, control = st.session_state[selected_key]
     score_mapa = inherente * control
-    zona = "Critica" if score_mapa >= 16 else "Alta" if score_mapa >= 10 else "Moderada" if score_mapa >= 6 else "Baja"
+    zona = (
+        "Critica"
+        if score_mapa >= 16
+        else "Alta" if score_mapa >= 10 else "Moderada" if score_mapa >= 6 else "Baja"
+    )
     color = "#BA1A1A" if zona == "Critica" else "#B45309" if zona == "Alta" else "#047857"
     accion = (
         "Escalar a socio, ampliar muestra y ejecutar pruebas sustantivas extendidas."
         if zona == "Critica"
-        else "Incrementar pruebas de detalle y validar controles compensatorios."
-        if zona == "Alta"
-        else "Mantener enfoque mixto con seguimiento semanal."
-        if zona == "Moderada"
-        else "Monitoreo estándar y pruebas de confirmaci-n selectivas."
+        else (
+            "Incrementar pruebas de detalle y validar controles compensatorios."
+            if zona == "Alta"
+            else (
+                "Mantener enfoque mixto con seguimiento semanal."
+                if zona == "Moderada"
+                else "Monitoreo estándar y pruebas de confirmaci-n selectivas."
+            )
+        )
     )
 
     st.markdown(
@@ -356,14 +430,18 @@ def render_risk_engine_premium(
         f"En esta zona crítica, la cuenta '{focus_account}' puede concentrar errores materiales. "
         f"{focus_detail} Si el patr-n se confirma, es probable que exista sesgo de corte o debilidad de control."
         if zona == "Critica"
-        else f"La cuenta '{focus_account}' merece pruebas adicionales. {focus_detail} "
-        "La narrativa sugiere riesgo alto y necesidad de procedimientos de detalle."
-        if zona == "Alta"
-        else f"La cuenta '{focus_account}' permanece bajo observaci-n. {focus_detail} "
-        "La evidencia actual permite un enfoque mixto con monitoreo."
-        if zona == "Moderada"
-        else f"En zona baja, '{focus_account}' no muestra señales fuertes. {focus_detail} "
-        "Se recomienda seguimiento estándar."
+        else (
+            f"La cuenta '{focus_account}' merece pruebas adicionales. {focus_detail} "
+            "La narrativa sugiere riesgo alto y necesidad de procedimientos de detalle."
+            if zona == "Alta"
+            else (
+                f"La cuenta '{focus_account}' permanece bajo observaci-n. {focus_detail} "
+                "La evidencia actual permite un enfoque mixto con monitoreo."
+                if zona == "Moderada"
+                else f"En zona baja, '{focus_account}' no muestra señales fuertes. {focus_detail} "
+                "Se recomienda seguimiento estándar."
+            )
+        )
     )
 
     siguiente_paso = (
@@ -404,7 +482,11 @@ def render_risk_engine_premium(
         )
 
     score_mapa = inherente * control
-    zona = "Critica" if score_mapa >= 16 else "Alta" if score_mapa >= 10 else "Moderada" if score_mapa >= 6 else "Baja"
+    zona = (
+        "Critica"
+        if score_mapa >= 16
+        else "Alta" if score_mapa >= 10 else "Moderada" if score_mapa >= 6 else "Baja"
+    )
     color = "#BA1A1A" if zona == "Critica" else "#B45309" if zona == "Alta" else "#047857"
 
     with go_col:

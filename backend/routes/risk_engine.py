@@ -7,7 +7,13 @@ import yaml
 from fastapi import APIRouter, Depends
 
 from backend.auth import authorize_cliente_access, get_current_user
-from backend.schemas import ApiResponse, RiskCriticalArea, RiskEngineResponse, RiskMatrixCell, UserContext
+from backend.schemas import (
+    ApiResponse,
+    RiskCriticalArea,
+    RiskEngineResponse,
+    RiskMatrixCell,
+    UserContext,
+)
 
 router = APIRouter(prefix="/risk-engine", tags=["risk-engine"])
 
@@ -198,5 +204,7 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
     critical_areas.sort(key=lambda x: x.score, reverse=True)
     quadrants = _build_matrix_cells(critical_areas)
 
-    payload = RiskEngineResponse(cliente_id=cliente_id, quadrants=quadrants, areas_criticas=critical_areas[:8])
+    payload = RiskEngineResponse(
+        cliente_id=cliente_id, quadrants=quadrants, areas_criticas=critical_areas[:8]
+    )
     return ApiResponse(data=payload.model_dump())

@@ -77,14 +77,22 @@ def render_sidebar_summary(
     perfil = perfil or {}
     datos_clave = datos_clave or {}
 
-    periodo = get_first(datos_clave, ["periodo"], perfil.get("encargo", {}).get("anio_activo", "N/A"))
-    marco = get_first(datos_clave, ["marco_referencial"], perfil.get("encargo", {}).get("marco_referencial", "N/A"))
+    periodo = get_first(
+        datos_clave, ["periodo"], perfil.get("encargo", {}).get("anio_activo", "N/A")
+    )
+    marco = get_first(
+        datos_clave,
+        ["marco_referencial"],
+        perfil.get("encargo", {}).get("marco_referencial", "N/A"),
+    )
     riesgo_global = normalize_text(perfil.get("riesgo_global", {}).get("nivel", "N/A")) or "N/A"
 
     top_area = "N/A"
     if ranking_areas is not None and not ranking_areas.empty:
         row0 = ranking_areas.iloc[0]
-        top_area = f"{normalize_text(row0.get('area', ''))} ({fmt_num(row0.get('score_riesgo', 0), 1)})"
+        top_area = (
+            f"{normalize_text(row0.get('area', ''))} ({fmt_num(row0.get('score_riesgo', 0), 1)})"
+        )
 
     st.sidebar.caption(f"Cliente: {cliente}")
     st.sidebar.caption(f"Periodo: {periodo}")
@@ -137,7 +145,13 @@ def render_por_que_importa(ws: dict[str, Any]) -> None:
     else:
         st.info("No se detectaron señales expertas adicionales para esta área.")
 
-    if ws.get("es_holding") and str(ws.get("codigo_ls", "")).strip() in {"14", "200", "425.2", "1600", "1500"}:
+    if ws.get("es_holding") and str(ws.get("codigo_ls", "")).strip() in {
+        "14",
+        "200",
+        "425.2",
+        "1600",
+        "1500",
+    }:
         st.markdown("**Foco holding**")
         st.markdown(
             "- Esta area se interpreta con enfoque holding: inversiones, patrimonio, relacionadas y consistencia de presentacion."
@@ -145,4 +159,6 @@ def render_por_que_importa(ws: dict[str, Any]) -> None:
         if str(ws.get("codigo_ls", "")).strip() in {"14", "200"}:
             st.caption("Prioridad consistente con naturaleza holding.")
 
-    st.caption(normalize_text(ws.get("justificacion", "")) or "Sin justificación automática disponible.")
+    st.caption(
+        normalize_text(ws.get("justificacion", "")) or "Sin justificación automática disponible."
+    )

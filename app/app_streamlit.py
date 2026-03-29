@@ -11,6 +11,11 @@ from __future__ import annotations
 import sys
 import os
 from pathlib import Path
+from datetime import datetime
+from typing import Any
+
+import pandas as pd
+import streamlit as st
 
 # Add project root to sys.path so all internal modules
 # are importable both locally and on Streamlit Cloud
@@ -18,47 +23,35 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from datetime import datetime
-from typing import Any
-
-import pandas as pd
-import streamlit as st
-
-from analysis.lector_tb import leer_tb, obtener_resumen_tb, obtener_diagnostico_tb
-from analysis.ranking_areas import calcular_ranking_areas, obtener_indicadores_clave
-from analysis.variaciones import calcular_variaciones, resumen_variaciones
-from analysis.expert_flags import detectar_expert_flags
-from domain.services.leer_perfil import leer_perfil, obtener_datos_clave
-from app.views.view_cliente import (
+from analysis.lector_tb import leer_tb, obtener_resumen_tb, obtener_diagnostico_tb  # noqa: E402
+from analysis.ranking_areas import calcular_ranking_areas, obtener_indicadores_clave  # noqa: E402
+from analysis.variaciones import calcular_variaciones, resumen_variaciones  # noqa: E402
+from analysis.expert_flags import detectar_expert_flags  # noqa: E402
+from domain.services.leer_perfil import leer_perfil, obtener_datos_clave  # noqa: E402
+from app.views.view_cliente import (  # noqa: E402
     render_sidebar_summary,
-    render_area_header,
-    render_area_kpis,
-    render_por_que_importa,
 )
-from app.views.view_ranking import (
+from app.views.view_ranking import (  # noqa: E402
     render_contexto_tab,
     render_briefing_tab,
     render_procedimientos_tab,
     render_cobertura_tab,
     render_hallazgos_tab,
 )
-from app.views.view_area import (
+from app.views.view_area import (  # noqa: E402
     render_cierre_tab,
-    render_decision_cierre_helper,
     render_seguimiento_tab,
     render_historial_tab,
-    render_export_block,
 )
-from app.views.view_area_premium import render_area_premium, _render_cierre_cards
-from app.views.view_estados_financieros_premium import (
+from app.views.view_area_premium import render_area_premium  # noqa: E402
+from app.views.view_estados_financieros_premium import (  # noqa: E402
     render_estados_financieros_premium,
 )
-from app.views.view_dashboard_premium import render_dashboard_overview_premium
-from app.views.view_risk_engine_premium import render_risk_engine_premium
-from app.views.view_materialidad import render_calidad_tab
-from app.views.view_chat import render_briefing_ia_tab, render_chat_tab
-from app.utils.theme_engine import inject_sovereign_theme, render_editorial_table
-from app.utils.ui_components import inject_head
+from app.views.view_dashboard_premium import render_dashboard_overview_premium  # noqa: E402
+from app.views.view_risk_engine_premium import render_risk_engine_premium  # noqa: E402
+from app.views.view_materialidad import render_calidad_tab  # noqa: E402
+from app.utils.theme_engine import inject_sovereign_theme, render_editorial_table  # noqa: E402
+from app.utils.ui_components import inject_head  # noqa: E402
 
 # Servicios opcionales (degradacion segura)
 try:
@@ -102,7 +95,9 @@ except Exception:
     detectar_riesgos_area = None
 
 try:
-    from domain.services.riesgos_automaticos_service import detectar_riesgos_area as detectar_riesgos_area_auto
+    from domain.services.riesgos_automaticos_service import (
+        detectar_riesgos_area as detectar_riesgos_area_auto,
+    )
 except Exception:
     detectar_riesgos_area_auto = None
 
@@ -190,78 +185,36 @@ except Exception:
 try:
     # Preferred remote persistence backend: Supabase
     from infra.repositories import supabase_repository as _sheets_repo
-    guardar_cliente_sheets = getattr(
-        _sheets_repo, "guardar_cliente_sheets", None
-    )
-    cargar_clientes_sheets = getattr(
-        _sheets_repo, "cargar_clientes_sheets", None
-    )
-    eliminar_cliente_sheets = getattr(
-        _sheets_repo, "eliminar_cliente_sheets", None
-    )
-    sheets_disponible = getattr(
-        _sheets_repo, "sheets_disponible", None
-    )
-    obtener_ultimo_error_sheets = getattr(
-        _sheets_repo, "obtener_ultimo_error_sheets", None
-    )
-    diagnosticar_sheets = getattr(
-        _sheets_repo, "diagnosticar_sheets", None
-    )
-    diagnosticar_config_supabase = getattr(
-        _sheets_repo, "diagnosticar_config_supabase", None
-    )
-    guardar_tb_storage = getattr(
-        _sheets_repo, "guardar_tb_storage", None
-    )
-    cargar_tb_storage = getattr(
-        _sheets_repo, "cargar_tb_storage", None
-    )
-    existe_tb_storage = getattr(
-        _sheets_repo, "existe_tb_storage", None
-    )
-    eliminar_tb_storage = getattr(
-        _sheets_repo, "eliminar_tb_storage", None
-    )
+
+    guardar_cliente_sheets = getattr(_sheets_repo, "guardar_cliente_sheets", None)
+    cargar_clientes_sheets = getattr(_sheets_repo, "cargar_clientes_sheets", None)
+    eliminar_cliente_sheets = getattr(_sheets_repo, "eliminar_cliente_sheets", None)
+    sheets_disponible = getattr(_sheets_repo, "sheets_disponible", None)
+    obtener_ultimo_error_sheets = getattr(_sheets_repo, "obtener_ultimo_error_sheets", None)
+    diagnosticar_sheets = getattr(_sheets_repo, "diagnosticar_sheets", None)
+    diagnosticar_config_supabase = getattr(_sheets_repo, "diagnosticar_config_supabase", None)
+    guardar_tb_storage = getattr(_sheets_repo, "guardar_tb_storage", None)
+    cargar_tb_storage = getattr(_sheets_repo, "cargar_tb_storage", None)
+    existe_tb_storage = getattr(_sheets_repo, "existe_tb_storage", None)
+    eliminar_tb_storage = getattr(_sheets_repo, "eliminar_tb_storage", None)
     _sheets_ok = True
     _sheets_import_error = ""
 except Exception:
     try:
         # Fallback legacy backend: Google Sheets
         from infra.repositories import sheets_repository as _sheets_repo
-        guardar_cliente_sheets = getattr(
-            _sheets_repo, "guardar_cliente_sheets", None
-        )
-        cargar_clientes_sheets = getattr(
-            _sheets_repo, "cargar_clientes_sheets", None
-        )
-        eliminar_cliente_sheets = getattr(
-            _sheets_repo, "eliminar_cliente_sheets", None
-        )
-        sheets_disponible = getattr(
-            _sheets_repo, "sheets_disponible", None
-        )
-        obtener_ultimo_error_sheets = getattr(
-            _sheets_repo, "obtener_ultimo_error_sheets", None
-        )
-        diagnosticar_sheets = getattr(
-            _sheets_repo, "diagnosticar_sheets", None
-        )
-        diagnosticar_config_supabase = getattr(
-            _sheets_repo, "diagnosticar_config_supabase", None
-        )
-        guardar_tb_storage = getattr(
-            _sheets_repo, "guardar_tb_storage", None
-        )
-        cargar_tb_storage = getattr(
-            _sheets_repo, "cargar_tb_storage", None
-        )
-        existe_tb_storage = getattr(
-            _sheets_repo, "existe_tb_storage", None
-        )
-        eliminar_tb_storage = getattr(
-            _sheets_repo, "eliminar_tb_storage", None
-        )
+
+        guardar_cliente_sheets = getattr(_sheets_repo, "guardar_cliente_sheets", None)
+        cargar_clientes_sheets = getattr(_sheets_repo, "cargar_clientes_sheets", None)
+        eliminar_cliente_sheets = getattr(_sheets_repo, "eliminar_cliente_sheets", None)
+        sheets_disponible = getattr(_sheets_repo, "sheets_disponible", None)
+        obtener_ultimo_error_sheets = getattr(_sheets_repo, "obtener_ultimo_error_sheets", None)
+        diagnosticar_sheets = getattr(_sheets_repo, "diagnosticar_sheets", None)
+        diagnosticar_config_supabase = getattr(_sheets_repo, "diagnosticar_config_supabase", None)
+        guardar_tb_storage = getattr(_sheets_repo, "guardar_tb_storage", None)
+        cargar_tb_storage = getattr(_sheets_repo, "cargar_tb_storage", None)
+        existe_tb_storage = getattr(_sheets_repo, "existe_tb_storage", None)
+        eliminar_tb_storage = getattr(_sheets_repo, "eliminar_tb_storage", None)
         _sheets_ok = True
         _sheets_import_error = ""
     except Exception:
@@ -372,6 +325,7 @@ def _obtener_admin_password() -> str:
     """Load admin password from secrets or env."""
     try:
         import streamlit as st
+
         val = st.secrets.get("ADMIN_PASSWORD", "")
         if val and str(val).strip():
             return str(val).strip()
@@ -396,8 +350,10 @@ def _limpiar_cliente_session(cliente_id: str) -> int:
 
     # Active client keys if they point to this client
     active_keys = [
-        "cliente_activo", "etapa_activa",
-        "setup_cliente_sel", "auditor_nombre",
+        "cliente_activo",
+        "etapa_activa",
+        "setup_cliente_sel",
+        "auditor_nombre",
     ]
     for k in active_keys:
         if st.session_state.get(k) == cliente_id:
@@ -415,11 +371,13 @@ def _limpiar_cliente_session(cliente_id: str) -> int:
     # Also clear module-level caches
     try:
         from analysis.lector_tb import clear_tb_cache
+
         clear_tb_cache(cliente_id)
     except Exception:
         pass
     try:
         from domain.services.leer_perfil import clear_perfil_cache
+
         clear_perfil_cache(cliente_id)
     except Exception:
         pass
@@ -452,31 +410,21 @@ def _get_clientes_dinamicos() -> list[str]:
     3. Session-created clients (this session only)
     Excludes deleted clients.
     """
-    _borrados = st.session_state.get(
-        "clientes_borrados_sesion", []
-    )
+    _borrados = st.session_state.get("clientes_borrados_sesion", [])
 
     # 1. From remote persistence (persistent)
     _sheets_clientes: list[str] = []
-    if _sheets_ok and sheets_disponible and \
-            safe_call(sheets_disponible, default=False):
+    if _sheets_ok and sheets_disponible and safe_call(sheets_disponible, default=False):
         _cache_key = "sheets_clientes_cache"
         # Cache for 60 seconds to avoid too many API calls
         _cache_time_key = "sheets_clientes_cache_time"
         import time
+
         _now = time.time()
-        _last = st.session_state.get(
-            _cache_time_key, 0
-        )
-        if _now - _last > 60 or \
-                _cache_key not in st.session_state:
-            _raw = safe_call(
-                cargar_clientes_sheets, default=[]
-            ) or []
-            _ids = [
-                c["cliente_id"] for c in _raw
-                if c.get("cliente_id")
-            ]
+        _last = st.session_state.get(_cache_time_key, 0)
+        if _now - _last > 60 or _cache_key not in st.session_state:
+            _raw = safe_call(cargar_clientes_sheets, default=[]) or []
+            _ids = [c["cliente_id"] for c in _raw if c.get("cliente_id")]
             st.session_state[_cache_key] = _ids
             st.session_state[_cache_time_key] = _now
 
@@ -486,34 +434,25 @@ def _get_clientes_dinamicos() -> list[str]:
                 _pf = c.get("perfil", {})
                 if _cid and _pf:
                     try:
-                        from domain.services.leer_perfil \
-                            import set_perfil_cache
+                        from domain.services.leer_perfil import set_perfil_cache
+
                         set_perfil_cache(_cid, _pf)
                     except Exception:
                         pass
-                    st.session_state[
-                        f"perfil_upload_{_cid}"
-                    ] = _pf
+                    st.session_state[f"perfil_upload_{_cid}"] = _pf
 
-        _sheets_clientes = st.session_state.get(
-            _cache_key, []
-        )
+        _sheets_clientes = st.session_state.get(_cache_key, [])
 
     # 2. From repo folders
     _base_path = Path("data/clientes")
-    _base = sorted([
-        d.name for d in _base_path.iterdir()
-        if d.is_dir()
-    ]) if _base_path.exists() else []
-
-    # 3. Session-created
-    _nuevos = st.session_state.get(
-        "clientes_creados_sesion", []
+    _base = (
+        sorted([d.name for d in _base_path.iterdir() if d.is_dir()]) if _base_path.exists() else []
     )
 
-    _todos = list(dict.fromkeys(
-        _sheets_clientes + _base + _nuevos
-    ))
+    # 3. Session-created
+    _nuevos = st.session_state.get("clientes_creados_sesion", [])
+
+    _todos = list(dict.fromkeys(_sheets_clientes + _base + _nuevos))
     return [c for c in _todos if c not in _borrados]
 
 
@@ -574,8 +513,16 @@ def is_holding_profile(perfil: dict[str, Any] | None) -> bool:
     if not isinstance(perfil, dict):
         return False
     cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
-    contexto = perfil.get("contexto_negocio", {}) if isinstance(perfil.get("contexto_negocio"), dict) else {}
-    industria = perfil.get("industria_inteligente", {}) if isinstance(perfil.get("industria_inteligente"), dict) else {}
+    contexto = (
+        perfil.get("contexto_negocio", {})
+        if isinstance(perfil.get("contexto_negocio"), dict)
+        else {}
+    )
+    industria = (
+        perfil.get("industria_inteligente", {})
+        if isinstance(perfil.get("industria_inteligente"), dict)
+        else {}
+    )
     blob = " ".join(
         [
             str(cliente.get("sector", "")),
@@ -614,29 +561,23 @@ def infer_area_options(
                     lambda x: abs(float(x or 0)) > 0.01
                 )
             elif "estado_presencia" in ranking_areas.columns:
-                mask_present = ranking_areas["estado_presencia"].astype(
-                    str
-                ).isin({"con_saldo", "sin_saldo"})
+                mask_present = (
+                    ranking_areas["estado_presencia"].astype(str).isin({"con_saldo", "sin_saldo"})
+                )
 
             df_present = ranking_areas[mask_present].copy()
 
             # Sort by score descending so highest-risk reas appear first
             if "score_riesgo" in df_present.columns:
-                df_present = df_present.sort_values(
-                    "score_riesgo", ascending=False
-                )
+                df_present = df_present.sort_values("score_riesgo", ascending=False)
 
             for _, row in df_present.iterrows():
                 code = normalize_text(row.get("area", ""))
                 name = normalize_text(row.get("nombre", ""))
                 if code:
                     score = row.get("score_riesgo")
-                    score_txt = (
-                        f" [{float(score):.0f}]" if score is not None else ""
-                    )
-                    label = (
-                        f"{code} - {name}{score_txt}" if name else code
-                    )
+                    score_txt = f" [{float(score):.0f}]" if score is not None else ""
+                    label = f"{code} - {name}{score_txt}" if name else code
                     options.append((code, label))
 
     # -- Fallback: read ls column from TB directly --------------
@@ -647,11 +588,7 @@ def infer_area_options(
         )
         if ls_col:
             present_ls = sorted(
-                {
-                    normalize_text(v)
-                    for v in tb[ls_col].dropna().tolist()
-                    if normalize_text(v)
-                }
+                {normalize_text(v) for v in tb[ls_col].dropna().tolist() if normalize_text(v)}
             )
 
             def _label(code: str) -> str:
@@ -672,7 +609,9 @@ def infer_area_options(
     return options
 
 
-def build_area_df(tb: pd.DataFrame | None, variaciones: pd.DataFrame | None, codigo_ls: str) -> pd.DataFrame:
+def build_area_df(
+    tb: pd.DataFrame | None, variaciones: pd.DataFrame | None, codigo_ls: str
+) -> pd.DataFrame:
     """
     Intenta construir un DataFrame de area compatible con servicios legacy.
     """
@@ -690,9 +629,7 @@ def build_area_df(tb: pd.DataFrame | None, variaciones: pd.DataFrame | None, cod
     if variaciones is not None and not variaciones.empty:
         for col in ["ls", "l/s", "l_s", "L/S"]:
             if col in variaciones.columns:
-                area = variaciones[
-                    _mask_ls(variaciones[col], codigo_ls_norm)
-                ].copy()
+                area = variaciones[_mask_ls(variaciones[col], codigo_ls_norm)].copy()
                 if not area.empty:
                     return area
 
@@ -728,9 +665,7 @@ def build_area_df(tb: pd.DataFrame | None, variaciones: pd.DataFrame | None, cod
             sub = tb[mask].copy()
             if not sub.empty:
                 out = pd.DataFrame()
-                out["numero_cuenta"] = (
-                    sub[codigo_col].astype(str) if codigo_col else ""
-                )
+                out["numero_cuenta"] = sub[codigo_col].astype(str) if codigo_col else ""
                 out["nombre_cuenta"] = sub[nombre_col] if nombre_col else ""
                 out["saldo_actual"] = pd.to_numeric(sub[saldo_col], errors="coerce").fillna(0.0)
                 out["saldo_anterior"] = (
@@ -798,7 +733,9 @@ def prepare_area_workspace(
     trivialidad = 0.0
 
     if ranking_areas is not None and not ranking_areas.empty and "area" in ranking_areas.columns:
-        rows = ranking_areas[ranking_areas["area"].astype(str).str.strip() == str(codigo_ls).strip()]
+        rows = ranking_areas[
+            ranking_areas["area"].astype(str).str.strip() == str(codigo_ls).strip()
+        ]
         if not rows.empty:
             row0 = rows.iloc[0]
             area_name = normalize_text(row0.get("nombre", "")) or area_name
@@ -825,7 +762,9 @@ def prepare_area_workspace(
         materialidad_ejecucion = float(mat.get("materialidad_desempeno", 0) or 0)
         trivialidad = float(mat.get("error_trivial", 0) or 0)
         if materialidad_ejecucion > 0:
-            materialidad_relativa = (saldo_total / materialidad_ejecucion) * 100 if saldo_total else 0.0
+            materialidad_relativa = (
+                (saldo_total / materialidad_ejecucion) * 100 if saldo_total else 0.0
+            )
 
     # Riesgos
     riesgos = safe_call(detectar_riesgos_area, area_df, str(codigo_ls), perfil, default=[]) or []
@@ -841,26 +780,36 @@ def prepare_area_workspace(
 
     # Flags expertas directas (fallback si ranking no las trae)
     if not expert_flags:
-        expert_flags = safe_call(
-            detectar_expert_flags,
-            codigo_area=str(codigo_ls),
-            perfil=perfil,
-            metricas_area={
-                "saldo_total": saldo_total,
-                "pct_total": pct_total,
-                "materialidad_relativa": materialidad_relativa,
-                "variacion_abs_total": float(area_df.get("abs_variacion_absoluta", pd.Series(dtype=float)).sum())
-                if not area_df.empty
-                else 0.0,
-            },
-            default=[],
-        ) or []
+        expert_flags = (
+            safe_call(
+                detectar_expert_flags,
+                codigo_area=str(codigo_ls),
+                perfil=perfil,
+                metricas_area={
+                    "saldo_total": saldo_total,
+                    "pct_total": pct_total,
+                    "materialidad_relativa": materialidad_relativa,
+                    "variacion_abs_total": (
+                        float(area_df.get("abs_variacion_absoluta", pd.Series(dtype=float)).sum())
+                        if not area_df.empty
+                        else 0.0
+                    ),
+                },
+                default=[],
+            )
+            or []
+        )
         expert_flags_count = len(expert_flags)
 
     # Procedimientos
     proc_estado = safe_call(obtener_procedimientos_area, estado_area, default=[]) or []
     if not proc_estado:
-        proc_estado = safe_call(procedimientos_por_area_estructurados, str(codigo_ls), perfil, riesgos, default=[]) or []
+        proc_estado = (
+            safe_call(
+                procedimientos_por_area_estructurados, str(codigo_ls), perfil, riesgos, default=[]
+            )
+            or []
+        )
 
     if proc_estado and isinstance(proc_estado[0], str):
         proc_estado = [
@@ -868,14 +817,22 @@ def prepare_area_workspace(
             for idx, desc in enumerate(proc_estado)
         ]
 
-    proc_df = pd.DataFrame(proc_estado) if proc_estado else pd.DataFrame(columns=["id", "descripcion", "estado"])
+    proc_df = (
+        pd.DataFrame(proc_estado)
+        if proc_estado
+        else pd.DataFrame(columns=["id", "descripcion", "estado"])
+    )
     if "estado" not in proc_df.columns:
         proc_df["estado"] = "planificado"
     if "descripcion" not in proc_df.columns:
         proc_df["descripcion"] = ""
 
     done_states = {"ejecutado", "completado", "cerrado", "no_aplicable", "no_aplica"}
-    pending_count = int((~proc_df["estado"].astype(str).str.lower().isin(done_states)).sum()) if not proc_df.empty else 0
+    pending_count = (
+        int((~proc_df["estado"].astype(str).str.lower().isin(done_states)).sum())
+        if not proc_df.empty
+        else 0
+    )
 
     # Hallazgos
     hallazgos = safe_call(extraer_hallazgos_abiertos, estado_area, default=[]) or []
@@ -899,7 +856,9 @@ def prepare_area_workspace(
     )
 
     if cobertura is None:
-        esperadas = ASEVERACIONES_LS.get(str(codigo_ls), []) if isinstance(ASEVERACIONES_LS, dict) else []
+        esperadas = (
+            ASEVERACIONES_LS.get(str(codigo_ls), []) if isinstance(ASEVERACIONES_LS, dict) else []
+        )
         cobertura = {
             "esperadas": esperadas,
             "cubiertas": [],
@@ -912,21 +871,41 @@ def prepare_area_workspace(
 
     # Briefing
     area_summary = safe_call(construir_resumen_area, area_df, default={}) or {}
-    lectura = safe_call(construir_lectura_inicial, str(codigo_ls), area_df, perfil, default="") or ""
+    lectura = (
+        safe_call(construir_lectura_inicial, str(codigo_ls), area_df, perfil, default="") or ""
+    )
     focos = safe_call(construir_foco_auditoria, str(codigo_ls), perfil, area_df, default=[]) or []
     if not isinstance(focos, list):
         focos = []
-    foco_holding = safe_call(construir_foco_holding, str(codigo_ls), perfil, area_df, default=[]) or []
+    foco_holding = (
+        safe_call(construir_foco_holding, str(codigo_ls), perfil, area_df, default=[]) or []
+    )
     if not isinstance(foco_holding, list):
         foco_holding = []
 
     if not area_summary:
         area_summary = {
             "cuentas": int(len(area_df)) if not area_df.empty else 0,
-            "saldo_actual": float(area_df.get("saldo_actual", pd.Series(dtype=float)).sum()) if not area_df.empty else saldo_total,
-            "variacion_neta": float(area_df.get("variacion_absoluta", pd.Series(dtype=float)).sum()) if not area_df.empty else 0.0,
-            "variacion_acumulada": float(area_df.get("abs_variacion_absoluta", pd.Series(dtype=float)).sum()) if not area_df.empty else 0.0,
-            "cuentas_relevantes": int(area_df.get("flag_movimiento_relevante", pd.Series(dtype=bool)).sum()) if not area_df.empty else 0,
+            "saldo_actual": (
+                float(area_df.get("saldo_actual", pd.Series(dtype=float)).sum())
+                if not area_df.empty
+                else saldo_total
+            ),
+            "variacion_neta": (
+                float(area_df.get("variacion_absoluta", pd.Series(dtype=float)).sum())
+                if not area_df.empty
+                else 0.0
+            ),
+            "variacion_acumulada": (
+                float(area_df.get("abs_variacion_absoluta", pd.Series(dtype=float)).sum())
+                if not area_df.empty
+                else 0.0
+            ),
+            "cuentas_relevantes": (
+                int(area_df.get("flag_movimiento_relevante", pd.Series(dtype=bool)).sum())
+                if not area_df.empty
+                else 0
+            ),
         }
 
     if not lectura:
@@ -936,7 +915,9 @@ def prepare_area_workspace(
         )
 
     # Cierre
-    cierre_texto = safe_call(revisar_cierre_area_llm, cliente, str(codigo_ls), etapa=etapa, default="") or ""
+    cierre_texto = (
+        safe_call(revisar_cierre_area_llm, cliente, str(codigo_ls), etapa=etapa, default="") or ""
+    )
     pendientes = safe_call(obtener_pendientes_area, estado_area, default=[]) or []
 
     if not cierre_texto:
@@ -1002,9 +983,7 @@ def prepare_area_workspace(
         else ""
     ).lower()
     ws_base["marco_niif"] = normalize_text(
-        perfil.get("encargo", {}).get("marco_referencial", "")
-        if isinstance(perfil, dict)
-        else ""
+        perfil.get("encargo", {}).get("marco_referencial", "") if isinstance(perfil, dict) else ""
     )
     ws_base["cliente"] = cliente
 
@@ -1013,18 +992,19 @@ def prepare_area_workspace(
         riesgos_automaticos = []
     ws_base["riesgos_automaticos"] = riesgos_automaticos
 
-    calidad_eval = safe_call(
-        evaluar_alertas_metodologia,
-        cliente,
-        str(codigo_ls),
-        ws_base,
-        default={},
-    ) or {}
+    calidad_eval = (
+        safe_call(
+            evaluar_alertas_metodologia,
+            cliente,
+            str(codigo_ls),
+            ws_base,
+            default={},
+        )
+        or {}
+    )
 
     ws_base["calidad_metodologia"] = calidad_eval if isinstance(calidad_eval, dict) else {}
     return ws_base
-
-
 
 
 def render_consultar_socio_tab(ws: dict[str, Any], cliente: str) -> None:
@@ -1041,7 +1021,9 @@ def render_consultar_socio_tab(ws: dict[str, Any], cliente: str) -> None:
     pregunta = st.text_input("Haz una pregunta sobre esta area", key=f"q_{chat_key}")
 
     if st.button("Consultar", key=f"b_{chat_key}"):
-        respuesta = safe_call(consultar_socio, pregunta, ws, default="No se pudo obtener respuesta.")
+        respuesta = safe_call(
+            consultar_socio, pregunta, ws, default="No se pudo obtener respuesta."
+        )
         st.session_state[chat_key].append(("Usuario", pregunta))
         st.session_state[chat_key].append(("Socio", respuesta))
 
@@ -1056,7 +1038,8 @@ def render_welcome_screen():
     """Full-page welcome screen."""
     st.markdown("<div class='sv-hide-sidebar'></div>", unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(
+        """
     <div style="display:flex; justify-content:center; align-items:center; min-height:80vh;">
       <div class="sovereign-card" style="max-width:840px; width:100%; padding:2.8rem 2.4rem; text-align:center;">
         <div class="sv-serif" style="font-size:4.4rem; font-weight:700; color:#041627; margin-bottom:0.35rem; line-height:1;">Socio AI</div>
@@ -1069,7 +1052,9 @@ def render_welcome_screen():
         </div>
       </div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
@@ -1087,7 +1072,8 @@ def render_setup_screen(clientes_disponibles: list[str]):
     """Client setup screen: auditor + client + upload."""
     st.markdown("<div class='sv-hide-sidebar'></div>", unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(
+        """
     <div style="text-align:center; padding:1.2rem 0 0.2rem 0;">
       <span style="font-size:1.95rem; font-weight:900;
                    color:#003366;">   SocioAI</span>
@@ -1106,7 +1092,9 @@ def render_setup_screen(clientes_disponibles: list[str]):
       <span class="setup-step">2. Archivos</span>
       <span class="setup-step">3. Etapa</span>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     main_col, _ = st.columns([2, 1])
     with main_col:
@@ -1123,8 +1111,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
             label_visibility="collapsed",
         )
 
-        st.markdown("<div style='margin-top:1.2rem;'></div>",
-                    unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:1.2rem;'></div>", unsafe_allow_html=True)
 
         # -- Client selection ----------------------------------
         st.markdown(
@@ -1147,14 +1134,16 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 st.markdown("**Clientes disponibles:**")
                 # Check if any client has session data loaded
                 clientes_con_datos = [
-                    c for c in clientes_disponibles
+                    c
+                    for c in clientes_disponibles
                     if any(
                         c in str(k)
                         for k in st.session_state.keys()
                         if any(
                             prefix in str(k)
                             for prefix in [
-                                "tb_upload_", "perfil_upload_",
+                                "tb_upload_",
+                                "perfil_upload_",
                                 "mayor_upload_",
                             ]
                         )
@@ -1162,15 +1151,11 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 ]
                 for c in clientes_disponibles:
                     label = c.replace("_", " ").title()
-                    is_selected = (
-                        st.session_state.get("setup_cliente_sel") == c
-                    )
+                    is_selected = st.session_state.get("setup_cliente_sel") == c
                     has_data = c in clientes_con_datos
 
                     card_class = (
-                        "client-card client-card-selected"
-                        if is_selected
-                        else "client-card"
+                        "client-card client-card-selected" if is_selected else "client-card"
                     )
 
                     # Data badge
@@ -1179,8 +1164,8 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         " padding:2px 8px; border-radius:10px;"
                         " font-size:0.75rem; font-weight:700;"
                         " margin-left:8px;'>Con datos</span>"
-                        if has_data else
-                        "<span style='background:#F4F5F7; color:#6B778C;"
+                        if has_data
+                        else "<span style='background:#F4F5F7; color:#6B778C;"
                         " padding:2px 8px; border-radius:10px;"
                         " font-size:0.75rem;'>Sin datos</span>"
                     )
@@ -1213,18 +1198,13 @@ def render_setup_screen(clientes_disponibles: list[str]):
                             help="Borra los datos cargados de este cliente",
                         ):
                             # Open delete confirmation for this client
-                            st.session_state[
-                                "delete_confirm_cliente"
-                            ] = c
+                            st.session_state["delete_confirm_cliente"] = c
                             st.rerun()
 
                 # -- Delete confirmation dialog ------------------------
-                cliente_a_borrar = st.session_state.get(
-                    "delete_confirm_cliente", ""
-                )
+                cliente_a_borrar = st.session_state.get("delete_confirm_cliente", "")
                 if cliente_a_borrar:
-                    st.markdown("<div style='margin-top:1rem;'></div>",
-                                unsafe_allow_html=True)
+                    st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
                     st.markdown(
                         f"<div class='check-item check-fail'>"
                         f"<span class='check-icon'>   -</span>"
@@ -1236,9 +1216,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                         unsafe_allow_html=True,
                     )
 
-                    conf_col1, conf_col2, conf_col3 = st.columns(
-                        [2, 1, 1]
-                    )
+                    conf_col1, conf_col2, conf_col3 = st.columns([2, 1, 1])
                     with conf_col1:
                         pwd_input = st.text_input(
                             "Contraseña de administrador",
@@ -1259,37 +1237,22 @@ def render_setup_screen(clientes_disponibles: list[str]):
                                 n = _limpiar_cliente_session(cliente_a_borrar)
 
                                 # Remove from dynamic clients list
-                                _creados = st.session_state.get(
-                                    "clientes_creados_sesion", []
-                                )
+                                _creados = st.session_state.get("clientes_creados_sesion", [])
                                 if cliente_a_borrar in _creados:
-                                    _creados = [
-                                        c for c in _creados
-                                        if c != cliente_a_borrar
-                                    ]
-                                    st.session_state[
-                                        "clientes_creados_sesion"
-                                    ] = _creados
+                                    _creados = [c for c in _creados if c != cliente_a_borrar]
+                                    st.session_state["clientes_creados_sesion"] = _creados
 
                                 # Add to permanent blocklist for this session
-                                _borrados = st.session_state.get(
-                                    "clientes_borrados_sesion", []
-                                )
+                                _borrados = st.session_state.get("clientes_borrados_sesion", [])
                                 if cliente_a_borrar not in _borrados:
                                     _borrados.append(cliente_a_borrar)
-                                st.session_state[
-                                    "clientes_borrados_sesion"
-                                ] = _borrados
+                                st.session_state["clientes_borrados_sesion"] = _borrados
 
                                 # Clear active client if it was deleted
-                                if st.session_state.get(
-                                    "setup_cliente_sel"
-                                ) == cliente_a_borrar:
+                                if st.session_state.get("setup_cliente_sel") == cliente_a_borrar:
                                     del st.session_state["setup_cliente_sel"]
 
-                                if st.session_state.get(
-                                    "cliente_activo"
-                                ) == cliente_a_borrar:
+                                if st.session_state.get("cliente_activo") == cliente_a_borrar:
                                     del st.session_state["cliente_activo"]
 
                                 # Clean up confirmation state
@@ -1313,21 +1276,14 @@ def render_setup_screen(clientes_disponibles: list[str]):
                             key="btn_cancel_delete",
                             width="stretch",
                         ):
-                            del st.session_state[
-                                "delete_confirm_cliente"
-                            ]
+                            del st.session_state["delete_confirm_cliente"]
                             if "delete_pwd_input" in st.session_state:
                                 del st.session_state["delete_pwd_input"]
                             st.rerun()
 
-                cliente_elegido = st.session_state.get(
-                    "setup_cliente_sel", ""
-                )
+                cliente_elegido = st.session_state.get("setup_cliente_sel", "")
             else:
-                _ui_info(
-                    "No hay clientes guardados. "
-                    "Crea uno nuevo."
-                )
+                _ui_info("No hay clientes guardados. " "Crea uno nuevo.")
         else:
             st.markdown("**Identificador del cliente** (sin espacios)")
             cliente_id_input = st.text_input(
@@ -1339,26 +1295,20 @@ def render_setup_screen(clientes_disponibles: list[str]):
             # Clean ID: only alphanumeric and underscores
             if cliente_id_input.strip():
                 import re as _re
+
                 cliente_elegido = _re.sub(
-                    r"[^a-z0-9_]", "_",
-                    cliente_id_input.strip().lower()
+                    r"[^a-z0-9_]", "_", cliente_id_input.strip().lower()
                 ).strip("_")
                 if cliente_elegido:
-                    st.caption(
-                        f"ID interno: `{cliente_elegido}`"
-                    )
+                    st.caption(f"ID interno: `{cliente_elegido}`")
                 else:
-                    _ui_warning(
-                        "ID invlido. Usa solo letras y nomeros."
-                    )
+                    _ui_warning("ID invlido. Usa solo letras y nomeros.")
                     cliente_elegido = ""
 
-        st.markdown("<div style='margin-top:1.2rem;'></div>",
-                    unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:1.2rem;'></div>", unsafe_allow_html=True)
 
         # -- Stage selection -----------------------------------
-        st.markdown("<div style='margin-top:1.2rem;'></div>",
-                    unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:1.2rem;'></div>", unsafe_allow_html=True)
         st.markdown(
             "<div class='sv-heading'> 1 Etapa</div>",
             unsafe_allow_html=True,
@@ -1377,14 +1327,12 @@ def render_setup_screen(clientes_disponibles: list[str]):
         )
         # -- Check if client already has data -----------------
         _tiene_tb_repo = (
-            (Path("data/clientes") / cliente_elegido / "tb.xlsx")
-            .exists()
-            if cliente_elegido else False
+            (Path("data/clientes") / cliente_elegido / "tb.xlsx").exists()
+            if cliente_elegido
+            else False
         )
         _tiene_tb_session = (
-            f"tb_upload_{cliente_elegido}"
-            in st.session_state
-            if cliente_elegido else False
+            f"tb_upload_{cliente_elegido}" in st.session_state if cliente_elegido else False
         )
         _tiene_tb_remote = (
             bool(
@@ -1397,7 +1345,8 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     default=False,
                 )
             )
-            if cliente_elegido else False
+            if cliente_elegido
+            else False
         )
         _tiene_tb = _tiene_tb_repo or _tiene_tb_session or _tiene_tb_remote
 
@@ -1415,9 +1364,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
         up_col1, up_col2 = st.columns(2)
         with up_col1:
             tb_label = (
-                "Trial Balance (.xlsx) - actualizar"
-                if _tiene_tb
-                else "Trial Balance (.xlsx) *"
+                "Trial Balance (.xlsx) - actualizar" if _tiene_tb else "Trial Balance (.xlsx) *"
             )
             uploaded_tb = st.file_uploader(
                 tb_label,
@@ -1436,10 +1383,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 ["preliminar", "final"],
                 key="setup_tb_tipo",
                 horizontal=True,
-                help=(
-                    "Preliminar: saldos de avance. "
-                    "Final: saldos definitivos al cierre."
-                ),
+                help=("Preliminar: saldos de avance. " "Final: saldos definitivos al cierre."),
             )
 
         with up_col2:
@@ -1455,8 +1399,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 unsafe_allow_html=True,
             )
             st.markdown(
-                "<div class='sv-heading'>"
-                " 1 Datos del cliente</div>",
+                "<div class='sv-heading'>" " 1 Datos del cliente</div>",
                 unsafe_allow_html=True,
             )
             st.caption(
@@ -1482,10 +1425,14 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 perfil_sector = st.selectbox(
                     "Sector",
                     [
-                        "comerciales", "servicios",
-                        "holding", "manufactura",
-                        "financiero", "agricultura",
-                        "sin_fines_de_lucro", "otro",
+                        "comerciales",
+                        "servicios",
+                        "holding",
+                        "manufactura",
+                        "financiero",
+                        "agricultura",
+                        "sin_fines_de_lucro",
+                        "otro",
                     ],
                     key="pf_sector",
                 )
@@ -1494,8 +1441,10 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     [
                         "SOCIEDAD_ANONIMA",
                         "COMPANIA_LIMITADA",
-                        "SAS", "COOPERATIVA",
-                        "ONG", "PERSONA_NATURAL",
+                        "SAS",
+                        "COOPERATIVA",
+                        "ONG",
+                        "PERSONA_NATURAL",
                         "otro",
                     ],
                     key="pf_tipo",
@@ -1503,8 +1452,10 @@ def render_setup_screen(clientes_disponibles: list[str]):
             with p2:
                 perfil_periodo = st.number_input(
                     "Ao del encargo",
-                    min_value=2020, max_value=2030,
-                    value=2025, key="pf_periodo",
+                    min_value=2020,
+                    max_value=2030,
+                    value=2025,
+                    key="pf_periodo",
                 )
                 perfil_marco = st.selectbox(
                     "Marco referencial",
@@ -1522,14 +1473,12 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     key="pf_moneda",
                 )
 
-            st.markdown("<div style='margin-top:1rem;'></div>",
-                        unsafe_allow_html=True)
+            st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
 
             # -- Section 2: Operational flags ---------------------
             st.markdown("**Caractersticas operativas**")
             st.caption(
-                "Esta informacin mejora el ranking de riesgo "
-                "y las recomendaciones por rea."
+                "Esta informacin mejora el ranking de riesgo " "y las recomendaciones por rea."
             )
             op1, op2, op3 = st.columns(3)
             with op1:
@@ -1574,8 +1523,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     value=True,
                 )
 
-            st.markdown("<div style='margin-top:0.5rem;'></div>",
-                        unsafe_allow_html=True)
+            st.markdown("<div style='margin-top:0.5rem;'></div>", unsafe_allow_html=True)
 
             # -- Section 3: Risk flags -----------------------------
             st.markdown("**Banderas de riesgo**")
@@ -1603,10 +1551,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
             perfil_form = {
                 "cliente": {
                     "nombre_legal": perfil_nombre or "Cliente",
-                    "nombre_corto": (
-                        perfil_nombre.split()[0]
-                        if perfil_nombre else "Cliente"
-                    ),
+                    "nombre_corto": (perfil_nombre.split()[0] if perfil_nombre else "Cliente"),
                     "ruc": perfil_ruc,
                     "tipo_entidad": perfil_tipo,
                     "sector": perfil_sector,
@@ -1624,9 +1569,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 "riesgo_global": {
                     "nivel": perfil_riesgo,
                     "riesgo_negocio_en_marcha": pf_negocio_marcha,
-                    "requiere_enfoque_reforzado": (
-                        perfil_riesgo in ["alto", "medio_alto"]
-                    ),
+                    "requiere_enfoque_reforzado": (perfil_riesgo in ["alto", "medio_alto"]),
                 },
                 "contexto_negocio": {
                     "tiene_partes_relacionadas": pf_partes_rel,
@@ -1654,10 +1597,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 },
                 "materialidad": {
                     "estado_materialidad": "preliminar",
-                    "base_utilizada": (
-                        "ingresos" if perfil_sector == "servicios"
-                        else "activos"
-                    ),
+                    "base_utilizada": ("ingresos" if perfil_sector == "servicios" else "activos"),
                     "preliminar": {},
                     "final": {},
                 },
@@ -1665,7 +1605,8 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     "sector_base": perfil_sector,
                     "subtipo_negocio": perfil_sector,
                     "tags": [
-                        t for t, v in [
+                        t
+                        for t, v in [
                             ("partes_relacionadas", pf_partes_rel),
                             ("inventarios_significativos", pf_inventarios),
                             ("cartera_significativa", pf_cartera),
@@ -1697,13 +1638,10 @@ def render_setup_screen(clientes_disponibles: list[str]):
             perfil_nombre = cliente_elegido
             perfil_form = None
 
-        st.markdown("<div style='margin-top:1.5rem;'></div>",
-                    unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:1.5rem;'></div>", unsafe_allow_html=True)
 
         # -- Validation & Enter --------------------------------
-        puede_entrar = bool(
-            cliente_elegido and (_tiene_tb or uploaded_tb)
-        )
+        puede_entrar = bool(cliente_elegido and (_tiene_tb or uploaded_tb))
 
         if not puede_entrar:
             faltante = []
@@ -1711,10 +1649,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 faltante.append("seleccionar o crear un cliente")
             if not (_tiene_tb or uploaded_tb):
                 faltante.append("subir el Trial Balance (.xlsx)")
-            _ui_warning(
-                "Para continuar debes: "
-                + " y ".join(faltante) + "."
-            )
+            _ui_warning("Para continuar debes: " + " y ".join(faltante) + ".")
 
         if st.button(
             "Entrar al anlisis",
@@ -1733,12 +1668,8 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 try:
                     tb_bytes = uploaded_tb.getvalue()
                     raw = _normalizar_tb_desde_bytes(tb_bytes)
-                    st.session_state[
-                        f"tb_upload_{cliente_elegido}"
-                    ] = raw
-                    st.session_state[
-                        f"tb_tipo_{cliente_elegido}"
-                    ] = tb_tipo
+                    st.session_state[f"tb_upload_{cliente_elegido}"] = raw
+                    st.session_state[f"tb_tipo_{cliente_elegido}"] = tb_tipo
                     if _sheets_ok and callable(guardar_tb_storage):
                         _tb_saved = safe_call(
                             guardar_tb_storage,
@@ -1748,9 +1679,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                             default=False,
                         )
                         if _tb_saved:
-                            _ui_success(
-                                "TB guardado en almacenamiento remoto."
-                            )
+                            _ui_success("TB guardado en almacenamiento remoto.")
                 except Exception as e:
                     _ui_error(f"Error procesando TB: {e}")
             elif _tiene_tb_remote and not _tiene_tb_session:
@@ -1763,28 +1692,18 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 if isinstance(tb_bytes, (bytes, bytearray)) and tb_bytes:
                     try:
                         raw = _normalizar_tb_desde_bytes(bytes(tb_bytes))
-                        st.session_state[
-                            f"tb_upload_{cliente_elegido}"
-                        ] = raw
-                        st.session_state[
-                            f"tb_tipo_{cliente_elegido}"
-                        ] = tb_tipo
-                        _ui_info(
-                            "1  - TB restaurado desde almacenamiento remoto."
-                        )
+                        st.session_state[f"tb_upload_{cliente_elegido}"] = raw
+                        st.session_state[f"tb_tipo_{cliente_elegido}"] = tb_tipo
+                        _ui_info("1  - TB restaurado desde almacenamiento remoto.")
                     except Exception as e:
                         _ui_error(f"Error restaurando TB remoto: {e}")
             elif _tiene_tb_session:
                 # Keep existing, just update tipo
-                st.session_state[
-                    f"tb_tipo_{cliente_elegido}"
-                ] = tb_tipo
+                st.session_state[f"tb_tipo_{cliente_elegido}"] = tb_tipo
 
             # Save perfil in session when using form
             if perfil_form is not None:
-                st.session_state[
-                    f"perfil_upload_{cliente_elegido}"
-                ] = perfil_form
+                st.session_state[f"perfil_upload_{cliente_elegido}"] = perfil_form
 
             # Save to remote persistence
             # (new client or existing one with available perfil)
@@ -1797,9 +1716,7 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 if isinstance(_p_session, dict) and _p_session:
                     _perfil_to_save = _p_session
                 else:
-                    _p_repo = safe_call(
-                        leer_perfil, cliente_elegido, default={}
-                    ) or {}
+                    _p_repo = safe_call(leer_perfil, cliente_elegido, default={}) or {}
                     if isinstance(_p_repo, dict) and _p_repo:
                         _perfil_to_save = _p_repo
 
@@ -1818,17 +1735,17 @@ def render_setup_screen(clientes_disponibles: list[str]):
                 if _saved:
                     # Invalidate cache so new client appears
                     if "sheets_clientes_cache" in st.session_state:
-                        del st.session_state[
-                            "sheets_clientes_cache"
-                        ]
-                    _ui_success(
-                        "Cliente guardado en persistencia remota."
-                    )
+                        del st.session_state["sheets_clientes_cache"]
+                    _ui_success("Cliente guardado en persistencia remota.")
                 else:
-                    _err = safe_call(
-                        obtener_ultimo_error_sheets,
-                        default="",
-                    ) if obtener_ultimo_error_sheets else ""
+                    _err = (
+                        safe_call(
+                            obtener_ultimo_error_sheets,
+                            default="",
+                        )
+                        if obtener_ultimo_error_sheets
+                        else ""
+                    )
                     _ui_warning(
                         "   - No se pudo guardar en persistencia remota. "
                         "Verifica credenciales de Supabase (o Sheets fallback)."
@@ -1842,27 +1759,20 @@ def render_setup_screen(clientes_disponibles: list[str]):
 
                 df_mayor_up = pd.read_excel(
                     io.BytesIO(uploaded_mayor.read()),
-                    sheet_name=0, engine="openpyxl",
+                    sheet_name=0,
+                    engine="openpyxl",
                 )
-                st.session_state[
-                    f"mayor_upload_{cliente_elegido}"
-                ] = df_mayor_up
+                st.session_state[f"mayor_upload_{cliente_elegido}"] = df_mayor_up
 
             # Register new client in session list
             if modo == "Crear cliente nuevo" and cliente_elegido:
-                _creados = st.session_state.get(
-                    "clientes_creados_sesion", []
-                )
+                _creados = st.session_state.get("clientes_creados_sesion", [])
                 if cliente_elegido not in _creados:
                     _creados.append(cliente_elegido)
-                    st.session_state[
-                        "clientes_creados_sesion"
-                    ] = _creados
+                    st.session_state["clientes_creados_sesion"] = _creados
 
                 # Explicit persistence on new-client creation
-                _perfil_new = st.session_state.get(
-                    f"perfil_upload_{cliente_elegido}", {}
-                )
+                _perfil_new = st.session_state.get(f"perfil_upload_{cliente_elegido}", {})
                 if (
                     _sheets_ok
                     and guardar_cliente_sheets
@@ -1878,16 +1788,13 @@ def render_setup_screen(clientes_disponibles: list[str]):
                     if _saved_new:
                         if "sheets_clientes_cache" in st.session_state:
                             del st.session_state["sheets_clientes_cache"]
-                        _ui_success(
-                            "Cliente nuevo guardado en persistencia remota."
-                        )
+                        _ui_success("Cliente nuevo guardado en persistencia remota.")
 
             st.session_state["app_screen"] = "dashboard"
             st.rerun()
 
     # Back button
-    st.markdown("<div style='margin-top:1rem;'></div>",
-                unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
     if st.button(" - Volver", key="btn_setup_back"):
         st.session_state["app_screen"] = "welcome"
         st.rerun()
@@ -1926,12 +1833,9 @@ if not clientes_disponibles:
 
 # Default to setup values if coming from setup screen
 _default_cliente = st.session_state.get(
-    "cliente_activo", clientes_disponibles[0]
-    if clientes_disponibles else ""
+    "cliente_activo", clientes_disponibles[0] if clientes_disponibles else ""
 )
-_default_etapa = st.session_state.get(
-    "etapa_activa", "planificacion"
-)
+_default_etapa = st.session_state.get("etapa_activa", "planificacion")
 
 _clientes_opts = list(clientes_disponibles)
 if _default_cliente and _default_cliente not in _clientes_opts:
@@ -1940,16 +1844,13 @@ if _default_cliente and _default_cliente not in _clientes_opts:
 cliente_seleccionado = st.sidebar.selectbox(
     "Seleccionar cliente",
     options=_clientes_opts,
-    index=_clientes_opts.index(_default_cliente)
-    if _default_cliente in _clientes_opts else 0,
+    index=_clientes_opts.index(_default_cliente) if _default_cliente in _clientes_opts else 0,
 )
 
 etapa_seleccionada = st.sidebar.selectbox(
     "Etapa",
     options=["planificacion", "ejecucion", "cierre"],
-    index=["planificacion", "ejecucion", "cierre"].index(
-        _default_etapa
-    ),
+    index=["planificacion", "ejecucion", "cierre"].index(_default_etapa),
 )
 
 if st.sidebar.button("Cargar cliente", width="stretch"):
@@ -1981,9 +1882,7 @@ if uploaded_tb is not None:
     try:
         tb_bytes = uploaded_tb.getvalue()
         raw = _normalizar_tb_desde_bytes(tb_bytes)
-        st.session_state[
-            f"tb_upload_{cliente_seleccionado}"
-        ] = raw
+        st.session_state[f"tb_upload_{cliente_seleccionado}"] = raw
         if _sheets_ok and callable(guardar_tb_storage):
             _saved_tb_side = safe_call(
                 guardar_tb_storage,
@@ -1994,9 +1893,7 @@ if uploaded_tb is not None:
             )
             if _saved_tb_side:
                 st.sidebar.caption("-  - TB persistido en remoto")
-        st.sidebar.success(
-            f"TB cargado: {len(raw)} filas"
-        )
+        st.sidebar.success(f"TB cargado: {len(raw)} filas")
     except Exception as e:
         st.sidebar.error(f"Error procesando TB: {e}")
 
@@ -2011,12 +1908,8 @@ if uploaded_perfil is not None:
     try:
         import yaml as _yaml
 
-        perfil_data = _yaml.safe_load(
-            uploaded_perfil.read().decode("utf-8")
-        )
-        st.session_state[
-            f"perfil_upload_{cliente_seleccionado}"
-        ] = perfil_data
+        perfil_data = _yaml.safe_load(uploaded_perfil.read().decode("utf-8"))
+        st.session_state[f"perfil_upload_{cliente_seleccionado}"] = perfil_data
         st.sidebar.success("Perfil cargado")
     except Exception as e:
         st.sidebar.error(f"Error leyendo perfil: {e}")
@@ -2037,12 +1930,8 @@ if uploaded_mayor is not None:
             sheet_name=0,
             engine="openpyxl",
         )
-        st.session_state[
-            f"mayor_upload_{cliente_seleccionado}"
-        ] = df_mayor_up
-        st.sidebar.success(
-            f"Mayor cargado: {len(df_mayor_up)} movimientos"
-        )
+        st.session_state[f"mayor_upload_{cliente_seleccionado}"] = df_mayor_up
+        st.sidebar.success(f"Mayor cargado: {len(df_mayor_up)} movimientos")
     except Exception as e:
         st.sidebar.error(f"Error leyendo mayor: {e}")
 
@@ -2061,9 +1950,11 @@ _perfil_key_active = f"perfil_upload_{st.session_state.get('cliente_activo', '')
 
 _perfil_from_session = None
 for _k in [_perfil_key, _perfil_key_active]:
-    if _k in st.session_state and isinstance(
-        st.session_state.get(_k), dict
-    ) and st.session_state[_k]:
+    if (
+        _k in st.session_state
+        and isinstance(st.session_state.get(_k), dict)
+        and st.session_state[_k]
+    ):
         _perfil_from_session = st.session_state[_k]
         break
 
@@ -2076,6 +1967,7 @@ else:
 if isinstance(perfil, dict) and perfil:
     try:
         from domain.services.leer_perfil import set_perfil_cache
+
         set_perfil_cache(cliente, perfil)
     except Exception:
         pass
@@ -2087,9 +1979,11 @@ _tb_key_active = f"tb_upload_{st.session_state.get('cliente_activo', '')}"
 
 _tb_from_session = None
 for _k in [_tb_key, _tb_key_active]:
-    if _k in st.session_state and isinstance(
-        st.session_state.get(_k), pd.DataFrame
-    ) and not st.session_state[_k].empty:
+    if (
+        _k in st.session_state
+        and isinstance(st.session_state.get(_k), pd.DataFrame)
+        and not st.session_state[_k].empty
+    ):
         _tb_from_session = st.session_state[_k]
         break
 
@@ -2118,6 +2012,7 @@ else:
 if isinstance(tb, pd.DataFrame) and not tb.empty:
     try:
         from analysis.lector_tb import set_tb_cache
+
         set_tb_cache(cliente, tb)
     except Exception:
         pass
@@ -2126,24 +2021,23 @@ if isinstance(tb, pd.DataFrame) and not tb.empty:
 if isinstance(tb, pd.DataFrame) and not tb.empty:
     print(f"[OK] TB activo para {cliente}: {len(tb)} filas")
 else:
-    print(f"[WARN] Sin TB para {cliente} - keys disponibles: "
-          f"{[k for k in st.session_state.keys() if 'tb_upload' in str(k)]}")
+    print(
+        f"[WARN] Sin TB para {cliente} - keys disponibles: "
+        f"{[k for k in st.session_state.keys() if 'tb_upload' in str(k)]}"
+    )
 
 # Pass the already-loaded tb DataFrame directly
 # so uploaded TBs are used, not just file-based ones
 if isinstance(tb, pd.DataFrame) and not tb.empty:
     from analysis.lector_tb import obtener_resumen_tb as _get_resumen
+
     try:
         resumen_tb = _get_resumen(cliente, df=tb) or {}
     except TypeError:
         # Fallback if signature doesn't match yet
-        resumen_tb = safe_call(
-            obtener_resumen_tb, cliente, default={}
-        ) or {}
+        resumen_tb = safe_call(obtener_resumen_tb, cliente, default={}) or {}
 else:
-    resumen_tb = safe_call(
-        obtener_resumen_tb, cliente, default={}
-    ) or {}
+    resumen_tb = safe_call(obtener_resumen_tb, cliente, default={}) or {}
 diag_tb = safe_call(obtener_diagnostico_tb, cliente, default={}) or {}
 ranking_areas = safe_call(cached_ranking_areas, cliente, default=pd.DataFrame())
 indicadores = safe_call(cached_indicadores, cliente, default={}) or {}
@@ -2154,15 +2048,31 @@ if _tb_from_session is not None and isinstance(tb, pd.DataFrame) and not tb.empt
     try:
         tb_cols = {str(c).strip().lower(): c for c in tb.columns}
         col_ls = next((tb_cols[k] for k in ["ls", "l/s", "l_s"] if k in tb_cols), None)
-        col_nombre = next((tb_cols[k] for k in ["agrupacion", "nombre cuenta", "nombre_cuenta", "nombre"] if k in tb_cols), None)
+        col_nombre = next(
+            (
+                tb_cols[k]
+                for k in ["agrupacion", "nombre cuenta", "nombre_cuenta", "nombre"]
+                if k in tb_cols
+            ),
+            None,
+        )
         col_s24 = next((tb_cols[k] for k in ["saldo 2024", "saldo_2024"] if k in tb_cols), None)
-        col_s25 = next((tb_cols[k] for k in ["saldo 2025", "saldo_2025", "saldo preliminar", "saldo_preliminar"] if k in tb_cols), None)
+        col_s25 = next(
+            (
+                tb_cols[k]
+                for k in ["saldo 2025", "saldo_2025", "saldo preliminar", "saldo_preliminar"]
+                if k in tb_cols
+            ),
+            None,
+        )
 
         if col_ls and col_s25:
             tmp = tb.copy()
             tmp["_ls"] = tmp[col_ls].astype(str).str.strip().str.replace(r"\.0+$", "", regex=True)
             tmp["_s25"] = pd.to_numeric(tmp[col_s25], errors="coerce").fillna(0.0)
-            tmp["_s24"] = pd.to_numeric(tmp[col_s24], errors="coerce").fillna(0.0) if col_s24 else 0.0
+            tmp["_s24"] = (
+                pd.to_numeric(tmp[col_s24], errors="coerce").fillna(0.0) if col_s24 else 0.0
+            )
             tmp["_nombre"] = tmp[col_nombre].astype(str) if col_nombre else tmp["_ls"]
 
             # Variaciones
@@ -2170,7 +2080,9 @@ if _tb_from_session is not None and isinstance(tb, pd.DataFrame) and not tb.empt
             variaciones = tmp[["_ls", "_nombre", "_s25", "_impacto"]].copy()
             variaciones.columns = ["codigo", "nombre", "saldo", "impacto"]
             variaciones["impacto_abs"] = variaciones["impacto"].abs()
-            variaciones = variaciones.sort_values("impacto_abs", ascending=False).drop(columns=["impacto_abs"])
+            variaciones = variaciones.sort_values("impacto_abs", ascending=False).drop(
+                columns=["impacto_abs"]
+            )
 
             # Ranking por LS
             grp = tmp.groupby("_ls", as_index=False).agg(
@@ -2190,24 +2102,18 @@ if _tb_from_session is not None and isinstance(tb, pd.DataFrame) and not tb.empt
             grp["prioridad"] = grp["score_riesgo"].apply(
                 lambda x: "alta" if x >= 70 else "media" if x >= 40 else "baja"
             )
-            ranking_areas = grp[["area", "nombre", "score_riesgo", "prioridad", "saldo_total", "con_saldo"]].sort_values(
-                "score_riesgo", ascending=False
-            )
+            ranking_areas = grp[
+                ["area", "nombre", "score_riesgo", "prioridad", "saldo_total", "con_saldo"]
+            ].sort_values("score_riesgo", ascending=False)
     except Exception:
         pass
 
 # -- Mayor: uploaded file takes priority -------------------
 _mayor_key = f"mayor_upload_{cliente}"
-if _mayor_key in st.session_state and isinstance(
-    st.session_state[_mayor_key], pd.DataFrame
-):
+if _mayor_key in st.session_state and isinstance(st.session_state[_mayor_key], pd.DataFrame):
     df_mayor = st.session_state[_mayor_key]
-elif mayor_existe and safe_call(
-    mayor_existe, cliente, default=False
-):
-    df_mayor = safe_call(
-        obtener_mayor_cliente, cliente, default=None
-    )
+elif mayor_existe and safe_call(mayor_existe, cliente, default=False):
+    df_mayor = safe_call(obtener_mayor_cliente, cliente, default=None)
 else:
     df_mayor = None
 
@@ -2231,16 +2137,12 @@ if _area_key not in st.session_state:
         and not ranking_areas.empty
         and "area" in ranking_areas.columns
     ):
-        _mask = pd.Series([True]*len(ranking_areas))
+        _mask = pd.Series([True] * len(ranking_areas))
         if "con_saldo" in ranking_areas.columns:
-            _mask = ranking_areas[
-                "con_saldo"
-            ].astype(bool)
+            _mask = ranking_areas["con_saldo"].astype(bool)
         _top = ranking_areas[_mask]
         if not _top.empty:
-            st.session_state[_area_key] = str(
-                _top.iloc[0]["area"]
-            )
+            st.session_state[_area_key] = str(_top.iloc[0]["area"])
         else:
             st.session_state[_area_key] = "14"
     else:
@@ -2256,10 +2158,9 @@ if st.sidebar.button("Limpiar cache", width="stretch"):
 st.sidebar.divider()
 try:
     from infra.rag.vector_store import esta_indexado, total_indexado
+
     if esta_indexado():
-        st.sidebar.caption(
-            f"Base normativa: {total_indexado()} chunks indexados"
-        )
+        st.sidebar.caption(f"Base normativa: {total_indexado()} chunks indexados")
     else:
         st.sidebar.caption("Base normativa: no indexada")
         st.sidebar.caption("Ejecuta: python -m app.cli_commands indexar")
@@ -2269,11 +2170,7 @@ except Exception:
 render_sidebar_summary(cliente, perfil, datos_clave, ranking_areas)
 # Remote persistence connection indicator
 st.sidebar.divider()
-_sheets_ready = bool(
-    _sheets_ok and safe_call(
-        sheets_disponible, default=False
-    )
-)
+_sheets_ready = bool(_sheets_ok and safe_call(sheets_disponible, default=False))
 if _sheets_ready:
     st.sidebar.caption("-  - Persistencia remota conectada")
 else:
@@ -2319,13 +2216,12 @@ if st.sidebar.button(
     if not _sheets_ok or not callable(diagnosticar_sheets):
         st.sidebar.warning("   - Diagnstico avanzado no disponible.")
         _rows_basic = safe_call(cargar_clientes_sheets, default=[]) or []
-        _err_basic = safe_call(
-            obtener_ultimo_error_sheets, default=""
-        ) if callable(obtener_ultimo_error_sheets) else ""
-        st.sidebar.caption(
-            f"Bsico: rows={len(_rows_basic)} | "
-            f"sheets_ok={_sheets_ok}"
+        _err_basic = (
+            safe_call(obtener_ultimo_error_sheets, default="")
+            if callable(obtener_ultimo_error_sheets)
+            else ""
         )
+        st.sidebar.caption(f"Bsico: rows={len(_rows_basic)} | " f"sheets_ok={_sheets_ok}")
         if _sheets_import_error:
             st.sidebar.error(f"ImportError: {_sheets_import_error}")
         if _err_basic:
@@ -2335,13 +2231,9 @@ if st.sidebar.button(
         _diag = safe_call(diagnosticar_sheets, default={}) or {}
         _rows = safe_call(cargar_clientes_sheets, default=[]) or []
         if _diag.get("ok"):
-            st.sidebar.success(
-                f"Conexin OK. Clientes remotos: {len(_rows)}"
-            )
+            st.sidebar.success(f"Conexin OK. Clientes remotos: {len(_rows)}")
             if _diag.get("spreadsheet_title"):
-                st.sidebar.caption(
-                    f"Sheet: {_diag.get('spreadsheet_title')}"
-                )
+                st.sidebar.caption(f"Sheet: {_diag.get('spreadsheet_title')}")
         else:
             st.sidebar.error("-' Falla en diagnstico de persistencia.")
             st.sidebar.write(
@@ -2357,29 +2249,18 @@ if st.sidebar.button(
             )
             if _err:
                 st.sidebar.error(f"Detalle: {_err}")
-            _cfg = safe_call(
-                diagnosticar_config_supabase, default={}
-            ) if callable(diagnosticar_config_supabase) else {}
+            _cfg = (
+                safe_call(diagnosticar_config_supabase, default={})
+                if callable(diagnosticar_config_supabase)
+                else {}
+            )
             if _cfg:
+                st.sidebar.caption("Keys detectadas (nombres): " f"{_cfg.get('secrets_keys', [])}")
+                st.sidebar.caption("Env detectadas: " f"{_cfg.get('env_keys', [])}")
+                st.sidebar.caption("Direct keys present: " f"{_cfg.get('direct_present', {})}")
+                st.sidebar.caption("Runtime keys present: " f"{_cfg.get('runtime_present', {})}")
                 st.sidebar.caption(
-                    "Keys detectadas (nombres): "
-                    f"{_cfg.get('secrets_keys', [])}"
-                )
-                st.sidebar.caption(
-                    "Env detectadas: "
-                    f"{_cfg.get('env_keys', [])}"
-                )
-                st.sidebar.caption(
-                    "Direct keys present: "
-                    f"{_cfg.get('direct_present', {})}"
-                )
-                st.sidebar.caption(
-                    "Runtime keys present: "
-                    f"{_cfg.get('runtime_present', {})}"
-                )
-                st.sidebar.caption(
-                    f"has_url={_cfg.get('has_url')} | "
-                    f"has_key={_cfg.get('has_key')}"
+                    f"has_url={_cfg.get('has_url')} | " f"has_key={_cfg.get('has_key')}"
                 )
                 with st.sidebar.expander("Debug config persistencia", expanded=False):
                     st.code(str(_cfg), language="python")
@@ -2390,7 +2271,8 @@ if st.sidebar.button(
 # ============================================================
 # Header principal
 # ============================================================
-st.markdown("""
+st.markdown(
+    """
     <div class="sovereign-card" style="padding:1.25rem 1.5rem; margin-bottom:1rem;">
         <div style="display:flex; align-items:center; gap:.8rem;">
             <div style="font-size:2rem; line-height:1;">  </div>
@@ -2400,13 +2282,37 @@ st.markdown("""
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True,
+)
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Cliente", normalize_text(get_first(datos_clave, ["nombre"], perfil.get("cliente", {}).get("nombre_legal", "N/A"))) or "N/A")
-c2.metric("RUC", normalize_text(get_first(datos_clave, ["ruc"], perfil.get("cliente", {}).get("ruc", "N/A"))) or "N/A")
-c3.metric("Sector", normalize_text(get_first(datos_clave, ["sector"], perfil.get("cliente", {}).get("sector", "N/A"))) or "N/A")
-c4.metric("Moneda", normalize_text(get_first(datos_clave, ["moneda"], perfil.get("cliente", {}).get("moneda_funcional", "N/A"))) or "N/A")
+c1.metric(
+    "Cliente",
+    normalize_text(
+        get_first(datos_clave, ["nombre"], perfil.get("cliente", {}).get("nombre_legal", "N/A"))
+    )
+    or "N/A",
+)
+c2.metric(
+    "RUC",
+    normalize_text(get_first(datos_clave, ["ruc"], perfil.get("cliente", {}).get("ruc", "N/A")))
+    or "N/A",
+)
+c3.metric(
+    "Sector",
+    normalize_text(
+        get_first(datos_clave, ["sector"], perfil.get("cliente", {}).get("sector", "N/A"))
+    )
+    or "N/A",
+)
+c4.metric(
+    "Moneda",
+    normalize_text(
+        get_first(datos_clave, ["moneda"], perfil.get("cliente", {}).get("moneda_funcional", "N/A"))
+    )
+    or "N/A",
+)
 
 st.divider()
 
@@ -2414,14 +2320,16 @@ st.divider()
 # ============================================================
 # Tabs principales
 # ============================================================
-tab1, tab_risk, tab2, tab3, tab4, tab5 = st.tabs([
-    "📊 Dashboard",
-    "🛡️ Risk Engine",
-    "🎯 Áreas",
-    "📘 Estados Financieros",
-    "🧠 Inteligencia IA",
-    "📁 Datos",
-])
+tab1, tab_risk, tab2, tab3, tab4, tab5 = st.tabs(
+    [
+        "📊 Dashboard",
+        "🛡️ Risk Engine",
+        "🎯 Áreas",
+        "📘 Estados Financieros",
+        "🧠 Inteligencia IA",
+        "📁 Datos",
+    ]
+)
 
 
 def _calcular_estado_encargo(
@@ -2432,8 +2340,7 @@ def _calcular_estado_encargo(
     Calculates engagement completion status
     based on area states in session_state and ranking.
     """
-    if not isinstance(ranking_areas, pd.DataFrame) \
-            or ranking_areas.empty:
+    if not isinstance(ranking_areas, pd.DataFrame) or ranking_areas.empty:
         return {
             "reas": [],
             "pct_completado": 0,
@@ -2457,29 +2364,26 @@ def _calcular_estado_encargo(
 
         # Check state from session
         _estado_key = f"area_estado_{cliente}_{codigo}"
-        _estado_yaml = st.session_state.get(
-            _estado_key, ""
-        )
+        _estado_yaml = st.session_state.get(_estado_key, "")
 
         # Also check saved YAML state
         try:
             from domain.services.estado_area_yaml import (
                 cargar_estado_area,
             )
+
             _yaml = cargar_estado_area(cliente, codigo)
-            _estado_yaml = (
-                _yaml.get("estado_area", "") or _estado_yaml
-            )
+            _estado_yaml = _yaml.get("estado_area", "") or _estado_yaml
         except Exception:
             pass
 
         # Determine semaphore
-        _estados_completos = {
-            "cerrada", "lista_para_cierre", "completada"
-        }
+        _estados_completos = {"cerrada", "lista_para_cierre", "completada"}
         _estados_proceso = {
-            "en_revision", "en_ejecucion",
-            "pendiente_cliente", "en_proceso",
+            "en_revision",
+            "en_ejecucion",
+            "pendiente_cliente",
+            "en_proceso",
         }
 
         if _estado_yaml in _estados_completos:
@@ -2492,24 +2396,21 @@ def _calcular_estado_encargo(
             semaforo = "no_iniciada"
             emoji = " - "
 
-        areas_estado.append({
-            "codigo": codigo,
-            "nombre": nombre_a,
-            "score": score,
-            "prioridad": prior,
-            "semaforo": semaforo,
-            "emoji": emoji,
-            "estado_txt": _estado_yaml or "No iniciada",
-        })
+        areas_estado.append(
+            {
+                "codigo": codigo,
+                "nombre": nombre_a,
+                "score": score,
+                "prioridad": prior,
+                "semaforo": semaforo,
+                "emoji": emoji,
+                "estado_txt": _estado_yaml or "No iniciada",
+            }
+        )
 
     total = len(areas_estado)
-    completas = sum(
-        1 for a in areas_estado if a["semaforo"] == "completa"
-    )
-    en_proceso = sum(
-        1 for a in areas_estado
-        if a["semaforo"] == "en_proceso"
-    )
+    completas = sum(1 for a in areas_estado if a["semaforo"] == "completa")
+    en_proceso = sum(1 for a in areas_estado if a["semaforo"] == "en_proceso")
     no_iniciadas = total - completas - en_proceso
 
     pct = int((completas / total * 100)) if total > 0 else 0
@@ -2546,38 +2447,51 @@ with tab1:
 
     k1, k2, k3, k4 = st.columns(4)
     with k1:
-        st.markdown(f"""
+        st.markdown(
+            f"""
         <div class="sovereign-card kpi-info">
             <div class="kpi-label">Activos Totales</div>
             <div class="kpi-value">{fmt_money(activo)}</div>
             <div class="kpi-sub">Balance general</div>
-        </div>""", unsafe_allow_html=True)
+        </div>""",
+            unsafe_allow_html=True,
+        )
     with k2:
-        st.markdown(f"""
+        st.markdown(
+            f"""
         <div class="sovereign-card kpi-info">
             <div class="kpi-label">Patrimonio</div>
             <div class="kpi-value">${float(patrimonio):,.0f}</div>
             <div class="kpi-sub">Vs pasivos {fmt_money(pasivo)}</div>
-        </div>""", unsafe_allow_html=True)
+        </div>""",
+            unsafe_allow_html=True,
+        )
     with k3:
         color_riesgo = "kpi-alto" if n_alto > 0 else "kpi-bajo"
-        st.markdown(f"""
+        st.markdown(
+            f"""
         <div class="sovereign-card {color_riesgo}">
             <div class="kpi-label">Áreas Alto Riesgo</div>
             <div class="kpi-value">{n_alto}</div>
             <div class="kpi-sub">{n_medio} medio  {n_bajo} bajo</div>
-        </div>""", unsafe_allow_html=True)
+        </div>""",
+            unsafe_allow_html=True,
+        )
     with k4:
         tb_count = int(tb.shape[0]) if isinstance(tb, pd.DataFrame) else 0
-        st.markdown(f"""
+        st.markdown(
+            f"""
         <div class="sovereign-card kpi-info">
             <div class="kpi-label">Cuentas en TB</div>
             <div class="kpi-value">{tb_count}</div>
             <div class="kpi-sub">Trial Balance cargado</div>
-        </div>""", unsafe_allow_html=True)
+        </div>""",
+            unsafe_allow_html=True,
+        )
 
-    st.markdown("<div class='sv-heading'>Distribución de Riesgo por Áreas</div>",
-                unsafe_allow_html=True)
+    st.markdown(
+        "<div class='sv-heading'>Distribución de Riesgo por Áreas</div>", unsafe_allow_html=True
+    )
 
     col_pie, col_top = st.columns([1, 2])
     with col_pie:
@@ -2587,9 +2501,7 @@ with tab1:
             ("Medio", n_medio, "#FF8B00"),
             ("Bajo", n_bajo, "#00875A"),
         ]
-        rows = "".join(
-            [
-                f"""
+        rows = "".join([f"""
                 <div class="sovereign-card" style="padding:.7rem .8rem; margin-bottom:.45rem;">
                   <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
                     <span style="font-size:.78rem;font-weight:700;color:#334155;">{lbl}</span>
@@ -2599,28 +2511,21 @@ with tab1:
                     <div style="height:100%;width:{(cnt/total_risk)*100:.1f}%;background:{clr};"></div>
                   </div>
                 </div>
-                """
-                for lbl, cnt, clr in blocks
-            ]
-        )
+                """ for lbl, cnt, clr in blocks])
         st.markdown(rows, unsafe_allow_html=True)
 
     with col_top:
-        st.markdown("<div class='sv-heading'>Top Áreas por Score</div>",
-                    unsafe_allow_html=True)
+        st.markdown("<div class='sv-heading'>Top Áreas por Score</div>", unsafe_allow_html=True)
         if isinstance(ranking_areas, pd.DataFrame) and not ranking_areas.empty:
             for _, row in ranking_areas.head(5).iterrows():
                 score = float(row.get("score_riesgo", 0))
                 nombre_a = str(row.get("nombre", ""))[:30]
                 area_c = str(row.get("area", ""))
                 prior = str(row.get("prioridad", "")).upper()
-                color_badge = (
-                    "#DE350B" if score >= 70
-                    else "#FF8B00" if score >= 40
-                    else "#00875A"
-                )
+                color_badge = "#DE350B" if score >= 70 else "#FF8B00" if score >= 40 else "#00875A"
                 bar_w = min(int(score), 100)
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                 <div class="sovereign-card" style="padding:0.8rem 1rem; margin-bottom:0.4rem;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:700; color:#003366;">{area_c} - {nombre_a}</span>
@@ -2637,17 +2542,15 @@ with tab1:
                     <div style="color:#6B778C; font-size:0.72rem; margin-top:4px;">
                         Prioridad: {prior}
                     </div>
-                </div>""", unsafe_allow_html=True)
+                </div>""",
+                    unsafe_allow_html=True,
+                )
         else:
             _ui_info("Sin datos de ranking disponibles.")
 
     # -- Data source indicator ---------------------------------
-    _tb_loaded = (
-        isinstance(tb, pd.DataFrame) and not tb.empty
-    )
-    _perfil_loaded = (
-        isinstance(perfil, dict) and bool(perfil)
-    )
+    _tb_loaded = isinstance(tb, pd.DataFrame) and not tb.empty
+    _perfil_loaded = isinstance(perfil, dict) and bool(perfil)
     _from_upload = f"tb_upload_{cliente}" in st.session_state
 
     st.markdown("<div class='sv-heading'>Estado de Carga</div>", unsafe_allow_html=True)
@@ -2655,9 +2558,11 @@ with tab1:
     tb_msg = (
         "TB cargado desde archivo"
         if _tb_loaded and _from_upload
-        else "TB cargado desde repositorio"
-        if _tb_loaded
-        else "Sin TB - sube el archivo en el sidebar"
+        else (
+            "TB cargado desde repositorio"
+            if _tb_loaded
+            else "Sin TB - sube el archivo en el sidebar"
+        )
     )
     tb_col = "#047857" if _tb_loaded else "#B45309"
     perfil_msg = "Perfil disponible" if _perfil_loaded else "Sin perfil - usando defaults"
@@ -2696,33 +2601,29 @@ with tab1:
             unsafe_allow_html=True,
         )
 
-    st.markdown("<div class='sv-heading'>Informacin del Encargo</div>",
-                unsafe_allow_html=True)
-    nombre_c = normalize_text(get_first(
-        datos_clave, ["nombre"],
-        perfil.get("cliente", {}).get("nombre_legal", "N/A")
-    ))
-    sector_c = normalize_text(get_first(
-        datos_clave, ["sector"],
-        perfil.get("cliente", {}).get("sector", "N/A")
-    ))
-    periodo_c = normalize_text(get_first(
-        datos_clave, ["periodo"],
-        str(perfil.get("encargo", {}).get("anio_activo", "N/A"))
-    ))
-    marco_c = normalize_text(get_first(
-        datos_clave, ["marco_referencial"],
-        perfil.get("encargo", {}).get("marco_referencial", "N/A")
-    ))
-    riesgo_g = normalize_text(
-        perfil.get("riesgo_global", {}).get("nivel", "N/A")
+    st.markdown("<div class='sv-heading'>Informacin del Encargo</div>", unsafe_allow_html=True)
+    nombre_c = normalize_text(
+        get_first(datos_clave, ["nombre"], perfil.get("cliente", {}).get("nombre_legal", "N/A"))
     )
-    color_rg = (
-        "#BA1A1A" if "alto" in riesgo_g
-        else "#B45309" if "medio" in riesgo_g
-        else "#047857"
+    sector_c = normalize_text(
+        get_first(datos_clave, ["sector"], perfil.get("cliente", {}).get("sector", "N/A"))
     )
-    st.markdown(f"""
+    periodo_c = normalize_text(
+        get_first(
+            datos_clave, ["periodo"], str(perfil.get("encargo", {}).get("anio_activo", "N/A"))
+        )
+    )
+    marco_c = normalize_text(
+        get_first(
+            datos_clave,
+            ["marco_referencial"],
+            perfil.get("encargo", {}).get("marco_referencial", "N/A"),
+        )
+    )
+    riesgo_g = normalize_text(perfil.get("riesgo_global", {}).get("nivel", "N/A"))
+    color_rg = "#BA1A1A" if "alto" in riesgo_g else "#B45309" if "medio" in riesgo_g else "#047857"
+    st.markdown(
+        f"""
     <div class="sovereign-card" style="padding:1rem 1.4rem;">
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr; gap:1rem;">
             <div><div class="kpi-label">Cliente</div>
@@ -2737,18 +2638,17 @@ with tab1:
                  <div style="font-weight:700; color:{color_rg};">
                      {riesgo_g.upper()}</div></div>
         </div>
-    </div>""", unsafe_allow_html=True)
-
-    # -- Engagement Status ---------------------------------
-    st.markdown(
-        "<div class='sv-heading'>"
-        "Estado del Encargo</div>",
+    </div>""",
         unsafe_allow_html=True,
     )
 
-    _estado_enc = _calcular_estado_encargo(
-        ranking_areas, cliente
+    # -- Engagement Status ---------------------------------
+    st.markdown(
+        "<div class='sv-heading'>" "Estado del Encargo</div>",
+        unsafe_allow_html=True,
     )
+
+    _estado_enc = _calcular_estado_encargo(ranking_areas, cliente)
 
     # Progress bar
     _pct = _estado_enc["pct_completado"]
@@ -2757,11 +2657,7 @@ with tab1:
     _proceso = _estado_enc["en_proceso"]
     _no_ini = _estado_enc["no_iniciadas"]
 
-    prog_color = (
-        "#047857" if _pct >= 80
-        else "#B45309" if _pct >= 40
-        else "#BA1A1A"
-    )
+    prog_color = "#047857" if _pct >= 80 else "#B45309" if _pct >= 40 else "#BA1A1A"
 
     st.markdown(
         f"""
@@ -2912,6 +2808,7 @@ with tab1:
                     from domain.services.pdf_report_service import (
                         generar_pdf_resumen,
                     )
+
                     pdf_bytes = generar_pdf_resumen(
                         cliente=cliente,
                         perfil=perfil,
@@ -2921,8 +2818,7 @@ with tab1:
                         datos_clave=datos_clave,
                     )
                     nombre_archivo = (
-                        f"SocioAI_{cliente}_"
-                        f"{datetime.now().strftime('%Y%m%d')}.pdf"
+                        f"SocioAI_{cliente}_" f"{datetime.now().strftime('%Y%m%d')}.pdf"
                     )
                     st.session_state["pdf_bytes"] = pdf_bytes
                     st.session_state["pdf_filename"] = nombre_archivo
@@ -2940,9 +2836,7 @@ with tab1:
         st.download_button(
             label="  - Descargar PDF",
             data=st.session_state["pdf_bytes"],
-            file_name=st.session_state.get(
-                "pdf_filename", f"SocioAI_{cliente}.pdf"
-            ),
+            file_name=st.session_state.get("pdf_filename", f"SocioAI_{cliente}.pdf"),
             mime="application/pdf",
             key="btn_dl_pdf",
             width="content",
@@ -2965,25 +2859,21 @@ def _render_cierre_cards(ws: dict[str, Any]) -> None:
         if isinstance(ws.get("calidad_metodologia", {}), dict)
         else {}
     )
-    alertas_criticas = int(
-        calidad.get("resumen", {}).get("alertas_criticas", 0) or 0
-    )
+    alertas_criticas = int(calidad.get("resumen", {}).get("alertas_criticas", 0) or 0)
 
     # -- Estado general ----------------------------------------
     if lista_para_cerrar:
         badge_cls = "badge-ok"
         badge_txt = "Lista para cerrar"
         st.markdown(
-            f"<span class='status-badge {badge_cls}'>"
-            f"{badge_txt}</span>",
+            f"<span class='status-badge {badge_cls}'>" f"{badge_txt}</span>",
             unsafe_allow_html=True,
         )
     else:
         badge_cls = "badge-fail"
         badge_txt = "o- No lista para cerrar"
         st.markdown(
-            f"<span class='status-badge {badge_cls}'>"
-            f"{badge_txt}</span>",
+            f"<span class='status-badge {badge_cls}'>" f"{badge_txt}</span>",
             unsafe_allow_html=True,
         )
 
@@ -3044,26 +2934,17 @@ def _render_cierre_cards(ws: dict[str, Any]) -> None:
     if pending_count > 0:
         acciones.append("Completar procedimientos pendientes con evidencia.")
     if hallazgos_count > 0:
-        acciones.append(
-            "Resolver hallazgos abiertos o documentar plan de remediacin."
-        )
+        acciones.append("Resolver hallazgos abiertos o documentar plan de remediacin.")
     if cobertura < 80:
-        acciones.append(
-            "Fortalecer cobertura en aseveraciones dbiles o no cubiertas."
-        )
+        acciones.append("Fortalecer cobertura en aseveraciones dbiles o no cubiertas.")
     if alertas_criticas > 0:
-        acciones.append(
-            "Resolver alertas metodolgicas crticas (ver tab Calidad)."
-        )
+        acciones.append("Resolver alertas metodolgicas crticas (ver tab Calidad).")
     if not acciones:
-        acciones.append(
-            "Documentar conclusin final y referencias cruzadas de evidencia."
-        )
+        acciones.append("Documentar conclusin final y referencias cruzadas de evidencia.")
 
     if acciones:
         st.markdown(
-            "<div class='sv-heading' style='margin-top:1rem;'>"
-            "Prximas acciones</div>",
+            "<div class='sv-heading' style='margin-top:1rem;'>" "Prximas acciones</div>",
             unsafe_allow_html=True,
         )
         for a in acciones:
@@ -3082,8 +2963,7 @@ def _render_cierre_cards(ws: dict[str, Any]) -> None:
 def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
     """Requerimientos de auditoría por Área y aseveración."""
     st.markdown(
-        "<div class='sv-heading'>"
-        " 12 Gua de Requerimientos</div>",
+        "<div class='sv-heading'>" " 12 Gua de Requerimientos</div>",
         unsafe_allow_html=True,
     )
 
@@ -3095,6 +2975,7 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
             obtener_requerimientos_area,
             construir_checklist,
         )
+
         area_req = obtener_requerimientos_area(codigo_ls)
     except Exception:
         area_req = {}
@@ -3208,9 +3089,6 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
     )
 
     try:
-        from domain.services.requerimientos_service import (
-            construir_checklist,
-        )
         checklist = construir_checklist(
             codigo_ls,
             aseveraciones=sel_asev,
@@ -3224,29 +3102,25 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
         with c1:
             # CSV download
             import io as _io
+
             df_check = pd.DataFrame(checklist)
             df_check.columns = [
-                "Aseveración", "Tipo",
-                "Descripcin", "Completado",
+                "Aseveración",
+                "Tipo",
+                "Descripcin",
+                "Completado",
             ]
             # Generate and cache CSV in session_state
             _csv_key = f"req_csv_data_{codigo_ls}"
             if _csv_key not in st.session_state:
                 _csv_buf = _io.StringIO()
-                df_check.to_csv(
-                    _csv_buf, index=False, encoding="utf-8"
-                )
-                st.session_state[_csv_key] = (
-                    _csv_buf.getvalue().encode("utf-8")
-                )
+                df_check.to_csv(_csv_buf, index=False, encoding="utf-8")
+                st.session_state[_csv_key] = _csv_buf.getvalue().encode("utf-8")
 
             st.download_button(
                 "  - Descargar checklist (.csv)",
                 data=st.session_state[_csv_key],
-                file_name=(
-                    f"requerimientos_{codigo_ls}_"
-                    f"{area_name[:15].replace(' ','_')}.csv"
-                ),
+                file_name=(f"requerimientos_{codigo_ls}_" f"{area_name[:15].replace(' ','_')}.csv"),
                 mime="text/csv",
                 key=f"dl_req_csv_{codigo_ls}",
                 width="stretch",
@@ -3259,12 +3133,13 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                 from reportlab.lib.units import cm
                 from reportlab.lib import colors
                 from reportlab.platypus import (
-                    SimpleDocTemplate, Paragraph,
-                    Spacer, Table, TableStyle,
+                    SimpleDocTemplate,
+                    Paragraph,
+                    Spacer,
+                    Table,
+                    TableStyle,
                 )
-                from reportlab.lib.styles import (
-                    getSampleStyleSheet, ParagraphStyle,
-                )
+                from reportlab.lib.styles import ParagraphStyle
                 import io as _io2
 
                 # Generate and cache PDF in session_state
@@ -3272,34 +3147,44 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                 if _pdf_key not in st.session_state:
                     buf = _io2.BytesIO()
                     doc = SimpleDocTemplate(
-                        buf, pagesize=A4,
-                        leftMargin=2*cm, rightMargin=2*cm,
-                        topMargin=2*cm, bottomMargin=2*cm,
+                        buf,
+                        pagesize=A4,
+                        leftMargin=2 * cm,
+                        rightMargin=2 * cm,
+                        topMargin=2 * cm,
+                        bottomMargin=2 * cm,
                     )
-                    NAVY = colors.Color(0/255, 51/255, 102/255)
+                    NAVY = colors.Color(0 / 255, 51 / 255, 102 / 255)
 
                     story = []
-                    story.append(Paragraph(
-                        "Requerimientos de Auditora",
-                        ParagraphStyle(
-                            "title", fontSize=16,
-                            fontName="Helvetica-Bold",
-                            textColor=NAVY, spaceAfter=4,
-                        ),
-                    ))
-                    story.append(Paragraph(
-                        f"{area_name}  L/S {codigo_ls}",
-                        ParagraphStyle(
-                            "sub", fontSize=10,
-                            textColor=colors.Color(0.44,0.47,0.52),
-                            spaceAfter=16,
-                        ),
-                    ))
+                    story.append(
+                        Paragraph(
+                            "Requerimientos de Auditora",
+                            ParagraphStyle(
+                                "title",
+                                fontSize=16,
+                                fontName="Helvetica-Bold",
+                                textColor=NAVY,
+                                spaceAfter=4,
+                            ),
+                        )
+                    )
+                    story.append(
+                        Paragraph(
+                            f"{area_name}  L/S {codigo_ls}",
+                            ParagraphStyle(
+                                "sub",
+                                fontSize=10,
+                                textColor=colors.Color(0.44, 0.47, 0.52),
+                                spaceAfter=16,
+                            ),
+                        )
+                    )
 
                     tipo_color_pdf = {
-                        "documento": colors.Color(0.85,0.91,1.0),
-                        "pregunta": colors.Color(1.0,0.98,0.9),
-                        "procedimiento": colors.Color(0.88,0.99,0.93),
+                        "documento": colors.Color(0.85, 0.91, 1.0),
+                        "pregunta": colors.Color(1.0, 0.98, 0.9),
+                        "procedimiento": colors.Color(0.88, 0.99, 0.93),
                     }
 
                     for item in checklist:
@@ -3312,46 +3197,56 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                             "procedimiento": " -",
                         }.get(tipo, "")
 
-                        row = [[
-                            Paragraph(
-                                f"<b>{asev}</b>  {icon} {tipo.title()}",
-                                ParagraphStyle(
-                                    "lbl", fontSize=8,
-                                    textColor=NAVY,
+                        row = [
+                            [
+                                Paragraph(
+                                    f"<b>{asev}</b>  {icon} {tipo.title()}",
+                                    ParagraphStyle(
+                                        "lbl",
+                                        fontSize=8,
+                                        textColor=NAVY,
+                                    ),
                                 ),
-                            ),
-                            Paragraph(
-                                desc,
-                                ParagraphStyle(
-                                    "desc", fontSize=9,
-                                    leading=12,
+                                Paragraph(
+                                    desc,
+                                    ParagraphStyle(
+                                        "desc",
+                                        fontSize=9,
+                                        leading=12,
+                                    ),
                                 ),
-                            ),
-                            Paragraph(
-                                "-",
-                                ParagraphStyle(
-                                    "chk", fontSize=12,
-                                    alignment=1,
+                                Paragraph(
+                                    "-",
+                                    ParagraphStyle(
+                                        "chk",
+                                        fontSize=12,
+                                        alignment=1,
+                                    ),
                                 ),
-                            ),
-                        ]]
-                        t = Table(row, colWidths=[
-                            4*cm, 11*cm, 1*cm
-                        ])
-                        t.setStyle(TableStyle([
-                            ("BACKGROUND", (0,0), (-1,-1),
-                             tipo_color_pdf.get(
-                                 tipo,
-                                 colors.white,
-                             )),
-                            ("TOPPADDING", (0,0),(-1,-1), 5),
-                            ("BOTTOMPADDING",(0,0),(-1,-1),5),
-                            ("LEFTPADDING",(0,0),(-1,-1),6),
-                            ("GRID",(0,0),(-1,-1),0.3,
-                             colors.Color(0.88,0.88,0.90)),
-                        ]))
+                            ]
+                        ]
+                        t = Table(row, colWidths=[4 * cm, 11 * cm, 1 * cm])
+                        t.setStyle(
+                            TableStyle(
+                                [
+                                    (
+                                        "BACKGROUND",
+                                        (0, 0),
+                                        (-1, -1),
+                                        tipo_color_pdf.get(
+                                            tipo,
+                                            colors.white,
+                                        ),
+                                    ),
+                                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                                    ("GRID", (0, 0), (-1, -1), 0.3, colors.Color(0.88, 0.88, 0.90)),
+                                ]
+                            )
+                        )
                         story.append(t)
-                        story.append(Spacer(1, 0.15*cm))
+                        story.append(Spacer(1, 0.15 * cm))
 
                     doc.build(story)
                     buf.seek(0)
@@ -3360,9 +3255,7 @@ def _render_requerimientos_tab(ws: dict[str, Any]) -> None:
                 st.download_button(
                     "  - Descargar checklist (.pdf)",
                     data=st.session_state[_pdf_key],
-                    file_name=(
-                        f"requerimientos_{codigo_ls}.pdf"
-                    ),
+                    file_name=(f"requerimientos_{codigo_ls}.pdf"),
                     mime="application/pdf",
                     key=f"dl_req_pdf_{codigo_ls}",
                     width="stretch",
@@ -3390,75 +3283,44 @@ with tab2:
 
     # Get reas with saldo from ranking
     _areas_list: list[dict] = []
-    if (
-        isinstance(ranking_areas, pd.DataFrame)
-        and not ranking_areas.empty
-    ):
+    if isinstance(ranking_areas, pd.DataFrame) and not ranking_areas.empty:
         _needed = {"area", "nombre", "score_riesgo"}
         if _needed.issubset(set(ranking_areas.columns)):
-            _mask2 = pd.Series(
-                [True] * len(ranking_areas)
-            )
+            _mask2 = pd.Series([True] * len(ranking_areas))
             if "con_saldo" in ranking_areas.columns:
-                _mask2 = ranking_areas[
-                    "con_saldo"
-                ].astype(bool)
-            for _, _row in ranking_areas[
-                _mask2
-            ].iterrows():
-                _areas_list.append({
-                    "codigo": str(
-                        _row.get("area", "")
-                    ).strip(),
-                    "nombre": str(
-                        _row.get("nombre", "")
-                    ),
-                    "score": float(
-                        _row.get("score_riesgo", 0) or 0
-                    ),
-                    "prioridad": str(
-                        _row.get("prioridad", "baja")
-                    ).upper(),
-                    "saldo": float(
-                        _row.get("saldo_total", 0) or 0
-                    ),
-                })
+                _mask2 = ranking_areas["con_saldo"].astype(bool)
+            for _, _row in ranking_areas[_mask2].iterrows():
+                _areas_list.append(
+                    {
+                        "codigo": str(_row.get("area", "")).strip(),
+                        "nombre": str(_row.get("nombre", "")),
+                        "score": float(_row.get("score_riesgo", 0) or 0),
+                        "prioridad": str(_row.get("prioridad", "baja")).upper(),
+                        "saldo": float(_row.get("saldo_total", 0) or 0),
+                    }
+                )
 
     if not _areas_list:
-        _ui_info(
-            "Sube un Trial Balance para ver las reas."
-        )
+        _ui_info("Sube un Trial Balance para ver las reas.")
     else:
         col_rank2, col_ws2 = st.columns([1, 2])
 
         with col_rank2:
             st.markdown(
-                "<div class='sv-heading'>"
-                "Ranking de Áreas</div>",
+                "<div class='sv-heading'>" "Ranking de Áreas</div>",
                 unsafe_allow_html=True,
             )
-            st.caption(
-                "Haz clic en un rea para verla "
-                "en detalle  TM"
-            )
+            st.caption("Haz clic en un rea para verla " "en detalle  TM")
 
             for _area in _areas_list:
                 _cod = _area["codigo"]
                 _score = _area["score"]
-                _is_sel = (_cod == _selected)
+                _is_sel = _cod == _selected
 
                 # Color by score
-                _sc = (
-                    "#DE350B" if _score >= 70
-                    else "#FF8B00" if _score >= 40
-                    else "#00875A"
-                )
+                _sc = "#DE350B" if _score >= 70 else "#FF8B00" if _score >= 40 else "#00875A"
                 # Card style
-                _border = (
-                    "3px solid #003366"
-                    if _is_sel
-                    else "1px solid #DFE1E6"
-                )
+                _border = "3px solid #003366" if _is_sel else "1px solid #DFE1E6"
                 _bg = "#EBF2FF" if _is_sel else "#FFFFFF"
                 _bar_w = min(int(_score), 100)
 
@@ -3510,13 +3372,11 @@ with tab2:
                 )
                 # Button sits flush below the card
                 st.markdown(
-                    "<div style='margin-top:0; "
-                    "margin-bottom:0.5rem;'>",
+                    "<div style='margin-top:0; " "margin-bottom:0.5rem;'>",
                     unsafe_allow_html=True,
                 )
                 _btn = st.button(
-                    "Abrir rea" if not _is_sel
-                    else "Área activa",
+                    "Abrir rea" if not _is_sel else "Área activa",
                     key=f"sel_area_{cliente}_{_cod}",
                     width="stretch",
                     type="primary" if _is_sel else "secondary",
@@ -3533,8 +3393,7 @@ with tab2:
                 _areas_list[0]["codigo"] if _areas_list else "14",
             )
             # Update global selected_area_code for other tabs
-            st.session_state[f"selected_area_{cliente}"] = \
-                selected_area_code
+            st.session_state[f"selected_area_{cliente}"] = selected_area_code
 
             ws = prepare_area_workspace(
                 cliente=cliente,
@@ -3548,13 +3407,15 @@ with tab2:
             render_area_premium(ws, cliente, datos_clave, perfil)
             st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
-            inner_tabs = st.tabs([
-                " 1 Resumen",
-                "  - Trabajo",
-                " -- Calidad",
-                " -- Cierre",
-                " 12 Requerimientos",
-            ])
+            inner_tabs = st.tabs(
+                [
+                    " 1 Resumen",
+                    "  - Trabajo",
+                    " -- Calidad",
+                    " -- Cierre",
+                    " 12 Requerimientos",
+                ]
+            )
             with inner_tabs[0]:
                 render_contexto_tab(ws)
                 with st.expander(
@@ -3610,18 +3471,13 @@ with tab4:
     # -- API key check -------------------------------------
     try:
         import streamlit as st
+
         _api_key_ok = bool(
             st.secrets.get("DEEPSEEK_API_KEY", "")
-            or __import__("os").environ.get(
-                "DEEPSEEK_API_KEY", ""
-            )
+            or __import__("os").environ.get("DEEPSEEK_API_KEY", "")
         )
     except Exception:
-        _api_key_ok = bool(
-            __import__("os").environ.get(
-                "DEEPSEEK_API_KEY", ""
-            )
-        )
+        _api_key_ok = bool(__import__("os").environ.get("DEEPSEEK_API_KEY", ""))
 
     if not _api_key_ok:
         _ui_warning(
@@ -3632,13 +3488,10 @@ with tab4:
             icon=" - ",
         )
 
-    ia_tab1, ia_tab2, ia_tab3 = st.tabs([
-        " TM Briefing", " - Programa", " TM Chat"
-    ])
+    ia_tab1, ia_tab2, ia_tab3 = st.tabs([" TM Briefing", " - Programa", " TM Chat"])
 
     with ia_tab1:
-        st.markdown("<div class='sv-heading'>Briefing de Área</div>",
-                    unsafe_allow_html=True)
+        st.markdown("<div class='sv-heading'>Briefing de Área</div>", unsafe_allow_html=True)
         col_b1, col_b2 = st.columns(2)
         with col_b1:
             area_briefing = st.text_input(
@@ -3658,9 +3511,7 @@ with tab4:
             key="btn_briefing_ia",
             type="primary",
         ):
-            _key_check = _get_deepseek_key() if callable(
-                globals().get("_get_deepseek_key")
-            ) else ""
+            _key_check = _get_deepseek_key() if callable(globals().get("_get_deepseek_key")) else ""
             if not _key_check:
                 _ui_warning(
                     "   - Sin DEEPSEEK_API_KEY. "
@@ -3673,10 +3524,9 @@ with tab4:
                         # Inject uploaded TB into the
                         # module-level reader so briefing
                         # functions find data
-                        _tb_for_brief = tb if (
-                            isinstance(tb, pd.DataFrame)
-                            and not tb.empty
-                        ) else None
+                        _tb_for_brief = (
+                            tb if (isinstance(tb, pd.DataFrame) and not tb.empty) else None
+                        )
 
                         if _tb_for_brief is None:
                             _ui_warning(
@@ -3688,46 +3538,35 @@ with tab4:
                             from llm.briefing_llm import (
                                 generar_briefing_area_llm,
                             )
-                            # Build minimal context for briefing
-                            _perfil_brief = perfil if (
-                                isinstance(perfil, dict)
-                                and perfil
-                            ) else {}
 
-                            briefing_txt = (
-                                generar_briefing_area_llm(
-                                    nombre_cliente=cliente,
-                                    codigo_ls=area_briefing,
-                                    etapa=etapa_briefing,
-                                )
+                            # Build minimal context for briefing
+                            _perfil_brief = perfil if (isinstance(perfil, dict) and perfil) else {}
+
+                            briefing_txt = generar_briefing_area_llm(
+                                nombre_cliente=cliente,
+                                codigo_ls=area_briefing,
+                                etapa=etapa_briefing,
                             )
                             if briefing_txt:
                                 st.markdown(
                                     "<div class='ai-response'>"
-                                    + briefing_txt.replace(
-                                        "\n", "<br>"
-                                    )
+                                    + briefing_txt.replace("\n", "<br>")
                                     + "</div>",
                                     unsafe_allow_html=True,
                                 )
                             else:
                                 _ui_info(
-                                    "El modelo no devolvi "
-                                    "respuesta. Verifica la "
-                                    "API key."
+                                    "El modelo no devolvi " "respuesta. Verifica la " "API key."
                                 )
                     except Exception as e:
                         _ui_error(f"Error en briefing: {e}")
 
-        st.caption(
-            "Requiere DEEPSEEK_API_KEY en "
-            "Streamlit Cloud  TM Settings  TM Secrets."
-        )
+        st.caption("Requiere DEEPSEEK_API_KEY en " "Streamlit Cloud  TM Settings  TM Secrets.")
 
     with ia_tab2:
-        st.markdown("<div class='sv-heading'>Programa de Auditora</div>",
-                    unsafe_allow_html=True)
+        st.markdown("<div class='sv-heading'>Programa de Auditora</div>", unsafe_allow_html=True)
         from domain.services.programa_ia_service import generar_programa_auditoria_ia
+
         col_p1, col_p2 = st.columns(2)
         with col_p1:
             area_prog = st.text_input(
@@ -3756,8 +3595,7 @@ with tab4:
 
     with ia_tab3:
         st.markdown(
-            "<div class='sv-heading'>"
-            "Asistente SocioAI</div>",
+            "<div class='sv-heading'>" "Asistente SocioAI</div>",
             unsafe_allow_html=True,
         )
 
@@ -3767,6 +3605,7 @@ with tab4:
                 generar_respuesta_asistente,
                 SUGERENCIAS_INICIALES,
             )
+
             _asistente_ok = True
         except Exception:
             _asistente_ok = False
@@ -3786,7 +3625,9 @@ with tab4:
 
             _cliente_info_card = perfil.get("cliente", {}) if isinstance(perfil, dict) else {}
             _mat_prelim = (
-                perfil.get("materialidad", {}).get("preliminar", {}).get("materialidad_global", "N/A")
+                perfil.get("materialidad", {})
+                .get("preliminar", {})
+                .get("materialidad_global", "N/A")
                 if isinstance(perfil, dict)
                 else "N/A"
             )
@@ -3835,19 +3676,18 @@ with tab4:
             _perfil_missing = []
             _cliente_info = perfil.get("cliente", {}) if isinstance(perfil, dict) else {}
             _checks = [
-                ("cliente.nombre_legal",
-                 bool(_cliente_info.get("nombre_legal"))),
-                ("sector",
-                 bool(_cliente_info.get("sector"))),
-                ("partes_relacionadas",
-                 "tiene_partes_relacionadas" in str(perfil)),
-                ("operacion",
-                 bool(perfil.get("operacion")
-                      if isinstance(perfil, dict) else False)),
-                ("materialidad",
-                 bool(perfil.get("materialidad", {})
-                      .get("preliminar", {})
-                      if isinstance(perfil, dict) else False)),
+                ("cliente.nombre_legal", bool(_cliente_info.get("nombre_legal"))),
+                ("sector", bool(_cliente_info.get("sector"))),
+                ("partes_relacionadas", "tiene_partes_relacionadas" in str(perfil)),
+                ("operacion", bool(perfil.get("operacion") if isinstance(perfil, dict) else False)),
+                (
+                    "materialidad",
+                    bool(
+                        perfil.get("materialidad", {}).get("preliminar", {})
+                        if isinstance(perfil, dict)
+                        else False
+                    ),
+                ),
             ]
             for campo, ok in _checks:
                 if ok:
@@ -3855,9 +3695,7 @@ with tab4:
                 else:
                     _perfil_missing.append(campo)
 
-            _pct_perfil = int(
-                (_perfil_score / len(_checks)) * 100
-            )
+            _pct_perfil = int((_perfil_score / len(_checks)) * 100)
 
             if _pct_perfil < 80:
                 st.markdown(
@@ -3888,38 +3726,30 @@ with tab4:
                     unsafe_allow_html=True,
                 )
                 chip_cols = st.columns(3)
-                for i, sug in enumerate(
-                    SUGERENCIAS_INICIALES[:6]
-                ):
+                for i, sug in enumerate(SUGERENCIAS_INICIALES[:6]):
                     with chip_cols[i % 3]:
                         if st.button(
                             sug,
                             key=f"chip_{i}_{cliente}",
                             width="stretch",
                         ):
-                            st.session_state[
-                                _hist_key
-                            ].append({
-                                "role": "user",
-                                "content": sug,
-                            })
-                            with st.spinner(
-                                "Consultando..."
-                            ):
-                                resp = (
-                                    generar_respuesta_asistente(
-                                        st.session_state[
-                                            _hist_key
-                                        ],
-                                        _sistema,
-                                    )
+                            st.session_state[_hist_key].append(
+                                {
+                                    "role": "user",
+                                    "content": sug,
+                                }
+                            )
+                            with st.spinner("Consultando..."):
+                                resp = generar_respuesta_asistente(
+                                    st.session_state[_hist_key],
+                                    _sistema,
                                 )
-                            st.session_state[
-                                _hist_key
-                            ].append({
-                                "role": "assistant",
-                                "content": resp,
-                            })
+                            st.session_state[_hist_key].append(
+                                {
+                                    "role": "assistant",
+                                    "content": resp,
+                                }
+                            )
                             st.rerun()
 
             # Render chat history
@@ -3960,9 +3790,7 @@ with tab4:
                 user_input = st.text_input(
                     "Escribe tu pregunta",
                     key=f"chat_input_{cliente}",
-                    placeholder=(
-                        "ej: Qu rea tiene mayor riesgo"
-                    ),
+                    placeholder=("ej: Qu rea tiene mayor riesgo"),
                     label_visibility="collapsed",
                 )
             with btn_col:
@@ -3974,19 +3802,23 @@ with tab4:
                 )
 
             if send and user_input.strip():
-                st.session_state[_hist_key].append({
-                    "role": "user",
-                    "content": user_input.strip(),
-                })
+                st.session_state[_hist_key].append(
+                    {
+                        "role": "user",
+                        "content": user_input.strip(),
+                    }
+                )
                 with st.spinner("SocioAI est pensando..."):
                     resp = generar_respuesta_asistente(
                         st.session_state[_hist_key],
                         _sistema,
                     )
-                st.session_state[_hist_key].append({
-                    "role": "assistant",
-                    "content": resp,
-                })
+                st.session_state[_hist_key].append(
+                    {
+                        "role": "assistant",
+                        "content": resp,
+                    }
+                )
                 st.rerun()
 
             # Clear chat button
@@ -4037,9 +3869,7 @@ def _build_chart_data(
         vals_2024 = []
         vals_2025 = []
 
-        ls_col = next(
-            (c for c in ["ls", "l/s", "l_s"] if c in tb.columns), None
-        )
+        ls_col = next((c for c in ["ls", "l/s", "l_s"] if c in tb.columns), None)
 
         for _, row in present.iterrows():
             codigo = str(row.get("area", "")).strip()
@@ -4051,14 +3881,8 @@ def _build_chart_data(
             else:
                 sub = tb[tb["codigo"].astype(str).str.startswith(codigo)]
 
-            s24 = abs(float(
-                pd.to_numeric(sub["saldo_2024"], errors="coerce")
-                .fillna(0).sum()
-            ))
-            s25 = abs(float(
-                pd.to_numeric(sub["saldo_2025"], errors="coerce")
-                .fillna(0).sum()
-            ))
+            s24 = abs(float(pd.to_numeric(sub["saldo_2024"], errors="coerce").fillna(0).sum()))
+            s25 = abs(float(pd.to_numeric(sub["saldo_2025"], errors="coerce").fillna(0).sum()))
 
             if s24 > 0 or s25 > 0:
                 nombres_areas.append(f"{codigo}\n{nombre}")
@@ -4113,10 +3937,7 @@ def _build_chart_data(
             score_25 = float(row.get("score_riesgo", 0) or 0)
 
             # Estimate 2024 score based on saldo ratio
-            idx = next(
-                (i for i, n in enumerate(bar["nombres"])
-                 if n.startswith(codigo)), None
-            )
+            idx = next((i for i, n in enumerate(bar["nombres"]) if n.startswith(codigo)), None)
             if idx is not None and bar["vals_2025"][idx] > 0:
                 ratio = bar["vals_2024"][idx] / bar["vals_2025"][idx]
                 score_24 = round(score_25 * ratio * 0.9, 1)
@@ -4136,30 +3957,32 @@ def _build_chart_data(
 
 
 with tab5:
-    d_tab1, d_tab2, d_tab3, d_tab4, d_tab5 = st.tabs([
-        "Variaciones",
-        "Trial Balance",
-        "Análisis Financiero",
-        "Hallazgos",
-        "Mayor",
-    ])
+    d_tab1, d_tab2, d_tab3, d_tab4, d_tab5 = st.tabs(
+        [
+            "Variaciones",
+            "Trial Balance",
+            "Análisis Financiero",
+            "Hallazgos",
+            "Mayor",
+        ]
+    )
 
     with d_tab1:
-        st.markdown("<div class='sv-heading'>Variaciones Significativas</div>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            "<div class='sv-heading'>Variaciones Significativas</div>", unsafe_allow_html=True
+        )
         resumen_var = safe_call(resumen_variaciones, cliente, default={}) or {}
         v1, v2, v3 = st.columns(3)
-        v1.metric("Cuentas con variación",
-                  resumen_var.get("total_cuentas_variacion", 0))
-        v2.metric("Mayor variación",
-                  fmt_money(resumen_var.get("mayor_variacion", 0)))
-        v3.metric("Suma variaciones",
-                  fmt_money(resumen_var.get("suma_variaciones", 0)))
+        v1.metric("Cuentas con variación", resumen_var.get("total_cuentas_variacion", 0))
+        v2.metric("Mayor variación", fmt_money(resumen_var.get("mayor_variacion", 0)))
+        v3.metric("Suma variaciones", fmt_money(resumen_var.get("suma_variaciones", 0)))
         if isinstance(variaciones, pd.DataFrame) and not variaciones.empty:
-            cols_var = [c for c in ["codigo", "nombre", "saldo", "impacto"]
-                       if c in variaciones.columns]
-            show_var = variaciones[cols_var].head(15).copy() if cols_var \
-                       else variaciones.head(15).copy()
+            cols_var = [
+                c for c in ["codigo", "nombre", "saldo", "impacto"] if c in variaciones.columns
+            ]
+            show_var = (
+                variaciones[cols_var].head(15).copy() if cols_var else variaciones.head(15).copy()
+            )
             if "saldo" in show_var.columns:
                 show_var["saldo"] = show_var["saldo"].apply(fmt_money)
             if "impacto" in show_var.columns:
@@ -4169,31 +3992,25 @@ with tab5:
             _ui_info("Sin variaciones significativas detectadas.")
 
     with d_tab2:
-        st.markdown("<div class='sv-heading'>Trial Balance</div>",
-                    unsafe_allow_html=True)
+        st.markdown("<div class='sv-heading'>Trial Balance</div>", unsafe_allow_html=True)
         if not isinstance(tb, pd.DataFrame) or tb.empty:
             _ui_error("No se pudo cargar el trial balance.")
         else:
             tb_filtrado = tb.copy()
             if "tipo_cuenta" in tb_filtrado.columns:
-                tipos = sorted([str(x) for x in
-                               tb_filtrado["tipo_cuenta"].dropna().unique()])
-                sel_tipos = st.multiselect(
-                    "Filtrar por tipo", options=tipos, default=tipos
-                )
+                tipos = sorted([str(x) for x in tb_filtrado["tipo_cuenta"].dropna().unique()])
+                sel_tipos = st.multiselect("Filtrar por tipo", options=tipos, default=tipos)
                 if sel_tipos:
                     tb_filtrado = tb_filtrado[
                         tb_filtrado["tipo_cuenta"].astype(str).isin(sel_tipos)
                     ]
             render_editorial_table(tb_filtrado)
             num_col = next(
-                (c for c in ["saldo", "saldo_2025", "saldo_actual"]
-                 if c in tb_filtrado.columns), None
+                (c for c in ["saldo", "saldo_2025", "saldo_actual"] if c in tb_filtrado.columns),
+                None,
             )
             if num_col:
-                vals = pd.to_numeric(
-                    tb_filtrado[num_col], errors="coerce"
-                ).fillna(0)
+                vals = pd.to_numeric(tb_filtrado[num_col], errors="coerce").fillna(0)
                 cc1, cc2, cc3 = st.columns(3)
                 cc1.metric("Cuentas", len(tb_filtrado))
                 cc2.metric("Suma", fmt_money(vals.sum()))
@@ -4215,24 +4032,28 @@ with tab5:
             if bar_d:
                 st.markdown("**Evolucin de saldo por rea  2024 vs 2025**")
                 fig_bar = go.Figure()
-                fig_bar.add_trace(go.Bar(
-                    name="2024",
-                    x=bar_d["nombres"],
-                    y=bar_d["vals_2024"],
-                    marker_color="#A8C4E0",
-                    text=[f"${v:,.0f}" for v in bar_d["vals_2024"]],
-                    textposition="outside",
-                    textfont=dict(size=10),
-                ))
-                fig_bar.add_trace(go.Bar(
-                    name="2025",
-                    x=bar_d["nombres"],
-                    y=bar_d["vals_2025"],
-                    marker_color="#003366",
-                    text=[f"${v:,.0f}" for v in bar_d["vals_2025"]],
-                    textposition="outside",
-                    textfont=dict(size=10),
-                ))
+                fig_bar.add_trace(
+                    go.Bar(
+                        name="2024",
+                        x=bar_d["nombres"],
+                        y=bar_d["vals_2024"],
+                        marker_color="#A8C4E0",
+                        text=[f"${v:,.0f}" for v in bar_d["vals_2024"]],
+                        textposition="outside",
+                        textfont=dict(size=10),
+                    )
+                )
+                fig_bar.add_trace(
+                    go.Bar(
+                        name="2025",
+                        x=bar_d["nombres"],
+                        y=bar_d["vals_2025"],
+                        marker_color="#003366",
+                        text=[f"${v:,.0f}" for v in bar_d["vals_2025"]],
+                        textposition="outside",
+                        textfont=dict(size=10),
+                    )
+                )
                 fig_bar.update_layout(
                     barmode="group",
                     plot_bgcolor="white",
@@ -4240,10 +4061,7 @@ with tab5:
                     font=dict(color="#172B4D", size=11),
                     height=340,
                     margin=dict(l=10, r=10, t=30, b=60),
-                    legend=dict(
-                        orientation="h", y=1.1, x=0.5,
-                        xanchor="center"
-                    ),
+                    legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"),
                     yaxis=dict(
                         showgrid=True,
                         gridcolor="#F4F5F7",
@@ -4285,14 +4103,16 @@ with tab5:
                             colores.append(color)
 
                     if categorias:
-                        fig_stack = go.Figure(go.Bar(
-                            x=categorias,
-                            y=valores,
-                            marker_color=colores,
-                            text=[f"${v:,.0f}" for v in valores],
-                            textposition="outside",
-                            textfont=dict(size=10),
-                        ))
+                        fig_stack = go.Figure(
+                            go.Bar(
+                                x=categorias,
+                                y=valores,
+                                marker_color=colores,
+                                text=[f"${v:,.0f}" for v in valores],
+                                textposition="outside",
+                                textfont=dict(size=10),
+                            )
+                        )
                         fig_stack.update_layout(
                             plot_bgcolor="white",
                             paper_bgcolor="white",
@@ -4306,9 +4126,7 @@ with tab5:
                             ),
                             showlegend=False,
                         )
-                        st.plotly_chart(
-                            fig_stack, width="stretch"
-                        )
+                        st.plotly_chart(fig_stack, width="stretch")
                 else:
                     _ui_info("Sin datos de balance.")
 
@@ -4321,8 +4139,12 @@ with tab5:
 
                     periodos = ["2024 (est.)", "2025"]
                     colores_line = [
-                        "#003366", "#0066CC", "#DE350B",
-                        "#00875A", "#FF8B00", "#6554C0",
+                        "#003366",
+                        "#0066CC",
+                        "#DE350B",
+                        "#00875A",
+                        "#FF8B00",
+                        "#6554C0",
                     ]
 
                     for i, (nombre, (s24, s25)) in enumerate(
@@ -4332,17 +4154,19 @@ with tab5:
                         )
                     ):
                         color_l = colores_line[i % len(colores_line)]
-                        fig_line.add_trace(go.Scatter(
-                            x=periodos,
-                            y=[s24, s25],
-                            mode="lines+markers+text",
-                            name=nombre,
-                            line=dict(color=color_l, width=2),
-                            marker=dict(size=8, color=color_l),
-                            text=[f"{s24:.0f}", f"{s25:.0f}"],
-                            textposition="top center",
-                            textfont=dict(size=9),
-                        ))
+                        fig_line.add_trace(
+                            go.Scatter(
+                                x=periodos,
+                                y=[s24, s25],
+                                mode="lines+markers+text",
+                                name=nombre,
+                                line=dict(color=color_l, width=2),
+                                marker=dict(size=8, color=color_l),
+                                text=[f"{s24:.0f}", f"{s25:.0f}"],
+                                textposition="top center",
+                                textfont=dict(size=9),
+                            )
+                        )
 
                     fig_line.update_layout(
                         plot_bgcolor="white",
@@ -4363,9 +4187,7 @@ with tab5:
                         ),
                         xaxis=dict(title="Perodo"),
                     )
-                    st.plotly_chart(
-                        fig_line, width="stretch"
-                    )
+                    st.plotly_chart(fig_line, width="stretch")
                 else:
                     _ui_info("Sin datos de tendencia de riesgo.")
 
@@ -4384,10 +4206,7 @@ with tab5:
             ratios_data = resumen_ratios(cliente)
             if ratios_data:
                 df_ratios = pd.DataFrame(ratios_data)
-                show_r = [
-                    c for c in ["ratio", "valor", "interpretacion"]
-                    if c in df_ratios.columns
-                ]
+                show_r = [c for c in ["ratio", "valor", "interpretacion"] if c in df_ratios.columns]
                 render_editorial_table(df_ratios[show_r])
             else:
                 _ui_info("Sin datos de ratios.")
@@ -4403,15 +4222,15 @@ with tab5:
                 _ui_info("Sin benchmark disponible.")
 
     with d_tab4:
-        st.markdown("<div class='sv-heading'>Gestin de Hallazgos</div>",
-                    unsafe_allow_html=True)
+        st.markdown("<div class='sv-heading'>Gestin de Hallazgos</div>", unsafe_allow_html=True)
         from domain.services.hallazgos_service import (
-            cargar_hallazgos_gestion, crear_hallazgo,
-            actualizar_estado_hallazgo, resumen_hallazgos,
+            cargar_hallazgos_gestion,
+            crear_hallazgo,
+            actualizar_estado_hallazgo,
+            resumen_hallazgos,
         )
-        from domain.services.export_service import (
-            exportar_hallazgos_excel, exportar_resumen_txt
-        )
+        from domain.services.export_service import exportar_hallazgos_excel, exportar_resumen_txt
+
         res_h = resumen_hallazgos(cliente)
         hh1, hh2, hh3, hh4 = st.columns(4)
         hh1.metric("Total", res_h["total"])
@@ -4425,40 +4244,32 @@ with tab5:
                 ai_input = st.text_input("Área L/S", key="h_area")
             with cb:
                 asv = st.text_input("Afirmacin", key="h_asev")
-                niv = st.selectbox("Nivel", ["alto","medio","bajo"],
-                                   key="h_nivel")
+                niv = st.selectbox("Nivel", ["alto", "medio", "bajo"], key="h_nivel")
                 resp = st.text_input("Responsable", key="h_resp")
             if st.button("Guardar hallazgo", key="h_save"):
                 if di and ai_input:
-                    nuevo_h = crear_hallazgo(
-                        cliente, ai_input, di, asv, niv, resp
-                    )
+                    nuevo_h = crear_hallazgo(cliente, ai_input, di, asv, niv, resp)
                     _ui_success(f"Hallazgo {nuevo_h['id']} creado.")
                     st.rerun()
         todos_h = cargar_hallazgos_gestion(cliente)
         if todos_h:
-            filtro_h = st.selectbox(
-                "Filtrar", ["todos","abierto","cerrado"], key="h_filtro"
+            filtro_h = st.selectbox("Filtrar", ["todos", "abierto", "cerrado"], key="h_filtro")
+            lista_h = (
+                todos_h
+                if filtro_h == "todos"
+                else [h for h in todos_h if h.get("estado") == filtro_h]
             )
-            lista_h = todos_h if filtro_h == "todos" else [
-                h for h in todos_h if h.get("estado") == filtro_h
-            ]
             for h in lista_h:
-                ic = {"alto":" - ","medio":"  ","bajo":"  "}.get(
-                    h.get("nivel",""), "a"
-                )
+                ic = {"alto": " - ", "medio": "  ", "bajo": "  "}.get(h.get("nivel", ""), "a")
                 with st.expander(
                     f"{ic} {h.get('id')} | {h.get('codigo_area')} | "
                     f"{h.get('estado')} | {h.get('descripcion','')[:50]}"
                 ):
                     st.json(h)
                     if h.get("estado") == "abierto":
-                        nc = st.text_input("Nota cierre",
-                                          key=f"nc_{h['id']}")
+                        nc = st.text_input("Nota cierre", key=f"nc_{h['id']}")
                         if st.button("Cerrar", key=f"ch_{h['id']}"):
-                            actualizar_estado_hallazgo(
-                                cliente, h["id"], "cerrado", nc
-                            )
+                            actualizar_estado_hallazgo(cliente, h["id"], "cerrado", nc)
                             st.rerun()
         else:
             _ui_info("Sin hallazgos registrados.")
@@ -4470,9 +4281,7 @@ with tab5:
         with ec2:
             if st.button("Exportar resumen TXT", key="exp_r"):
                 r = exportar_resumen_txt(
-                    cliente,
-                    ranking_areas if isinstance(ranking_areas, pd.DataFrame)
-                    else None
+                    cliente, ranking_areas if isinstance(ranking_areas, pd.DataFrame) else None
                 )
                 _ui_success(f"Exportado: {r}") if r else _ui_error("Error.")
 
@@ -4482,9 +4291,7 @@ with tab5:
             unsafe_allow_html=True,
         )
 
-        if df_mayor is None or (
-            isinstance(df_mayor, pd.DataFrame) and df_mayor.empty
-        ):
+        if df_mayor is None or (isinstance(df_mayor, pd.DataFrame) and df_mayor.empty):
             _ui_info(
                 "No se encontró mayor.xlsx para este cliente. "
                 "Carga el archivo en: "
@@ -4497,26 +4304,12 @@ with tab5:
             )
         else:
             # -- Summary KPIs ----------------------------------
-            res_m = safe_call(
-                resumen_mayor, df_mayor, default={}
-            ) or {}
+            res_m = safe_call(resumen_mayor, df_mayor, default={}) or {}
             mk1, mk2, mk3, mk4 = st.columns(4)
-            mk1.metric(
-                "Total movimientos",
-                res_m.get("total_movimientos", 0)
-            )
-            mk2.metric(
-                "Total debe",
-                fmt_money(res_m.get("total_debe", 0))
-            )
-            mk3.metric(
-                "Total haber",
-                fmt_money(res_m.get("total_haber", 0))
-            )
-            mk4.metric(
-                "Cuentas distintas",
-                res_m.get("cuentas_distintas", 0)
-            )
+            mk1.metric("Total movimientos", res_m.get("total_movimientos", 0))
+            mk2.metric("Total debe", fmt_money(res_m.get("total_debe", 0)))
+            mk3.metric("Total haber", fmt_money(res_m.get("total_haber", 0)))
+            mk4.metric("Cuentas distintas", res_m.get("cuentas_distintas", 0))
 
             st.divider()
 
@@ -4558,10 +4351,7 @@ with tab5:
             df_view = df_mayor.copy()
 
             if filtro_ls.strip() and filtrar_por_ls:
-                filtered = safe_call(
-                    filtrar_por_ls, df_view,
-                    filtro_ls.strip(), default=df_view
-                )
+                filtered = safe_call(filtrar_por_ls, df_view, filtro_ls.strip(), default=df_view)
                 if isinstance(filtered, pd.DataFrame):
                     df_view = filtered
 
@@ -4569,10 +4359,7 @@ with tab5:
                 try:
                     from analysis.lector_mayor import filtrar_por_cuenta as _fpc
 
-                    filtered = safe_call(
-                        _fpc, df_view,
-                        filtro_cuenta.strip(), default=df_view
-                    )
+                    filtered = safe_call(_fpc, df_view, filtro_cuenta.strip(), default=df_view)
                     if isinstance(filtered, pd.DataFrame):
                         df_view = filtered
                 except Exception:
@@ -4589,17 +4376,21 @@ with tab5:
                 if isinstance(filtered, pd.DataFrame):
                     df_view = filtered
 
-            st.caption(
-                f"Mostrando {len(df_view)} de "
-                f"{len(df_mayor)} movimientos"
-            )
+            st.caption(f"Mostrando {len(df_view)} de " f"{len(df_mayor)} movimientos")
 
             # -- Table -----------------------------------------
             show_cols = [
-                c for c in [
-                    "fecha", "numero_cuenta", "nombre_cuenta",
-                    "ls", "descripcion", "referencia",
-                    "debe", "haber", "saldo",
+                c
+                for c in [
+                    "fecha",
+                    "numero_cuenta",
+                    "nombre_cuenta",
+                    "ls",
+                    "descripcion",
+                    "referencia",
+                    "debe",
+                    "haber",
+                    "saldo",
                 ]
                 if c in df_view.columns
             ]
@@ -4615,9 +4406,7 @@ with tab5:
                 render_editorial_table(disp)
 
                 # Download filtered mayor
-                csv_bytes = df_view[show_cols].to_csv(
-                    index=False
-                ).encode("utf-8")
+                csv_bytes = df_view[show_cols].to_csv(index=False).encode("utf-8")
                 st.download_button(
                     "  - Exportar filtrado (.csv)",
                     data=csv_bytes,

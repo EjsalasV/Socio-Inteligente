@@ -10,7 +10,6 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend.schemas import UserContext
 
-
 _SECRET = (os.getenv("JWT_SECRET_KEY") or os.getenv("SOCIO_JWT_SECRET") or "").strip()
 if not _SECRET:
     raise RuntimeError(
@@ -19,9 +18,7 @@ if not _SECRET:
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(
-    os.getenv("JWT_EXPIRE_MINUTES")
-    or os.getenv("SOCIO_JWT_EXPIRES_MINUTES")
-    or "60"
+    os.getenv("JWT_EXPIRE_MINUTES") or os.getenv("SOCIO_JWT_EXPIRES_MINUTES") or "60"
 )
 
 bearer_scheme = HTTPBearer(auto_error=False)

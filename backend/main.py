@@ -5,7 +5,17 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routes import areas, auth, chat, clientes, dashboard, metodologia, perfil, reportes, risk_engine
+from backend.routes import (
+    areas,
+    auth,
+    chat,
+    clientes,
+    dashboard,
+    metodologia,
+    perfil,
+    reportes,
+    risk_engine,
+)
 
 app = FastAPI(title="Socio AI Backend", version="0.1.0")
 

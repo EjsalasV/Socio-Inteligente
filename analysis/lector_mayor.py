@@ -3,6 +3,7 @@ Ledger reader service (Libro Mayor).
 Reads mayor.xlsx from client folder and provides
 filtering and search functions.
 """
+
 from __future__ import annotations
 
 import re
@@ -11,7 +12,6 @@ from pathlib import Path
 from typing import Any, Optional
 
 import pandas as pd
-
 
 DATA_ROOT = Path(__file__).resolve().parents[1] / "data" / "clientes"
 MAYOR_FILENAME = "mayor.xlsx"
@@ -30,10 +30,11 @@ def _normalize_header(col: Any) -> str:
 
 def _to_numeric(s: pd.Series) -> pd.Series:
     return pd.to_numeric(
-        s.astype(str).str.strip()
-         .str.replace(",", "", regex=False)
-         .str.replace("$", "", regex=False)
-         .replace({"": None, "nan": None}),
+        s.astype(str)
+        .str.strip()
+        .str.replace(",", "", regex=False)
+        .str.replace("$", "", regex=False)
+        .replace({"": None, "nan": None}),
         errors="coerce",
     ).fillna(0.0)
 
@@ -66,19 +67,16 @@ def leer_mayor(cliente: str) -> Optional[pd.DataFrame]:
 
     # Canonical columns
     col_map = {
-        "fecha":         ["fecha", "date", "fecha_mov"],
-        "numero_cuenta": ["numero_cuenta", "cuenta", "codigo",
-                          "cod_cuenta", "numero_de_cuenta"],
+        "fecha": ["fecha", "date", "fecha_mov"],
+        "numero_cuenta": ["numero_cuenta", "cuenta", "codigo", "cod_cuenta", "numero_de_cuenta"],
         "nombre_cuenta": ["nombre_cuenta", "nombre", "descripcion_cuenta"],
-        "ls":            ["ls", "l_s", "linea_significancia"],
-        "descripcion":   ["descripcion", "detalle", "concepto",
-                          "glosa", "referencia_descripcion"],
-        "referencia":    ["referencia", "comprobante", "voucher",
-                          "numero_doc", "doc"],
-        "debe":          ["debe", "debito", "debit"],
-        "haber":         ["haber", "credito", "credit"],
-        "saldo":         ["saldo", "saldo_acumulado", "balance"],
-        "tipo":          ["tipo", "type", "dc"],
+        "ls": ["ls", "l_s", "linea_significancia"],
+        "descripcion": ["descripcion", "detalle", "concepto", "glosa", "referencia_descripcion"],
+        "referencia": ["referencia", "comprobante", "voucher", "numero_doc", "doc"],
+        "debe": ["debe", "debito", "debit"],
+        "haber": ["haber", "credito", "credit"],
+        "saldo": ["saldo", "saldo_acumulado", "balance"],
+        "tipo": ["tipo", "type", "dc"],
     }
 
     def _find(candidates):
@@ -101,17 +99,12 @@ def leer_mayor(cliente: str) -> Optional[pd.DataFrame]:
     out["saldo"] = _to_numeric(out["saldo"].fillna(0))
 
     try:
-        out["fecha"] = pd.to_datetime(
-            out["fecha"], errors="coerce", dayfirst=True
-        )
+        out["fecha"] = pd.to_datetime(out["fecha"], errors="coerce", dayfirst=True)
     except Exception:
         pass
 
     out["numero_cuenta"] = out["numero_cuenta"].astype(str).str.strip()
-    out["ls"] = (
-        out["ls"].astype(str).str.strip()
-        .str.replace(r"\.0+$", "", regex=True)
-    )
+    out["ls"] = out["ls"].astype(str).str.strip().str.replace(r"\.0+$", "", regex=True)
     out["descripcion"] = out["descripcion"].astype(str).str.strip()
     out["nombre_cuenta"] = out["nombre_cuenta"].astype(str).str.strip()
     out["referencia"] = out["referencia"].astype(str).str.strip()
@@ -123,27 +116,18 @@ def leer_mayor(cliente: str) -> Optional[pd.DataFrame]:
     return out
 
 
-def filtrar_por_ls(
-    df: pd.DataFrame, codigo_ls: str
-) -> pd.DataFrame:
+def filtrar_por_ls(df: pd.DataFrame, codigo_ls: str) -> pd.DataFrame:
     """Returns rows matching the L/S code exactly."""
     if df is None or df.empty or "ls" not in df.columns:
         return pd.DataFrame()
-    return df[
-        df["ls"].astype(str).str.strip() == str(codigo_ls).strip()
-    ].copy()
+    return df[df["ls"].astype(str).str.strip() == str(codigo_ls).strip()].copy()
 
 
-def filtrar_por_cuenta(
-    df: pd.DataFrame, numero_cuenta: str
-) -> pd.DataFrame:
+def filtrar_por_cuenta(df: pd.DataFrame, numero_cuenta: str) -> pd.DataFrame:
     """Returns rows where numero_cuenta starts with the given prefix."""
     if df is None or df.empty or "numero_cuenta" not in df.columns:
         return pd.DataFrame()
-    return df[
-        df["numero_cuenta"].astype(str)
-        .str.startswith(str(numero_cuenta).strip())
-    ].copy()
+    return df[df["numero_cuenta"].astype(str).str.startswith(str(numero_cuenta).strip())].copy()
 
 
 def buscar_movimientos(
@@ -163,27 +147,19 @@ def buscar_movimientos(
 
     if texto.strip():
         q = texto.strip().lower()
-        mask_desc = resultado["descripcion"].str.lower().str.contains(
-            q, na=False
-        )
-        mask_ref = resultado["referencia"].str.lower().str.contains(
-            q, na=False
-        )
-        mask_cta = resultado["nombre_cuenta"].str.lower().str.contains(
-            q, na=False
-        )
+        mask_desc = resultado["descripcion"].str.lower().str.contains(q, na=False)
+        mask_ref = resultado["referencia"].str.lower().str.contains(q, na=False)
+        mask_cta = resultado["nombre_cuenta"].str.lower().str.contains(q, na=False)
         resultado = resultado[mask_desc | mask_ref | mask_cta]
 
     if monto_min > 0:
         resultado = resultado[
-            resultado["debe"].abs().ge(monto_min)
-            | resultado["haber"].abs().ge(monto_min)
+            resultado["debe"].abs().ge(monto_min) | resultado["haber"].abs().ge(monto_min)
         ]
 
     if monto_max > 0:
         resultado = resultado[
-            resultado["debe"].abs().le(monto_max)
-            | resultado["haber"].abs().le(monto_max)
+            resultado["debe"].abs().le(monto_max) | resultado["haber"].abs().le(monto_max)
         ]
 
     return resultado.reset_index(drop=True)

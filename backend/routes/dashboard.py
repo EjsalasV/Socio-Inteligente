@@ -29,8 +29,14 @@ def _to_str(value: object, default: str = "") -> str:
 
 
 def _materialidad_from_perfil(perfil: dict) -> tuple[float, float, float]:
-    materialidad = perfil.get("materialidad", {}) if isinstance(perfil.get("materialidad"), dict) else {}
-    preliminar = materialidad.get("preliminar", {}) if isinstance(materialidad.get("preliminar"), dict) else {}
+    materialidad = (
+        perfil.get("materialidad", {}) if isinstance(perfil.get("materialidad"), dict) else {}
+    )
+    preliminar = (
+        materialidad.get("preliminar", {})
+        if isinstance(materialidad.get("preliminar"), dict)
+        else {}
+    )
     final = materialidad.get("final", {}) if isinstance(materialidad.get("final"), dict) else {}
 
     mp = _to_float(final.get("materialidad_planeacion", 0.0))
@@ -61,7 +67,9 @@ def _progreso_from_fase(fase_actual: str) -> int | None:
 
 
 @router.get("/{cliente_id}", response_model=DashboardResponse)
-def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)) -> DashboardResponse:
+def get_dashboard(
+    cliente_id: str, user: UserContext = Depends(get_current_user)
+) -> DashboardResponse:
     authorize_cliente_access(cliente_id, user)
 
     from analysis.lector_tb import obtener_resumen_tb
@@ -92,8 +100,12 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
 
     if ranking is not None and not ranking.empty:
         if "con_saldo" in ranking.columns:
-            saldo_series = ranking["saldo_total"].astype(float) if "saldo_total" in ranking.columns else 0.0
-            ranking_visible = ranking[(ranking["con_saldo"] == True) | (saldo_series > 0.0)]  # noqa: E712
+            saldo_series = (
+                ranking["saldo_total"].astype(float) if "saldo_total" in ranking.columns else 0.0
+            )
+            ranking_visible = ranking[
+                (ranking["con_saldo"] is True) | (saldo_series > 0.0)
+            ]  # noqa: E712
         else:
             ranking_visible = ranking
         if ranking_visible.empty:
@@ -141,7 +153,9 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
         nombre_cliente=_to_str(cliente_info.get("nombre_legal", cliente_id), cliente_id),
         periodo=_to_str(encargo.get("anio_activo", "")),
         sector=_to_str(cliente_info.get("sector", "")),
-        riesgo_global=_to_str((perfil.get("riesgo_global", {}) or {}).get("nivel", "MEDIO"), "MEDIO"),
+        riesgo_global=_to_str(
+            (perfil.get("riesgo_global", {}) or {}).get("nivel", "MEDIO"), "MEDIO"
+        ),
         balance=balance,
         progreso=ProgresoEncargo(
             pct_completado=pct_completado,

@@ -13,7 +13,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 @router.get("/{cliente_id}/executive-pdf", response_model=ApiResponse)
-def get_executive_pdf(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+def get_executive_pdf(
+    cliente_id: str, user: UserContext = Depends(get_current_user)
+) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
 
     exports_dir = ROOT / "data" / "exports"

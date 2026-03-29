@@ -3,13 +3,13 @@ Unit tests for the RAG knowledge pipeline.
 Tests loader, chunking and retriever without requiring
 ChromaDB to be populated (uses mocks where needed).
 """
-import pytest
+
+
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-
-# ── Loader tests ─────────────────────────────────────────────
-
+from infra.rag import vector_store
+from infra.rag.retriever import recuperar_contexto_normativo, inicializar_rag
 from infra.rag.knowledge_loader import (
     _chunk_texto,
     _detectar_fuente,
@@ -28,7 +28,7 @@ def test_chunk_texto_short():
 
 def test_chunk_texto_largo():
     """Long text should be split into multiple chunks."""
-    texto = ("Esta es una oración de prueba. " * 60)
+    texto = "Esta es una oración de prueba. " * 60
     chunks = _chunk_texto(texto, chunk_size=200)
     assert len(chunks) > 1
 
@@ -107,6 +107,8 @@ def test_cargar_documentos_estructura():
         assert len(d["texto"]) > 10
 
 
+
+
 def test_cargar_documentos_no_empty_chunks():
     """No chunk should be empty."""
     docs = cargar_documentos()
@@ -115,8 +117,6 @@ def test_cargar_documentos_no_empty_chunks():
 
 
 # ── Vector store tests (mocked) ──────────────────────────────
-
-from infra.rag import vector_store
 
 
 def test_esta_indexado_returns_bool():
@@ -142,9 +142,8 @@ def test_buscar_normativa_sin_indexar_returns_empty():
             assert isinstance(result, list)
 
 
-# ── Retriever tests ──────────────────────────────────────────
 
-from infra.rag.retriever import recuperar_contexto_normativo, inicializar_rag
+# ── Retriever tests ──────────────────────────────────────────
 
 
 def test_recuperar_contexto_sin_indexar():
@@ -164,8 +163,10 @@ def test_recuperar_contexto_con_resultados():
             "relevancia": 0.85,
         }
     ]
-    with patch("infra.rag.retriever.esta_indexado", return_value=True), \
-         patch("infra.rag.retriever.buscar_normativa", return_value=mock_resultados):
+    with (
+        patch("infra.rag.retriever.esta_indexado", return_value=True),
+        patch("infra.rag.retriever.buscar_normativa", return_value=mock_resultados),
+    ):
         result = recuperar_contexto_normativo("materialidad")
         assert "CONTEXTO NORMATIVO" in result
         assert "NIA 320" in result
@@ -174,16 +175,20 @@ def test_recuperar_contexto_con_resultados():
 
 def test_recuperar_contexto_sin_resultados():
     """Should return empty string when search yields nothing."""
-    with patch("infra.rag.retriever.esta_indexado", return_value=True), \
-         patch("infra.rag.retriever.buscar_normativa", return_value=[]):
+    with (
+        patch("infra.rag.retriever.esta_indexado", return_value=True),
+        patch("infra.rag.retriever.buscar_normativa", return_value=[]),
+    ):
         result = recuperar_contexto_normativo("xyz123")
         assert result == ""
 
 
 def test_inicializar_rag_ya_indexado():
     """Should return ya_indexado status when already populated."""
-    with patch("infra.rag.retriever.esta_indexado", return_value=True), \
-         patch("infra.rag.retriever.total_indexado", return_value=42):
+    with (
+        patch("infra.rag.retriever.esta_indexado", return_value=True),
+        patch("infra.rag.retriever.total_indexado", return_value=42),
+    ):
         result = inicializar_rag(forzar=False)
         assert result["estado"] == "ya_indexado"
         assert result["total_chunks"] == 42
@@ -191,8 +196,10 @@ def test_inicializar_rag_ya_indexado():
 
 def test_inicializar_rag_sin_documentos():
     """Should handle empty document list gracefully."""
-    with patch("infra.rag.retriever.esta_indexado", return_value=False), \
-         patch("infra.rag.retriever.cargar_documentos", return_value=[]):
+    with (
+        patch("infra.rag.retriever.esta_indexado", return_value=False),
+        patch("infra.rag.retriever.cargar_documentos", return_value=[]),
+    ):
         result = inicializar_rag(forzar=True)
         assert result["estado"] == "sin_documentos"
         assert result["total_chunks"] == 0

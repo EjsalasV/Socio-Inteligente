@@ -2,6 +2,7 @@
 Vector store ChromaDB para la base de conocimiento normativo.
 Gestiona la indexación y búsqueda semántica de documentos.
 """
+
 from __future__ import annotations
 
 import os
@@ -24,8 +25,7 @@ def _get_modelo():
             print("[RAG] Modelo cargado y cacheado.")
         except ImportError:
             raise ImportError(
-                "sentence-transformers no instalado. "
-                "Ejecuta: pip install sentence-transformers"
+                "sentence-transformers no instalado. " "Ejecuta: pip install sentence-transformers"
             )
     return _MODELO_CACHE
 
@@ -42,9 +42,7 @@ def _get_chroma_path() -> str:
         return os.path.join(tempfile.gettempdir(), "socioai_chroma")
 
     # Local development
-    chroma_dir = os.path.join(
-        os.path.dirname(__file__), "..", "..", "chroma"
-    )
+    chroma_dir = os.path.join(os.path.dirname(__file__), "..", "..", "chroma")
     os.makedirs(chroma_dir, exist_ok=True)
     return chroma_dir
 

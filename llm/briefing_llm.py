@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 import pandas as pd
 
 from domain.services.area_briefing import construir_foco_auditoria, obtener_nombre_area_ls
 from domain.context.contexto_auditoria import construir_contexto_auditoria
-from domain.services.leer_perfil import cargar_perfil, ruta_tb_cliente
-from analysis.lector_tb import leer_trial_balance
 from analysis.lector_tb import leer_tb
 from domain.services.riesgos_area import detectar_riesgos_area, obtener_area
 from analysis.variaciones import calcular_variaciones, marcar_movimientos_relevantes
@@ -177,7 +175,9 @@ def generar_briefing_area_llm(
         area_df = pd.DataFrame()
 
     focos_base = construir_foco_auditoria(str(codigo_ls), perfil, area_df)
-    riesgos_area = detectar_riesgos_area(area_df, str(codigo_ls), perfil) if not area_df.empty else []
+    riesgos_area = (
+        detectar_riesgos_area(area_df, str(codigo_ls), perfil) if not area_df.empty else []
+    )
 
     senales = contexto.get("senales_cuantitativas", {})
     banderas = senales.get("banderas", [])
@@ -207,10 +207,14 @@ def generar_briefing_area_llm(
     if senales.get("material"):
         sensibilidad.append("la variacion es material")
     else:
-        sensibilidad.append("la variacion no supera materialidad, pero puede ser sensible por contexto")
+        sensibilidad.append(
+            "la variacion no supera materialidad, pero puede ser sensible por contexto"
+        )
 
     texto = []
-    texto.append(f"Cliente: {cliente.get('nombre', nombre_cliente)} | Periodo: {cliente.get('periodo', 'N/A')} | Etapa: {etapa_norm}")
+    texto.append(
+        f"Cliente: {cliente.get('nombre', nombre_cliente)} | Periodo: {cliente.get('periodo', 'N/A')} | Etapa: {etapa_norm}"
+    )
     texto.append("")
     texto.append("Juicio profesional")
     texto.append(juicio)
@@ -223,9 +227,7 @@ def generar_briefing_area_llm(
     texto.append("Direccion sugerida")
     texto.append(f"- Por donde empezar: {direccion['por_donde_empezar']}")
     texto.append(f"- Afirmaciones mas expuestas: {', '.join(afirmaciones)}.")
-    texto.append(
-        f"- Que podria observar revision de calidad: {direccion['observacion_calidad']}"
-    )
+    texto.append(f"- Que podria observar revision de calidad: {direccion['observacion_calidad']}")
 
     if banderas:
         texto.append("")
@@ -256,5 +258,3 @@ def generar_briefing_area_llm(
     texto.append(criterio_llm)
 
     return "\n".join(texto)
-
-

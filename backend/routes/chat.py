@@ -11,7 +11,14 @@ from backend.repositories.file_repository import (
     read_hallazgos,
     read_perfil,
 )
-from backend.schemas import ApiResponse, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse, UserContext
+from backend.schemas import (
+    ApiResponse,
+    ChatRequest,
+    ChatResponse,
+    MetodoRequest,
+    MetodoResponse,
+    UserContext,
+)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 ROOT = Path(__file__).resolve().parents[2]
@@ -60,7 +67,9 @@ def post_metodologia(
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
 
-    asev = read_catalog_file(ROOT / "data" / "conocimiento_normativo" / "metodologia" / "aseveraciones.md")
+    asev = read_catalog_file(
+        ROOT / "data" / "conocimiento_normativo" / "metodologia" / "aseveraciones.md"
+    )
     nia315 = read_catalog_file(ROOT / "data" / "conocimiento_normativo" / "nias" / "nia_315.md")
 
     explanation = (

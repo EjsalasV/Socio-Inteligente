@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from domain.services.leer_perfil import (
     cargar_perfil,
@@ -15,7 +15,6 @@ from domain.services.leer_perfil import (
     obtener_periodo,
     obtener_marco_referencial,
 )
-
 
 # =========================================================
 # REGLAS GENERALES POR TIPO DE CONTEXTO
@@ -38,7 +37,6 @@ REGLAS_CONTEXTO = {
             "Debe evaluarse soporte financiero de subsidiarias o participadas.",
         ],
     },
-
     "comercial": {
         "areas_prioritarias": ["110", "130.1", "1500", "425", "140"],
         "areas_secundarias": ["1600", "136"],
@@ -55,7 +53,6 @@ REGLAS_CONTEXTO = {
             "La rotación de cartera e inventarios es clave para interpretar riesgos.",
         ],
     },
-
     "servicios": {
         "areas_prioritarias": ["1500", "130.1", "1600", "140", "425"],
         "areas_secundarias": ["136", "1900"],
@@ -72,7 +69,6 @@ REGLAS_CONTEXTO = {
             "Debe revisarse si los ingresos están correctamente devengados y soportados.",
         ],
     },
-
     "industrial": {
         "areas_prioritarias": ["110", "1", "1500", "1600", "425"],
         "areas_secundarias": ["140", "136"],
@@ -95,6 +91,7 @@ REGLAS_CONTEXTO = {
 # =========================================================
 # DETECCIÓN DEL CONTEXTO GENERAL
 # =========================================================
+
 
 def detectar_tipo_contexto(perfil: Dict[str, Any]) -> str:
     """
@@ -145,6 +142,7 @@ def detectar_tipo_contexto(perfil: Dict[str, Any]) -> str:
 # CONTEXTO ESTRUCTURADO
 # =========================================================
 
+
 def construir_contexto_cliente(perfil: Dict[str, Any]) -> Dict[str, Any]:
     tipo_contexto = detectar_tipo_contexto(perfil)
     reglas = REGLAS_CONTEXTO.get(tipo_contexto, {})
@@ -162,7 +160,10 @@ def construir_contexto_cliente(perfil: Dict[str, Any]) -> Dict[str, Any]:
     if operacion.get("tiene_cartera_significativa") and "130.1" not in areas_prioritarias:
         areas_prioritarias.append("130.1")
 
-    if operacion.get("tiene_provision_cartera") and "Recuperabilidad de cuentas por cobrar" not in riesgos_esperados:
+    if (
+        operacion.get("tiene_provision_cartera")
+        and "Recuperabilidad de cuentas por cobrar" not in riesgos_esperados
+    ):
         riesgos_esperados.append("Recuperabilidad de cuentas por cobrar")
 
     if operacion.get("tiene_prestamos_socios"):
@@ -207,6 +208,7 @@ def construir_contexto_cliente(perfil: Dict[str, Any]) -> Dict[str, Any]:
 # =========================================================
 # IMPRESIÓN
 # =========================================================
+
 
 def imprimir_contexto_cliente(nombre_cliente: str) -> None:
     perfil = cargar_perfil(nombre_cliente)

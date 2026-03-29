@@ -2,9 +2,9 @@
 LLM client unificado — soporta DeepSeek y OpenAI con la misma interfaz.
 Selecciona el provider desde config.yaml.
 """
+
 from __future__ import annotations
 
-import os
 from typing import Any
 
 import yaml
@@ -13,6 +13,7 @@ from openai import OpenAI
 try:
     from dotenv import load_dotenv
     from pathlib import Path as _Path
+
     _env_path = _Path(__file__).resolve().parents[1] / ".env"
     load_dotenv(dotenv_path=_env_path, override=True)
 except ImportError:
@@ -34,11 +35,11 @@ def _obtener_api_key(nombre: str) -> str:
     2. os.environ (any environment)
     3. .env file (local dev)
     """
-    import os
 
     # 1. Streamlit secrets
     try:
         import streamlit as st
+
         # Try direct access first
         if hasattr(st, "secrets"):
             val = st.secrets.get(nombre, "")
@@ -55,6 +56,7 @@ def _obtener_api_key(nombre: str) -> str:
     # 3. .env file
     try:
         from dotenv import load_dotenv
+
         load_dotenv(override=False)
         val = os.environ.get(nombre, "").strip()
         if val:
@@ -99,10 +101,7 @@ def _get_client() -> tuple[OpenAI, str, dict[str, Any]]:
     if provider == "deepseek":
         api_key = _get_deepseek_key()
         if not api_key:
-            raise ValueError(
-                "DEEPSEEK_API_KEY not set. "
-                "Add it to Streamlit Cloud Secrets."
-            )
+            raise ValueError("DEEPSEEK_API_KEY not set. " "Add it to Streamlit Cloud Secrets.")
         client = OpenAI(
             api_key=api_key,
             base_url="https://api.deepseek.com",

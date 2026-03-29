@@ -2,6 +2,7 @@
 Asistente conversacional de auditoría con contexto completo.
 Usa el TB, perfil, ranking y hallazgos del cliente activo.
 """
+
 from __future__ import annotations
 
 import re
@@ -49,33 +50,26 @@ def _cargar_contexto_persistente(cliente: str) -> str:
     perfil_path = cdir / "perfil.yaml"
     if perfil_path.exists():
         try:
-            perfil_obj = yaml.safe_load(
-                perfil_path.read_text(encoding="utf-8", errors="replace")
-            ) or {}
+            perfil_obj = (
+                yaml.safe_load(perfil_path.read_text(encoding="utf-8", errors="replace")) or {}
+            )
             # Keep text compact to control prompt size
             perfil_raw = str(perfil_obj)[:7000]
         except Exception:
             try:
-                perfil_raw = perfil_path.read_text(
-                    encoding="utf-8", errors="replace"
-                )[:7000]
+                perfil_raw = perfil_path.read_text(encoding="utf-8", errors="replace")[:7000]
             except Exception:
                 perfil_raw = ""
 
     # 2) any findings files in client folder tree
     hallazgo_chunks: list[str] = []
     try:
-        files = [
-            p for p in cdir.rglob("*")
-            if p.is_file() and "hallazgo" in p.name.lower()
-        ]
+        files = [p for p in cdir.rglob("*") if p.is_file() and "hallazgo" in p.name.lower()]
         files = sorted(files)[:20]  # bound number of files
         for p in files:
             try:
                 txt = p.read_text(encoding="utf-8", errors="replace")
-                hallazgo_chunks.append(
-                    f"[{p.relative_to(cdir)}]\n{txt[:1800]}"
-                )
+                hallazgo_chunks.append(f"[{p.relative_to(cdir)}]\n{txt[:1800]}")
             except Exception:
                 continue
     except Exception:
@@ -132,7 +126,7 @@ def construir_contexto_sistema(
     # Top areas at risk
     areas_riesgo = ""
     if isinstance(ranking_areas, pd.DataFrame) and not ranking_areas.empty:
-        mask = ranking_areas.get("con_saldo", pd.Series([True]*len(ranking_areas)))
+        mask = ranking_areas.get("con_saldo", pd.Series([True] * len(ranking_areas)))
         df_r = ranking_areas[mask.astype(bool)].head(5)
         lineas = []
         for _, row in df_r.iterrows():
@@ -141,8 +135,7 @@ def construir_contexto_sistema(
             codigo_a = str(row.get("area", ""))
             prior = str(row.get("prioridad", "")).upper()
             lineas.append(
-                f"  - L/S {codigo_a} {nombre_a}: "
-                f"score {score:.1f} / prioridad {prior}"
+                f"  - L/S {codigo_a} {nombre_a}: " f"score {score:.1f} / prioridad {prior}"
             )
         areas_riesgo = "\n".join(lineas)
 
@@ -151,20 +144,11 @@ def construir_contexto_sistema(
     if isinstance(variaciones, pd.DataFrame) and not variaciones.empty:
         top_v = variaciones.head(5)
         lineas_v = []
-        nom_col = next(
-            (c for c in ["nombre", "nombre_cuenta"]
-             if c in top_v.columns), None
-        )
-        imp_col = next(
-            (c for c in ["impacto", "variacion_absoluta"]
-             if c in top_v.columns), None
-        )
+        nom_col = next((c for c in ["nombre", "nombre_cuenta"] if c in top_v.columns), None)
+        imp_col = next((c for c in ["impacto", "variacion_absoluta"] if c in top_v.columns), None)
         if nom_col and imp_col:
             for _, row in top_v.iterrows():
-                lineas_v.append(
-                    f"  - {str(row[nom_col])[:40]}: "
-                    f"{_fmt_money(row[imp_col])}"
-                )
+                lineas_v.append(f"  - {str(row[nom_col])[:40]}: " f"{_fmt_money(row[imp_col])}")
         vars_txt = "\n".join(lineas_v)
 
     # Operational flags

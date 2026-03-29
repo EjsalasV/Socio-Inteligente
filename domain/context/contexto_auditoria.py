@@ -12,16 +12,11 @@ from domain.services.leer_perfil import (
     obtener_materialidad_ejecucion,
     obtener_nombre_cliente,
     obtener_periodo,
-    ruta_tb_cliente,
 )
-from analysis.lector_tb import leer_trial_balance
 from domain.context.motor_contexto import construir_contexto_cliente
 from domain.context.motor_industria import construir_contexto_industrial
 from core.utils.normalizaciones import normalizar_ls
 from analysis.ranking_areas import obtener_ranking_areas_cliente
-from domain.services.riesgos_area import detectar_riesgos_area, obtener_area
-from analysis.variaciones import calcular_variaciones, marcar_movimientos_relevantes
-
 
 _ETAPAS_VALIDAS = {"planificacion", "ejecucion", "cierre"}
 
@@ -92,8 +87,12 @@ def obtener_senal_area(nombre_cliente: str, codigo_area: str) -> Dict[str, Any]:
         "variacion_absoluta": float(fila.get("variacion_abs_total", 0.0) or 0.0),
         "variacion_porcentual": float(fila.get("pct_total", 0.0) or 0.0),
         "material": bool(float(fila.get("materialidad_relativa", 0.0) or 0.0) >= 1.0),
-        "banderas": fila.get("expert_flags", []) if isinstance(fila.get("expert_flags", []), list) else [],
-        "tendencia": "positiva" if float(fila.get("variacion_abs_total", 0.0) or 0.0) > 0 else "negativa",
+        "banderas": (
+            fila.get("expert_flags", []) if isinstance(fila.get("expert_flags", []), list) else []
+        ),
+        "tendencia": (
+            "positiva" if float(fila.get("variacion_abs_total", 0.0) or 0.0) > 0 else "negativa"
+        ),
     }
 
 
@@ -114,11 +113,7 @@ def construir_contexto_auditoria(
     senal_area = obtener_senal_area(nombre_cliente, codigo_area)
 
     etapa_perfil = _normalizar_etapa(obtener_estado_trabajo(perfil))
-    etapa_final = (
-        etapa_perfil
-        if etapa is None or not str(etapa).strip()
-        else etapa_normalizada
-    )
+    etapa_final = etapa_perfil if etapa is None or not str(etapa).strip() else etapa_normalizada
 
     areas_prioritarias_negocio = contexto_cliente.get("areas_prioritarias", [])
     areas_prioritarias_industria = contexto_industria.get("areas_prioritarias", [])

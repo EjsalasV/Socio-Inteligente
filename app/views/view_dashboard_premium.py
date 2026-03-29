@@ -46,7 +46,13 @@ def _pick_materialidad(cliente: str, perfil: dict[str, Any] | None) -> float:
 
     # 2) archivo data/clientes/{cliente}/materialidad.yaml
     try:
-        p = Path(__file__).resolve().parents[2] / "data" / "clientes" / str(cliente) / "materialidad.yaml"
+        p = (
+            Path(__file__).resolve().parents[2]
+            / "data"
+            / "clientes"
+            / str(cliente)
+            / "materialidad.yaml"
+        )
         if p.exists():
             payload = yaml.safe_load(p.read_text(encoding="utf-8", errors="replace")) or {}
             if isinstance(payload, dict):
@@ -101,8 +107,13 @@ def _totales_tb(tb: pd.DataFrame | None, resumen_tb: dict[str, Any]) -> dict[str
     # Prefer canonical tipo_cuenta (comes from TB normalization)
     if "tipo_cuenta" in df.columns:
         g = (
-            df["tipo_cuenta"].astype(str).str.upper().str.strip()
-            .replace({"ACTIVOS": "ACTIVO", "PASIVOS": "PASIVO", "INGRESO": "INGRESOS", "GASTO": "GASTOS"})
+            df["tipo_cuenta"]
+            .astype(str)
+            .str.upper()
+            .str.strip()
+            .replace(
+                {"ACTIVOS": "ACTIVO", "PASIVOS": "PASIVO", "INGRESO": "INGRESOS", "GASTO": "GASTOS"}
+            )
         )
         out = {
             "ACTIVO": float(df.loc[g == "ACTIVO", "_saldo"].sum()),
@@ -132,12 +143,16 @@ def _totales_tb(tb: pd.DataFrame | None, resumen_tb: dict[str, Any]) -> dict[str
 
 
 def _pick_stage(datos_clave: dict[str, Any], perfil: dict[str, Any]) -> str:
-    stage = str(
-        datos_clave.get("etapa")
-        or perfil.get("encargo", {}).get("etapa")
-        or perfil.get("etapa")
-        or "planificacion"
-    ).strip().lower()
+    stage = (
+        str(
+            datos_clave.get("etapa")
+            or perfil.get("encargo", {}).get("etapa")
+            or perfil.get("etapa")
+            or "planificacion"
+        )
+        .strip()
+        .lower()
+    )
     if "cierre" in stage or "informe" in stage:
         return "informe"
     if "ejec" in stage:
@@ -147,7 +162,9 @@ def _pick_stage(datos_clave: dict[str, Any], perfil: dict[str, Any]) -> str:
 
 def _risk_meta(perfil: dict[str, Any]) -> tuple[str, str]:
     nivel = "Medio"
-    rg = perfil.get("riesgo_global", {}) if isinstance(perfil.get("riesgo_global", {}), dict) else {}
+    rg = (
+        perfil.get("riesgo_global", {}) if isinstance(perfil.get("riesgo_global", {}), dict) else {}
+    )
     if rg:
         nivel = str(rg.get("nivel", "Medio")).strip().capitalize()
     low = nivel.lower()
@@ -175,13 +192,30 @@ def _risk_rows(ranking_areas: pd.DataFrame | None) -> list[dict[str, Any]]:
                 level, color = "Riesgo Medio", "#B45309"
             else:
                 level, color = "Riesgo Bajo", "#047857"
-            rows.append({"name": nombre[:52], "score": max(0.0, min(100.0, score)), "level": level, "color": color})
+            rows.append(
+                {
+                    "name": nombre[:52],
+                    "score": max(0.0, min(100.0, score)),
+                    "level": level,
+                    "color": color,
+                }
+            )
     if rows:
         return rows
     return [
-        {"name": "Inversiones no corrientes", "score": 82.0, "level": "Riesgo Alto", "color": "#BA1A1A"},
+        {
+            "name": "Inversiones no corrientes",
+            "score": 82.0,
+            "level": "Riesgo Alto",
+            "color": "#BA1A1A",
+        },
         {"name": "Patrimonio", "score": 74.0, "level": "Riesgo Alto", "color": "#B45309"},
-        {"name": "Gastos Administrativos", "score": 46.0, "level": "Riesgo Medio", "color": "#B45309"},
+        {
+            "name": "Gastos Administrativos",
+            "score": 46.0,
+            "level": "Riesgo Medio",
+            "color": "#B45309",
+        },
         {"name": "Cuentas por pagar", "score": 24.0, "level": "Riesgo Bajo", "color": "#047857"},
     ]
 
@@ -212,8 +246,22 @@ def _integridad(indicadores: dict[str, Any]) -> float:
 def _alerts_from_variaciones(variaciones: pd.DataFrame | None) -> list[dict[str, str]]:
     alerts: list[dict[str, str]] = []
     if isinstance(variaciones, pd.DataFrame) and not variaciones.empty:
-        name_col = next((c for c in ["cuenta", "nombre_cuenta", "descripcion", "area_nombre", "nombre"] if c in variaciones.columns), None)
-        rel_col = next((c for c in ["variacion_relativa", "variacion_pct", "delta_pct", "var_pct"] if c in variaciones.columns), None)
+        name_col = next(
+            (
+                c
+                for c in ["cuenta", "nombre_cuenta", "descripcion", "area_nombre", "nombre"]
+                if c in variaciones.columns
+            ),
+            None,
+        )
+        rel_col = next(
+            (
+                c
+                for c in ["variacion_relativa", "variacion_pct", "delta_pct", "var_pct"]
+                if c in variaciones.columns
+            ),
+            None,
+        )
         if name_col and rel_col:
             df = variaciones.copy()
             df["_rel"] = pd.to_numeric(df[rel_col], errors="coerce").abs().fillna(0)
@@ -224,7 +272,9 @@ def _alerts_from_variaciones(variaciones: pd.DataFrame | None) -> list[dict[str,
                 alerts.append(
                     {
                         "nivel": sev,
-                        "titulo": "Variacion material" if sev == "critica" else "Variacion relevante",
+                        "titulo": (
+                            "Variacion material" if sev == "critica" else "Variacion relevante"
+                        ),
                         "detalle": f"{nm}: desviacion de {rel:.1f}% frente al comportamiento esperado.",
                     }
                 )
@@ -265,11 +315,11 @@ def render_dashboard_overview_premium(
     indicadores = indicadores or {}
 
     client_name = str(
-        datos_clave.get("nombre")
-        or perfil.get("cliente", {}).get("nombre_legal")
-        or cliente
+        datos_clave.get("nombre") or perfil.get("cliente", {}).get("nombre_legal") or cliente
     )
-    periodo = str(datos_clave.get("periodo") or perfil.get("encargo", {}).get("anio_activo") or "2025")
+    periodo = str(
+        datos_clave.get("periodo") or perfil.get("encargo", {}).get("anio_activo") or "2025"
+    )
 
     riesgo_label, riesgo_color = _risk_meta(perfil)
     integridad = _integridad(indicadores)
@@ -283,9 +333,7 @@ def render_dashboard_overview_premium(
     stage_order = {"planificacion": 0, "ejecucion": 1, "informe": 2}
     current_idx = stage_order.get(etapa, 0)
 
-    ranking_html = "".join(
-        [
-            f"""
+    ranking_html = "".join([f"""
             <div class="rk-row">
                 <div class="rk-head">
                     <span class="rk-name">{r['name']}</span>
@@ -293,22 +341,14 @@ def render_dashboard_overview_premium(
                 </div>
                 <div class="rk-track"><div class="rk-fill" style="width:{r['score']:.0f}%; background:{r['color']};"></div></div>
             </div>
-            """
-            for r in ranking
-        ]
-    )
+            """ for r in ranking])
 
-    alerts_html = "".join(
-        [
-            f"""
+    alerts_html = "".join([f"""
             <div class="an-item {'crit' if a['nivel']=='critica' else 'med'}">
                 <div class="an-title">{a['titulo']}</div>
                 <div class="an-detail">{a['detalle']}</div>
             </div>
-            """
-            for a in alerts[:3]
-        ]
-    )
+            """ for a in alerts[:3]])
 
     timeline_html = ""
     phases = ["Planificaci?n", "Ejecuci?n", "Informe"]
@@ -339,8 +379,7 @@ def render_dashboard_overview_premium(
         "la prioridad es cerrar pruebas en las cuentas de mayor exposici?n y consolidar evidencia suficiente para informe."
     )
 
-    html = dedent(
-        f"""
+    html = dedent(f"""
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -457,7 +496,6 @@ def render_dashboard_overview_premium(
             </div>
           </div>
         </div>
-        """
-    )
+        """)
 
     components.html(html, height=980, scrolling=False)

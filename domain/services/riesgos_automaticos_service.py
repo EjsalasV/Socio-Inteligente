@@ -142,4 +142,3 @@ def detectar_riesgos_area(ws_base: dict) -> list[dict]:
         )
 
     return riesgos
-

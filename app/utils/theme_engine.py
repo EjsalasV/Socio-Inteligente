@@ -60,7 +60,9 @@ def _fmt_cell(value: object) -> str:
     if n is None:
         return escape(str(value if value is not None else ""))
     if n < 0:
-        return f"<span style='color:#BA1A1A;font-variant-numeric:tabular-nums;'>({abs(n):,.2f})</span>"
+        return (
+            f"<span style='color:#BA1A1A;font-variant-numeric:tabular-nums;'>({abs(n):,.2f})</span>"
+        )
     return f"<span style='color:#1E293B;font-variant-numeric:tabular-nums;'>{n:,.2f}</span>"
 
 
@@ -120,7 +122,9 @@ def _render_editorial_table(data: object, *, max_rows: int = 250) -> None:
             df = pd.DataFrame({"valor": [str(data)]})
 
     if df.empty:
-        st.markdown("<div class='sovereign-card'>Sin datos tabulares.</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='sovereign-card'>Sin datos tabulares.</div>", unsafe_allow_html=True
+        )
         return
 
     if len(df) > max_rows:

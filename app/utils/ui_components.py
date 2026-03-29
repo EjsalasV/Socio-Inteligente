@@ -48,4 +48,3 @@ def status_badge(label: str, type: str = "info") -> str:
         "<span style='display:inline-block;padding:.2rem .55rem;border-radius:999px;"
         f"background:{color};color:#fff;font-size:.68rem;font-weight:700;'>{label}</span>"
     )
-

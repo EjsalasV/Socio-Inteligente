@@ -11,15 +11,9 @@ from backend.schemas import ApiResponse, LoginRequest, TokenResponse
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _ADMIN_USER = (
-    os.getenv("ADMIN_USERNAME")
-    or os.getenv("SOCIO_ADMIN_USER")
-    or "joaosalas123@gmail.com"
+    os.getenv("ADMIN_USERNAME") or os.getenv("SOCIO_ADMIN_USER") or "joaosalas123@gmail.com"
 ).strip()
-_ADMIN_PASS = (
-    os.getenv("ADMIN_PASSWORD")
-    or os.getenv("SOCIO_ADMIN_PASSWORD")
-    or "1234"
-).strip()
+_ADMIN_PASS = (os.getenv("ADMIN_PASSWORD") or os.getenv("SOCIO_ADMIN_PASSWORD") or "1234").strip()
 
 
 def _allowed_clientes() -> list[str]:

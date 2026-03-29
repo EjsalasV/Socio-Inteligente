@@ -2,6 +2,7 @@
 Supabase repository for SocioAI client persistence.
 Compatible with existing Sheets integration function names.
 """
+
 from __future__ import annotations
 
 import json
@@ -30,6 +31,7 @@ def obtener_ultimo_error_sheets() -> str:
 def _get_cfg() -> tuple[str, str]:
     try:
         import streamlit as st
+
         # Direct access first (most reliable in Streamlit Cloud)
         def _sg(name: str) -> str:
             try:
@@ -39,10 +41,7 @@ def _get_cfg() -> tuple[str, str]:
                 return ""
 
         direct_url = (
-            _sg("SUPABASE_URL")
-            or _sg("supabase_url")
-            or _sg("PROJECT_URL")
-            or _sg("project_url")
+            _sg("SUPABASE_URL") or _sg("supabase_url") or _sg("PROJECT_URL") or _sg("project_url")
         )
         direct_key = (
             _sg("SUPABASE_ANON_KEY")
@@ -56,19 +55,15 @@ def _get_cfg() -> tuple[str, str]:
         )
 
         # Runtime fallback (manual inputs in UI)
-        runtime_url = str(
-            st.session_state.get("runtime_supabase_url", "") or ""
-        ).strip()
-        runtime_key = str(
-            st.session_state.get("runtime_supabase_key", "") or ""
-        ).strip()
+        runtime_url = str(st.session_state.get("runtime_supabase_url", "") or "").strip()
+        runtime_key = str(st.session_state.get("runtime_supabase_key", "") or "").strip()
         # Directly from sidebar inputs (without pressing save)
-        runtime_url = runtime_url or str(
-            st.session_state.get("rt_supabase_url_input", "") or ""
-        ).strip()
-        runtime_key = runtime_key or str(
-            st.session_state.get("rt_supabase_key_input", "") or ""
-        ).strip()
+        runtime_url = (
+            runtime_url or str(st.session_state.get("rt_supabase_url_input", "") or "").strip()
+        )
+        runtime_key = (
+            runtime_key or str(st.session_state.get("rt_supabase_key_input", "") or "").strip()
+        )
         runtime_url = runtime_url or os.environ.get("SUPABASE_URL_RUNTIME", "")
         runtime_key = runtime_key or os.environ.get("SUPABASE_ANON_KEY_RUNTIME", "")
         if runtime_url and runtime_key:
@@ -134,52 +129,58 @@ def _get_cfg() -> tuple[str, str]:
         url = (
             direct_url
             or block_url
-            or
-            _pick([
-                "SUPABASE_URL",
-                "supabase_url",
-                "PROJECT_URL",
-                "project_url",
-                "supabase.url",
-                "SUPABASE.url",
-                "SUPABASE.URL",
-            ])
-            or _pick_suffix([
-                "supabase_url",
-                "supabase.url",
-                "project_url",
-            ])
+            or _pick(
+                [
+                    "SUPABASE_URL",
+                    "supabase_url",
+                    "PROJECT_URL",
+                    "project_url",
+                    "supabase.url",
+                    "SUPABASE.url",
+                    "SUPABASE.URL",
+                ]
+            )
+            or _pick_suffix(
+                [
+                    "supabase_url",
+                    "supabase.url",
+                    "project_url",
+                ]
+            )
             or os.environ.get("SUPABASE_URL", "")
             or os.environ.get("PROJECT_URL", "")
         )
         key = (
             direct_key
             or block_key
-            or
-            _pick([
-                "SUPABASE_ANON_KEY",
-                "supabase_anon_key",
-                "SUPABASE_PUBLISHABLE_KEY",
-                "supabase_publishable_key",
-                "SUPABASE_KEY",
-                "supabase_key",
-                "ANON_KEY",
-                "anon_key",
-                "supabase.anon_key",
-                "SUPABASE.anon_key",
-                "supabase.publishable_key",
-                "SUPABASE.publishable_key",
-                "supabase.key",
-                "SUPABASE.key",
-            ])
-            or _pick_suffix([
-                "supabase_anon_key",
-                "supabase_publishable_key",
-                "supabase_key",
-                "anon_key",
-                "publishable_key",
-                "key",
-            ])
+            or _pick(
+                [
+                    "SUPABASE_ANON_KEY",
+                    "supabase_anon_key",
+                    "SUPABASE_PUBLISHABLE_KEY",
+                    "supabase_publishable_key",
+                    "SUPABASE_KEY",
+                    "supabase_key",
+                    "ANON_KEY",
+                    "anon_key",
+                    "supabase.anon_key",
+                    "SUPABASE.anon_key",
+                    "supabase.publishable_key",
+                    "SUPABASE.publishable_key",
+                    "supabase.key",
+                    "SUPABASE.key",
+                ]
+            )
+            or _pick_suffix(
+                [
+                    "supabase_anon_key",
+                    "supabase_publishable_key",
+                    "supabase_key",
+                    "anon_key",
+                    "publishable_key",
+                    "key",
+                ]
+            )
             or os.environ.get("SUPABASE_ANON_KEY", "")
             or os.environ.get("SUPABASE_PUBLISHABLE_KEY", "")
             or os.environ.get("SUPABASE_KEY", "")
@@ -202,6 +203,7 @@ def _headers() -> dict[str, str]:
 def _storage_bucket() -> str:
     try:
         import streamlit as st
+
         v = str(st.secrets.get("SUPABASE_TB_BUCKET", "") or "").strip()
         if v:
             return v
@@ -256,16 +258,12 @@ def guardar_tb_storage(
             timeout=30,
         )
         if r.status_code >= 300:
-            _set_last_error(
-                f"Supabase TB upload failed [{r.status_code}]: {r.text[:500]}"
-            )
+            _set_last_error(f"Supabase TB upload failed [{r.status_code}]: {r.text[:500]}")
             return False
         _set_last_error("")
         return True
     except Exception as e:
-        _set_last_error(
-            f"Supabase TB upload error [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Supabase TB upload error [{type(e).__name__}]: {e!r}")
         return False
 
 
@@ -287,16 +285,12 @@ def cargar_tb_storage(
         if r.status_code == 404:
             return None
         if r.status_code >= 300:
-            _set_last_error(
-                f"Supabase TB download failed [{r.status_code}]: {r.text[:500]}"
-            )
+            _set_last_error(f"Supabase TB download failed [{r.status_code}]: {r.text[:500]}")
             return None
         _set_last_error("")
         return r.content or None
     except Exception as e:
-        _set_last_error(
-            f"Supabase TB download error [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Supabase TB download error [{type(e).__name__}]: {e!r}")
         return None
 
 
@@ -317,9 +311,7 @@ def existe_tb_storage(
         if r.status_code == 404:
             return False
         if r.status_code >= 300:
-            _set_last_error(
-                f"Supabase TB exists check failed [{r.status_code}]: {r.text[:500]}"
-            )
+            _set_last_error(f"Supabase TB exists check failed [{r.status_code}]: {r.text[:500]}")
             return False
         _set_last_error("")
         return True
@@ -344,14 +336,10 @@ def eliminar_tb_storage(
         if r.status_code in (200, 204, 404):
             _set_last_error("")
             return True
-        _set_last_error(
-            f"Supabase TB delete failed [{r.status_code}]: {r.text[:500]}"
-        )
+        _set_last_error(f"Supabase TB delete failed [{r.status_code}]: {r.text[:500]}")
         return False
     except Exception as e:
-        _set_last_error(
-            f"Supabase TB delete error [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Supabase TB delete error [{type(e).__name__}]: {e!r}")
         return False
 
 
@@ -434,16 +422,12 @@ def guardar_cliente_supabase(
                     f"Supabase save failed [{r.status_code}] (duplicado/conflicto): {r.text[:500]}"
                 )
                 return False
-            _set_last_error(
-                f"Supabase save failed [{r.status_code}]: {r.text[:500]}"
-            )
+            _set_last_error(f"Supabase save failed [{r.status_code}]: {r.text[:500]}")
             return False
         _set_last_error("")
         return True
     except Exception as e:
-        _set_last_error(
-            f"Supabase save error [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Supabase save error [{type(e).__name__}]: {e!r}")
         return False
 
 
@@ -461,9 +445,7 @@ def cargar_clientes_supabase() -> list[dict[str, Any]]:
             timeout=20,
         )
         if r.status_code >= 300:
-            _set_last_error(
-                f"Supabase load failed [{r.status_code}]: {r.text[:500]}"
-            )
+            _set_last_error(f"Supabase load failed [{r.status_code}]: {r.text[:500]}")
             return []
         rows = r.json() if isinstance(r.json(), list) else []
         out: list[dict[str, Any]] = []
@@ -486,9 +468,7 @@ def cargar_clientes_supabase() -> list[dict[str, Any]]:
         _set_last_error("")
         return [x for x in out if x.get("cliente_id")]
     except Exception as e:
-        _set_last_error(
-            f"Supabase load error [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Supabase load error [{type(e).__name__}]: {e!r}")
         return []
 
 
@@ -503,16 +483,12 @@ def eliminar_cliente_supabase(cliente_id: str) -> bool:
             timeout=20,
         )
         if r.status_code >= 300:
-            _set_last_error(
-                f"Supabase delete failed [{r.status_code}]: {r.text[:500]}"
-            )
+            _set_last_error(f"Supabase delete failed [{r.status_code}]: {r.text[:500]}")
             return False
         _set_last_error("")
         return True
     except Exception as e:
-        _set_last_error(
-            f"Supabase delete error [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Supabase delete error [{type(e).__name__}]: {e!r}")
         return False
 
 
@@ -544,16 +520,12 @@ def guardar_estado_area_remoto(
         if r is None:
             return False
         if r.status_code >= 300:
-            _set_last_error(
-                f"Supabase estado save failed [{r.status_code}]: {r.text[:500]}"
-            )
+            _set_last_error(f"Supabase estado save failed [{r.status_code}]: {r.text[:500]}")
             return False
         _set_last_error("")
         return True
     except Exception as e:
-        _set_last_error(
-            f"Supabase estado save error [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Supabase estado save error [{type(e).__name__}]: {e!r}")
         return False
 
 
@@ -575,9 +547,7 @@ def cargar_estado_area_remoto(
         if r is None:
             return None
         if r.status_code >= 300:
-            _set_last_error(
-                f"Supabase estado load failed [{r.status_code}]: {r.text[:500]}"
-            )
+            _set_last_error(f"Supabase estado load failed [{r.status_code}]: {r.text[:500]}")
             return None
         rows = r.json() if isinstance(r.json(), list) else []
         if not rows:
@@ -593,9 +563,7 @@ def cargar_estado_area_remoto(
             return raw
         return None
     except Exception as e:
-        _set_last_error(
-            f"Supabase estado load error [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Supabase estado load error [{type(e).__name__}]: {e!r}")
         return None
 
 
@@ -656,9 +624,7 @@ def guardar_hallazgos_remoto(
         _set_last_error("")
         return True
     except Exception as e:
-        _set_last_error(
-            f"Supabase hallazgos save error [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Supabase hallazgos save error [{type(e).__name__}]: {e!r}")
         return False
 
 
@@ -678,9 +644,7 @@ def cargar_hallazgos_remoto(
         if r is None:
             return []
         if r.status_code >= 300:
-            _set_last_error(
-                f"Supabase hallazgos load failed [{r.status_code}]: {r.text[:500]}"
-            )
+            _set_last_error(f"Supabase hallazgos load failed [{r.status_code}]: {r.text[:500]}")
             return []
         rows = r.json() if isinstance(r.json(), list) else []
         out: list[dict[str, Any]] = []
@@ -696,9 +660,7 @@ def cargar_hallazgos_remoto(
         _set_last_error("")
         return out
     except Exception as e:
-        _set_last_error(
-            f"Supabase hallazgos load error [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Supabase hallazgos load error [{type(e).__name__}]: {e!r}")
         return []
 
 
@@ -751,6 +713,7 @@ def diagnosticar_config_supabase() -> dict[str, Any]:
     """
     try:
         import streamlit as st
+
         keys = []
         try:
             keys = list((st.secrets.to_dict()).keys())  # type: ignore[attr-defined]
@@ -762,27 +725,39 @@ def diagnosticar_config_supabase() -> dict[str, Any]:
         # Direct key visibility check
         direct_present = {}
         for k in [
-            "SUPABASE_URL", "supabase_url", "PROJECT_URL", "project_url",
-            "SUPABASE_ANON_KEY", "supabase_anon_key",
-            "SUPABASE_PUBLISHABLE_KEY", "supabase_publishable_key",
-            "SUPABASE_KEY", "supabase_key",
+            "SUPABASE_URL",
+            "supabase_url",
+            "PROJECT_URL",
+            "project_url",
+            "SUPABASE_ANON_KEY",
+            "supabase_anon_key",
+            "SUPABASE_PUBLISHABLE_KEY",
+            "supabase_publishable_key",
+            "SUPABASE_KEY",
+            "supabase_key",
         ]:
             try:
                 direct_present[k] = bool(str(st.secrets.get(k, "")).strip())
             except Exception:
                 direct_present[k] = False
-        env_keys = [k for k in [
-            "SUPABASE_URL", "PROJECT_URL", "SUPABASE_ANON_KEY",
-            "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_KEY"
-        ] if os.environ.get(k)]
+        env_keys = [
+            k
+            for k in [
+                "SUPABASE_URL",
+                "PROJECT_URL",
+                "SUPABASE_ANON_KEY",
+                "SUPABASE_PUBLISHABLE_KEY",
+                "SUPABASE_KEY",
+            ]
+            if os.environ.get(k)
+        ]
         url, key = _get_cfg()
         return {
             "secrets_keys": keys,
             "direct_present": direct_present,
             "env_keys": env_keys,
             "hint": (
-                "Si SUPABASE_* está después de [gcp_service_account], "
-                "queda anidado en TOML."
+                "Si SUPABASE_* está después de [gcp_service_account], " "queda anidado en TOML."
             ),
             "runtime_present": {
                 "runtime_supabase_url": bool(

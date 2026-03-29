@@ -68,7 +68,9 @@ def _fmt_cobertura(cobertura: dict[str, Any]) -> str:
     esperadas = _fmt_simple_list(cobertura.get("esperadas", []), "Sin aseveraciones esperadas.")
     cubiertas = _fmt_simple_list(cobertura.get("cubiertas", []), "Sin aseveraciones cubiertas.")
     debiles = _fmt_simple_list(cobertura.get("debiles", []), "Sin aseveraciones débiles.")
-    no_cubiertas = _fmt_simple_list(cobertura.get("no_cubiertas", []), "Sin aseveraciones no cubiertas.")
+    no_cubiertas = _fmt_simple_list(
+        cobertura.get("no_cubiertas", []), "Sin aseveraciones no cubiertas."
+    )
 
     return (
         f"- Cobertura actual: {pct:.1f}%\n"
@@ -94,11 +96,17 @@ def build_area_resumen_markdown(payload: dict[str, Any]) -> str:
     objetivo = _txt(payload.get("objetivo_area"))
     concl_pre = _txt(payload.get("conclusion_preliminar"), "No definida")
     decision = _txt(payload.get("decision_cierre"), "requiere_revision")
-    recomendacion = _txt(payload.get("recomendacion_final"), "Revisar evidencia pendiente antes de concluir.")
+    recomendacion = _txt(
+        payload.get("recomendacion_final"), "Revisar evidencia pendiente antes de concluir."
+    )
 
     riesgos_md = _fmt_riesgos(_to_list(payload.get("riesgos_area", [])))
-    pendientes_md = _fmt_simple_list(payload.get("procedimientos_pendientes", []), "Sin procedimientos pendientes.")
-    hallazgos_md = _fmt_simple_list(payload.get("hallazgos_abiertos", []), "Sin hallazgos abiertos.")
+    pendientes_md = _fmt_simple_list(
+        payload.get("procedimientos_pendientes", []), "Sin procedimientos pendientes."
+    )
+    hallazgos_md = _fmt_simple_list(
+        payload.get("hallazgos_abiertos", []), "Sin hallazgos abiertos."
+    )
     flags_md = _fmt_flags(_to_list(payload.get("senales_expertas", [])))
     cobertura_md = _fmt_cobertura(payload.get("cobertura", {}))
 
@@ -144,11 +152,7 @@ def build_area_resumen_markdown(payload: dict[str, Any]) -> str:
 def build_area_cierre_markdown(payload: dict[str, Any]) -> str:
     resumen = build_area_resumen_markdown(payload)
     cierre_texto = _txt(payload.get("texto_cierre"), "No disponible")
-    return (
-        resumen
-        + "\n## Texto de Revisión de Cierre\n"
-        + f"{cierre_texto}\n"
-    )
+    return resumen + "\n## Texto de Revisión de Cierre\n" + f"{cierre_texto}\n"
 
 
 def save_area_markdown(cliente: str, filename: str, content: str) -> Path:

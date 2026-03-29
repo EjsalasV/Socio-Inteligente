@@ -2,11 +2,11 @@
 Servicio de exportación de reportes de auditoría.
 Genera archivos Excel y texto plano por cliente.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 

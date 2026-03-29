@@ -59,10 +59,7 @@ def evaluar_cobertura_aseveraciones(
         - conclusion
     """
     codigo = _normalizar_codigo_ls(codigo_ls)
-    esperadas = [
-        _normalizar_aseveracion(asev)
-        for asev in ASEVERACIONES_LS.get(codigo, [])
-    ]
+    esperadas = [_normalizar_aseveracion(asev) for asev in ASEVERACIONES_LS.get(codigo, [])]
     hallazgos = _normalizar_hallazgos(hallazgos_abiertos)
 
     cubiertas_set: set[str] = set()
@@ -102,9 +99,7 @@ def evaluar_cobertura_aseveraciones(
     esperadas_efectivas = [asev for asev in esperadas if asev not in excluidas]
     cubiertas = [asev for asev in esperadas_efectivas if asev in cubiertas_set]
     debiles = [
-        asev
-        for asev in esperadas_efectivas
-        if asev in debiles_set and asev not in cubiertas_set
+        asev for asev in esperadas_efectivas if asev in debiles_set and asev not in cubiertas_set
     ]
     no_cubiertas = [
         asev
@@ -121,9 +116,7 @@ def evaluar_cobertura_aseveraciones(
             cubiertas = [asev for asev in cubiertas if asev not in impactadas]
 
     cobertura_pct = (
-        round((len(cubiertas) / len(esperadas_efectivas)) * 100, 1)
-        if esperadas_efectivas
-        else 0.0
+        round((len(cubiertas) / len(esperadas_efectivas)) * 100, 1) if esperadas_efectivas else 0.0
     )
 
     if not esperadas:

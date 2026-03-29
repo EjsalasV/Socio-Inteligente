@@ -2,6 +2,7 @@
 Servicio de gestión de hallazgos de auditoría.
 Permite crear, actualizar, listar y cerrar hallazgos por cliente y área.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

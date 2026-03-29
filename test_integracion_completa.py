@@ -7,11 +7,11 @@ Ejecutar: python test_integracion_completa.py
 
 from domain.services.leer_perfil import leer_perfil, obtener_datos_clave, validar_cliente
 from analysis.lector_tb import (
-    leer_tb, 
-    obtener_resumen_tb, 
+    leer_tb,
+    obtener_resumen_tb,
     filtrar_por_tipo,
     filtrar_por_saldo_minimo,
-    obtener_cuentas_por_area
+    obtener_cuentas_por_area,
 )
 
 # Cliente a procesar
@@ -64,7 +64,7 @@ tb = leer_tb(CLIENTE)
 if tb is not None:
     print(f"Filas: {tb.shape[0]}, Columnas: {tb.shape[1]}")
     print(f"\nPrimeras 5 cuentas:")
-    print(tb[['codigo', 'nombre', 'saldo']].head())
+    print(tb[["codigo", "nombre", "saldo"]].head())
 else:
     print("No se pudo cargar el TB (probablemente no existe el archivo)")
 
@@ -89,7 +89,7 @@ activos = filtrar_por_tipo(CLIENTE, "ACTIVO")
 if activos is not None:
     print(f"Total activos: {activos.shape[0]} cuentas")
     print("\nMayores activos:")
-    print(activos[['codigo', 'nombre', 'saldo']].head(3))
+    print(activos[["codigo", "nombre", "saldo"]].head(3))
 else:
     print("No hay activos o no se pudo procesar")
 
@@ -101,7 +101,7 @@ print("-" * 70)
 cuentas_mayores = filtrar_por_saldo_minimo(CLIENTE, 1000000)
 if cuentas_mayores is not None:
     print(f"Total: {cuentas_mayores.shape[0]} cuentas")
-    print(cuentas_mayores[['codigo', 'nombre', 'saldo']].head())
+    print(cuentas_mayores[["codigo", "nombre", "saldo"]].head())
 else:
     print("No hay cuentas significativas o no se pudo procesar")
 
@@ -113,7 +113,7 @@ print("-" * 70)
 area_130 = obtener_cuentas_por_area(CLIENTE, "130")
 if area_130 is not None:
     print(f"Total: {area_130.shape[0]} cuentas en área 130")
-    print(area_130[['codigo', 'nombre', 'saldo']].head())
+    print(area_130[["codigo", "nombre", "saldo"]].head())
 else:
     print("No hay cuentas para esta área o no se pudo procesar")
 

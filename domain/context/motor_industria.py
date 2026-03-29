@@ -16,7 +16,6 @@ from domain.services.leer_perfil import (
     obtener_marco_referencial,
 )
 
-
 # =========================================================
 # BASE DE CONOCIMIENTO DE INDUSTRIAS
 # =========================================================
@@ -48,7 +47,6 @@ BASE_INDUSTRIAS = {
             ],
         }
     },
-
     "comercial": {
         "default": {
             "areas_prioritarias": ["110", "130.1", "1500", "425", "140"],
@@ -74,7 +72,6 @@ BASE_INDUSTRIAS = {
                 "Si existen productos obsoletos o de baja rotación.",
             ],
         },
-
         "retail": {
             "areas_prioritarias": ["110", "1500", "140", "425", "130.1"],
             "areas_secundarias": ["1600", "136"],
@@ -94,7 +91,6 @@ BASE_INDUSTRIAS = {
                 "Si el sistema de facturación y el control físico son consistentes.",
             ],
         },
-
         "distribuidora": {
             "areas_prioritarias": ["110", "130.1", "1500", "425"],
             "areas_secundarias": ["140", "136"],
@@ -115,7 +111,6 @@ BASE_INDUSTRIAS = {
             ],
         },
     },
-
     "servicios": {
         "default": {
             "areas_prioritarias": ["1500", "130.1", "1600", "140", "425"],
@@ -140,7 +135,6 @@ BASE_INDUSTRIAS = {
                 "Si la política de reconocimiento de ingresos refleja el servicio realmente prestado.",
             ],
         },
-
         "funeraria": {
             "areas_prioritarias": ["5", "1500", "140", "425", "1600"],
             "areas_secundarias": ["110", "136"],
@@ -164,7 +158,6 @@ BASE_INDUSTRIAS = {
                 "Si la ausencia de deterioro está soportada por la naturaleza económica del activo y del negocio.",
             ],
         },
-
         "hospital": {
             "areas_prioritarias": ["1500", "130.1", "1", "1600", "425"],
             "areas_secundarias": ["110", "136"],
@@ -184,7 +177,6 @@ BASE_INDUSTRIAS = {
                 "Si existen glosas, devoluciones o disputas con aseguradoras.",
             ],
         },
-
         "consultoria": {
             "areas_prioritarias": ["1500", "130.1", "1600", "140"],
             "areas_secundarias": ["1900", "136"],
@@ -203,7 +195,6 @@ BASE_INDUSTRIAS = {
                 "Si el ingreso se reconoce por contrato, hito o prestación completada.",
             ],
         },
-
         "firma_legal_propiedad_intelectual": {
             "areas_prioritarias": ["1500", "130.1", "1600", "130.2", "136"],
             "areas_secundarias": ["140", "425.2", "1900"],
@@ -234,7 +225,6 @@ BASE_INDUSTRIAS = {
             ],
         },
     },
-
     "industrial": {
         "default": {
             "areas_prioritarias": ["110", "1", "1500", "1600", "425"],
@@ -258,7 +248,6 @@ BASE_INDUSTRIAS = {
                 "Si el sistema de costeo refleja adecuadamente la operación real.",
             ],
         },
-
         "manufactura": {
             "areas_prioritarias": ["110", "1", "1500", "1600", "425"],
             "areas_secundarias": ["140", "136"],
@@ -285,6 +274,7 @@ BASE_INDUSTRIAS = {
 # =========================================================
 # EXTRACCIÓN DESDE PERFIL
 # =========================================================
+
 
 def detectar_sector_base(perfil: Dict[str, Any]) -> str:
     industria = obtener_industria_inteligente(perfil)
@@ -406,10 +396,13 @@ def construir_tags_negocio(perfil: Dict[str, Any]) -> List[str]:
 # COMBINACIÓN DE REGLAS
 # =========================================================
 
+
 def obtener_reglas_base(sector_base: str, subtipo_negocio: str) -> Dict[str, Any]:
     reglas_sector = BASE_INDUSTRIAS.get(sector_base, {})
     reglas_default = reglas_sector.get("default", {})
-    reglas_subtipo = reglas_sector.get(subtipo_negocio, {}) if subtipo_negocio in reglas_sector else {}
+    reglas_subtipo = (
+        reglas_sector.get(subtipo_negocio, {}) if subtipo_negocio in reglas_sector else {}
+    )
 
     def merge_listas(clave: str) -> List[str]:
         base = reglas_default.get(clave, [])
@@ -449,7 +442,9 @@ def construir_contexto_industrial(perfil: Dict[str, Any]) -> Dict[str, Any]:
 
     if "operaciones_extranjero" in tags:
         riesgos_esperados.append("Operaciones del exterior y su correcta presentación o soporte")
-        alertas_profesionales.append("Revisar si existen efectos contables, tributarios o documentales derivados de operaciones internacionales.")
+        alertas_profesionales.append(
+            "Revisar si existen efectos contables, tributarios o documentales derivados de operaciones internacionales."
+        )
 
     if "tiene_empleados" in tags:
         riesgos_esperados.append("Gastos de personal y obligaciones laborales")
@@ -485,6 +480,7 @@ def construir_contexto_industrial(perfil: Dict[str, Any]) -> Dict[str, Any]:
 # =========================================================
 # IMPRESIÓN
 # =========================================================
+
 
 def imprimir_contexto_industrial(nombre_cliente: str) -> None:
     perfil = cargar_perfil(nombre_cliente)

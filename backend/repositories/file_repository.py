@@ -257,7 +257,9 @@ class FileRepository:
             "aseveraciones": self._find_aseveraciones(area_code),
         }
 
-    def set_area_account_check(self, cliente_id: str, area_code: str, cuenta_codigo: str, checked: bool) -> dict[str, Any]:
+    def set_area_account_check(
+        self, cliente_id: str, area_code: str, cuenta_codigo: str, checked: bool
+    ) -> dict[str, Any]:
         area_data = self.read_area_yaml(cliente_id, area_code)
         checks = area_data.get("revision_checks")
         checks_map = checks if isinstance(checks, dict) else {}
@@ -286,7 +288,11 @@ class FileRepository:
                         "actual": current_amount,
                         "anterior": previous_amount,
                         "variacion_monto": current_amount - previous_amount,
-                        "variacion_pct": ((current_amount - previous_amount) / abs(previous_amount) * 100.0) if previous_amount else 0.0,
+                        "variacion_pct": (
+                            ((current_amount - previous_amount) / abs(previous_amount) * 100.0)
+                            if previous_amount
+                            else 0.0
+                        ),
                         "nivel": 1 if "." not in str(row.get("Numero de Cuenta", "")) else 2,
                     }
                 )
@@ -379,7 +385,9 @@ def delete_cliente(cliente_id: str) -> bool:
     return repo.delete_cliente(cliente_id)
 
 
-def append_audit_log(*, user_id: str, cliente_id: str, endpoint: str, extra: dict[str, Any] | None = None) -> None:
+def append_audit_log(
+    *, user_id: str, cliente_id: str, endpoint: str, extra: dict[str, Any] | None = None
+) -> None:
     log_path = ROOT / "backend" / "audit.log"
     payload = {
         "timestamp": datetime.now(timezone.utc).isoformat(),

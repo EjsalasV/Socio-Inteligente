@@ -11,7 +11,6 @@ from domain.services.materialidad_service import (
     sugerir_materialidad,
     obtener_materialidad_guardada,
     resumen_materialidad,
-    guardar_sugerencia_materialidad
 )
 
 print("\n" + "=" * 70)

@@ -2,11 +2,11 @@
 Módulo de análisis de tendencias para auditoría.
 Detecta patrones de evolución en cuentas y áreas del TB.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
-import pandas as pd
 
 from analysis.lector_tb import leer_tb
 
@@ -68,21 +68,20 @@ def calcular_tendencias(cliente: str) -> list[dict[str, Any]]:
         codigo = str(row.get("codigo", row.get("numero_cuenta", "")))
         ls = str(row.get("ls", ""))
 
-        resultados.append({
-            "codigo": codigo,
-            "nombre": nombre,
-            "ls": ls,
-            "saldo_anterior": round(anterior, 2),
-            "saldo_actual": round(actual, 2),
-            "variacion_absoluta": round(actual - anterior, 2),
-            "variacion_porcentual": variacion_pct,
-            "tendencia": tendencia,
-        })
+        resultados.append(
+            {
+                "codigo": codigo,
+                "nombre": nombre,
+                "ls": ls,
+                "saldo_anterior": round(anterior, 2),
+                "saldo_actual": round(actual, 2),
+                "variacion_absoluta": round(actual - anterior, 2),
+                "variacion_porcentual": variacion_pct,
+                "tendencia": tendencia,
+            }
+        )
 
-    resultados.sort(
-        key=lambda x: abs(x["variacion_absoluta"]),
-        reverse=True
-    )
+    resultados.sort(key=lambda x: abs(x["variacion_absoluta"]), reverse=True)
     return resultados
 
 
@@ -97,10 +96,7 @@ def cuentas_por_tendencia(
                'caida_alta' | 'caida_moderada' |
                'estable' | 'nueva_cuenta' | 'cuenta_eliminada'
     """
-    return [
-        t for t in calcular_tendencias(cliente)
-        if t["tendencia"] == tendencia
-    ]
+    return [t for t in calcular_tendencias(cliente) if t["tendencia"] == tendencia]
 
 
 def alertas_tendencias(cliente: str) -> list[dict[str, Any]]:
@@ -108,13 +104,8 @@ def alertas_tendencias(cliente: str) -> list[dict[str, Any]]:
     Devuelve solo cuentas con tendencias que requieren atención
     de auditoría (crecimientos/caídas altas y cuentas nuevas).
     """
-    tendencias_alerta = {
-        "crecimiento_alto", "caida_alta", "nueva_cuenta", "cuenta_eliminada"
-    }
-    return [
-        t for t in calcular_tendencias(cliente)
-        if t["tendencia"] in tendencias_alerta
-    ]
+    tendencias_alerta = {"crecimiento_alto", "caida_alta", "nueva_cuenta", "cuenta_eliminada"}
+    return [t for t in calcular_tendencias(cliente) if t["tendencia"] in tendencias_alerta]
 
 
 def resumen_tendencias(cliente: str) -> dict[str, Any]:

@@ -124,9 +124,7 @@ def run_cliente(cliente: str) -> Optional[Dict[str, Any]]:
         "variaciones": resumen_var,
         "areas_riesgo": indicadores,
         "top_areas": (
-            ranking[["ranking", "area", "nombre", "score_riesgo"]]
-            .head(3)
-            .to_dict("records")
+            ranking[["ranking", "area", "nombre", "score_riesgo"]].head(3).to_dict("records")
             if ranking is not None
             else []
         ),

@@ -3,6 +3,7 @@ Carga y divide en chunks la base de conocimiento normativo.
 Lee todos los archivos .md de data/conocimiento_normativo/
 y los prepara para indexación en ChromaDB.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

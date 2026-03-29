@@ -119,7 +119,9 @@ def _preparar_variaciones(variaciones: pd.DataFrame | None) -> pd.DataFrame:
     var = variaciones.copy()
     codigo_col = _resolve_col(var, ["codigo", "numero_de_cuenta", "cuenta", "cod_cuenta"])
     ls_col = _resolve_col(var, ["ls", "l/s", "l_s", "L/S"])
-    impacto_col = _resolve_col(var, ["impacto", "variacion_absoluta", "abs_variacion_absoluta", "saldo_abs"])
+    impacto_col = _resolve_col(
+        var, ["impacto", "variacion_absoluta", "abs_variacion_absoluta", "saldo_abs"]
+    )
 
     if codigo_col is not None:
         var["codigo"] = var[codigo_col].astype(str).apply(normalizar_ls)
@@ -166,7 +168,9 @@ def seleccionar_filas_area_por_ls(df: pd.DataFrame, codigo_area: str) -> tuple[p
             if "codigo" in work.columns:
                 fallback_base = work[~nonempty_ls].copy()
                 if not fallback_base.empty:
-                    by_code = fallback_base[fallback_base["codigo"].astype(str).str.startswith(codigo)]
+                    by_code = fallback_base[
+                        fallback_base["codigo"].astype(str).str.startswith(codigo)
+                    ]
                     return by_code, "codigo_fallback_only_missing_ls"
             return pd.DataFrame(columns=work.columns), "ls_exact_no_match"
 
@@ -186,7 +190,13 @@ def _debug_area_selection(
     var_area: pd.DataFrame,
     var_method: str,
 ) -> None:
-    if str(os.getenv("SOCIOAI_DEBUG_RANKING", "")).strip() not in {"1", "true", "TRUE", "yes", "YES"}:
+    if str(os.getenv("SOCIOAI_DEBUG_RANKING", "")).strip() not in {
+        "1",
+        "true",
+        "TRUE",
+        "yes",
+        "YES",
+    }:
         return
 
     targets_raw = str(os.getenv("SOCIOAI_DEBUG_AREAS", "1,14,200")).strip()
@@ -260,8 +270,16 @@ def _is_holding_profile(perfil: dict[str, Any]) -> bool:
     if not isinstance(perfil, dict):
         return False
     cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
-    contexto = perfil.get("contexto_negocio", {}) if isinstance(perfil.get("contexto_negocio"), dict) else {}
-    industria = perfil.get("industria_inteligente", {}) if isinstance(perfil.get("industria_inteligente"), dict) else {}
+    contexto = (
+        perfil.get("contexto_negocio", {})
+        if isinstance(perfil.get("contexto_negocio"), dict)
+        else {}
+    )
+    industria = (
+        perfil.get("industria_inteligente", {})
+        if isinstance(perfil.get("industria_inteligente"), dict)
+        else {}
+    )
     blob = " ".join(
         [
             str(cliente.get("sector", "")),
@@ -393,7 +411,9 @@ def _calcular_score_area(
     score_complejidad = min(num_cuentas / 20, 20)
     score_riesgo_inherente = info["peso"] * 10
 
-    materialidad_relativa = (saldo_area / materialidad_ejecucion * 100) if materialidad_ejecucion > 0 else 0.0
+    materialidad_relativa = (
+        (saldo_area / materialidad_ejecucion * 100) if materialidad_ejecucion > 0 else 0.0
+    )
 
     flags = detectar_expert_flags(
         codigo_area=codigo,
@@ -408,7 +428,13 @@ def _calcular_score_area(
     flags_count = len(flags)
 
     score_flags = min(flags_count * 8, 16)
-    score_total = score_materialidad + score_variacion + score_complejidad + score_riesgo_inherente + score_flags
+    score_total = (
+        score_materialidad
+        + score_variacion
+        + score_complejidad
+        + score_riesgo_inherente
+        + score_flags
+    )
     score_total += _holding_context_boost(codigo, perfil)
 
     con_saldo = saldo_area > 0.01
@@ -441,7 +467,9 @@ def _calcular_score_area(
     }
 
     result["justificacion"] = _construir_justificacion(result)
-    prioridad = _prioridad_accionable(result["score_riesgo"], result["materialidad_relativa"], flags_count)
+    prioridad = _prioridad_accionable(
+        result["score_riesgo"], result["materialidad_relativa"], flags_count
+    )
     if zero_no_signal:
         prioridad = "baja"
         result["justificacion"] = "area presente sin saldo relevante ni senales adicionales"
@@ -482,10 +510,14 @@ def obtener_indicadores_clave(cliente: str) -> Optional[Dict[str, Any]]:
 
     return {
         "areas_alto_riesgo": len(ranking[ranking["score_riesgo"] > 50]),
-        "areas_medio_riesgo": len(ranking[(ranking["score_riesgo"] >= 30) & (ranking["score_riesgo"] <= 50)]),
+        "areas_medio_riesgo": len(
+            ranking[(ranking["score_riesgo"] >= 30) & (ranking["score_riesgo"] <= 50)]
+        ),
         "areas_bajo_riesgo": len(ranking[ranking["score_riesgo"] < 30]),
         "patrimonio_total": resumen_tb.get("TOTAL", 0),
-        "concentracion_principal_area": round(ranking.iloc[0]["pct_total"], 2) if len(ranking) > 0 else 0,
+        "concentracion_principal_area": (
+            round(ranking.iloc[0]["pct_total"], 2) if len(ranking) > 0 else 0
+        ),
     }
 
 

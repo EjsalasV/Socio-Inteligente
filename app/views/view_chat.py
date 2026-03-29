@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
-import re
 
 import streamlit as st
 
@@ -68,7 +67,11 @@ def _infer_alertas_recientes(
 ) -> list[str]:
     out: list[str] = []
     try:
-        if ranking_areas is not None and hasattr(ranking_areas, "empty") and not ranking_areas.empty:
+        if (
+            ranking_areas is not None
+            and hasattr(ranking_areas, "empty")
+            and not ranking_areas.empty
+        ):
             cols = ranking_areas.columns.tolist()
             if "score_riesgo" in cols:
                 top = ranking_areas.sort_values("score_riesgo", ascending=False).head(3)
@@ -80,12 +83,22 @@ def _infer_alertas_recientes(
         pass
     try:
         if variaciones is not None and hasattr(variaciones, "empty") and not variaciones.empty:
-            col_n = "nombre" if "nombre" in variaciones.columns else "nombre_cuenta" if "nombre_cuenta" in variaciones.columns else None
-            col_i = "impacto" if "impacto" in variaciones.columns else "variacion_absoluta" if "variacion_absoluta" in variaciones.columns else None
+            col_n = (
+                "nombre"
+                if "nombre" in variaciones.columns
+                else "nombre_cuenta" if "nombre_cuenta" in variaciones.columns else None
+            )
+            col_i = (
+                "impacto"
+                if "impacto" in variaciones.columns
+                else "variacion_absoluta" if "variacion_absoluta" in variaciones.columns else None
+            )
             if col_n and col_i:
                 topv = variaciones.copy().head(2)
                 for _, r in topv.iterrows():
-                    out.append(f"Variaci-n relevante: {_txt(r.get(col_n, 'Cuenta'))} ({_txt(r.get(col_i, '0'))})")
+                    out.append(
+                        f"Variaci-n relevante: {_txt(r.get(col_n, 'Cuenta'))} ({_txt(r.get(col_i, '0'))})"
+                    )
     except Exception:
         pass
     return out[:5]
@@ -104,14 +117,13 @@ def render_briefing_ia_tab(
             "C-digo área L/S para briefing", value=selected_area_code or "14"
         )
     with col_b2:
-        etapa_input = st.selectbox(
-            "Etapa de auditoría", ["planificacion", "ejecucion", "cierre"]
-        )
+        etapa_input = st.selectbox("Etapa de auditoría", ["planificacion", "ejecucion", "cierre"])
 
     if st.button("Generar Briefing con IA"):
         with st.spinner("Consultando al modelo..."):
             try:
                 from llm.briefing_llm import generar_briefing_area_llm
+
                 resultado = generar_briefing_area_llm(
                     nombre_cliente=cliente,
                     codigo_ls=area_briefing_input,
@@ -149,7 +161,9 @@ def render_chat_tab(
     perfil = cached_leer_perfil(cliente) or {}
     cliente_info = perfil.get("cliente", {}) if isinstance(perfil, dict) else {}
     riesgo_info = perfil.get("riesgo_global", {}) if isinstance(perfil, dict) else {}
-    mat_info = perfil.get("materialidad", {}).get("preliminar", {}) if isinstance(perfil, dict) else {}
+    mat_info = (
+        perfil.get("materialidad", {}).get("preliminar", {}) if isinstance(perfil, dict) else {}
+    )
 
     nombre = _txt(cliente_info.get("nombre_legal"), cliente)
     sector = _txt(cliente_info.get("sector"), "N/A")
@@ -229,7 +243,9 @@ def render_chat_tab(
                 """,
                 unsafe_allow_html=True,
             )
-            if st.button("📌 Vincular a Papel de Trabajo", key=f"link_pt_{cliente}_{idx}", width="content"):
+            if st.button(
+                "📌 Vincular a Papel de Trabajo", key=f"link_pt_{cliente}_{idx}", width="content"
+            ):
                 ok, detail = _append_consulta_tecnica(cliente, content)
                 if ok:
                     st.success("Respuesta vinculada a Consultas Técnicas en hallazgos.md")
@@ -247,13 +263,16 @@ def render_chat_tab(
         if send and _txt(user_input):
             st.session_state[state_key].append({"role": "user", "content": user_input})
             history_text = "\n".join(
-                [f"{m.get('role', '').upper()}: {m.get('content', '')}" for m in st.session_state[state_key][-8:]]
+                [
+                    f"{m.get('role', '').upper()}: {m.get('content', '')}"
+                    for m in st.session_state[state_key][-8:]
+                ]
             )
 
             contexto_normativo = ""
             try:
-                from infra.rag.retriever import recuperar_contexto_normativo
                 from infra.rag.vector_store import esta_indexado
+
                 if esta_indexado():
                     contexto_normativo = recuperar_contexto_normativo(user_input, n_resultados=3)
             except Exception:

@@ -254,14 +254,8 @@ def obtener_resumen_tb(
     if "tipo_cuenta" in tb.columns and "saldo" in tb.columns:
         # Normalize tipo_cuenta to uppercase for grouping
         tb2 = tb.copy()
-        tb2["tipo_cuenta_norm"] = (
-            tb2["tipo_cuenta"].astype(str).str.strip().str.upper()
-        )
-        grouped = (
-            tb2.groupby("tipo_cuenta_norm")["saldo"]
-            .sum()
-            .to_dict()
-        )
+        tb2["tipo_cuenta_norm"] = tb2["tipo_cuenta"].astype(str).str.strip().str.upper()
+        grouped = tb2.groupby("tipo_cuenta_norm")["saldo"].sum().to_dict()
         # Map common variants to canonical names
         mapping = {
             "ACTIVO": ["ACTIVO", "ACTIVOS", "ASSET", "ASSETS"],
@@ -271,11 +265,7 @@ def obtener_resumen_tb(
             "GASTOS": ["GASTOS", "GASTO", "EXPENSE", "EXPENSES", "COSTOS"],
         }
         for canonical, variants in mapping.items():
-            total = sum(
-                abs(float(grouped.get(v, 0)))
-                for v in variants
-                if v in grouped
-            )
+            total = sum(abs(float(grouped.get(v, 0))) for v in variants if v in grouped)
             if total > 0:
                 resumen[canonical] = total
 

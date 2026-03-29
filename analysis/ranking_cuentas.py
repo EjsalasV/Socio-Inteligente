@@ -7,24 +7,28 @@ import pandas as pd
 
 from analysis.lector_tb import leer_trial_balance
 from analysis.variaciones import calcular_variaciones, marcar_movimientos_relevantes
-from domain.services.leer_perfil import cargar_perfil, ruta_tb_cliente, obtener_nombre_cliente, obtener_periodo
+from domain.services.leer_perfil import (
+    cargar_perfil,
+    ruta_tb_cliente,
+    obtener_nombre_cliente,
+    obtener_periodo,
+)
 from core.configuracion import obtener_scoring_config
-from core.logger import registrar_ejecucion, registrar_error
 
 
 def puntaje_por_variacion_absoluta(valor: float, config_thresholds: list | None = None) -> int:
     """
     Calcula puntuación por variación absoluta.
-    
+
     Args:
         valor: Variación absoluta
         config_thresholds: Lista de [threshold, puntos] desde config (si None, usa defaults)
-    
+
     Returns:
         Puntuación (0-5 típicamente)
     """
     valor = abs(valor)
-    
+
     if config_thresholds is None:
         config_thresholds = [
             [100000, 5],
@@ -33,27 +37,27 @@ def puntaje_por_variacion_absoluta(valor: float, config_thresholds: list | None 
             [1000, 2],
             [500, 1],
         ]
-    
+
     for threshold, puntos in config_thresholds:
         if valor >= threshold:
             return puntos
-    
+
     return 0
 
 
 def puntaje_por_saldo_actual(valor: float, config_thresholds: list | None = None) -> int:
     """
     Calcula puntuación por saldo actual.
-    
+
     Args:
         valor: Saldo actual
         config_thresholds: Lista de [threshold, puntos] desde config (si None, usa defaults)
-    
+
     Returns:
         Puntuación (0-5 típicamente)
     """
     valor = abs(valor)
-    
+
     if config_thresholds is None:
         config_thresholds = [
             [1000000, 5],
@@ -62,27 +66,27 @@ def puntaje_por_saldo_actual(valor: float, config_thresholds: list | None = None
             [10000, 2],
             [1000, 1],
         ]
-    
+
     for threshold, puntos in config_thresholds:
         if valor >= threshold:
             return puntos
-    
+
     return 0
 
 
 def puntaje_por_variacion_porcentual(valor: float, config_thresholds: list | None = None) -> int:
     """
     Calcula puntuación por variación porcentual.
-    
+
     Args:
         valor: Variación porcentual
         config_thresholds: Lista de [threshold, puntos] desde config (si None, usa defaults)
-    
+
     Returns:
         Puntuación (0-5 típicamente)
     """
     valor = abs(valor)
-    
+
     if config_thresholds is None:
         config_thresholds = [
             [100, 5],
@@ -91,11 +95,11 @@ def puntaje_por_variacion_porcentual(valor: float, config_thresholds: list | Non
             [10, 2],
             [1, 1],
         ]
-    
+
     for threshold, puntos in config_thresholds:
         if valor >= threshold:
             return puntos
-    
+
     return 0
 
 
@@ -112,15 +116,15 @@ def calcular_score_cuentas(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calcula score de cada cuenta basado en variación, saldo y otros factores.
     Usa configuración desde config.yaml si está disponible.
-    
+
     Args:
         df: DataFrame con variaciones y marcas ya calculadas
-        
+
     Returns:
         DataFrame con columnas de score agregadas
     """
     df = df.copy()
-    
+
     # Cargar configuración
     config_scoring = obtener_scoring_config()
     thresholds_var = config_scoring.get("variacion_absoluta")
@@ -136,9 +140,9 @@ def calcular_score_cuentas(df: pd.DataFrame) -> pd.DataFrame:
     df["score_movimiento_relevante"] = df["flag_movimiento_relevante"].apply(
         lambda x: 2 if x else 0
     )
-    df["score_sin_base"] = (
-        (df["flag_sin_base"]) & (df["abs_variacion_absoluta"] >= 1000)
-    ).apply(lambda x: 2 if x else 0)
+    df["score_sin_base"] = ((df["flag_sin_base"]) & (df["abs_variacion_absoluta"] >= 1000)).apply(
+        lambda x: 2 if x else 0
+    )
 
     df["score_total"] = (
         df["score_variacion"]
@@ -174,10 +178,7 @@ def ranking_cuentas(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df[columnas_salida].copy()
 
-    df = df.sort_values(
-        by=["score_total", "abs_variacion_absoluta"],
-        ascending=[False, False]
-    )
+    df = df.sort_values(by=["score_total", "abs_variacion_absoluta"], ascending=[False, False])
 
     df = df.reset_index(drop=True)
 
@@ -213,10 +214,14 @@ def imprimir_ranking_cuentas(nombre_cliente: str) -> None:
     print(f"TB usado: {ruta_tb}\n")
 
     with pd.option_context(
-        "display.max_rows", 50,
-        "display.max_columns", None,
-        "display.width", 240,
-        "display.float_format", "{:,.2f}".format
+        "display.max_rows",
+        50,
+        "display.max_columns",
+        None,
+        "display.width",
+        240,
+        "display.float_format",
+        "{:,.2f}".format,
     ):
         print(df_rank.head(30))
 

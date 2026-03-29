@@ -82,14 +82,24 @@ def render_trial_balance_editorial(
     if "tipo_cuenta" in tb_filtrado.columns:
         tipos = sorted([str(x) for x in tb_filtrado["tipo_cuenta"].dropna().unique()])
         if tipos:
-            sel_tipos = st.multiselect("Filtrar por tipo", options=tipos, default=tipos, key="tb_editorial_tipos")
+            sel_tipos = st.multiselect(
+                "Filtrar por tipo", options=tipos, default=tipos, key="tb_editorial_tipos"
+            )
             if sel_tipos:
                 tb_filtrado = tb_filtrado[tb_filtrado["tipo_cuenta"].astype(str).isin(sel_tipos)]
 
-    numero_col = next((c for c in ["numero_cuenta", "codigo", "cuenta"] if c in tb_filtrado.columns), None)
-    nombre_col = next((c for c in ["nombre_cuenta", "nombre", "descripcion"] if c in tb_filtrado.columns), None)
-    saldo_col = next((c for c in ["saldo_actual", "saldo_2025", "saldo"] if c in tb_filtrado.columns), None)
-    saldo_ant_col = next((c for c in ["saldo_anterior", "saldo_2024"] if c in tb_filtrado.columns), None)
+    numero_col = next(
+        (c for c in ["numero_cuenta", "codigo", "cuenta"] if c in tb_filtrado.columns), None
+    )
+    nombre_col = next(
+        (c for c in ["nombre_cuenta", "nombre", "descripcion"] if c in tb_filtrado.columns), None
+    )
+    saldo_col = next(
+        (c for c in ["saldo_actual", "saldo_2025", "saldo"] if c in tb_filtrado.columns), None
+    )
+    saldo_ant_col = next(
+        (c for c in ["saldo_anterior", "saldo_2024"] if c in tb_filtrado.columns), None
+    )
     ls_col = next((c for c in ["ls", "L/S", "l/s", "l_s"] if c in tb_filtrado.columns), None)
 
     if not saldo_col:
@@ -105,14 +115,20 @@ def render_trial_balance_editorial(
 
     tb_filtrado[saldo_col] = pd.to_numeric(tb_filtrado[saldo_col], errors="coerce").fillna(0.0)
     if saldo_ant_col:
-        tb_filtrado[saldo_ant_col] = pd.to_numeric(tb_filtrado[saldo_ant_col], errors="coerce").fillna(0.0)
+        tb_filtrado[saldo_ant_col] = pd.to_numeric(
+            tb_filtrado[saldo_ant_col], errors="coerce"
+        ).fillna(0.0)
     else:
         tb_filtrado["_saldo_anterior_tmp"] = 0.0
         saldo_ant_col = "_saldo_anterior_tmp"
 
     tb_filtrado["_var_abs"] = tb_filtrado[saldo_col] - tb_filtrado[saldo_ant_col]
     tb_filtrado["_var_pct"] = tb_filtrado.apply(
-        lambda r: ((r["_var_abs"] / r[saldo_ant_col]) * 100.0) if float(r[saldo_ant_col]) not in (0.0, -0.0) else 0.0,
+        lambda r: (
+            ((r["_var_abs"] / r[saldo_ant_col]) * 100.0)
+            if float(r[saldo_ant_col]) not in (0.0, -0.0)
+            else 0.0
+        ),
         axis=1,
     )
 
@@ -142,8 +158,7 @@ def render_trial_balance_editorial(
         icon = "   -" if high_var else ""
         name_render = f"{escape(nombre)}{icon}"
 
-        rows_html.append(
-            f"""
+        rows_html.append(f"""
             <tr class="tb-row">
               <td>{escape(numero)}</td>
               <td class="{name_cls}">{name_render}</td>
@@ -152,8 +167,7 @@ def render_trial_balance_editorial(
               <td style="text-align:right;">{_money_cell(var_abs)}</td>
               <td style="text-align:right;" class="{var_cls}">{var_pct:,.1f}%</td>
             </tr>
-            """
-        )
+            """)
 
     table_html = f"""
     <div class="tb-shell grid-cols-1">
@@ -206,7 +220,9 @@ def render_variaciones_editorial(
     materialidad_ejecucion: float,
     sector: str = "",
 ) -> None:
-    st.markdown("<div class='section-header'>Variaciones Significativas</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='section-header'>Variaciones Significativas</div>", unsafe_allow_html=True
+    )
 
     if not isinstance(variaciones, pd.DataFrame) or variaciones.empty:
         st.info("Sin variaciones significativas detectadas.")
@@ -230,9 +246,11 @@ def render_variaciones_editorial(
     if pct_col is None:
         base_col = saldo_col if saldo_col else imp_col
         dfv["_pct_tmp"] = dfv.apply(
-            lambda r: ((_as_float_safe(r.get(imp_col, 0)) / _as_float_safe(r.get(base_col, 0))) * 100.0)
-            if _as_float_safe(r.get(base_col, 0)) not in (0.0, -0.0)
-            else 0.0,
+            lambda r: (
+                ((_as_float_safe(r.get(imp_col, 0)) / _as_float_safe(r.get(base_col, 0))) * 100.0)
+                if _as_float_safe(r.get(base_col, 0)) not in (0.0, -0.0)
+                else 0.0
+            ),
             axis=1,
         )
         pct_col = "_pct_tmp"
@@ -313,7 +331,10 @@ def render_mayor_critico_editorial(
     materialidad_ejecucion: float,
     selected_area_code: str = "",
 ) -> None:
-    st.markdown("<div class='section-header'>Análisis de Transacciones Críticas</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='section-header'>Análisis de Transacciones Críticas</div>",
+        unsafe_allow_html=True,
+    )
 
     if df_mayor is None or (isinstance(df_mayor, pd.DataFrame) and df_mayor.empty):
         st.info("No se encontró mayor.xlsx para este cliente.")
@@ -322,18 +343,26 @@ def render_mayor_critico_editorial(
     df_view = df_mayor.copy()
     f1, f2, f3, f4 = st.columns([1, 1, 2, 1])
     with f1:
-        filtro_ls = st.text_input("Área L/S", value=selected_area_code or "", key="m_ls_editorial", placeholder="ej. 14")
+        filtro_ls = st.text_input(
+            "Área L/S", value=selected_area_code or "", key="m_ls_editorial", placeholder="ej. 14"
+        )
     with f2:
-        filtro_cuenta = st.text_input("Cdigo cuenta", key="m_cuenta_editorial", placeholder="ej. 1.02")
+        filtro_cuenta = st.text_input(
+            "Cdigo cuenta", key="m_cuenta_editorial", placeholder="ej. 1.02"
+        )
     with f3:
         filtro_texto = st.text_input("Buscar", key="m_texto_editorial", placeholder="ej. ajuste")
     with f4:
-        filtro_monto = st.number_input("Monto mínimo", min_value=0.0, value=0.0, step=100.0, key="m_monto_editorial")
+        filtro_monto = st.number_input(
+            "Monto mínimo", min_value=0.0, value=0.0, step=100.0, key="m_monto_editorial"
+        )
 
     if filtro_ls.strip() and "ls" in df_view.columns:
         df_view = df_view[df_view["ls"].astype(str).str.strip() == filtro_ls.strip()]
     if filtro_cuenta.strip() and "numero_cuenta" in df_view.columns:
-        df_view = df_view[df_view["numero_cuenta"].astype(str).str.startswith(filtro_cuenta.strip())]
+        df_view = df_view[
+            df_view["numero_cuenta"].astype(str).str.startswith(filtro_cuenta.strip())
+        ]
     if filtro_texto.strip():
         q = filtro_texto.strip().lower()
         for c in ["descripcion", "referencia", "nombre_cuenta"]:
@@ -349,7 +378,9 @@ def render_mayor_critico_editorial(
         debe = pd.to_numeric(df_view.get("debe", 0), errors="coerce").fillna(0).abs()
         haber = pd.to_numeric(df_view.get("haber", 0), errors="coerce").fillna(0).abs()
         saldo = pd.to_numeric(df_view.get("saldo", 0), errors="coerce").fillna(0).abs()
-        df_view = df_view[(debe >= filtro_monto) | (haber >= filtro_monto) | (saldo >= filtro_monto)]
+        df_view = df_view[
+            (debe >= filtro_monto) | (haber >= filtro_monto) | (saldo >= filtro_monto)
+        ]
 
     risk_words = re.compile(r"(ajuste|correcci[o3]n|reverso)", flags=re.IGNORECASE)
 
@@ -382,7 +413,11 @@ def render_mayor_critico_editorial(
         saldo = abs(_as_float_safe(row.get("saldo", 0)))
         return max(debe, haber, saldo) > float(materialidad_ejecucion or 0)
 
-    df_view["_risk_time"] = df_view.apply(lambda r: _after_hours(r.get("fecha")), axis=1) if "fecha" in df_view.columns else False
+    df_view["_risk_time"] = (
+        df_view.apply(lambda r: _after_hours(r.get("fecha")), axis=1)
+        if "fecha" in df_view.columns
+        else False
+    )
     df_view["_risk_desc"] = df_view.apply(_risk_desc, axis=1)
     df_view["_risk_me"] = df_view.apply(_over_me, axis=1)
     df_view["_risk_any"] = df_view[["_risk_time", "_risk_desc", "_risk_me"]].any(axis=1)
@@ -411,12 +446,15 @@ def render_mayor_critico_editorial(
         if "fecha" in row.index:
             try:
                 _d = pd.to_datetime(row.get("fecha"), errors="coerce")
-                fecha_txt = _d.strftime("%Y-%m-%d %H:%M") if not pd.isna(_d) else str(row.get("fecha", ""))[:16]
+                fecha_txt = (
+                    _d.strftime("%Y-%m-%d %H:%M")
+                    if not pd.isna(_d)
+                    else str(row.get("fecha", ""))[:16]
+                )
             except Exception:
                 fecha_txt = str(row.get("fecha", ""))[:16]
 
-        rows_html.append(
-            f"""
+        rows_html.append(f"""
             <tr class="tb-row" style="{tr_style}">
               <td>{escape(fecha_txt)}</td>
               <td>{escape(normalize_text(row.get("numero_cuenta", "")))}</td>
@@ -425,8 +463,7 @@ def render_mayor_critico_editorial(
               <td style="text-align:right;">{_money_cell(_as_float_safe(row.get("haber", 0)))}</td>
               <td style="color:{risk_color};font-weight:700;">{escape(flags)}</td>
             </tr>
-            """
-        )
+            """)
 
     st.markdown(
         f"""
@@ -463,7 +500,11 @@ def render_contexto_tab(ws: dict[str, Any]) -> None:
         top_df = area_df.head(8) if isinstance(area_df, pd.DataFrame) else pd.DataFrame()
 
     if top_df is not None and not top_df.empty:
-        cols = [c for c in ["numero_cuenta", "nombre_cuenta", "saldo_actual", "variacion_absoluta"] if c in top_df.columns]
+        cols = [
+            c
+            for c in ["numero_cuenta", "nombre_cuenta", "saldo_actual", "variacion_absoluta"]
+            if c in top_df.columns
+        ]
         if cols:
             show = top_df[cols].copy()
             if "saldo_actual" in show.columns:
@@ -485,11 +526,17 @@ def render_contexto_tab(ws: dict[str, Any]) -> None:
     st.markdown("**Riesgos del area**")
     if ws["riesgos"]:
         for r in ws["riesgos"]:
-            st.markdown(f"- [{normalize_text(r.get('nivel', 'N/A'))}] {normalize_text(r.get('titulo', ''))}: {normalize_text(r.get('descripcion', ''))}")
+            st.markdown(
+                f"- [{normalize_text(r.get('nivel', 'N/A'))}] {normalize_text(r.get('titulo', ''))}: {normalize_text(r.get('descripcion', ''))}"
+            )
     else:
         st.info("No se detectaron riesgos del motor base para esta area.")
 
-    riesgos = ws.get("riesgos_automaticos", []) if isinstance(ws.get("riesgos_automaticos", []), list) else []
+    riesgos = (
+        ws.get("riesgos_automaticos", [])
+        if isinstance(ws.get("riesgos_automaticos", []), list)
+        else []
+    )
     st.subheader("Riesgos automaticos")
     if riesgos:
         for r in riesgos:
@@ -547,7 +594,9 @@ def render_briefing_tab(ws: dict[str, Any]) -> None:
 
     if ws.get("es_holding"):
         st.markdown("**Foco holding**")
-        foco_holding = ws.get("foco_holding", []) if isinstance(ws.get("foco_holding", []), list) else []
+        foco_holding = (
+            ws.get("foco_holding", []) if isinstance(ws.get("foco_holding", []), list) else []
+        )
         if foco_holding:
             for foco in foco_holding:
                 st.markdown(f"- {foco}")
@@ -556,9 +605,13 @@ def render_briefing_tab(ws: dict[str, Any]) -> None:
 
     st.markdown("**Why this area matters**")
     if ws["coverage"] < 80 or ws["hallazgos_count"] > 0:
-        st.markdown("Esta area importa porque puede concentrar riesgo residual por cobertura parcial y/o hallazgos abiertos.")
+        st.markdown(
+            "Esta area importa porque puede concentrar riesgo residual por cobertura parcial y/o hallazgos abiertos."
+        )
     else:
-        st.markdown("Esta area importa por su relevancia en el cierre, aun con cobertura favorable.")
+        st.markdown(
+            "Esta area importa por su relevancia en el cierre, aun con cobertura favorable."
+        )
 
 
 def render_procedimientos_tab(ws: dict[str, Any]) -> None:
@@ -606,10 +659,24 @@ def render_cobertura_tab(ws: dict[str, Any]) -> None:
     cobertura = ws["cobertura"]
     codigo_ls = normalize_text(ws.get("codigo_ls", ""))
     area_oficial = safe_call(obtener_area_por_codigo, codigo_ls, default=None)
-    titulo_ls = normalize_text(area_oficial.get("titulo", "")) if isinstance(area_oficial, dict) else ""
-    calidad = ws.get("calidad_metodologia", {}) if isinstance(ws.get("calidad_metodologia", {}), dict) else {}
-    guia_det = calidad.get("aseveraciones_guia_detalle", {}) if isinstance(calidad.get("aseveraciones_guia_detalle", {}), dict) else {}
-    guia_ls = guia_det.get("aseveraciones_sugeridas", []) if isinstance(guia_det.get("aseveraciones_sugeridas", []), list) else []
+    titulo_ls = (
+        normalize_text(area_oficial.get("titulo", "")) if isinstance(area_oficial, dict) else ""
+    )
+    calidad = (
+        ws.get("calidad_metodologia", {})
+        if isinstance(ws.get("calidad_metodologia", {}), dict)
+        else {}
+    )
+    guia_det = (
+        calidad.get("aseveraciones_guia_detalle", {})
+        if isinstance(calidad.get("aseveraciones_guia_detalle", {}), dict)
+        else {}
+    )
+    guia_ls = (
+        guia_det.get("aseveraciones_sugeridas", [])
+        if isinstance(guia_det.get("aseveraciones_sugeridas", []), list)
+        else []
+    )
     guia_nota = normalize_text(guia_det.get("nota", "")) or "Guia referencial, no exhaustiva."
 
     st.markdown("**Resumen de cobertura**")

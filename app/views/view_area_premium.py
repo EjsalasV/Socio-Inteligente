@@ -87,22 +87,10 @@ def _task_item_html(task: str, priority: str, bloqueante: bool = False) -> str:
             "</div>"
         )
     if p == "alta":
-        return (
-            '<div class="task-meta">'
-            '<span class="task-chip chip-high">ALTA</span>'
-            "</div>"
-        )
+        return '<div class="task-meta">' '<span class="task-chip chip-high">ALTA</span>' "</div>"
     if p == "media":
-        return (
-            '<div class="task-meta">'
-            '<span class="task-chip chip-mid">MEDIA</span>'
-            "</div>"
-        )
-    return (
-        '<div class="task-meta">'
-        '<span class="task-chip chip-low">BAJA</span>'
-        "</div>"
-    )
+        return '<div class="task-meta">' '<span class="task-chip chip-mid">MEDIA</span>' "</div>"
+    return '<div class="task-meta">' '<span class="task-chip chip-low">BAJA</span>' "</div>"
 
 
 def _alert_card_html(titulo: str, mensaje: str, nivel: str = "medio") -> str:
@@ -256,14 +244,14 @@ def _render_decision_critica(ws: dict[str, Any]) -> None:
     )
 
 
-def _render_metric_card(label: str, value: str, sub: str, value_color: str, progress: float | None = None) -> str:
+def _render_metric_card(
+    label: str, value: str, sub: str, value_color: str, progress: float | None = None
+) -> str:
     progress_html = ""
     if progress is not None:
         p = max(0.0, min(100.0, progress))
         bar_color = "#047857" if p >= 80 else "#B45309" if p >= 60 else "#BA1A1A"
-        progress_html = (
-            f'<div class="progress-track"><div class="progress-fill" style="width:{p:.1f}%;background:{bar_color};"></div></div>'
-        )
+        progress_html = f'<div class="progress-track"><div class="progress-fill" style="width:{p:.1f}%;background:{bar_color};"></div></div>'
     return f"""
     <div class="metric-card soc-root">
         <div class="metric-label">{escape(label)}</div>
@@ -279,7 +267,9 @@ def _render_metrics(ws: dict[str, Any]) -> None:
     hallazgos_count = _safe_int(ws.get("hallazgos_count", 0))
     pending_count = _safe_int(ws.get("pending_count", 0))
 
-    calidad = ws.get("calidad_metodologia") if isinstance(ws.get("calidad_metodologia"), dict) else {}
+    calidad = (
+        ws.get("calidad_metodologia") if isinstance(ws.get("calidad_metodologia"), dict) else {}
+    )
     resumen = calidad.get("resumen") if isinstance(calidad.get("resumen"), dict) else {}
     alertas_criticas = _safe_int(resumen.get("alertas_criticas", 0))
 
@@ -287,24 +277,36 @@ def _render_metrics(ws: dict[str, Any]) -> None:
 
     with c1:
         st.markdown(
-            _render_metric_card("Cobertura de Auditoría", _fmt_pct(coverage, 0), "Cobertura sobre procedimientos esperados", "#041627", coverage),
+            _render_metric_card(
+                "Cobertura de Auditoría",
+                _fmt_pct(coverage, 0),
+                "Cobertura sobre procedimientos esperados",
+                "#041627",
+                coverage,
+            ),
             unsafe_allow_html=True,
         )
     with c2:
         color = "#BA1A1A" if hallazgos_count > 0 else "#047857"
         st.markdown(
-            _render_metric_card("Hallazgos de Auditoría", str(hallazgos_count), "Abiertos en el área", color),
+            _render_metric_card(
+                "Hallazgos de Auditoría", str(hallazgos_count), "Abiertos en el área", color
+            ),
             unsafe_allow_html=True,
         )
     with c3:
         st.markdown(
-            _render_metric_card("Tareas Pendientes", str(pending_count), "Procedimientos no cerrados", "#041627"),
+            _render_metric_card(
+                "Tareas Pendientes", str(pending_count), "Procedimientos no cerrados", "#041627"
+            ),
             unsafe_allow_html=True,
         )
     with c4:
         color = "#BA1A1A" if alertas_criticas > 0 else "#047857"
         st.markdown(
-            _render_metric_card("Alertas Críticas de Calidad", str(alertas_criticas), "Control metodol-gico", color),
+            _render_metric_card(
+                "Alertas Críticas de Calidad", str(alertas_criticas), "Control metodol-gico", color
+            ),
             unsafe_allow_html=True,
         )
 
@@ -312,19 +314,27 @@ def _render_metrics(ws: dict[str, Any]) -> None:
 def _render_opinion(ws: dict[str, Any]) -> None:
     riesgos = ws.get("riesgos") if isinstance(ws.get("riesgos"), list) else []
     focos = [_txt(x) for x in _to_list(ws.get("focos")) if str(x).strip()][:3]
-    lectura = _txt(ws.get("lectura", "Sin lectura inicial disponible."), "Sin lectura inicial disponible.")
+    lectura = _txt(
+        ws.get("lectura", "Sin lectura inicial disponible."), "Sin lectura inicial disponible."
+    )
 
     risk_items: list[str] = []
     for r in riesgos[:3]:
         if isinstance(r, dict):
             titulo = _txt(r.get("titulo", "Riesgo relevante"), "Riesgo relevante")
             descripcion = _txt(r.get("descripcion", ""), "")
-            risk_items.append(f"<li><b>{titulo}</b>{(': ' + descripcion) if descripcion else ''}</li>")
+            risk_items.append(
+                f"<li><b>{titulo}</b>{(': ' + descripcion) if descripcion else ''}</li>"
+            )
 
     if not risk_items:
         risk_items = ["<li>Sin riesgos priorizados para este corte.</li>"]
 
-    focos_items = "".join([f"<li>{f}</li>" for f in focos]) if focos else "<li>Sin recomendaciones estratégicas registradas.</li>"
+    focos_items = (
+        "".join([f"<li>{f}</li>" for f in focos])
+        if focos
+        else "<li>Sin recomendaciones estratégicas registradas.</li>"
+    )
     risks_html = "".join(risk_items)
 
     st.markdown(
@@ -447,7 +457,10 @@ def _render_pendientes(ws: dict[str, Any]) -> None:
         with c1:
             st.checkbox("", key=f"premium_task_{idx}_{abs(hash(p)) % 10_000}")
         with c2:
-            st.markdown(f"<div style='font-size:.85rem;font-weight:700;'>{p}</div>{label_html}", unsafe_allow_html=True)
+            st.markdown(
+                f"<div style='font-size:.85rem;font-weight:700;'>{p}</div>{label_html}",
+                unsafe_allow_html=True,
+            )
         st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -455,10 +468,18 @@ def _render_alertas(ws: dict[str, Any]) -> None:
     hallazgos = [_txt(h) for h in _to_list(ws.get("hallazgos")) if str(h).strip()]
     expert_flags = ws.get("expert_flags") if isinstance(ws.get("expert_flags"), list) else []
 
-    st.markdown('<div class="soc-root" style="display:flex;flex-direction:column;gap:.55rem;">', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="soc-root" style="display:flex;flex-direction:column;gap:.55rem;">',
+        unsafe_allow_html=True,
+    )
 
     if not hallazgos and not expert_flags:
-        st.markdown(_alert_card_html("Sin alertas", "No se detectan alertas activas para este corte.", "bajo"), unsafe_allow_html=True)
+        st.markdown(
+            _alert_card_html(
+                "Sin alertas", "No se detectan alertas activas para este corte.", "bajo"
+            ),
+            unsafe_allow_html=True,
+        )
 
     for h in hallazgos:
         st.markdown(_alert_card_html("Hallazgo abierto", h, "medio"), unsafe_allow_html=True)
@@ -544,8 +565,14 @@ def _suggest_procedures(
     nia_available: set[str],
 ) -> list[dict[str, Any]]:
     codigo_ls = _txt(ws.get("codigo_ls", ""))
-    area_data = proc_catalog.get(codigo_ls, {}) if isinstance(proc_catalog.get(codigo_ls, {}), dict) else {}
-    procs = area_data.get("procedimientos", []) if isinstance(area_data.get("procedimientos", []), list) else []
+    area_data = (
+        proc_catalog.get(codigo_ls, {}) if isinstance(proc_catalog.get(codigo_ls, {}), dict) else {}
+    )
+    procs = (
+        area_data.get("procedimientos", [])
+        if isinstance(area_data.get("procedimientos", []), list)
+        else []
+    )
     if not procs:
         return []
 
@@ -574,9 +601,7 @@ def _suggest_procedures(
         if risk_high and "confirm" in tipo:
             score += 1.8
         if is_holding_14 and (
-            "vpp" in descripcion
-            or "particip" in descripcion
-            or "inversion" in descripcion
+            "vpp" in descripcion or "particip" in descripcion or "inversion" in descripcion
         ):
             score += 4.2
         if "corte" in afirmacion:
@@ -632,10 +657,20 @@ def _render_workspace_execution(ws: dict[str, Any], cliente: str, perfil: dict[s
                 nia_available.add(m.group(1))
 
     codigo_ls = _txt(ws.get("codigo_ls", ""))
-    asev_data = asev_catalog.get(codigo_ls, {}) if isinstance(asev_catalog.get(codigo_ls, {}), dict) else {}
-    aseveraciones = asev_data.get("aseveraciones_sugeridas", []) if isinstance(asev_data.get("aseveraciones_sugeridas", []), list) else []
+    asev_data = (
+        asev_catalog.get(codigo_ls, {}) if isinstance(asev_catalog.get(codigo_ls, {}), dict) else {}
+    )
+    aseveraciones = (
+        asev_data.get("aseveraciones_sugeridas", [])
+        if isinstance(asev_data.get("aseveraciones_sugeridas", []), list)
+        else []
+    )
     if not aseveraciones:
-        aseveraciones = _to_list(ws.get("cobertura", {}).get("esperadas", [])) if isinstance(ws.get("cobertura", {}), dict) else []
+        aseveraciones = (
+            _to_list(ws.get("cobertura", {}).get("esperadas", []))
+            if isinstance(ws.get("cobertura", {}), dict)
+            else []
+        )
 
     riesgo = _txt(ws.get("riesgo", "MEDIO"), "MEDIO").upper()
     area_score = _safe_float(ws.get("area_score", 0.0))
@@ -693,15 +728,29 @@ def _render_workspace_execution(ws: dict[str, Any], cliente: str, perfil: dict[s
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height:.4rem;'></div>", unsafe_allow_html=True)
-    if st.button("-- -- Generar Ficha de Ejecuci-n", key=f"btn_ficha_exec_{codigo_ls}", type="primary"):
+    if st.button(
+        "-- -- Generar Ficha de Ejecuci-n", key=f"btn_ficha_exec_{codigo_ls}", type="primary"
+    ):
         me = _safe_float(ws.get("materialidad_ejecucion", 0.0))
-        cuentas_rel = _safe_int(ws.get("area_summary", {}).get("cuentas_relevantes", 0)) if isinstance(ws.get("area_summary", {}), dict) else 0
-        muestra = max(5, min(35, cuentas_rel if cuentas_rel > 0 else int((me / 10000.0) if me else 8)))
+        cuentas_rel = (
+            _safe_int(ws.get("area_summary", {}).get("cuentas_relevantes", 0))
+            if isinstance(ws.get("area_summary", {}), dict)
+            else 0
+        )
+        muestra = max(
+            5, min(35, cuentas_rel if cuentas_rel > 0 else int((me / 10000.0) if me else 8))
+        )
         proc_lineas = []
         for idx, p in enumerate(suggested[:3], start=1):
             proc_lineas.append(f"{idx}. {p.get('descripcion', 'Procedimiento')}")
-        proc_txt = "<br>".join([escape(x) for x in proc_lineas]) if proc_lineas else "1. Sin procedimiento sugerido"
-        asev_target = ", ".join([_txt(a) for a in aseveraciones[:2]]) if aseveraciones else "Valuaci-n"
+        proc_txt = (
+            "<br>".join([escape(x) for x in proc_lineas])
+            if proc_lineas
+            else "1. Sin procedimiento sugerido"
+        )
+        asev_target = (
+            ", ".join([_txt(a) for a in aseveraciones[:2]]) if aseveraciones else "Valuaci-n"
+        )
         riesgo_txt = _txt(ws.get("riesgo", "MEDIO"), "MEDIO").upper()
 
         ficha = (
@@ -867,9 +916,7 @@ def _render_cierre_cards(ws: dict[str, Any]) -> None:
         )
 
     if focos:
-        items = "".join(
-            [f"<li style='margin:.3rem 0;'>{escape(x)}</li>" for x in focos[:5]]
-        )
+        items = "".join([f"<li style='margin:.3rem 0;'>{escape(x)}</li>" for x in focos[:5]])
         st.markdown(
             f"""
             <div class="sovereign-card" style="margin-top:.6rem;">

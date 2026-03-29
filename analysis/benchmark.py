@@ -3,6 +3,7 @@ Módulo de benchmark sectorial para auditoría.
 Compara ratios del cliente contra referencias por sector
 para identificar desviaciones que requieren atención.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -10,44 +11,43 @@ from typing import Any
 from analysis.ratios import calcular_ratios
 from domain.services.leer_perfil import leer_perfil
 
-
 # Benchmarks referenciales por sector
 # Fuente: rangos típicos de industria para empresas PYME en Ecuador
 BENCHMARKS_SECTOR: dict[str, dict[str, dict[str, float]]] = {
     "comerciales": {
-        "razon_corriente":  {"min": 1.2, "max": 2.5, "optimo": 1.8},
-        "endeudamiento":    {"min": 0.3, "max": 0.6, "optimo": 0.45},
-        "margen_neto":      {"min": 0.02, "max": 0.12, "optimo": 0.06},
+        "razon_corriente": {"min": 1.2, "max": 2.5, "optimo": 1.8},
+        "endeudamiento": {"min": 0.3, "max": 0.6, "optimo": 0.45},
+        "margen_neto": {"min": 0.02, "max": 0.12, "optimo": 0.06},
         "rotacion_activos": {"min": 0.8, "max": 2.5, "optimo": 1.5},
-        "roa":              {"min": 0.03, "max": 0.12, "optimo": 0.07},
+        "roa": {"min": 0.03, "max": 0.12, "optimo": 0.07},
     },
     "servicios": {
-        "razon_corriente":  {"min": 1.0, "max": 2.0, "optimo": 1.5},
-        "endeudamiento":    {"min": 0.2, "max": 0.55, "optimo": 0.38},
-        "margen_neto":      {"min": 0.05, "max": 0.25, "optimo": 0.15},
+        "razon_corriente": {"min": 1.0, "max": 2.0, "optimo": 1.5},
+        "endeudamiento": {"min": 0.2, "max": 0.55, "optimo": 0.38},
+        "margen_neto": {"min": 0.05, "max": 0.25, "optimo": 0.15},
         "rotacion_activos": {"min": 0.5, "max": 2.0, "optimo": 1.0},
-        "roa":              {"min": 0.05, "max": 0.18, "optimo": 0.10},
+        "roa": {"min": 0.05, "max": 0.18, "optimo": 0.10},
     },
     "holding": {
-        "razon_corriente":  {"min": 0.5, "max": 3.0, "optimo": 1.2},
-        "endeudamiento":    {"min": 0.1, "max": 0.5, "optimo": 0.25},
-        "margen_neto":      {"min": 0.0, "max": 1.0, "optimo": 0.20},
+        "razon_corriente": {"min": 0.5, "max": 3.0, "optimo": 1.2},
+        "endeudamiento": {"min": 0.1, "max": 0.5, "optimo": 0.25},
+        "margen_neto": {"min": 0.0, "max": 1.0, "optimo": 0.20},
         "rotacion_activos": {"min": 0.0, "max": 0.5, "optimo": 0.10},
-        "roa":              {"min": 0.0, "max": 0.15, "optimo": 0.05},
+        "roa": {"min": 0.0, "max": 0.15, "optimo": 0.05},
     },
     "manufactura": {
-        "razon_corriente":  {"min": 1.2, "max": 2.8, "optimo": 1.8},
-        "endeudamiento":    {"min": 0.35, "max": 0.65, "optimo": 0.50},
-        "margen_neto":      {"min": 0.03, "max": 0.15, "optimo": 0.08},
+        "razon_corriente": {"min": 1.2, "max": 2.8, "optimo": 1.8},
+        "endeudamiento": {"min": 0.35, "max": 0.65, "optimo": 0.50},
+        "margen_neto": {"min": 0.03, "max": 0.15, "optimo": 0.08},
         "rotacion_activos": {"min": 0.4, "max": 1.5, "optimo": 0.9},
-        "roa":              {"min": 0.03, "max": 0.12, "optimo": 0.07},
+        "roa": {"min": 0.03, "max": 0.12, "optimo": 0.07},
     },
     "default": {
-        "razon_corriente":  {"min": 1.0, "max": 2.5, "optimo": 1.5},
-        "endeudamiento":    {"min": 0.2, "max": 0.65, "optimo": 0.45},
-        "margen_neto":      {"min": 0.02, "max": 0.20, "optimo": 0.10},
+        "razon_corriente": {"min": 1.0, "max": 2.5, "optimo": 1.5},
+        "endeudamiento": {"min": 0.2, "max": 0.65, "optimo": 0.45},
+        "margen_neto": {"min": 0.02, "max": 0.20, "optimo": 0.10},
         "rotacion_activos": {"min": 0.3, "max": 2.0, "optimo": 1.0},
-        "roa":              {"min": 0.02, "max": 0.15, "optimo": 0.07},
+        "roa": {"min": 0.02, "max": 0.15, "optimo": 0.07},
     },
 }
 
@@ -78,10 +78,10 @@ def comparar_con_benchmark(cliente: str) -> list[dict[str, Any]]:
 
     ratio_map = {
         "razon_corriente": ratios.get("liquidez", {}).get("razon_corriente"),
-        "endeudamiento":   ratios.get("solvencia", {}).get("endeudamiento"),
-        "margen_neto":     ratios.get("rentabilidad", {}).get("margen_neto"),
-        "rotacion_activos":ratios.get("actividad", {}).get("rotacion_activos"),
-        "roa":             ratios.get("rentabilidad", {}).get("roa"),
+        "endeudamiento": ratios.get("solvencia", {}).get("endeudamiento"),
+        "margen_neto": ratios.get("rentabilidad", {}).get("margen_neto"),
+        "rotacion_activos": ratios.get("actividad", {}).get("rotacion_activos"),
+        "roa": ratios.get("rentabilidad", {}).get("roa"),
     }
 
     for nombre_ratio, valor in ratio_map.items():
@@ -99,17 +99,19 @@ def comparar_con_benchmark(cliente: str) -> list[dict[str, Any]]:
         else:
             estado = "alerta"
 
-        resultados.append({
-            "ratio": nombre_ratio,
-            "sector": sector,
-            "valor_cliente": valor,
-            "benchmark_min": ref["min"],
-            "benchmark_optimo": ref["optimo"],
-            "benchmark_max": ref["max"],
-            "desviacion": desviacion,
-            "dentro_rango": dentro_rango,
-            "estado": estado,
-        })
+        resultados.append(
+            {
+                "ratio": nombre_ratio,
+                "sector": sector,
+                "valor_cliente": valor,
+                "benchmark_min": ref["min"],
+                "benchmark_optimo": ref["optimo"],
+                "benchmark_max": ref["max"],
+                "desviacion": desviacion,
+                "dentro_rango": dentro_rango,
+                "estado": estado,
+            }
+        )
 
     return resultados
 

@@ -57,9 +57,13 @@ def _causa_sugerida(
     if contexto.get("senales_cuantitativas", {}).get("material"):
         partes.append("debilidades en revision de cierre frente a partidas materiales")
     if contexto.get("relevancia_contextual", {}).get("es_prioritaria_industria"):
-        partes.append("criterio tecnico insuficientemente documentado en un rubro sensible por industria")
+        partes.append(
+            "criterio tecnico insuficientemente documentado en un rubro sensible por industria"
+        )
     if any(str(r.get("nivel", "")).upper() == "ALTO" for r in riesgos):
-        partes.append("respuesta de auditoria no alineada plenamente con riesgos altos identificados")
+        partes.append(
+            "respuesta de auditoria no alineada plenamente con riesgos altos identificados"
+        )
 
     if not partes:
         return (
@@ -76,7 +80,11 @@ def _efecto_sugerido(
 ) -> str:
     area = contexto.get("area_activa", {})
     senales = contexto.get("senales_cuantitativas", {})
-    material_txt = "con impacto potencial material" if senales.get("material") else "con impacto potencial relevante"
+    material_txt = (
+        "con impacto potencial material"
+        if senales.get("material")
+        else "con impacto potencial relevante"
+    )
     return (
         f"Existe riesgo de incorreccion en {area.get('nombre', 'el rubro')}, "
         f"particularmente en valuacion/presentacion, {material_txt}, "
@@ -104,8 +112,9 @@ def _recomendacion_sugerida(
         ]
 
     return (
-        "Documentar y ejecutar: " + "; ".join(acciones) +
-        ". Ademas, validar consistencia entre soporte, medicion y presentacion final."
+        "Documentar y ejecutar: "
+        + "; ".join(acciones)
+        + ". Ademas, validar consistencia entre soporte, medicion y presentacion final."
     )
 
 
@@ -127,10 +136,14 @@ def estructurar_hallazgo_llm(
     df_var = marcar_movimientos_relevantes(calcular_variaciones(df_tb))
     area_df = obtener_area(df_var, str(codigo_ls))
 
-    resumen = construir_resumen_area(area_df) if not area_df.empty else {
-        "variacion_acumulada": 0.0,
-        "cuentas_sin_base": 0,
-    }
+    resumen = (
+        construir_resumen_area(area_df)
+        if not area_df.empty
+        else {
+            "variacion_acumulada": 0.0,
+            "cuentas_sin_base": 0,
+        }
+    )
     riesgos = detectar_riesgos_area(area_df, str(codigo_ls), perfil) if not area_df.empty else []
     focos = construir_foco_auditoria(str(codigo_ls), perfil, area_df) if not area_df.empty else []
 
@@ -175,5 +188,3 @@ def estructurar_hallazgo_llm(
     )
 
     return "\n".join(bloques)
-
-

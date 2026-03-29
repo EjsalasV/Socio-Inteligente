@@ -68,9 +68,21 @@ def _build_rows(tb: pd.DataFrame | None, variaciones: pd.DataFrame | None) -> li
     rows: list[dict[str, Any]] = []
 
     if isinstance(variaciones, pd.DataFrame) and not variaciones.empty:
-        name_col = next((c for c in ["cuenta", "nombre_cuenta", "descripcion", "area_nombre"] if c in variaciones.columns), None)
-        curr_col = next((c for c in ["saldo_actual", "saldo", "actual"] if c in variaciones.columns), None)
-        prev_col = next((c for c in ["saldo_anterior", "anterior", "saldo_prev"] if c in variaciones.columns), None)
+        name_col = next(
+            (
+                c
+                for c in ["cuenta", "nombre_cuenta", "descripcion", "area_nombre"]
+                if c in variaciones.columns
+            ),
+            None,
+        )
+        curr_col = next(
+            (c for c in ["saldo_actual", "saldo", "actual"] if c in variaciones.columns), None
+        )
+        prev_col = next(
+            (c for c in ["saldo_anterior", "anterior", "saldo_prev"] if c in variaciones.columns),
+            None,
+        )
 
         if name_col and curr_col and prev_col:
             df = variaciones.copy().head(8)
@@ -94,7 +106,10 @@ def _build_rows(tb: pd.DataFrame | None, variaciones: pd.DataFrame | None) -> li
 
     if isinstance(tb, pd.DataFrame) and not tb.empty:
         ccol, pcol = _pick_var_source(tb)
-        name_col = next((c for c in ["nombre_cuenta", "cuenta", "descripcion", "nombre"] if c in tb.columns), None)
+        name_col = next(
+            (c for c in ["nombre_cuenta", "cuenta", "descripcion", "nombre"] if c in tb.columns),
+            None,
+        )
         if ccol and name_col:
             df = tb.copy().head(10)
             for _, r in df.iterrows():
@@ -116,11 +131,41 @@ def _build_rows(tb: pd.DataFrame | None, variaciones: pd.DataFrame | None) -> li
         return rows[:6]
 
     return [
-        {"cuenta": "Cuentas por Cobrar Comerciales", "actual": 8450000, "anterior": 6200000, "delta": 2250000, "delta_pct": 36.3},
-        {"cuenta": "Efectivo y Equivalentes", "actual": 1120000, "anterior": 1050000, "delta": 70000, "delta_pct": 6.7},
-        {"cuenta": "Inventarios", "actual": 4800000, "anterior": 4100000, "delta": 700000, "delta_pct": 17.1},
-        {"cuenta": "Propiedad, Planta y Equipo", "actual": 15200000, "anterior": 13900000, "delta": 1300000, "delta_pct": 9.4},
-        {"cuenta": "Ventas Netas", "actual": 42300000, "anterior": 38100000, "delta": 4200000, "delta_pct": 11.0},
+        {
+            "cuenta": "Cuentas por Cobrar Comerciales",
+            "actual": 8450000,
+            "anterior": 6200000,
+            "delta": 2250000,
+            "delta_pct": 36.3,
+        },
+        {
+            "cuenta": "Efectivo y Equivalentes",
+            "actual": 1120000,
+            "anterior": 1050000,
+            "delta": 70000,
+            "delta_pct": 6.7,
+        },
+        {
+            "cuenta": "Inventarios",
+            "actual": 4800000,
+            "anterior": 4100000,
+            "delta": 700000,
+            "delta_pct": 17.1,
+        },
+        {
+            "cuenta": "Propiedad, Planta y Equipo",
+            "actual": 15200000,
+            "anterior": 13900000,
+            "delta": 1300000,
+            "delta_pct": 9.4,
+        },
+        {
+            "cuenta": "Ventas Netas",
+            "actual": 42300000,
+            "anterior": 38100000,
+            "delta": 4200000,
+            "delta_pct": 11.0,
+        },
     ]
 
 
@@ -136,7 +181,9 @@ def render_estados_financieros_premium(
     datos_clave = datos_clave or {}
     perfil = perfil or {}
 
-    mat_block = perfil.get("materialidad", {}) if isinstance(perfil.get("materialidad"), dict) else {}
+    mat_block = (
+        perfil.get("materialidad", {}) if isinstance(perfil.get("materialidad"), dict) else {}
+    )
     mp = _safe_float(mat_block.get("materialidad_planeacion", 0.0))
     me = _safe_float(mat_block.get("materialidad_ejecucion", 0.0))
     triv = _safe_float(mat_block.get("umbral_trivial", 0.0))

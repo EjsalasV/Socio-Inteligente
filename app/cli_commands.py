@@ -2,9 +2,9 @@
 CLI de SocioAI - comandos de linea de comandos.
 Uso: python -m app.cli_commands [COMANDO] [OPCIONES]
 """
+
 from __future__ import annotations
 
-import sys
 
 import click
 
@@ -120,10 +120,7 @@ def cmd_ratios(cliente: str) -> None:
     for ratio in ratios:
         valor = ratio.get("valor")
         valor_str = f"{float(valor):.4f}" if valor is not None else "N/A"
-        click.echo(
-            f"  {ratio['ratio']:<22} {valor_str:>10}  "
-            f"{ratio.get('interpretacion', '')}"
-        )
+        click.echo(f"  {ratio['ratio']:<22} {valor_str:>10}  " f"{ratio.get('interpretacion', '')}")
 
     if benchmark.get("total", 0) > 0:
         click.echo(

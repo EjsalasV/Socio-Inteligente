@@ -188,4 +188,3 @@ CATALOGO_LS = {
         "clase": "Impuesto a la renta",
     },
 }
-

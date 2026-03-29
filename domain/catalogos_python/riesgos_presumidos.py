@@ -10,4 +10,3 @@ RIESGOS_PRESUMIDOS = {
         "aplica_a": "todas",
     },
 }
-

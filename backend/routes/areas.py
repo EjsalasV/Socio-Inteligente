@@ -16,7 +16,9 @@ router = APIRouter(prefix="/areas", tags=["areas"])
 
 
 @router.get("/{cliente_id}/{area_code}", response_model=ApiResponse)
-def get_area(cliente_id: str, area_code: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+def get_area(
+    cliente_id: str, area_code: str, user: UserContext = Depends(get_current_user)
+) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
     detail = repo.get_area_detail(cliente_id, area_code)
     return ApiResponse(data=AreaWorkspaceResponse(**detail).model_dump())

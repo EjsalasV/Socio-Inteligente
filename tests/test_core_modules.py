@@ -6,13 +6,24 @@ Unit tests for core SocioAI modules:
 - analysis/ranking_areas.py
 """
 
-import io
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import pandas as pd
 import pytest
 
+from domain.services.leer_perfil import (
+    cargar_perfil as leer_perfil_compat,
+    leer_perfil,
+    obtener_cliente,
+    obtener_encargo,
+    obtener_materialidad,
+    obtener_nombre_cliente,
+    obtener_sector,
+    validar_perfil_basico,
+)
+from infra.repositories import cliente_repository
+from analysis import ranking_areas
 
 # ══════════════════════════════════════════════════════════════
 # MODULE 1 — estado_area_yaml.py
@@ -49,8 +60,10 @@ class TestEstadoAreaYaml:
 
     def test_cargar_estado_area_no_existe(self):
         fake_path = Path("data/clientes/x/areas/999.yaml")
-        with patch("domain.services.estado_area_yaml.ruta_estado_area", return_value=fake_path), \
-             patch("pathlib.Path.exists", return_value=False):
+        with (
+            patch("domain.services.estado_area_yaml.ruta_estado_area", return_value=fake_path),
+            patch("pathlib.Path.exists", return_value=False),
+        ):
             out = cargar_estado_area("x", "999")
         assert out["codigo"] == "999"
         assert out["procedimientos"] == []
@@ -62,10 +75,15 @@ class TestEstadoAreaYaml:
             "estado_area": "en_revision",
             "notas": ["ok"],
         }
-        with patch("domain.services.estado_area_yaml.ruta_estado_area", return_value=fake_path), \
-             patch("pathlib.Path.exists", return_value=True), \
-             patch("builtins.open", mock_open(read_data="codigo: '130'\nestado_area: en_revision\nnotas:\n  - ok\n")), \
-             patch("domain.services.estado_area_yaml.yaml.safe_load", return_value=contenido):
+        with (
+            patch("domain.services.estado_area_yaml.ruta_estado_area", return_value=fake_path),
+            patch("pathlib.Path.exists", return_value=True),
+            patch(
+                "builtins.open",
+                mock_open(read_data="codigo: '130'\nestado_area: en_revision\nnotas:\n  - ok\n"),
+            ),
+            patch("domain.services.estado_area_yaml.yaml.safe_load", return_value=contenido),
+        ):
             out = cargar_estado_area("x", "130")
 
         assert out["codigo"] == "130"
@@ -75,10 +93,12 @@ class TestEstadoAreaYaml:
 
     def test_cargar_estado_area_yaml_invalido(self):
         fake_path = Path("data/clientes/x/areas/bad.yaml")
-        with patch("domain.services.estado_area_yaml.ruta_estado_area", return_value=fake_path), \
-             patch("pathlib.Path.exists", return_value=True), \
-             patch("builtins.open", mock_open(read_data="- a\n- b\n")), \
-             patch("domain.services.estado_area_yaml.yaml.safe_load", return_value=["a", "b"]):
+        with (
+            patch("domain.services.estado_area_yaml.ruta_estado_area", return_value=fake_path),
+            patch("pathlib.Path.exists", return_value=True),
+            patch("builtins.open", mock_open(read_data="- a\n- b\n")),
+            patch("domain.services.estado_area_yaml.yaml.safe_load", return_value=["a", "b"]),
+        ):
             with pytest.raises(ValueError):
                 cargar_estado_area("x", "bad")
 
@@ -86,11 +106,15 @@ class TestEstadoAreaYaml:
         fake_path = Path("data/clientes/x/areas/130.yaml")
         mock_file = mock_open()
 
-        with patch("domain.services.estado_area_yaml.ruta_estado_area", return_value=fake_path), \
-             patch.object(Path, "mkdir", return_value=None), \
-             patch("builtins.open", mock_file), \
-             patch("domain.services.estado_area_yaml.yaml.safe_dump") as mock_dump:
-            ruta = guardar_estado_area("x", "130", {"estado_area": "ejecutado", "_fuente_yaml": "tmp"})
+        with (
+            patch("domain.services.estado_area_yaml.ruta_estado_area", return_value=fake_path),
+            patch.object(Path, "mkdir", return_value=None),
+            patch("builtins.open", mock_file),
+            patch("domain.services.estado_area_yaml.yaml.safe_dump") as mock_dump,
+        ):
+            ruta = guardar_estado_area(
+                "x", "130", {"estado_area": "ejecutado", "_fuente_yaml": "tmp"}
+            )
 
         assert str(ruta).endswith("130.yaml")
         args, kwargs = mock_dump.call_args
@@ -129,16 +153,6 @@ class TestEstadoAreaYaml:
 # MODULE 2 — leer_perfil.py
 # ══════════════════════════════════════════════════════════════
 
-from domain.services.leer_perfil import (
-    cargar_perfil as leer_perfil_compat,
-    leer_perfil,
-    obtener_cliente,
-    obtener_encargo,
-    obtener_materialidad,
-    obtener_nombre_cliente,
-    obtener_sector,
-    validar_perfil_basico,
-)
 
 PERFIL_VALIDO = {
     "cliente": {
@@ -203,15 +217,18 @@ class TestLeerPerfil:
 # MODULE 3 — cliente_repository.py
 # ══════════════════════════════════════════════════════════════
 
-from infra.repositories import cliente_repository
-
 
 class TestClienteRepository:
     def test_cargar_perfil_ok(self):
         m = mock_open(read_data="cliente:\n  nombre_legal: ABC\n")
-        with patch.object(Path, "exists", return_value=True), \
-             patch("builtins.open", m), \
-             patch("infra.repositories.cliente_repository.yaml.safe_load", return_value={"cliente": {"nombre_legal": "ABC"}}):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch("builtins.open", m),
+            patch(
+                "infra.repositories.cliente_repository.yaml.safe_load",
+                return_value={"cliente": {"nombre_legal": "ABC"}},
+            ),
+        ):
             out = cliente_repository.cargar_perfil("abc")
         assert out == {"cliente": {"nombre_legal": "ABC"}}
 
@@ -224,33 +241,44 @@ class TestClienteRepository:
         df = pd.DataFrame({"a": [1], "b": [2]})
         excel_obj = MagicMock()
         excel_obj.sheet_names = ["Hoja1"]
-        with patch.object(Path, "exists", return_value=True), \
-             patch("infra.repositories.cliente_repository.pd.ExcelFile", return_value=excel_obj), \
-             patch("infra.repositories.cliente_repository.pd.read_excel", return_value=df):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch("infra.repositories.cliente_repository.pd.ExcelFile", return_value=excel_obj),
+            patch("infra.repositories.cliente_repository.pd.read_excel", return_value=df),
+        ):
             out = cliente_repository.cargar_tb("abc")
         assert isinstance(out, pd.DataFrame)
         assert len(out) == 1
 
     def test_cargar_hallazgos_variantes(self):
         m = mock_open(read_data="hallazgos: []")
-        with patch.object(Path, "exists", return_value=True), \
-             patch("builtins.open", m), \
-             patch("infra.repositories.cliente_repository.yaml.safe_load", return_value={"hallazgos": [1, 2]}):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch("builtins.open", m),
+            patch(
+                "infra.repositories.cliente_repository.yaml.safe_load",
+                return_value={"hallazgos": [1, 2]},
+            ),
+        ):
             out = cliente_repository.cargar_hallazgos("abc")
         assert out == [1, 2]
 
     def test_cargar_patrones_variantes(self):
         m = mock_open(read_data="patrones: []")
-        with patch.object(Path, "exists", return_value=True), \
-             patch("builtins.open", m), \
-             patch("infra.repositories.cliente_repository.yaml.safe_load", return_value={"patrones": ["x"]}):
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch("builtins.open", m),
+            patch(
+                "infra.repositories.cliente_repository.yaml.safe_load",
+                return_value={"patrones": ["x"]},
+            ),
+        ):
             out = cliente_repository.cargar_patrones("abc")
         assert out == ["x"]
 
     def test_guardar_materialidad_ok(self):
         m = mock_open()
-        with patch("builtins.open", m), \
-             patch.object(Path, "mkdir", return_value=None):
+        with patch("builtins.open", m), patch.object(Path, "mkdir", return_value=None):
             ok = cliente_repository.guardar_materialidad("abc", {"m": 1})
         assert ok is True
 
@@ -258,8 +286,6 @@ class TestClienteRepository:
 # ══════════════════════════════════════════════════════════════
 # MODULE 4 — ranking_areas.py
 # ══════════════════════════════════════════════════════════════
-
-from analysis import ranking_areas
 
 
 class TestRankingAreas:
@@ -303,24 +329,44 @@ class TestRankingAreas:
             }
         )
         areas = [
-            {"codigo": "14", "titulo": "Inversiones no corrientes", "clase": "Activo", "categoria_general": "Activo"},
-            {"codigo": "200", "titulo": "Patrimonio", "clase": "Patrimonio", "categoria_general": "Patrimonio"},
+            {
+                "codigo": "14",
+                "titulo": "Inversiones no corrientes",
+                "clase": "Activo",
+                "categoria_general": "Activo",
+            },
+            {
+                "codigo": "200",
+                "titulo": "Patrimonio",
+                "clase": "Patrimonio",
+                "categoria_general": "Patrimonio",
+            },
             {"codigo": "1", "titulo": "PPE", "clase": "Activo", "categoria_general": "Activo"},
         ]
 
-        with patch("analysis.ranking_areas.leer_tb", return_value=tb), \
-             patch("analysis.ranking_areas.calcular_variaciones", return_value=pd.DataFrame()), \
-             patch("analysis.ranking_areas.leer_perfil", return_value={"cliente": {"sector": "holding"}}), \
-             patch("analysis.ranking_areas.calcular_materialidad", return_value={"materialidad_desempeno": 1000}), \
-             patch("analysis.ranking_areas.detectar_expert_flags", return_value=[]), \
-             patch("analysis.ranking_areas.cargar_areas_catalogo", return_value=areas):
+        with (
+            patch("analysis.ranking_areas.leer_tb", return_value=tb),
+            patch("analysis.ranking_areas.calcular_variaciones", return_value=pd.DataFrame()),
+            patch(
+                "analysis.ranking_areas.leer_perfil",
+                return_value={"cliente": {"sector": "holding"}},
+            ),
+            patch(
+                "analysis.ranking_areas.calcular_materialidad",
+                return_value={"materialidad_desempeno": 1000},
+            ),
+            patch("analysis.ranking_areas.detectar_expert_flags", return_value=[]),
+            patch("analysis.ranking_areas.cargar_areas_catalogo", return_value=areas),
+        ):
             out = ranking_areas.calcular_ranking_areas("cliente_x")
 
         assert out is not None
         assert not out.empty
-        assert set(["area", "nombre", "score_riesgo", "presente", "con_saldo"]).issubset(set(out.columns))
+        assert set(["area", "nombre", "score_riesgo", "presente", "con_saldo"]).issubset(
+            set(out.columns)
+        )
 
         row_14 = out[out["area"] == "14"].iloc[0]
         row_1 = out[out["area"] == "1"].iloc[0]
-        assert row_14["presente"] == True
-        assert row_1["presente"] == False
+        assert bool(row_14["presente"]) is True
+        assert bool(row_1["presente"]) is False

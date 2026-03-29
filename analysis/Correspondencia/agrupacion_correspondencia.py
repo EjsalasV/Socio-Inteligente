@@ -80,17 +80,25 @@ def agrupar_correspondencia(df: pd.DataFrame, mapa: dict[str, str] | None = None
 
     base = df.copy()
 
-    corr_col = _resolve_col(base, ["no_correspondencia", "correspondencia", "codigo_correspondencia"])
+    corr_col = _resolve_col(
+        base, ["no_correspondencia", "correspondencia", "codigo_correspondencia"]
+    )
     if corr_col is None:
         raise ValueError(
             "Faltan columnas requeridas para agrupacion por correspondencia: no_correspondencia/correspondencia"
         )
 
     base["no_correspondencia"] = base[corr_col].astype(str).str.strip()
-    base["saldo_total"] = _to_float_series(base, ["saldo_actual", "saldo", "saldo_2025", "saldo_preliminar"])
-    base["variacion_total"] = _to_float_series(base, ["variacion_absoluta", "impacto", "diferencia"])
+    base["saldo_total"] = _to_float_series(
+        base, ["saldo_actual", "saldo", "saldo_2025", "saldo_preliminar"]
+    )
+    base["variacion_total"] = _to_float_series(
+        base, ["variacion_absoluta", "impacto", "diferencia"]
+    )
     base["abs_variacion_total"] = base["variacion_total"].abs()
-    base["area_correspondencia"] = base["no_correspondencia"].apply(lambda x: clasificar_correspondencia(x, mapa))
+    base["area_correspondencia"] = base["no_correspondencia"].apply(
+        lambda x: clasificar_correspondencia(x, mapa)
+    )
 
     resumen = (
         base.groupby("area_correspondencia", dropna=False)
@@ -126,7 +134,9 @@ def obtener_agrupacion_correspondencia(cliente: str) -> pd.DataFrame:
         df_var = calcular_variaciones(cliente)
         if df_var is not None and not df_var.empty:
             tb_code_col = _resolve_col(base, ["codigo", "numero_de_cuenta", "cuenta", "cod_cuenta"])
-            var_code_col = _resolve_col(df_var, ["codigo", "numero_de_cuenta", "cuenta", "cod_cuenta"])
+            var_code_col = _resolve_col(
+                df_var, ["codigo", "numero_de_cuenta", "cuenta", "cod_cuenta"]
+            )
             if tb_code_col and var_code_col and "impacto" in df_var.columns:
                 impacto_map = (
                     df_var[[var_code_col, "impacto"]]
@@ -188,4 +198,3 @@ if __name__ == "__main__":
         imprimir_agrupacion_correspondencia(sys.argv[1])
     except Exception as exc:
         print(f"\nError en agrupacion por correspondencia: {exc}")
-

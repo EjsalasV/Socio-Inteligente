@@ -2,13 +2,13 @@
 Google Sheets repository for SocioAI client persistence.
 Stores client profiles and TB metadata across sessions.
 """
+
 from __future__ import annotations
 
 import json
 from datetime import datetime
 from typing import Any
 
-import pandas as pd
 
 _LAST_SHEETS_ERROR = ""
 
@@ -51,18 +51,19 @@ def _get_client():
         else:
             # Fallback: flat keys at top-level secrets
             keys = [
-                "type", "project_id", "private_key_id",
-                "private_key", "client_email", "client_id",
-                "auth_uri", "token_uri",
+                "type",
+                "project_id",
+                "private_key_id",
+                "private_key",
+                "client_email",
+                "client_id",
+                "auth_uri",
+                "token_uri",
                 "auth_provider_x509_cert_url",
                 "client_x509_cert_url",
                 "universe_domain",
             ]
-            creds_dict = {
-                k: st.secrets.get(k, "")
-                for k in keys
-                if st.secrets.get(k, "")
-            }
+            creds_dict = {k: st.secrets.get(k, "") for k in keys if st.secrets.get(k, "")}
 
         if not creds_dict:
             return None
@@ -72,15 +73,11 @@ def _get_client():
         if "\\n" in pk:
             creds_dict["private_key"] = pk.replace("\\n", "\n")
 
-        creds = Credentials.from_service_account_info(
-            creds_dict, scopes=scopes
-        )
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         _set_last_error("")
         return gspread.authorize(creds)
     except Exception as e:
-        _set_last_error(
-            f"Error connecting [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Error connecting [{type(e).__name__}]: {e!r}")
         print(f"[SHEETS] Error connecting: {e}")
         return None
 
@@ -89,14 +86,12 @@ def _get_sheet(tab_name: str):
     """Returns a specific worksheet, creates it if missing."""
     try:
         import streamlit as st
+
         client = _get_client()
         if not client:
             return None
 
-        sheet_id = (
-            st.secrets.get("GOOGLE_SHEETS_ID", "")
-            or st.secrets.get("google_sheets_id", "")
-        )
+        sheet_id = st.secrets.get("GOOGLE_SHEETS_ID", "") or st.secrets.get("google_sheets_id", "")
         if not sheet_id:
             _set_last_error("Missing GOOGLE_SHEETS_ID in secrets.")
             return None
@@ -114,17 +109,12 @@ def _get_sheet(tab_name: str):
                     return ws
 
             # Create tab with headers
-            ws = spreadsheet.add_worksheet(
-                title=tab_name, rows=1000, cols=20
-            )
+            ws = spreadsheet.add_worksheet(title=tab_name, rows=1000, cols=20)
             _init_headers(ws, tab_name)
             _set_last_error("")
             return ws
     except Exception as e:
-        _set_last_error(
-            f"Error getting sheet {tab_name} "
-            f"[{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Error getting sheet {tab_name} " f"[{type(e).__name__}]: {e!r}")
         print(f"[SHEETS] Error getting sheet {tab_name}: {e}")
         return None
 
@@ -133,28 +123,48 @@ def _init_headers(ws: Any, tab_name: str) -> None:
     """Initialize headers for each sheet tab."""
     headers = {
         SHEET_CLIENTES: [
-            "cliente_id", "nombre_legal", "ruc",
-            "sector", "tipo_entidad", "periodo",
-            "marco", "riesgo_global", "moneda",
-            "partes_relacionadas", "inventarios",
-            "cartera", "prestamos_socios",
-            "anticipos", "empleados",
-            "doc_debil", "riesgo_tributario",
-            "fecha_creacion", "fecha_actualizacion",
+            "cliente_id",
+            "nombre_legal",
+            "ruc",
+            "sector",
+            "tipo_entidad",
+            "periodo",
+            "marco",
+            "riesgo_global",
+            "moneda",
+            "partes_relacionadas",
+            "inventarios",
+            "cartera",
+            "prestamos_socios",
+            "anticipos",
+            "empleados",
+            "doc_debil",
+            "riesgo_tributario",
+            "fecha_creacion",
+            "fecha_actualizacion",
             "perfil_json",
         ],
         SHEET_TB_META: [
-            "cliente_id", "tipo_tb", "filas",
-            "columnas", "fecha_carga",
-            "tiene_saldo_2024", "tiene_saldo_2025",
-            "total_activos", "total_pasivos",
+            "cliente_id",
+            "tipo_tb",
+            "filas",
+            "columnas",
+            "fecha_carga",
+            "tiene_saldo_2024",
+            "tiene_saldo_2025",
+            "total_activos",
+            "total_pasivos",
             "total_patrimonio",
         ],
         SHEET_ESTADOS: [
-            "cliente_id", "codigo_area",
-            "nombre_area", "estado_area",
-            "decision_cierre", "conclusion",
-            "notas", "pendientes",
+            "cliente_id",
+            "codigo_area",
+            "nombre_area",
+            "estado_area",
+            "decision_cierre",
+            "conclusion",
+            "notas",
+            "pendientes",
             "fecha_actualizacion",
         ],
     }
@@ -192,14 +202,12 @@ def guardar_cliente_sheets(
             enc.get("marco_referencial", ""),
             rg.get("nivel", ""),
             c.get("moneda_funcional", "USD"),
-            str(bool(perfil.get("contexto_negocio", {})
-                     .get("tiene_partes_relacionadas"))),
+            str(bool(perfil.get("contexto_negocio", {}).get("tiene_partes_relacionadas"))),
             str(bool(op.get("tiene_inventarios_significativos"))),
             str(bool(op.get("tiene_cartera_significativa"))),
             str(bool(op.get("tiene_prestamos_socios"))),
             str(bool(op.get("tiene_anticipos_proveedores"))),
-            str(bool(perfil.get("nomina", {})
-                     .get("tiene_empleados"))),
+            str(bool(perfil.get("nomina", {}).get("tiene_empleados"))),
             str(bool(banderas.get("documentacion_debil"))),
             str(bool(banderas.get("riesgo_tributario_general"))),
             now,
@@ -225,9 +233,7 @@ def guardar_cliente_sheets(
         return True
 
     except Exception as e:
-        _set_last_error(
-            f"Error saving client [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Error saving client [{type(e).__name__}]: {e!r}")
         print(f"[SHEETS] Error saving client: {e}")
         return False
 
@@ -251,22 +257,20 @@ def cargar_clientes_sheets() -> list[dict[str, Any]]:
             except Exception:
                 perfil = {}
 
-            clientes.append({
-                "cliente_id": str(row["cliente_id"]),
-                "nombre_legal": str(row.get("nombre_legal", "")),
-                "sector": str(row.get("sector", "")),
-                "periodo": str(row.get("periodo", "")),
-                "fecha_creacion": str(
-                    row.get("fecha_creacion", "")
-                ),
-                "perfil": perfil,
-            })
+            clientes.append(
+                {
+                    "cliente_id": str(row["cliente_id"]),
+                    "nombre_legal": str(row.get("nombre_legal", "")),
+                    "sector": str(row.get("sector", "")),
+                    "periodo": str(row.get("periodo", "")),
+                    "fecha_creacion": str(row.get("fecha_creacion", "")),
+                    "perfil": perfil,
+                }
+            )
         _set_last_error("")
         return clientes
     except Exception as e:
-        _set_last_error(
-            f"Error loading clients [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Error loading clients [{type(e).__name__}]: {e!r}")
         print(f"[SHEETS] Error loading clients: {e}")
         return []
 
@@ -287,9 +291,7 @@ def eliminar_cliente_sheets(cliente_id: str) -> bool:
                 return True
         return False
     except Exception as e:
-        _set_last_error(
-            f"Error deleting client [{type(e).__name__}]: {e!r}"
-        )
+        _set_last_error(f"Error deleting client [{type(e).__name__}]: {e!r}")
         print(f"[SHEETS] Error deleting client: {e}")
         return False
 
@@ -298,18 +300,11 @@ def sheets_disponible() -> bool:
     """Check if Google Sheets connection works."""
     try:
         import streamlit as st
-        _sid = (
-            st.secrets.get("GOOGLE_SHEETS_ID", "")
-            or st.secrets.get("google_sheets_id", "")
-        )
+
+        _sid = st.secrets.get("GOOGLE_SHEETS_ID", "") or st.secrets.get("google_sheets_id", "")
         _svc = st.secrets.get("gcp_service_account", {})
-        _flat = bool(
-            st.secrets.get("client_email", "")
-            and st.secrets.get("private_key", "")
-        )
-        return bool(
-            _sid and (_svc or _flat)
-        )
+        _flat = bool(st.secrets.get("client_email", "") and st.secrets.get("private_key", ""))
+        return bool(_sid and (_svc or _flat))
     except Exception:
         return False
 
@@ -331,16 +326,14 @@ def diagnosticar_sheets() -> dict[str, Any]:
     }
     try:
         import streamlit as st
+
         client = _get_client()
         if not client:
             out["error"] = obtener_ultimo_error_sheets() or "Auth failed."
             return out
         out["auth_ok"] = True
 
-        sid = (
-            st.secrets.get("GOOGLE_SHEETS_ID", "")
-            or st.secrets.get("google_sheets_id", "")
-        )
+        sid = st.secrets.get("GOOGLE_SHEETS_ID", "") or st.secrets.get("google_sheets_id", "")
         out["sheet_id"] = str(sid or "")
         if not sid:
             out["error"] = "Missing GOOGLE_SHEETS_ID."
@@ -392,11 +385,7 @@ def diagnosticar_sheets() -> dict[str, Any]:
         _set_last_error("")
         return out
     except Exception as e:
-        _set_last_error(
-            f"Diagnostic failed [{type(e).__name__}]: {e!r}"
-        )
-        out["error"] = (
-            f"{type(e).__name__}: {e!r}"
-        )
+        _set_last_error(f"Diagnostic failed [{type(e).__name__}]: {e!r}")
+        out["error"] = f"{type(e).__name__}: {e!r}"
         print(f"[SHEETS_DIAG] {out['error']}")
         return out

@@ -98,13 +98,21 @@ def _build_alertas_recientes(cliente: str, ranking_areas: Any) -> list[str]:
     out: list[str] = []
     try:
         hs = cargar_hallazgos_gestion(cliente)
-        abiertos = [x for x in hs if isinstance(x, dict) and _txt(x.get("estado", "")).lower() == "abierto"]
+        abiertos = [
+            x for x in hs if isinstance(x, dict) and _txt(x.get("estado", "")).lower() == "abierto"
+        ]
         for h in abiertos[:3]:
-            out.append(f"Hallazgo {_txt(h.get('id', 'N/A'))}: {_txt(h.get('descripcion', 'Sin descripci-n'))[:88]}")
+            out.append(
+                f"Hallazgo {_txt(h.get('id', 'N/A'))}: {_txt(h.get('descripcion', 'Sin descripci-n'))[:88]}"
+            )
     except Exception:
         pass
     try:
-        if ranking_areas is not None and hasattr(ranking_areas, "empty") and not ranking_areas.empty:
+        if (
+            ranking_areas is not None
+            and hasattr(ranking_areas, "empty")
+            and not ranking_areas.empty
+        ):
             cols = ranking_areas.columns.tolist()
             if "score_riesgo" in cols:
                 top = ranking_areas.sort_values("score_riesgo", ascending=False).head(2)
@@ -118,7 +126,9 @@ def _build_alertas_recientes(cliente: str, ranking_areas: Any) -> list[str]:
 
 
 def _memo_estrategico(perfil: dict[str, Any], cliente: str) -> str:
-    sector = _txt(perfil.get("cliente", {}).get("sector", "") if isinstance(perfil, dict) else "").lower()
+    sector = _txt(
+        perfil.get("cliente", {}).get("sector", "") if isinstance(perfil, dict) else ""
+    ).lower()
     hall = _read_hallazgos_md(cliente).lower()
     if hall:
         if "debil" in hall or "sin soporte" in hall or "no concili" in hall:
@@ -166,7 +176,10 @@ def render_memoria_tab(
     mat_plan = _txt(mat.get("materialidad_global", "N/A"))
     alertas = _build_alertas_recientes(cliente, ranking_areas)
 
-    st.markdown("<div class='section-header'>Memoria del Cliente - Archivo Permanente</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='section-header'>Memoria del Cliente - Archivo Permanente</div>",
+        unsafe_allow_html=True,
+    )
 
     left, right = st.columns([7, 5], gap="large")
 
@@ -211,7 +224,9 @@ def render_memoria_tab(
             "Selecciona archivo para incorporar al repositorio",
             key=f"mem_upload_{cliente}",
         )
-        if st.button("Cargar Documento", key=f"btn_mem_upload_{cliente}", type="secondary", width="content"):
+        if st.button(
+            "Cargar Documento", key=f"btn_mem_upload_{cliente}", type="secondary", width="content"
+        ):
             if up is None:
                 st.warning("Selecciona un archivo antes de cargar.")
             else:
@@ -269,4 +284,3 @@ def render_memoria_tab(
         for a in alertas:
             st.markdown(f"- {a}")
         st.markdown("</div>", unsafe_allow_html=True)
-

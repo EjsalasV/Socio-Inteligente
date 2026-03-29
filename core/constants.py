@@ -2,6 +2,7 @@
 Constantes globales de SocioAI.
 Punto único de verdad para valores fijos del sistema.
 """
+
 from __future__ import annotations
 
 # ── Versión ──────────────────────────────────────────────────
@@ -44,9 +45,7 @@ PROC_PLANIFICADO = "planificado"
 PROC_PENDIENTE = "pendiente"
 PROC_NO_APLICA = "no_aplicable"
 
-ESTADOS_PROCEDIMIENTO_DONE = {
-    PROC_EJECUTADO, PROC_COMPLETADO, PROC_CERRADO, PROC_NO_APLICA
-}
+ESTADOS_PROCEDIMIENTO_DONE = {PROC_EJECUTADO, PROC_COMPLETADO, PROC_CERRADO, PROC_NO_APLICA}
 
 # ── Decisiones de cierre ─────────────────────────────────────
 DECISION_CERRAR = "cerrar"

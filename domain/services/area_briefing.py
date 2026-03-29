@@ -27,8 +27,16 @@ def _is_holding_profile(perfil: dict[str, Any]) -> bool:
     if not isinstance(perfil, dict):
         return False
     cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
-    contexto = perfil.get("contexto_negocio", {}) if isinstance(perfil.get("contexto_negocio"), dict) else {}
-    industria = perfil.get("industria_inteligente", {}) if isinstance(perfil.get("industria_inteligente"), dict) else {}
+    contexto = (
+        perfil.get("contexto_negocio", {})
+        if isinstance(perfil.get("contexto_negocio"), dict)
+        else {}
+    )
+    industria = (
+        perfil.get("industria_inteligente", {})
+        if isinstance(perfil.get("industria_inteligente"), dict)
+        else {}
+    )
     blob = " ".join(
         [
             str(cliente.get("sector", "")),
@@ -60,13 +68,17 @@ def top_cuentas_significativas(area_df: pd.DataFrame, top_n: int = 5) -> pd.Data
         return area_df
     if "abs_variacion_absoluta" not in area_df.columns:
         return area_df.head(top_n)
-    area_df = area_df[pd.to_numeric(area_df["abs_variacion_absoluta"], errors="coerce").fillna(0.0) > 0].copy()
+    area_df = area_df[
+        pd.to_numeric(area_df["abs_variacion_absoluta"], errors="coerce").fillna(0.0) > 0
+    ].copy()
     if area_df.empty:
         return area_df
     return area_df.sort_values(by="abs_variacion_absoluta", ascending=False).head(top_n)
 
 
-def construir_foco_holding(codigo_ls: str, perfil: dict, area_df: pd.DataFrame | None = None) -> list[str]:
+def construir_foco_holding(
+    codigo_ls: str, perfil: dict, area_df: pd.DataFrame | None = None
+) -> list[str]:
     if not _is_holding_profile(perfil):
         return []
 
@@ -142,18 +154,34 @@ def construir_lectura_inicial(codigo_ls: str, area_df: pd.DataFrame, perfil: dic
             )
 
     if resumen["cuentas_relevantes"] > 0:
-        partes.append(f"Se detectan {resumen['cuentas_relevantes']} cuentas con movimiento relevante.")
+        partes.append(
+            f"Se detectan {resumen['cuentas_relevantes']} cuentas con movimiento relevante."
+        )
 
     if resumen["cuentas_sin_base"] > 0:
         partes.append(f"Existen {resumen['cuentas_sin_base']} cuentas sin base comparativa.")
 
-    if _is_holding_profile(perfil) and str(codigo_ls).strip() in {"14", "200", "425.2", "1600", "1500"}:
+    if _is_holding_profile(perfil) and str(codigo_ls).strip() in {
+        "14",
+        "200",
+        "425.2",
+        "1600",
+        "1500",
+    }:
         partes.append(
             "Por naturaleza holding, el analisis debe enfatizar relaciones con inversiones, patrimonio, relacionadas y consistencia de presentacion."
         )
 
-    if bool(contexto.get("tiene_partes_relacionadas")) and str(codigo_ls).strip() in {"14", "425", "425.1", "425.2", "200"}:
-        partes.append("La presencia de partes relacionadas incrementa la necesidad de revisar condiciones y revelaciones.")
+    if bool(contexto.get("tiene_partes_relacionadas")) and str(codigo_ls).strip() in {
+        "14",
+        "425",
+        "425.1",
+        "425.2",
+        "200",
+    }:
+        partes.append(
+            "La presencia de partes relacionadas incrementa la necesidad de revisar condiciones y revelaciones."
+        )
 
     return " ".join(partes)
 
@@ -220,8 +248,16 @@ def construir_foco_auditoria(codigo_ls: str, perfil: dict, area_df: pd.DataFrame
             ]
         )
 
-    if bool(contexto.get("tiene_partes_relacionadas")) and code in {"14", "425", "425.1", "425.2", "200"}:
-        focos.append("Reforzar analisis de condiciones y revelacion de transacciones con relacionadas.")
+    if bool(contexto.get("tiene_partes_relacionadas")) and code in {
+        "14",
+        "425",
+        "425.1",
+        "425.2",
+        "200",
+    }:
+        focos.append(
+            "Reforzar analisis de condiciones y revelacion de transacciones con relacionadas."
+        )
 
     # Integra foco holding de forma incremental.
     focos.extend(construir_foco_holding(code, perfil, area_df))

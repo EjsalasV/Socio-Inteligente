@@ -50,7 +50,7 @@ def objetivo_area(codigo_ls: str) -> str:
 
     return objetivos.get(
         codigo_ls,
-        f"Verificar la razonabilidad, clasificación, presentación y revelación del área L/S {codigo_ls}."
+        f"Verificar la razonabilidad, clasificación, presentación y revelación del área L/S {codigo_ls}.",
     )
 
 

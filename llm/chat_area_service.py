@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from typing import Any
 
 import pandas as pd
 
@@ -42,18 +41,26 @@ def _first_col(df: pd.DataFrame, candidates: list[str]) -> str | None:
 def construir_contexto(ws_base: dict) -> str:
     area = ws_base.get("area_info", {}) if isinstance(ws_base.get("area_info", {}), dict) else {}
     df = ws_base.get("area_df")
-    riesgos = ws_base.get("riesgos_automaticos", []) if isinstance(ws_base.get("riesgos_automaticos", []), list) else []
+    riesgos = (
+        ws_base.get("riesgos_automaticos", [])
+        if isinstance(ws_base.get("riesgos_automaticos", []), list)
+        else []
+    )
 
     cuentas = "No disponible"
     if isinstance(df, pd.DataFrame) and not df.empty:
-        cuenta_col = _first_col(df, ["cuenta", "nombre_cuenta", "nombre", "numero_cuenta", "codigo"])
+        cuenta_col = _first_col(
+            df, ["cuenta", "nombre_cuenta", "nombre", "numero_cuenta", "codigo"]
+        )
         saldo_col = _first_col(df, ["saldo", "saldo_actual", "saldo_2025", "saldo_preliminar"])
         if cuenta_col and saldo_col:
             cuentas = df[[cuenta_col, saldo_col]].head(10).to_string(index=False)
         else:
             cuentas = df.head(10).to_string(index=False)
 
-    riesgos_txt = "\n".join([f"- {r.get('descripcion', 'Sin descripcion')}" for r in riesgos]) or "Ninguno"
+    riesgos_txt = (
+        "\n".join([f"- {r.get('descripcion', 'Sin descripcion')}" for r in riesgos]) or "Ninguno"
+    )
 
     return f"""
 Cliente: {ws_base.get("cliente", "No disponible")}
@@ -89,7 +96,9 @@ def consultar_socio(pregunta: str, ws_base: dict) -> str:
     if OpenAI is None:
         return "No se pudo cargar el cliente OpenAI en este entorno."
     if not api_key:
-        return "OPENAI_API_KEY no configurada. Configura la variable para habilitar el chat del socio."
+        return (
+            "OPENAI_API_KEY no configurada. Configura la variable para habilitar el chat del socio."
+        )
 
     try:
         client = OpenAI(api_key=api_key)
@@ -106,4 +115,3 @@ def consultar_socio(pregunta: str, ws_base: dict) -> str:
         return response.choices[0].message.content or "Sin respuesta del modelo."
     except Exception as e:
         return f"No fue posible consultar al socio en este momento: {e}"
-

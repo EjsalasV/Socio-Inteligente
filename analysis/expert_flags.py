@@ -27,7 +27,11 @@ def _perfil_cliente(perfil: dict[str, Any]) -> dict[str, Any]:
 def _perfil_contexto(perfil: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(perfil, dict):
         return {}
-    return perfil.get("contexto_negocio", {}) if isinstance(perfil.get("contexto_negocio"), dict) else {}
+    return (
+        perfil.get("contexto_negocio", {})
+        if isinstance(perfil.get("contexto_negocio"), dict)
+        else {}
+    )
 
 
 def _has_related_party_signal(perfil: dict[str, Any]) -> bool:
@@ -36,7 +40,11 @@ def _has_related_party_signal(perfil: dict[str, Any]) -> bool:
         _txt(ctx.get("tiene_partes_relacionadas")),
         _txt(perfil.get("tiene_partes_relacionadas")),
         _txt(perfil.get("partes_relacionadas")),
-        _txt(perfil.get("banderas_generales", {}).get("partes_relacionadas") if isinstance(perfil.get("banderas_generales"), dict) else ""),
+        _txt(
+            perfil.get("banderas_generales", {}).get("partes_relacionadas")
+            if isinstance(perfil.get("banderas_generales"), dict)
+            else ""
+        ),
     ]
     if any(x in {"true", "si", "sí", "1", "yes"} for x in direct):
         return True
@@ -51,7 +59,9 @@ def _has_related_party_signal(perfil: dict[str, Any]) -> bool:
     return "parte" in blob and "relacion" in blob
 
 
-def _mk_flag(codigo_area: str, nivel: str, titulo: str, mensaje: str, impacto: str) -> dict[str, str]:
+def _mk_flag(
+    codigo_area: str, nivel: str, titulo: str, mensaje: str, impacto: str
+) -> dict[str, str]:
     return {
         "codigo_area": str(codigo_area),
         "nivel": nivel,
@@ -77,14 +87,20 @@ def detectar_expert_flags(
 
     saldo = abs(_to_float(metricas.get("saldo_total", 0)))
     pct_total = _to_float(metricas.get("pct_total", 0))
-    var_abs = abs(_to_float(metricas.get("variacion_abs_total", metricas.get("variacion_acumulada", 0))))
+    var_abs = abs(
+        _to_float(metricas.get("variacion_abs_total", metricas.get("variacion_acumulada", 0)))
+    )
     materialidad_relativa = _to_float(metricas.get("materialidad_relativa", 0))
 
     flags: list[dict[str, str]] = []
 
     # 1) ESFL + patrimonio con movimiento relevante
     es_esfl = "esfl" in sector or "esfl" in tipo_entidad
-    if es_esfl and codigo == "200" and (var_abs > 0 or materialidad_relativa >= 25 or pct_total >= 10):
+    if (
+        es_esfl
+        and codigo == "200"
+        and (var_abs > 0 or materialidad_relativa >= 25 or pct_total >= 10)
+    ):
         flags.append(
             _mk_flag(
                 codigo,
@@ -97,7 +113,11 @@ def detectar_expert_flags(
 
     # 2) cooperativa + cartera/provision debil
     es_coop = "cooper" in sector or "cooper" in tipo_entidad
-    if es_coop and codigo in {"130", "131", "132"} and (pct_total >= 8 or materialidad_relativa >= 20):
+    if (
+        es_coop
+        and codigo in {"130", "131", "132"}
+        and (pct_total >= 8 or materialidad_relativa >= 20)
+    ):
         flags.append(
             _mk_flag(
                 codigo,
@@ -110,7 +130,11 @@ def detectar_expert_flags(
 
     # 3) funeraria + deterioro/propiedad de inversion
     es_funeraria = "funer" in sector or "funer" in tipo_entidad
-    if es_funeraria and codigo in {"170", "171", "145"} and (pct_total >= 6 or materialidad_relativa >= 15):
+    if (
+        es_funeraria
+        and codigo in {"170", "171", "145"}
+        and (pct_total >= 6 or materialidad_relativa >= 15)
+    ):
         flags.append(
             _mk_flag(
                 codigo,
@@ -122,7 +146,9 @@ def detectar_expert_flags(
         )
 
     # 4) impuestos activos significativos
-    if codigo in {"145", "136", "1900"} and (pct_total >= 5 or materialidad_relativa >= 20 or saldo >= 50000):
+    if codigo in {"145", "136", "1900"} and (
+        pct_total >= 5 or materialidad_relativa >= 20 or saldo >= 50000
+    ):
         flags.append(
             _mk_flag(
                 codigo,

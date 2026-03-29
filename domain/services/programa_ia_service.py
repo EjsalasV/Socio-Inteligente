@@ -3,6 +3,7 @@ Servicio para generar programas de auditoría con IA.
 Combina contexto del cliente, riesgos del área y base normativa
 para que DeepSeek genere un programa de trabajo accionable.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -28,25 +29,29 @@ def _construir_prompt_programa(
     marco = perfil.get("encargo", {}).get("marco_referencial", "NIIF_PYMES")
     periodo = perfil.get("encargo", {}).get("anio_activo", "N/A")
 
-    riesgos_txt = "\n".join([
-        f"- [{r.get('nivel','').upper()}] {r.get('titulo','')}: {r.get('descripcion','')}"
-        for r in riesgos[:5]
-    ]) if riesgos else "- Sin riesgos automáticos detectados."
+    riesgos_txt = (
+        "\n".join(
+            [
+                f"- [{r.get('nivel','').upper()}] {r.get('titulo','')}: {r.get('descripcion','')}"
+                for r in riesgos[:5]
+            ]
+        )
+        if riesgos
+        else "- Sin riesgos automáticos detectados."
+    )
 
     asev_txt = ", ".join(aseveraciones) if aseveraciones else "Existencia, Integridad, Valuación"
 
-    partes_relacionadas = perfil.get("contexto_negocio", {}).get(
-        "tiene_partes_relacionadas", False
-    )
-    es_holding = "holding" in str(
-        perfil.get("cliente", {}).get("sector", "")
-    ).lower()
+    partes_relacionadas = perfil.get("contexto_negocio", {}).get("tiene_partes_relacionadas", False)
+    es_holding = "holding" in str(perfil.get("cliente", {}).get("sector", "")).lower()
 
     contexto_especial = ""
     if partes_relacionadas:
         contexto_especial += "\n- El cliente tiene partes relacionadas identificadas."
     if es_holding:
-        contexto_especial += "\n- Es una sociedad holding — revisar VPP y consistencia de inversiones."
+        contexto_especial += (
+            "\n- Es una sociedad holding — revisar VPP y consistencia de inversiones."
+        )
 
     return f"""Eres un socio senior de auditoría financiera especializado en NIAs y NIIF.
 Debes generar un programa de auditoría profesional, específico y accionable.
@@ -127,21 +132,18 @@ def generar_programa_auditoria_ia(
 
             df_tb = leer_tb(nombre_cliente)
             if df_tb is not None and not df_tb.empty:
-                df_var = marcar_movimientos_relevantes(
-                    calcular_variaciones(nombre_cliente)
-                )
+                df_var = marcar_movimientos_relevantes(calcular_variaciones(nombre_cliente))
                 if df_var is not None and not df_var.empty:
                     area_df = obtener_area(df_var, str(codigo_ls))
                     if not area_df.empty:
-                        riesgos = detectar_riesgos_area(
-                            area_df, str(codigo_ls), perfil
-                        )
+                        riesgos = detectar_riesgos_area(area_df, str(codigo_ls), perfil)
         except Exception:
             pass
 
         # Obtener aseveraciones
         try:
             from domain.catalogos_python.aseveraciones_ls import ASEVERACIONES_LS
+
             aseveraciones = ASEVERACIONES_LS.get(str(codigo_ls), [])
         except Exception:
             pass
@@ -149,6 +151,7 @@ def generar_programa_auditoria_ia(
         # Obtener materialidad
         try:
             from domain.services.leer_perfil import obtener_materialidad_ejecucion
+
             mat = obtener_materialidad_ejecucion(perfil)
             materialidad = float(mat or 0.0)
         except Exception:
@@ -159,12 +162,13 @@ def generar_programa_auditoria_ia(
         try:
             from infra.rag.retriever import recuperar_contexto_normativo
             from infra.rag.vector_store import esta_indexado
+
             if esta_indexado():
                 nombre_area = obtener_nombre_area_ls(str(codigo_ls))
-                consulta_rag = f"procedimientos auditoria {nombre_area} {codigo_ls} afirmaciones riesgos"
-                contexto_normativo = recuperar_contexto_normativo(
-                    consulta_rag, n_resultados=3
+                consulta_rag = (
+                    f"procedimientos auditoria {nombre_area} {codigo_ls} afirmaciones riesgos"
                 )
+                contexto_normativo = recuperar_contexto_normativo(consulta_rag, n_resultados=3)
         except Exception:
             pass
 

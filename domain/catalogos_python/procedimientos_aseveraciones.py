@@ -10,4 +10,3 @@ MAPA_PROCEDIMIENTOS_ASEVERACIONES = {
     "analitica_variaciones": ["integridad", "presentacion"],
     "soporte_transacciones": ["ocurrencia", "existencia"],
 }
-

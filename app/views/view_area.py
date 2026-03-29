@@ -76,7 +76,9 @@ def _lines_to_list(text: str) -> list[str]:
 def _manual_state_from_ws(ws: dict[str, Any]) -> dict[str, Any]:
     estado = ws.get("estado_area", {}) or {}
     notas = estado.get("notas", []) if isinstance(estado.get("notas", []), list) else []
-    pendientes = estado.get("pendientes", []) if isinstance(estado.get("pendientes", []), list) else []
+    pendientes = (
+        estado.get("pendientes", []) if isinstance(estado.get("pendientes", []), list) else []
+    )
     return {
         "estado_area": normalize_text(estado.get("estado_area", "")) or "no_iniciada",
         "notas": [normalize_text(x) for x in notas if normalize_text(x)],
@@ -107,7 +109,11 @@ def _closure_readiness(ws: dict[str, Any]) -> tuple[bool, list[str]]:
     hallazgos_abiertos = int(ws.get("hallazgos_count", 0) or 0)
     pendientes = len(manual.get("pendientes", []))
     conclusion_cobertura = normalize_text(ws.get("cobertura", {}).get("conclusion", "sin_mapeo"))
-    calidad = ws.get("calidad_metodologia", {}) if isinstance(ws.get("calidad_metodologia", {}), dict) else {}
+    calidad = (
+        ws.get("calidad_metodologia", {})
+        if isinstance(ws.get("calidad_metodologia", {}), dict)
+        else {}
+    )
     alertas_criticas = int(calidad.get("resumen", {}).get("alertas_criticas", 0) or 0)
 
     lista_para_cerrar = True
@@ -140,7 +146,9 @@ def _build_export_payload(
     lista_para_cerrar, razones = _closure_readiness(ws)
 
     objetivo_area = ws["focos"][0] if ws.get("focos") else "No disponible"
-    period = get_first(datos_clave, ["periodo"], perfil.get("encargo", {}).get("anio_activo", "No disponible"))
+    period = get_first(
+        datos_clave, ["periodo"], perfil.get("encargo", {}).get("anio_activo", "No disponible")
+    )
     recommendation = (
         "Lista para cerrar. Documentar conclusión final y referencias de evidencia."
         if lista_para_cerrar
@@ -184,7 +192,9 @@ def render_export_block(
     cierre_md = safe_call(build_area_cierre_markdown, payload, default="")
 
     if not resumen_md:
-        resumen_md = f"# Resumen de área\n\nCliente: {cliente}\nÁrea: {ws.get('codigo_ls', 'N/A')}\n"
+        resumen_md = (
+            f"# Resumen de área\n\nCliente: {cliente}\nÁrea: {ws.get('codigo_ls', 'N/A')}\n"
+        )
     if not cierre_md:
         cierre_md = resumen_md
 
@@ -194,7 +204,11 @@ def render_export_block(
 
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("Exportar resumen del área (Markdown)", key=f"save_resumen_{cliente}_{code}", width="stretch"):
+        if st.button(
+            "Exportar resumen del área (Markdown)",
+            key=f"save_resumen_{cliente}_{code}",
+            width="stretch",
+        ):
             out = safe_call(save_area_markdown, cliente, resumen_filename, resumen_md, default=None)
             if out is None:
                 st.error("No se pudo guardar el resumen del área.")
@@ -210,7 +224,11 @@ def render_export_block(
         )
 
     with c2:
-        if st.button("Exportar cierre del área (Markdown)", key=f"save_cierre_{cliente}_{code}", width="stretch"):
+        if st.button(
+            "Exportar cierre del área (Markdown)",
+            key=f"save_cierre_{cliente}_{code}",
+            width="stretch",
+        ):
             out = safe_call(save_area_markdown, cliente, cierre_filename, cierre_md, default=None)
             if out is None:
                 st.error("No se pudo guardar el cierre del área.")
@@ -234,16 +252,39 @@ def render_seguimiento_tab(ws: dict[str, Any], cliente: str) -> None:
     with st.form(f"{key_base}_form", clear_on_submit=False):
         estado_area = st.selectbox(
             "Estado del área",
-            options=["no_iniciada", "en_revision", "pendiente_cliente", "lista_para_cierre", "cerrada"],
-            index=["no_iniciada", "en_revision", "pendiente_cliente", "lista_para_cierre", "cerrada"].index(
-                manual["estado_area"] if manual["estado_area"] in {"no_iniciada", "en_revision", "pendiente_cliente", "lista_para_cierre", "cerrada"} else "no_iniciada"
+            options=[
+                "no_iniciada",
+                "en_revision",
+                "pendiente_cliente",
+                "lista_para_cierre",
+                "cerrada",
+            ],
+            index=[
+                "no_iniciada",
+                "en_revision",
+                "pendiente_cliente",
+                "lista_para_cierre",
+                "cerrada",
+            ].index(
+                manual["estado_area"]
+                if manual["estado_area"]
+                in {
+                    "no_iniciada",
+                    "en_revision",
+                    "pendiente_cliente",
+                    "lista_para_cierre",
+                    "cerrada",
+                }
+                else "no_iniciada"
             ),
         )
         decision_cierre = st.selectbox(
             "Decisión de cierre",
             options=["requiere_revision", "cerrar", "no_cerrar"],
             index=["requiere_revision", "cerrar", "no_cerrar"].index(
-                manual["decision_cierre"] if manual["decision_cierre"] in {"requiere_revision", "cerrar", "no_cerrar"} else "requiere_revision"
+                manual["decision_cierre"]
+                if manual["decision_cierre"] in {"requiere_revision", "cerrar", "no_cerrar"}
+                else "requiere_revision"
             ),
         )
         notas_txt = st.text_area(
@@ -305,7 +346,11 @@ def render_decision_cierre_helper(ws: dict[str, Any]) -> None:
     pendientes = len(manual.get("pendientes", []))
     conclusion_cobertura = normalize_text(ws.get("cobertura", {}).get("conclusion", "sin_mapeo"))
     cobertura_actual = float(ws.get("coverage", 0) or 0)
-    calidad = ws.get("calidad_metodologia", {}) if isinstance(ws.get("calidad_metodologia", {}), dict) else {}
+    calidad = (
+        ws.get("calidad_metodologia", {})
+        if isinstance(ws.get("calidad_metodologia", {}), dict)
+        else {}
+    )
     alertas_criticas = int(calidad.get("resumen", {}).get("alertas_criticas", 0) or 0)
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -363,9 +408,13 @@ def render_historial_tab(ws: dict[str, Any], cliente: str) -> None:
             st.markdown(f"**{ts}**")
             st.markdown(f"- Estado: `{estado}`")
             st.markdown(f"- Decisión: `{decision}`")
-            st.markdown(f"- Conclusión: {concl[:180] + ('...' if len(concl) > 180 else '') if concl else 'No disponible'}")
+            st.markdown(
+                f"- Conclusión: {concl[:180] + ('...' if len(concl) > 180 else '') if concl else 'No disponible'}"
+            )
             st.markdown(f"- Notas ({notas_count}): {notas_res if notas_res else 'Sin notas'}")
-            st.markdown(f"- Pendientes ({pendientes_count}): {pendientes_res if pendientes_res else 'Sin pendientes'}")
+            st.markdown(
+                f"- Pendientes ({pendientes_count}): {pendientes_res if pendientes_res else 'Sin pendientes'}"
+            )
 
 
 def render_cierre_tab(ws: dict[str, Any]) -> None:
@@ -400,7 +449,11 @@ def render_cierre_tab(ws: dict[str, Any]) -> None:
         actions.append("Resolver hallazgos abiertos o documentar plan de remediacion.")
     if ws["coverage"] < 80:
         actions.append("Fortalecer cobertura en aseveraciones debiles/no cubiertas.")
-    calidad = ws.get("calidad_metodologia", {}) if isinstance(ws.get("calidad_metodologia", {}), dict) else {}
+    calidad = (
+        ws.get("calidad_metodologia", {})
+        if isinstance(ws.get("calidad_metodologia", {}), dict)
+        else {}
+    )
     if int(calidad.get("resumen", {}).get("alertas_criticas", 0) or 0) > 0:
         actions.append("Resolver alertas metodologicas criticas de la pestana Revision de calidad.")
     if not actions:

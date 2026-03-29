@@ -19,9 +19,9 @@ print("=" * 70)
 
 resultado = run_cliente("cliente_demo")
 
-if resultado['status'] == 'EXITOSO':
+if resultado["status"] == "EXITOSO":
     print("\n✅ FLUJO COMPLETADO EXITOSAMENTE\n")
-    
+
     print("📊 RESULTADO JSON (para referencia):\n")
     print(json.dumps(resultado, indent=2, default=str))
 else:
@@ -35,7 +35,7 @@ print("=" * 70)
 
 resultado_error = run_cliente("cliente_no_existe")
 
-if resultado_error['status'] != 'EXITOSO':
+if resultado_error["status"] != "EXITOSO":
     print(f"\n✅ Manejo de error correcto: {resultado_error['mensaje']}")
 else:
     print(f"\n⚠️  Error: Se debería haber detectado el cliente inválido")

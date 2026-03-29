@@ -3,11 +3,11 @@ Módulo de ratios financieros para auditoría.
 Calcula indicadores de liquidez, solvencia, rentabilidad y actividad
 a partir del Trial Balance del cliente.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
-import pandas as pd
 
 from analysis.lector_tb import obtener_resumen_tb
 
@@ -79,39 +79,33 @@ def interpretar_ratio(nombre: str, valor: float | None) -> str:
 
     interpretaciones = {
         "razon_corriente": (
-            "Saludable (>1.5)" if valor >= 1.5
-            else "Ajustado (1.0-1.5)" if valor >= 1.0
-            else "Riesgo de liquidez (<1.0)"
+            "Saludable (>1.5)"
+            if valor >= 1.5
+            else "Ajustado (1.0-1.5)" if valor >= 1.0 else "Riesgo de liquidez (<1.0)"
         ),
         "endeudamiento": (
-            "Bajo (<0.4)" if valor < 0.4
-            else "Moderado (0.4-0.6)" if valor < 0.6
-            else "Alto (>0.6)"
+            "Bajo (<0.4)" if valor < 0.4 else "Moderado (0.4-0.6)" if valor < 0.6 else "Alto (>0.6)"
         ),
         "deuda_patrimonio": (
-            "Conservador (<0.5)" if valor < 0.5
-            else "Moderado (0.5-1.5)" if valor < 1.5
-            else "Apalancado (>1.5)"
+            "Conservador (<0.5)"
+            if valor < 0.5
+            else "Moderado (0.5-1.5)" if valor < 1.5 else "Apalancado (>1.5)"
         ),
         "roa": (
-            "Excelente (>10%)" if valor > 0.10
-            else "Bueno (5-10%)" if valor > 0.05
-            else "Bajo (<5%)"
+            "Excelente (>10%)"
+            if valor > 0.10
+            else "Bueno (5-10%)" if valor > 0.05 else "Bajo (<5%)"
         ),
         "roe": (
-            "Excelente (>15%)" if valor > 0.15
-            else "Bueno (10-15%)" if valor > 0.10
-            else "Bajo (<10%)"
+            "Excelente (>15%)"
+            if valor > 0.15
+            else "Bueno (10-15%)" if valor > 0.10 else "Bajo (<10%)"
         ),
         "margen_neto": (
-            "Alto (>15%)" if valor > 0.15
-            else "Moderado (5-15%)" if valor > 0.05
-            else "Bajo (<5%)"
+            "Alto (>15%)" if valor > 0.15 else "Moderado (5-15%)" if valor > 0.05 else "Bajo (<5%)"
         ),
         "rotacion_activos": (
-            "Alta (>1.0)" if valor > 1.0
-            else "Normal (0.5-1.0)" if valor > 0.5
-            else "Baja (<0.5)"
+            "Alta (>1.0)" if valor > 1.0 else "Normal (0.5-1.0)" if valor > 0.5 else "Baja (<0.5)"
         ),
     }
     return interpretaciones.get(nombre, f"Valor: {valor:.4f}")
@@ -133,11 +127,13 @@ def resumen_ratios(cliente: str) -> list[dict[str, Any]]:
         for nombre, valor in datos.items():
             if nombre == "descripcion":
                 continue
-            salida.append({
-                "categoria": categoria,
-                "ratio": nombre,
-                "valor": valor,
-                "interpretacion": interpretar_ratio(nombre, valor),
-                "descripcion_categoria": desc,
-            })
+            salida.append(
+                {
+                    "categoria": categoria,
+                    "ratio": nombre,
+                    "valor": valor,
+                    "interpretacion": interpretar_ratio(nombre, valor),
+                    "descripcion_categoria": desc,
+                }
+            )
     return salida

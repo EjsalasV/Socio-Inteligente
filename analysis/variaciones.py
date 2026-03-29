@@ -8,8 +8,7 @@ from core.utils.normalizaciones import normalizar_ls
 
 
 def calcular_variaciones(
-    cliente: str,
-    tb_anterior: Optional[pd.DataFrame] = None
+    cliente: str, tb_anterior: Optional[pd.DataFrame] = None
 ) -> Optional[pd.DataFrame]:
     try:
         tb = leer_tb(cliente)
@@ -41,10 +40,7 @@ def calcular_variaciones(
         return None
 
 
-def _calcular_diffs(
-    tb_actual: pd.DataFrame,
-    tb_anterior: pd.DataFrame
-) -> pd.DataFrame:
+def _calcular_diffs(tb_actual: pd.DataFrame, tb_anterior: pd.DataFrame) -> pd.DataFrame:
 
     if "codigo" not in tb_actual.columns or "codigo" not in tb_anterior.columns:
         return pd.DataFrame()
@@ -65,8 +61,7 @@ def _calcular_diffs(
 
     mask = merged["saldo_anterior"] != 0
     merged.loc[mask, "variacion_pct"] = (
-        merged.loc[mask, "diferencia"]
-        / merged.loc[mask, "saldo_anterior"].abs()
+        merged.loc[mask, "diferencia"] / merged.loc[mask, "saldo_anterior"].abs()
     ) * 100
 
     significativas = merged[merged["variacion_pct"].abs() > 10].copy()
@@ -85,9 +80,7 @@ def _detectar_cuentas_significativas(tb: pd.DataFrame) -> pd.DataFrame:
     total_saldo = tb["saldo_abs"].sum()
 
     if total_saldo > 0:
-        top_cuentas["pct_total"] = (
-            top_cuentas["saldo_abs"] / total_saldo
-        ) * 100
+        top_cuentas["pct_total"] = (top_cuentas["saldo_abs"] / total_saldo) * 100
     else:
         top_cuentas["pct_total"] = 0
 
@@ -96,10 +89,7 @@ def _detectar_cuentas_significativas(tb: pd.DataFrame) -> pd.DataFrame:
     return top_cuentas
 
 
-def obtener_cuentas_de_riesgo(
-    cliente: str,
-    umbral_pct: float = 5.0
-) -> Optional[pd.DataFrame]:
+def obtener_cuentas_de_riesgo(cliente: str, umbral_pct: float = 5.0) -> Optional[pd.DataFrame]:
 
     variaciones = calcular_variaciones(cliente)
 
@@ -107,13 +97,9 @@ def obtener_cuentas_de_riesgo(
         return None
 
     if "variacion_pct" in variaciones.columns:
-        cuentas_riesgo = variaciones[
-            variaciones["variacion_pct"].abs() >= umbral_pct
-        ]
+        cuentas_riesgo = variaciones[variaciones["variacion_pct"].abs() >= umbral_pct]
     else:
-        cuentas_riesgo = variaciones[
-            variaciones["pct_total"] >= umbral_pct
-        ]
+        cuentas_riesgo = variaciones[variaciones["pct_total"] >= umbral_pct]
 
     return cuentas_riesgo if not cuentas_riesgo.empty else None
 

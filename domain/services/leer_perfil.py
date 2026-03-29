@@ -59,6 +59,7 @@ def leer_perfil(cliente: str) -> Optional[Dict[str, Any]]:
 # GETTERS POR BLOQUE
 # =========================================================
 
+
 def obtener_cliente(perfil: Dict[str, Any]) -> Dict[str, Any]:
     return perfil.get("cliente", {})
 
@@ -131,6 +132,7 @@ def obtener_reguladores_secundarios(perfil: Dict[str, Any]) -> list[Any]:
 # ACCESOS RÁPIDOS CLIENTE
 # =========================================================
 
+
 def obtener_nombre_cliente(perfil: Dict[str, Any]) -> str:
     return obtener_cliente(perfil).get("nombre_legal", "")
 
@@ -170,6 +172,7 @@ def obtener_subsector(perfil: Dict[str, Any]) -> str:
 # =========================================================
 # ACCESOS RÁPIDOS ENCARGO
 # =========================================================
+
 
 def obtener_periodo(perfil: Dict[str, Any]) -> int | None:
     return obtener_encargo(perfil).get("anio_activo")
@@ -216,6 +219,7 @@ def obtener_encargado_asignado(perfil: Dict[str, Any]) -> str:
 # ACCESOS RÁPIDOS MATERIALIDAD
 # =========================================================
 
+
 def obtener_base_materialidad(perfil: Dict[str, Any]) -> str:
     return obtener_materialidad(perfil).get("base_utilizada", "")
 
@@ -249,6 +253,7 @@ def obtener_umbral_trivialidad(perfil: Dict[str, Any]) -> float | None:
 # VALIDACIÓN
 # =========================================================
 
+
 def validar_perfil_basico(perfil: Dict[str, Any]) -> None:
     if not isinstance(perfil, dict):
         raise ValueError("El perfil debe ser un diccionario.")
@@ -271,14 +276,14 @@ def validar_perfil_basico(perfil: Dict[str, Any]) -> None:
 
     if faltantes:
         raise ValueError(
-            "El perfil no tiene completos los siguientes campos mínimos: "
-            + ", ".join(faltantes)
+            "El perfil no tiene completos los siguientes campos mínimos: " + ", ".join(faltantes)
         )
 
 
 # =========================================================
 # RESUMEN
 # =========================================================
+
 
 def resumen_perfil(perfil: Dict[str, Any]) -> Dict[str, Any]:
     return {

@@ -8,8 +8,12 @@ import pandas as pd
 from analysis.lector_tb import leer_trial_balance
 from analysis.variaciones import calcular_variaciones, marcar_movimientos_relevantes
 from core.utils.normalizaciones import normalizar_ls
-from domain.services.leer_perfil import cargar_perfil, ruta_tb_cliente, obtener_nombre_cliente, obtener_periodo
-from core.logger import registrar_ejecucion, registrar_error
+from domain.services.leer_perfil import (
+    cargar_perfil,
+    ruta_tb_cliente,
+    obtener_nombre_cliente,
+    obtener_periodo,
+)
 
 
 def agrupar_por_ls(df: pd.DataFrame) -> pd.DataFrame:
@@ -20,25 +24,25 @@ def agrupar_por_ls(df: pd.DataFrame) -> pd.DataFrame:
 
     df["ls"] = df["ls"].apply(normalizar_ls)
 
-    resumen = df.groupby("ls").agg(
-        cuentas=("numero_cuenta", "count"),
-        saldo_anterior=("saldo_anterior", "sum"),
-        saldo_actual=("saldo_actual", "sum"),
-        variacion_total=("variacion_absoluta", "sum"),
-        abs_variacion_total=("abs_variacion_absoluta", "sum"),
-        cuentas_relevantes=("flag_movimiento_relevante", "sum"),
-        cuentas_sin_base=("flag_sin_base", "sum"),
-    ).reset_index()
+    resumen = (
+        df.groupby("ls")
+        .agg(
+            cuentas=("numero_cuenta", "count"),
+            saldo_anterior=("saldo_anterior", "sum"),
+            saldo_actual=("saldo_actual", "sum"),
+            variacion_total=("variacion_absoluta", "sum"),
+            abs_variacion_total=("abs_variacion_absoluta", "sum"),
+            cuentas_relevantes=("flag_movimiento_relevante", "sum"),
+            cuentas_sin_base=("flag_sin_base", "sum"),
+        )
+        .reset_index()
+    )
 
     resumen["variacion_porcentual"] = (
-        resumen["variacion_total"]
-        / resumen["saldo_anterior"].replace(0, pd.NA)
+        resumen["variacion_total"] / resumen["saldo_anterior"].replace(0, pd.NA)
     ) * 100
 
-    resumen = resumen.sort_values(
-        by="abs_variacion_total",
-        ascending=False
-    ).reset_index(drop=True)
+    resumen = resumen.sort_values(by="abs_variacion_total", ascending=False).reset_index(drop=True)
 
     return resumen
 
@@ -72,10 +76,14 @@ def imprimir_agrupacion_ls(nombre_cliente: str) -> None:
     print(f"TB usado: {ruta_tb}\n")
 
     with pd.option_context(
-        "display.max_rows", 50,
-        "display.max_columns", None,
-        "display.width", 240,
-        "display.float_format", "{:,.2f}".format
+        "display.max_rows",
+        50,
+        "display.max_columns",
+        None,
+        "display.width",
+        240,
+        "display.float_format",
+        "{:,.2f}".format,
     ):
         print(df_ls)
 

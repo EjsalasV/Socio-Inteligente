@@ -1,4 +1,5 @@
 """Tests for lector_mayor.py"""
+
 from __future__ import annotations
 
 import pandas as pd
@@ -15,19 +16,21 @@ from analysis.lector_mayor import (
 
 @pytest.fixture
 def df_sample():
-    return pd.DataFrame({
-        "fecha": ["2025-01-10", "2025-01-15", "2025-02-01"],
-        "numero_cuenta": ["1.02.07.07.001", "5.2.18.02.032", "2.01.13.03.023"],
-        "nombre_cuenta": ["Inversiones VPP", "Auditoría Externa", "CxP Inversiones"],
-        "ls": ["14", "1600", "425.2"],
-        "descripcion": ["Reconoc. VPP Q1", "Honorarios auditoría", "Pago proveedor"],
-        "referencia": ["EG-001", "EG-002", "EG-003"],
-        "debe": [157080.75, 0.0, 3993.0],
-        "haber": [0.0, 5910.0, 0.0],
-        "saldo": [157080.75, -5910.0, 3993.0],
-        "tipo": ["DEBE", "HABER", "DEBE"],
-        "movimiento": [157080.75, -5910.0, 3993.0],
-    })
+    return pd.DataFrame(
+        {
+            "fecha": ["2025-01-10", "2025-01-15", "2025-02-01"],
+            "numero_cuenta": ["1.02.07.07.001", "5.2.18.02.032", "2.01.13.03.023"],
+            "nombre_cuenta": ["Inversiones VPP", "Auditoría Externa", "CxP Inversiones"],
+            "ls": ["14", "1600", "425.2"],
+            "descripcion": ["Reconoc. VPP Q1", "Honorarios auditoría", "Pago proveedor"],
+            "referencia": ["EG-001", "EG-002", "EG-003"],
+            "debe": [157080.75, 0.0, 3993.0],
+            "haber": [0.0, 5910.0, 0.0],
+            "saldo": [157080.75, -5910.0, 3993.0],
+            "tipo": ["DEBE", "HABER", "DEBE"],
+            "movimiento": [157080.75, -5910.0, 3993.0],
+        }
+    )
 
 
 def test_mayor_existe_false():
@@ -82,4 +85,3 @@ def test_resumen_mayor_empty():
 def test_filtrar_por_ls_none():
     result = filtrar_por_ls(None, "14")
     assert result.empty
-

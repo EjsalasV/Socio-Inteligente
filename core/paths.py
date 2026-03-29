@@ -2,29 +2,29 @@
 Gestión centralizada de rutas del proyecto SocioAI.
 Todas las rutas se calculan relativas a la raíz del proyecto.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
-
 
 # Raíz del proyecto (dos niveles arriba de core/)
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # Directorios principales
-DATA_ROOT       = PROJECT_ROOT / "data"
-CLIENTES_DIR    = DATA_ROOT / "clientes"
-CATALOGOS_DIR   = DATA_ROOT / "catalogos"
-EXPORTS_DIR     = DATA_ROOT / "exports"
-UPLOADS_DIR     = DATA_ROOT / "uploads"
-LOGS_DIR        = PROJECT_ROOT / "logs"
-TESTS_DIR       = PROJECT_ROOT / "tests"
+DATA_ROOT = PROJECT_ROOT / "data"
+CLIENTES_DIR = DATA_ROOT / "clientes"
+CATALOGOS_DIR = DATA_ROOT / "catalogos"
+EXPORTS_DIR = DATA_ROOT / "exports"
+UPLOADS_DIR = DATA_ROOT / "uploads"
+LOGS_DIR = PROJECT_ROOT / "logs"
+TESTS_DIR = PROJECT_ROOT / "tests"
 
 # Catálogos específicos
-AREAS_YAML          = CATALOGOS_DIR / "areas.yaml"
+AREAS_YAML = CATALOGOS_DIR / "areas.yaml"
 CORRESPONDENCIA_YAML = CATALOGOS_DIR / "correspondencia.yaml"
-REGLAS_MAT_YAML     = CATALOGOS_DIR / "reglas_materialidad.yaml"
-METODOLOGIA_YAML    = CATALOGOS_DIR / "metodologia_calidad.yaml"
-ASEVERACIONES_YAML  = CATALOGOS_DIR / "aseveraciones_guia_ls.yaml"
+REGLAS_MAT_YAML = CATALOGOS_DIR / "reglas_materialidad.yaml"
+METODOLOGIA_YAML = CATALOGOS_DIR / "metodologia_calidad.yaml"
+ASEVERACIONES_YAML = CATALOGOS_DIR / "aseveraciones_guia_ls.yaml"
 
 
 def ruta_cliente(nombre_cliente: str) -> Path:
@@ -76,7 +76,6 @@ def listar_clientes() -> list[str]:
     """Lista todos los clientes disponibles."""
     if not CLIENTES_DIR.exists():
         return []
-    return sorted([
-        d.name for d in CLIENTES_DIR.iterdir()
-        if d.is_dir() and not d.name.startswith(".")
-    ])
+    return sorted(
+        [d.name for d in CLIENTES_DIR.iterdir() if d.is_dir() and not d.name.startswith(".")]
+    )

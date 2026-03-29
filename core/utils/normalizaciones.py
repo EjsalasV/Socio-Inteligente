@@ -44,10 +44,7 @@ def normalizar_ls(valor: Any) -> str:
         return valor_str
 
 
-def normalizar_ls_dataframe(
-    df: pd.DataFrame,
-    columna_ls: str = "ls"
-) -> pd.DataFrame:
+def normalizar_ls_dataframe(df: pd.DataFrame, columna_ls: str = "ls") -> pd.DataFrame:
     """
     Normaliza la columna L/S en un DataFrame.
     Si la columna no existe, retorna el DataFrame sin cambios.

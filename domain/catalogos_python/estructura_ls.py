@@ -31,10 +31,10 @@ MAPA_LS_AREA = {
 def obtener_nombre_area_ls(codigo_ls: str) -> str:
     """
     Obtiene el nombre descriptivo de una L/S.
-    
+
     Args:
         codigo_ls: Código de L/S (ej: "14", "425.1")
-        
+
     Returns:
         Nombre descriptivo o el código mismo si no está en mapa
     """
