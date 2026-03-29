@@ -11,7 +11,16 @@ from fastapi import APIRouter, Depends
 
 from backend.auth import authorize_cliente_access, get_current_user
 from backend.constants.runtime_config import get_runtime_config
-from backend.schemas import ApiResponse, RiskCriticalArea, RiskEngineResponse, RiskMatrixCell, UserContext
+from backend.schemas import (
+    ApiResponse,
+    RiskCriticalArea,
+    RiskEngineResponse,
+    RiskMatrixCell,
+    RiskStrategyResponse,
+    RiskStrategyTest,
+    UserContext,
+)
+from backend.services.judgement_service import build_risk_judgement_with_ai
 
 router = APIRouter(prefix="/risk-engine", tags=["risk-engine"])
 RUNTIME_CFG = get_runtime_config()
@@ -103,6 +112,197 @@ def _build_matrix_cells(areas: list[RiskCriticalArea]) -> list[list[RiskMatrixCe
             )
         grid.append(matrix_row)
     return grid
+
+
+def _slug(value: str) -> str:
+    s = unicodedata.normalize("NFKD", value or "").encode("ascii", "ignore").decode("ascii").lower()
+    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+    return s or "item"
+
+
+def _priority_from_level(level: str) -> str:
+    normalized = str(level or "").upper()
+    if normalized == "ALTO":
+        return "alta"
+    if normalized == "MEDIO":
+        return "media"
+    return "baja"
+
+
+def _build_control_test(area: RiskCriticalArea, nia_ref: str, title: str, description: str) -> RiskStrategyTest:
+    return RiskStrategyTest(
+        test_id=f"ctl-{area.area_id}-{_slug(title)}",
+        test_type="control",
+        area_id=area.area_id,
+        area_nombre=area.area_nombre,
+        nia_ref=nia_ref,
+        title=title,
+        description=description,
+        where_to_execute="workpapers",
+        priority=_priority_from_level(area.nivel),
+    )
+
+
+def _build_substantive_test(area: RiskCriticalArea, nia_ref: str, title: str, description: str) -> RiskStrategyTest:
+    return RiskStrategyTest(
+        test_id=f"sub-{area.area_id}-{_slug(title)}",
+        test_type="sustantiva",
+        area_id=area.area_id,
+        area_nombre=area.area_nombre,
+        nia_ref=nia_ref,
+        title=title,
+        description=description,
+        where_to_execute="workpapers",
+        priority=_priority_from_level(area.nivel),
+    )
+
+
+def _tests_for_area(area: RiskCriticalArea) -> tuple[list[RiskStrategyTest], list[RiskStrategyTest]]:
+    name = area.area_nombre.lower()
+    controls: list[RiskStrategyTest] = []
+    substantives: list[RiskStrategyTest] = []
+
+    if "efectivo" in name or "banco" in name or area.area_id == "140":
+        controls.append(
+            _build_control_test(
+                area,
+                "NIA 315",
+                "Control sobre conciliaciones bancarias",
+                "Validar diseno e implementacion del control de conciliacion mensual y aprobacion por nivel adecuado.",
+            )
+        )
+        substantives.append(
+            _build_substantive_test(
+                area,
+                "NIA 505",
+                "Confirmaciones bancarias externas",
+                "Obtener confirmaciones directas de bancos y recalcular partidas conciliatorias de cierre.",
+            )
+        )
+    elif "cobrar" in name or "ingreso" in name or area.area_id == "130":
+        controls.append(
+            _build_control_test(
+                area,
+                "NIA 315",
+                "Control de aprobacion de credito y facturacion",
+                "Revisar evidencia de aprobaciones, segregacion y bloqueo de modificaciones no autorizadas.",
+            )
+        )
+        substantives.append(
+            _build_substantive_test(
+                area,
+                "NIA 505",
+                "Circularizacion de cuentas por cobrar",
+                "Confirmar saldos relevantes y documentar diferencias con soporte posterior de cobro.",
+            )
+        )
+    elif "invent" in name:
+        controls.append(
+            _build_control_test(
+                area,
+                "NIA 330",
+                "Control de movimientos y conteos ciclicos",
+                "Evaluar autorizaciones de entradas/salidas y trazabilidad de ajustes de inventario.",
+            )
+        )
+        substantives.append(
+            _build_substantive_test(
+                area,
+                "NIA 501",
+                "Conteo fisico y pruebas de corte",
+                "Asistir a toma fisica selectiva y cruzar movimientos de cierre con documentos fuente.",
+            )
+        )
+    elif "patrimonio" in name or area.area_id == "200":
+        controls.append(
+            _build_control_test(
+                area,
+                "NIA 315",
+                "Control sobre actas y aprobaciones societarias",
+                "Validar que cambios patrimoniales tengan aprobacion formal y registro oportuno.",
+            )
+        )
+        substantives.append(
+            _build_substantive_test(
+                area,
+                "NIA 500",
+                "Recalculo de movimientos patrimoniales",
+                "Recalcular variaciones y conciliar contra actas, asientos y revelaciones del periodo.",
+            )
+        )
+    else:
+        controls.append(
+            _build_control_test(
+                area,
+                "NIA 330",
+                "Walkthrough de control clave",
+                "Documentar flujo de proceso y evidencia de ejecucion del control principal del area.",
+            )
+        )
+        substantives.append(
+            _build_substantive_test(
+                area,
+                "NIA 520",
+                "Procedimiento analitico focalizado",
+                "Comparar variaciones no esperadas y sustentar diferencias con evidencia suficiente.",
+            )
+        )
+
+    return controls, substantives
+
+
+def _build_strategy_deterministic(areas: list[RiskCriticalArea]) -> RiskStrategyResponse:
+    if not areas:
+        return RiskStrategyResponse(
+            approach="Mixto",
+            control_pct=50,
+            substantive_pct=50,
+            rationale=(
+                "Sin datos suficientes para calibrar el enfoque. Se recomienda iniciar en modo mixto y "
+                "ajustar al cargar TB y mayor."
+            ),
+            control_tests=[],
+            substantive_tests=[],
+        )
+
+    top = areas[:5]
+    weighted = sum(a.score * (1.15 if a.nivel == "ALTO" else 1.0) for a in top) / max(1, len(top))
+    highs = sum(1 for a in top if a.nivel == "ALTO")
+
+    if weighted >= 75 or highs >= 2:
+        control_pct, substantive_pct = 35, 65
+        rationale = (
+            "El perfil de riesgo requiere priorizar procedimientos sustantivos (NIA 330), "
+            "manteniendo pruebas de control focalizadas en procesos criticos."
+        )
+    elif weighted >= 55:
+        control_pct, substantive_pct = 45, 55
+        rationale = (
+            "El riesgo es moderado: se sostiene enfoque mixto con sesgo sustantivo, "
+            "combinando efectividad de controles y validaciones directas."
+        )
+    else:
+        control_pct, substantive_pct = 60, 40
+        rationale = (
+            "El riesgo observado permite soportar mayor peso en pruebas de control, "
+            "complementadas con sustantivos selectivos sobre saldos materiales."
+        )
+
+    control_tests: list[RiskStrategyTest] = []
+    substantive_tests: list[RiskStrategyTest] = []
+    for area in top:
+        ctl, sub = _tests_for_area(area)
+        control_tests.extend(ctl)
+        substantive_tests.extend(sub)
+
+    return RiskStrategyResponse(
+        approach="Mixto",
+        control_pct=control_pct,
+        substantive_pct=substantive_pct,
+        rationale=rationale,
+        control_tests=control_tests[:6],
+        substantive_tests=substantive_tests[:6],
+    )
 
 
 def _norm_header(value: Any) -> str:
@@ -455,6 +655,17 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
 
     critical_areas.sort(key=lambda x: x.score, reverse=True)
     quadrants = _build_matrix_cells(critical_areas)
+    deterministic_strategy = _build_strategy_deterministic(critical_areas)
+    strategy = build_risk_judgement_with_ai(
+        cliente_id,
+        areas=critical_areas,
+        deterministic=deterministic_strategy,
+    )
 
-    payload = RiskEngineResponse(cliente_id=cliente_id, quadrants=quadrants, areas_criticas=critical_areas[:8])
+    payload = RiskEngineResponse(
+        cliente_id=cliente_id,
+        quadrants=quadrants,
+        areas_criticas=critical_areas[:8],
+        strategy=strategy,
+    )
     return ApiResponse(data=payload.model_dump())

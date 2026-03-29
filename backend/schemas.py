@@ -137,12 +137,34 @@ class RiskCriticalArea(BaseModel):
     score_components: dict[str, float] = Field(default_factory=dict)
 
 
+class RiskStrategyTest(BaseModel):
+    test_id: str
+    test_type: Literal["control", "sustantiva"]
+    area_id: str
+    area_nombre: str
+    nia_ref: str
+    title: str
+    description: str
+    where_to_execute: Literal["workpapers"] = "workpapers"
+    priority: Literal["alta", "media", "baja"] = "media"
+
+
+class RiskStrategyResponse(BaseModel):
+    approach: str
+    control_pct: int = Field(ge=0, le=100)
+    substantive_pct: int = Field(ge=0, le=100)
+    rationale: str
+    control_tests: list[RiskStrategyTest] = Field(default_factory=list)
+    substantive_tests: list[RiskStrategyTest] = Field(default_factory=list)
+
+
 class RiskEngineResponse(BaseModel):
     cliente_id: str
     eje_x: str = "Impacto"
     eje_y: str = "Frecuencia"
     quadrants: list[list[RiskMatrixCell]]
     areas_criticas: list[RiskCriticalArea]
+    strategy: RiskStrategyResponse
 
 
 class AreaResponse(BaseModel):

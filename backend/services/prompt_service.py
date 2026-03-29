@@ -32,6 +32,7 @@ def get_prompt_template(mode: str) -> tuple[str, dict[str, str]]:
         "metodologia": "briefing_area.md",
         "memo": "memo_ejecutivo.md",
         "hallazgo": "estructurador_hallazgo.md",
+        "judgement_risk": "judgement_risk.md",
     }
     filename = mapping.get(mode, "consulta_rapida.md")
     path = PROMPTS_ROOT / filename

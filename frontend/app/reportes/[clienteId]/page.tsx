@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
 import {
-  downloadExecutivePdf,
   downloadExecutivePdfByPath,
   generateExecutiveMemo,
   generateExecutivePdf,
@@ -71,6 +70,12 @@ export default function ReportesPage() {
     return map;
   }, [history]);
 
+  const latestPdf = useMemo(() => {
+    const items = (history?.items ?? []).filter((item) => item.kind === "executive_pdf" && item.path);
+    if (items.length === 0) return null;
+    return items.slice().sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())[0];
+  }, [history]);
+
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
   if (!data) return <ErrorMessage message="No hay datos para generar reportes." />;
@@ -90,7 +95,12 @@ export default function ReportesPage() {
       );
       await refreshHistory();
     } catch (err) {
-      setReportMsg(err instanceof Error ? err.message : "No se pudo generar el PDF.");
+      const base = err instanceof Error ? err.message : "No se pudo generar el PDF.";
+      if (finalMode && gateMap.get("REPORT")?.status !== "ok") {
+        setReportMsg(`${base} Revisa gates y cobertura en esta misma vista antes de emitir final.`);
+        return;
+      }
+      setReportMsg(base);
     } finally {
       setGeneratingPdf(false);
     }
@@ -115,7 +125,10 @@ export default function ReportesPage() {
     setGeneratingPdf(true);
     setReportMsg("");
     try {
-      const { blob, filename } = await downloadExecutivePdf(clienteId);
+      if (!latestPdf) {
+        throw new Error("No existe PDF generado todavia. Primero genera borrador interno.");
+      }
+      const { blob, filename } = await downloadExecutivePdfByPath(clienteId, latestPdf.path, latestPdf.report_name);
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -177,6 +190,11 @@ export default function ReportesPage() {
             Cobertura por afirmaciones: <b>{history?.coverage_summary.coverage_pct ?? 0}%</b>
             {" "}({history?.coverage_summary.covered_assertions ?? 0}/{history?.coverage_summary.total_assertions ?? 0})
           </div>
+          {gateMap.get("REPORT")?.status !== "ok" ? (
+            <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+              Emision final bloqueada: completa tareas requeridas en Papeles de Trabajo y registra conclusion tecnica en hallazgos.
+            </div>
+          ) : null}
         </article>
 
         <article className="sovereign-card">
@@ -210,7 +228,7 @@ export default function ReportesPage() {
         <button
           type="button"
           onClick={() => void handleDownloadLatest()}
-          disabled={generatingPdf}
+          disabled={generatingPdf || !latestPdf}
           className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627] disabled:opacity-60 bg-white"
         >
           Descargar ultimo PDF

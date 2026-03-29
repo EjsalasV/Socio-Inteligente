@@ -25,12 +25,34 @@ export interface RiskCriticalArea {
   score_components?: Record<string, number>;
 }
 
+export interface RiskStrategyTest {
+  test_id: string;
+  test_type: "control" | "sustantiva";
+  area_id: string;
+  area_nombre: string;
+  nia_ref: string;
+  title: string;
+  description: string;
+  where_to_execute: "workpapers";
+  priority: "alta" | "media" | "baja";
+}
+
+export interface RiskStrategy {
+  approach: string;
+  control_pct: number;
+  substantive_pct: number;
+  rationale: string;
+  control_tests: RiskStrategyTest[];
+  substantive_tests: RiskStrategyTest[];
+}
+
 export interface RiskEngineResponse {
   cliente_id: string;
   eje_x: string;
   eje_y: string;
   quadrants: RiskMatrixCell[][];
   areas_criticas: RiskCriticalArea[];
+  strategy: RiskStrategy;
 }
 
 export type RiskMatrixData = RiskEngineResponse;

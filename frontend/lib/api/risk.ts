@@ -1,6 +1,6 @@
 ﻿import { authFetchJson, TokenExpiredError } from "../api";
 import type { ApiEnvelope } from "../contracts";
-import type { RiskCriticalArea, RiskEngineResponse, RiskMatrixCell } from "../../types/risk";
+import type { RiskCriticalArea, RiskEngineResponse, RiskMatrixCell, RiskStrategy, RiskStrategyTest } from "../../types/risk";
 
 function asNumber(value: unknown, fallback: number = 0): number {
   const n = typeof value === "number" ? value : Number(value);
@@ -48,6 +48,50 @@ function normalizeCriticalArea(value: unknown): RiskCriticalArea | null {
   };
 }
 
+function normalizeStrategyTest(value: unknown, fallbackType: "control" | "sustantiva"): RiskStrategyTest | null {
+  const record = typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
+  if (!record) return null;
+  const test_id = asString(record.test_id);
+  const area_id = asString(record.area_id);
+  const title = asString(record.title);
+  if (!test_id || !area_id || !title) return null;
+  const test_type = asString(record.test_type, fallbackType) as "control" | "sustantiva";
+  const where = asString(record.where_to_execute, "workpapers") as "workpapers";
+  const priority = asString(record.priority, "media") as "alta" | "media" | "baja";
+  return {
+    test_id,
+    test_type,
+    area_id,
+    area_nombre: asString(record.area_nombre, area_id),
+    nia_ref: asString(record.nia_ref, ""),
+    title,
+    description: asString(record.description, ""),
+    where_to_execute: where,
+    priority,
+  };
+}
+
+function normalizeStrategy(value: unknown): RiskStrategy {
+  const record = typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+  const controlRaw = Array.isArray(record.control_tests) ? record.control_tests : [];
+  const subRaw = Array.isArray(record.substantive_tests) ? record.substantive_tests : [];
+  return {
+    approach: asString(record.approach, "Mixto"),
+    control_pct: asNumber(record.control_pct, 50),
+    substantive_pct: asNumber(record.substantive_pct, 50),
+    rationale: asString(
+      record.rationale,
+      "Sin estrategia definida. Completa datos de riesgo para obtener recomendacion.",
+    ),
+    control_tests: controlRaw
+      .map((x) => normalizeStrategyTest(x, "control"))
+      .filter((item): item is RiskStrategyTest => item !== null),
+    substantive_tests: subRaw
+      .map((x) => normalizeStrategyTest(x, "sustantiva"))
+      .filter((item): item is RiskStrategyTest => item !== null),
+  };
+}
+
 export async function getRiskEngineData(clienteId: string): Promise<RiskEngineResponse> {
   try {
     const response = await authFetchJson<ApiEnvelope<unknown>>(`/risk-engine/${clienteId}`);
@@ -68,6 +112,7 @@ export async function getRiskEngineData(clienteId: string): Promise<RiskEngineRe
       eje_y: asString(raw.eje_y, "Frecuencia"),
       quadrants,
       areas_criticas,
+      strategy: normalizeStrategy(raw.strategy),
     };
   } catch (error) {
     if (error instanceof TokenExpiredError) {

@@ -24,6 +24,7 @@ from backend.schemas import (
     WorkpaperTaskCreateRequest,
     WorkpaperTaskUpdateRequest,
 )
+from backend.services.judgement_service import recommend_workpaper_tasks_from_strategy
 
 router = APIRouter(prefix="/papeles-trabajo", tags=["papeles-trabajo"])
 RUNTIME_CFG = get_runtime_config()
@@ -271,6 +272,21 @@ def _generate_tasks(cliente_id: str) -> list[dict[str, Any]]:
                     "evidence_note": "",
                 }
             )
+
+    # Anexa sugerencias de juicio AI (no bloqueantes) usando la misma logica del Risk Engine.
+    try:
+        from backend.routes.risk_engine import _build_strategy_deterministic, _from_area_files, _from_ranking
+        from backend.services.judgement_service import build_risk_judgement_with_ai
+
+        areas = _from_ranking(cliente_id)
+        if not areas:
+            areas = _from_area_files(cliente_id)
+        if areas:
+            deterministic = _build_strategy_deterministic(areas)
+            judged = build_risk_judgement_with_ai(cliente_id, areas=areas, deterministic=deterministic)
+            templates.extend(recommend_workpaper_tasks_from_strategy(judged, max_tasks=8))
+    except Exception:
+        pass
 
     # dedupe by id preserving order
     out: list[dict[str, Any]] = []

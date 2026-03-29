@@ -244,6 +244,7 @@ def post_executive_memo(cliente_id: str, user: UserContext = Depends(get_current
     )
     rag = generate_chat_response(cliente_id, query)
     memo = str(rag.get("answer") or "").strip()
+    provider = str(rag.get("provider") or "llm")
     if not memo:
         memo = _build_memo_fallback(dashboard=dashboard, top_areas=top_areas, hallazgos=hallazgos)
 
@@ -260,7 +261,7 @@ def post_executive_memo(cliente_id: str, user: UserContext = Depends(get_current
             "file_hash": hashlib.sha256(memo.encode("utf-8")).hexdigest(),
             "size_bytes": len(memo.encode("utf-8")),
             "status": "success",
-            "origin": "openai_rag" if str(rag.get("answer") or "").strip() else "fallback",
+            "origin": f"{provider}_rag" if str(rag.get("answer") or "").strip() else "fallback",
         },
     )
 
@@ -268,7 +269,7 @@ def post_executive_memo(cliente_id: str, user: UserContext = Depends(get_current
         cliente_id=cliente_id,
         memo=memo,
         generated_at=datetime.now(timezone.utc),
-        source="openai_rag" if str(rag.get("answer") or "").strip() else "fallback",
+        source=f"{provider}_rag" if str(rag.get("answer") or "").strip() else "fallback",
     )
     return ApiResponse(data=payload.model_dump())
 

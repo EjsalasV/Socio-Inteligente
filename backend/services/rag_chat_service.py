@@ -173,6 +173,21 @@ def _retrieve_chunks(cliente_id: str, query: str, *, top_k: int = 5) -> list[Ret
     return candidates[:top_k]
 
 
+def retrieve_context_chunks(cliente_id: str, query: str, *, top_k: int = 6) -> list[dict[str, Any]]:
+    chunks = _retrieve_chunks(cliente_id, query, top_k=top_k)
+    out: list[dict[str, Any]] = []
+    for c in chunks:
+        out.append(
+            {
+                "source": c.source,
+                "excerpt": c.excerpt,
+                "score": c.score,
+                "metadata": dict(c.metadata or {}),
+            }
+        )
+    return out
+
+
 def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk]) -> dict[str, Any]:
     sources = [c.source for c in chunks]
     first_context = chunks[0].excerpt[:240] if chunks else "Sin contexto recuperado."
@@ -203,15 +218,23 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk]) 
     }
 
 
-def _openai_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat") -> dict[str, Any]:
-    api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY no configurada")
-
+def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat") -> dict[str, Any]:
+    provider = (os.getenv("AI_PROVIDER") or "openai").strip().lower()
     from openai import OpenAI
 
-    model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
-    client = OpenAI(api_key=api_key)
+    if provider == "deepseek":
+        api_key = (os.getenv("DEEPSEEK_API_KEY") or "").strip()
+        if not api_key:
+            raise RuntimeError("DEEPSEEK_API_KEY no configurada")
+        model = os.getenv("DEEPSEEK_CHAT_MODEL", "deepseek-chat").strip() or "deepseek-chat"
+        base_url = (os.getenv("DEEPSEEK_BASE_URL") or "https://api.deepseek.com").strip()
+        client = OpenAI(api_key=api_key, base_url=base_url)
+    else:
+        api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
+        if not api_key:
+            raise RuntimeError("OPENAI_API_KEY no configurada")
+        model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
+        client = OpenAI(api_key=api_key)
 
     joined_context = "\n\n".join(
         [
@@ -269,6 +292,8 @@ def _openai_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "cha
         "citations": citations,
         "context_sources": [c.source for c in chunks],
         "confidence": 0.72 if chunks else 0.35,
+        "provider": provider,
+        "model": model,
         "prompt_meta": prompt_meta,
     }
 
@@ -277,7 +302,7 @@ def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
     try:
         if chunks:
-            return _openai_answer(query, chunks, mode="chat")
+            return _llm_answer(query, chunks, mode="chat")
     except Exception:
         pass
     return _fallback_answer(query, cliente_id, chunks)
@@ -288,7 +313,17 @@ def generate_metodologia_response(cliente_id: str, area: str) -> dict[str, Any]:
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
     try:
         if chunks:
-            return _openai_answer(query, chunks, mode="metodologia")
+            return _llm_answer(query, chunks, mode="metodologia")
+    except Exception:
+        pass
+    return _fallback_answer(query, cliente_id, chunks)
+
+
+def generate_judgement_response(cliente_id: str, query: str, *, mode: str = "judgement_risk") -> dict[str, Any]:
+    chunks = _retrieve_chunks(cliente_id, query, top_k=8)
+    try:
+        if chunks:
+            return _llm_answer(query, chunks, mode=mode)
     except Exception:
         pass
     return _fallback_answer(query, cliente_id, chunks)

@@ -30,7 +30,7 @@ export default function RiskEnginePage() {
 
       <div className="grid grid-cols-12 gap-8">
         <RiskMatrix data={data} />
-        <RiskStrategyPanel areas={data.areas_criticas} />
+        <RiskStrategyPanel clienteId={clienteId} areas={data.areas_criticas} strategy={data.strategy} />
         <CriticalRisks areas={data.areas_criticas} />
         <RiskProcedureSuggestions clienteId={clienteId} areas={data.areas_criticas} />
       </div>
