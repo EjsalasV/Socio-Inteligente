@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+import { uploadClienteArchivo } from "../../../lib/api/clientes";
 import { getPerfil, savePerfil } from "../../../lib/api/perfil";
 import type { PerfilPayload } from "../../../types/perfil";
 
@@ -49,6 +50,8 @@ export default function OnboardingClientePage() {
   const [norma, setNorma] = useState("NIAs");
   const [tbFile, setTbFile] = useState("");
   const [mayorFile, setMayorFile] = useState("");
+  const [tbSelectedFile, setTbSelectedFile] = useState<File | null>(null);
+  const [mayorSelectedFile, setMayorSelectedFile] = useState<File | null>(null);
   const [qa, setQa] = useState<QaState>({
     nomina: false,
     inventarios: false,
@@ -119,26 +122,43 @@ export default function OnboardingClientePage() {
     setSuccess("");
     setSaving(true);
 
-    const payload: PerfilPayload = {
-      cliente: {
-        nombre_legal: nombreLegal,
-        sector,
-        pais,
-      },
-      encargo: {
-        anio_activo: Number(fiscalYear),
-        marco_referencial: marco,
-        norma_auditoria: norma,
-      },
-      cuestionario_auditoria: qa,
-      carga_archivos: {
-        trial_balance_nombre: tbFile,
-        libro_mayor_nombre: mayorFile,
-      },
-    };
-
     try {
+      let trialBalanceNombre = tbFile;
+      let libroMayorNombre = mayorFile;
+
+      if (tbSelectedFile) {
+        const uploadedTb = await uploadClienteArchivo(clienteId, "tb", tbSelectedFile);
+        trialBalanceNombre = uploadedTb.original_name || tbSelectedFile.name;
+      }
+
+      if (mayorSelectedFile) {
+        const uploadedMayor = await uploadClienteArchivo(clienteId, "mayor", mayorSelectedFile);
+        libroMayorNombre = uploadedMayor.original_name || mayorSelectedFile.name;
+      }
+
+      const payload: PerfilPayload = {
+        cliente: {
+          nombre_legal: nombreLegal,
+          sector,
+          pais,
+        },
+        encargo: {
+          anio_activo: Number(fiscalYear),
+          marco_referencial: marco,
+          norma_auditoria: norma,
+        },
+        cuestionario_auditoria: qa,
+        carga_archivos: {
+          trial_balance_nombre: trialBalanceNombre,
+          libro_mayor_nombre: libroMayorNombre,
+        },
+      };
+
       await savePerfil(clienteId, payload);
+      setTbFile(trialBalanceNombre);
+      setMayorFile(libroMayorNombre);
+      setTbSelectedFile(null);
+      setMayorSelectedFile(null);
       setSuccess("Onboarding guardado correctamente.");
       router.push(goToDashboard ? `/dashboard/${clienteId}` : `/perfil/${clienteId}`);
     } catch (err) {
@@ -266,7 +286,11 @@ export default function OnboardingClientePage() {
                   <input
                     type="file"
                     className="mt-4 text-sm"
-                    onChange={(e) => setTbFile(e.target.files?.[0]?.name ?? "")}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setTbSelectedFile(file);
+                      setTbFile(file?.name ?? "");
+                    }}
                     accept=".csv,.xlsx,.xls"
                   />
                   {tbFile ? <p className="text-xs text-slate-600 mt-2">Archivo: {tbFile}</p> : null}
@@ -278,7 +302,11 @@ export default function OnboardingClientePage() {
                   <input
                     type="file"
                     className="mt-4 text-sm"
-                    onChange={(e) => setMayorFile(e.target.files?.[0]?.name ?? "")}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setMayorSelectedFile(file);
+                      setMayorFile(file?.name ?? "");
+                    }}
                     accept=".csv,.xlsx,.xls"
                   />
                   {mayorFile ? <p className="text-xs text-slate-600 mt-2">Archivo: {mayorFile}</p> : null}

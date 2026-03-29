@@ -269,6 +269,40 @@ function mockApi<T>(path: string, init?: RequestInit): T {
   const method = (init?.method || "GET").toUpperCase();
 
   if (parts[0] === "clientes") {
+    if (method === "DELETE" && parts[1]) {
+      const id = parts[1];
+      const next = getDemoClientes().filter((c) => String(c.cliente_id ?? "") !== id);
+      setDemoClientes(next);
+      return envelope({ cliente_id: id, deleted: true }) as T;
+    }
+
+    if (method === "POST" && parts[1] && parts[1] === "upload" && (parts[2] === "tb" || parts[2] === "mayor")) {
+      const kind = parts[2];
+      return envelope({
+        cliente_id: "cliente_demo",
+        kind: kind === "tb" ? "trial_balance" : "libro_mayor",
+        original_name: kind === "tb" ? "trial_balance_demo.xlsx" : "mayor_demo.xlsx",
+        stored_as: kind === "tb" ? "tb.xlsx" : "mayor.xlsx",
+        rows: 100,
+        columns: ["codigo", "nombre", "saldo"],
+      }) as T;
+    }
+
+    if (method === "POST" && parts[2] && parts[1]) {
+      // /clientes/{id}/upload/{kind}
+      if (parts[2] === "upload" && (parts[3] === "tb" || parts[3] === "mayor")) {
+        const kind = parts[3];
+        return envelope({
+          cliente_id: parts[1],
+          kind: kind === "tb" ? "trial_balance" : "libro_mayor",
+          original_name: kind === "tb" ? "trial_balance_demo.xlsx" : "mayor_demo.xlsx",
+          stored_as: kind === "tb" ? "tb.xlsx" : "mayor.xlsx",
+          rows: 100,
+          columns: ["codigo", "nombre", "saldo"],
+        }) as T;
+      }
+    }
+
     if (method === "POST") {
       const bodyRaw = typeof init?.body === "string" ? init.body : "{}";
       let bodyObj: UnknownRecord = {};
@@ -378,7 +412,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   const headers = new Headers(init?.headers);
-  headers.set("Content-Type", "application/json");
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
+  if (!isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }

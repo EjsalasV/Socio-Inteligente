@@ -55,3 +55,27 @@ export async function deleteCliente(clienteId: string): Promise<void> {
     method: "DELETE",
   });
 }
+
+export async function uploadClienteArchivo(
+  clienteId: string,
+  kind: "tb" | "mayor",
+  file: File,
+): Promise<{ stored_as: string; original_name: string; rows: number }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await authFetchJson<ApiEnvelope<unknown>>(
+    `/clientes/${clienteId}/upload/${kind}`,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+
+  const data = isRecord(response?.data) ? response.data : {};
+  return {
+    stored_as: typeof data.stored_as === "string" ? data.stored_as : "",
+    original_name: typeof data.original_name === "string" ? data.original_name : file.name,
+    rows: typeof data.rows === "number" ? data.rows : 0,
+  };
+}
