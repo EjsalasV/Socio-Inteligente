@@ -1307,6 +1307,53 @@
         }
       }
     },
+    "/reportes/{cliente_id}/historial": {
+      "get": {
+        "tags": [
+          "reportes"
+        ],
+        "summary": "Get Report History",
+        "operationId": "get_report_history_reportes__cliente_id__historial_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/papeles-trabajo/{cliente_id}": {
       "get": {
         "tags": [
