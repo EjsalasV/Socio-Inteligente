@@ -23,6 +23,13 @@ export interface AreaRiesgo {
   con_saldo: boolean;
 }
 
+export interface DashboardWorkflowGate {
+  code: string;
+  title: string;
+  status: "ok" | "blocked";
+  detail: string;
+}
+
 export interface DashboardResponse {
   cliente_id: string;
   nombre_cliente: string;
@@ -35,7 +42,10 @@ export interface DashboardResponse {
   materialidad_global: number;
   materialidad_ejecucion: number;
   umbral_trivial: number;
+  materialidad_origen: string;
   fase_actual: string;
+  workflow_phase: string;
+  workflow_gates: DashboardWorkflowGate[];
 }
 
 export interface DashboardData {
@@ -53,6 +63,9 @@ export interface DashboardData {
   materialidad_global: number;
   materialidad_ejecucion: number;
   umbral_trivial: number;
+  materialidad_origen: string;
   fase_actual: string;
+  workflow_phase: string;
+  workflow_gates: DashboardWorkflowGate[];
   top_areas: AreaRiesgo[];
 }

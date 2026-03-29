@@ -13,11 +13,16 @@ from backend.schemas import (
     UserContext,
     WorkpaperPlanResponse,
     WorkpaperTask,
+    WorkpaperTaskCreateRequest,
     WorkpaperTaskUpdateRequest,
 )
 
 router = APIRouter(prefix="/papeles-trabajo", tags=["papeles-trabajo"])
 RUNTIME_CFG = get_runtime_config()
+WORKFLOW_CFG = RUNTIME_CFG.get("workflow", {}) if isinstance(RUNTIME_CFG, dict) else {}
+THRESHOLDS = WORKFLOW_CFG.get("thresholds", {}) if isinstance(WORKFLOW_CFG, dict) else {}
+EXEC_MIN_PCT = float(THRESHOLDS.get("exec_required_completion_pct", 70.0) or 70.0)
+REPORT_MIN_PCT = float(THRESHOLDS.get("report_required_completion_pct", 95.0) or 95.0)
 
 
 def _is_true(value: Any) -> bool:
@@ -332,12 +337,12 @@ def _quality_gates(cliente_id: str, tasks: list[dict[str, Any]]) -> list[Quality
         for t in tasks
         if str(t.get("prioridad") or "").lower() == "alta" and bool(t.get("done", False))
     }
-    exec_ok = completion >= exec_min_pct and (not high_priority_areas or high_priority_areas.issubset(high_priority_done)) and plan_ok
+    exec_ok = completion >= EXEC_MIN_PCT and (not high_priority_areas or high_priority_areas.issubset(high_priority_done)) and plan_ok
 
     hallazgos_text = read_hallazgos(cliente_id)
     has_conclusion = len(hallazgos_text.strip()) >= 120
     close_done = "close-conclusion-230" in done_ids if "close-conclusion-230" in required_ids else True
-    report_ok = completion >= report_min_pct and has_conclusion and close_done and exec_ok
+    report_ok = completion >= REPORT_MIN_PCT and has_conclusion and close_done and exec_ok
 
     if not base_fields_ok:
         plan_detail = "Faltan datos base del perfil del cliente."
@@ -437,7 +442,63 @@ def patch_workpaper_task(
 
     write_workpapers(cliente_id, tasks)
     return ApiResponse(data={"task_id": task_id, "done": payload.done, "saved": True})
-    workflow_cfg = RUNTIME_CFG.get("workflow", {}) if isinstance(RUNTIME_CFG, dict) else {}
-    thresholds = workflow_cfg.get("thresholds", {}) if isinstance(workflow_cfg, dict) else {}
-    exec_min_pct = float(thresholds.get("exec_required_completion_pct", 70.0) or 70.0)
-    report_min_pct = float(thresholds.get("report_required_completion_pct", 95.0) or 95.0)
+
+
+def _normalize_task_id(area_code: str, nia_ref: str, title: str) -> str:
+    import re
+
+    source = f"{area_code}-{nia_ref}-{title}".strip().lower()
+    source = re.sub(r"[^a-z0-9]+", "-", source).strip("-")
+    source = re.sub(r"-+", "-", source)
+    return source[:120] or "task-manual"
+
+
+@router.post("/{cliente_id}/tasks", response_model=ApiResponse)
+def post_workpaper_task(
+    cliente_id: str,
+    payload: WorkpaperTaskCreateRequest,
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+
+    area_code = payload.area_code.strip()
+    area_name = payload.area_name.strip()
+    title = payload.title.strip()
+    nia_ref = payload.nia_ref.strip()
+    prioridad = payload.prioridad.strip().lower() or "media"
+    if not area_code or not area_name or not title:
+        raise HTTPException(status_code=422, detail="area_code, area_name y title son obligatorios.")
+
+    tasks = read_workpapers(cliente_id)
+    if not tasks:
+        tasks = _generate_tasks(cliente_id)
+
+    dedupe_key = f"{area_code}|{nia_ref.lower()}|{title.lower()}"
+    for task in tasks:
+        key = f"{str(task.get('area_code') or '').strip()}|{str(task.get('nia_ref') or '').strip().lower()}|{str(task.get('title') or '').strip().lower()}"
+        if key == dedupe_key:
+            return ApiResponse(data={"created": False, "task": WorkpaperTask(**task).model_dump()})
+
+    task_id = _normalize_task_id(area_code, nia_ref, title)
+    existing_ids = {str(t.get("id") or "") for t in tasks}
+    if task_id in existing_ids:
+        suffix = 2
+        base = task_id
+        while f"{base}-{suffix}" in existing_ids:
+            suffix += 1
+        task_id = f"{base}-{suffix}"
+
+    new_task = {
+        "id": task_id,
+        "area_code": area_code,
+        "area_name": area_name,
+        "title": title,
+        "nia_ref": nia_ref,
+        "prioridad": prioridad,
+        "required": bool(payload.required),
+        "done": False,
+        "evidence_note": payload.evidence_note.strip(),
+    }
+    tasks.append(new_task)
+    write_workpapers(cliente_id, tasks)
+    return ApiResponse(data={"created": True, "task": WorkpaperTask(**new_task).model_dump()})

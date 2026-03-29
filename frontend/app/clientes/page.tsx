@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createCliente, deleteCliente, getClientes, type ClienteOption } from "../../lib/api/clientes";
+import { SECTOR_OPTIONS } from "../../lib/sectorCatalog";
 
 function slugify(input: string): string {
   return input
@@ -223,19 +224,9 @@ export default function ClientesPage() {
               <label className="flex flex-col gap-2">
                 <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Sector</span>
                 <select className="ghost-input" value={sector} onChange={(e) => setSector(e.target.value)}>
-                  <option>Holding</option>
-                  <option>Retail y Consumo</option>
-                  <option>Logistica y Transporte</option>
-                  <option>Tecnologia y SaaS</option>
-                  <option>Manufactura</option>
-                  <option>Servicios Financieros</option>
-                  <option>Construccion e Infraestructura</option>
-                  <option>Salud y Farmaceutico</option>
-                  <option>Educacion</option>
-                  <option>Energia y Utilities</option>
-                  <option>Agroindustria</option>
-                  <option>Gobierno y Sector Publico</option>
-                  <option>ONG y Fundaciones</option>
+                  {SECTOR_OPTIONS.map((item) => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
                 </select>
               </label>
 

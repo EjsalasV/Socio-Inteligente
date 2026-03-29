@@ -83,6 +83,13 @@ class AreaRiesgo(BaseModel):
     con_saldo: bool
 
 
+class DashboardWorkflowGate(BaseModel):
+    code: str
+    title: str
+    status: Literal["ok", "blocked"]
+    detail: str
+
+
 class DashboardResponse(BaseModel):
     cliente_id: str
     nombre_cliente: str
@@ -95,7 +102,10 @@ class DashboardResponse(BaseModel):
     materialidad_global: float = 0.0
     materialidad_ejecucion: float = 0.0
     umbral_trivial: float = 0.0
+    materialidad_origen: str = ""
     fase_actual: str = ""
+    workflow_phase: str = "planificacion"
+    workflow_gates: list[DashboardWorkflowGate] = Field(default_factory=list)
 
 
 class RiskItem(BaseModel):
@@ -253,6 +263,21 @@ class PdfSummaryResponse(BaseModel):
     size_bytes: int = 0
 
 
+class ReportMemoResponse(BaseModel):
+    cliente_id: str
+    memo: str
+    generated_at: datetime
+    source: str = "motor"
+
+
+class ClienteDocumento(BaseModel):
+    id: str
+    name: str
+    kind: str
+    uploaded_at: datetime
+    path: str
+
+
 class WorkflowAdvanceRequest(BaseModel):
     target_phase: str | None = None
 
@@ -279,6 +304,16 @@ class WorkpaperTask(BaseModel):
 
 class WorkpaperTaskUpdateRequest(BaseModel):
     done: bool
+    evidence_note: str = ""
+
+
+class WorkpaperTaskCreateRequest(BaseModel):
+    area_code: str
+    area_name: str
+    title: str
+    nia_ref: str = ""
+    prioridad: str = "media"
+    required: bool = True
     evidence_note: str = ""
 
 

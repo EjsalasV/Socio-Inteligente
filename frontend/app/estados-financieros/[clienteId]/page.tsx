@@ -49,6 +49,12 @@ export default function EstadosFinancierosPage() {
 
   const me = dashboard?.materialidad_ejecucion ?? (dashboard?.materialidad_global ?? 0) * 0.75;
   const triviales = dashboard?.umbral_trivial ?? (dashboard?.materialidad_global ?? 0) * 0.05;
+  const materialidadOrigenLabel =
+    dashboard?.materialidad_origen === "perfil"
+      ? "Definida en perfil del cliente"
+      : dashboard?.materialidad_origen === "motor"
+        ? "Estimacion automatica del motor"
+        : "Pendiente de definicion";
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -84,7 +90,7 @@ export default function EstadosFinancierosPage() {
         <article className="sovereign-card border-l-4 border-[#041627]">
           <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Materialidad de Planeacion</p>
           <h3 className="font-headline text-3xl text-[#041627] mt-3">{formatMoney(dashboard.materialidad_global)}</h3>
-          <p className="text-xs text-slate-500 mt-2">Base tecnica del encargo</p>
+          <p className="text-xs text-slate-500 mt-2">{materialidadOrigenLabel}</p>
         </article>
 
         <article className="sovereign-card border-l-4 border-[#89d3d4]">

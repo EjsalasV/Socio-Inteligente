@@ -18,14 +18,9 @@ type LoginApiResponse = {
   message?: string;
 };
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const DEMO_USER = "joaosalas123@gmail.com";
 const DEMO_PASS = "1234";
-const DEMO_ONLY = process.env.NEXT_PUBLIC_DEMO_ONLY === "1";
-
-function isDemoCredentials(username: string, password: string): boolean {
-  return username.trim().toLowerCase() === DEMO_USER && password === DEMO_PASS;
-}
 
 function extractErrorMessage(payload: unknown, fallback: string): string {
   if (!payload || typeof payload !== "object") return fallback;
@@ -60,18 +55,6 @@ export default function LoginPage() {
     event.preventDefault();
     setError("");
     setIsLoading(true);
-
-    if (DEMO_ONLY) {
-      if (!isDemoCredentials(username, password)) {
-        setError("Credenciales demo invalidas. Usa joaosalas123@gmail.com y 1234.");
-        setIsLoading(false);
-        return;
-      }
-      localStorage.setItem("socio_token", "demo_token_local");
-      router.push("/clientes");
-      setIsLoading(false);
-      return;
-    }
 
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {

@@ -43,6 +43,8 @@ export default function TrialBalancePage() {
     () => (areaData?.aseveraciones ?? []).filter((a) => a.riesgo_tipico.toLowerCase().includes("alto")).length,
     [areaData],
   );
+  const balanceDelta = Math.abs((dashboard?.activo ?? 0) - ((dashboard?.pasivo ?? 0) + (dashboard?.patrimonio ?? 0)));
+  const balanceOk = balanceDelta < 1;
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -78,14 +80,22 @@ export default function TrialBalancePage() {
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <article className="sovereign-card border-l-4 border-[#041627]">
           <p className="text-[10px] font-body font-bold uppercase tracking-[0.14em] text-slate-500">Balance A/L</p>
-          <h3 className="font-headline text-2xl text-[#041627] mt-3">
-            {Math.abs(dashboard.activo - (dashboard.pasivo + dashboard.patrimonio)) < 1 ? "Cuadrado" : "Revisar"}
-          </h3>
+          <h3 className="font-headline text-2xl text-[#041627] mt-3">{balanceOk ? "Cuadrado" : "Descuadrado"}</h3>
+          <p className={`text-xs mt-2 ${balanceOk ? "text-slate-500" : "text-[#ba1a1a] font-semibold"}`}>
+            {balanceOk ? "Activo = Pasivo + Patrimonio" : `Diferencia: ${formatMoney(balanceDelta)}`}
+          </p>
         </article>
 
         <article className="sovereign-card">
           <p className="text-[10px] font-body font-bold uppercase tracking-[0.14em] text-slate-500">Materialidad</p>
           <h3 className="font-headline text-3xl text-[#041627] mt-3">{formatMoney(dashboard.materialidad_global)}</h3>
+          <p className="text-xs text-slate-500 mt-2">
+            {dashboard.materialidad_origen === "perfil"
+              ? "Tomada del perfil"
+              : dashboard.materialidad_origen === "motor"
+                ? "Estimacion automatica"
+                : "Pendiente de definicion"}
+          </p>
         </article>
 
         <article className="sovereign-card">

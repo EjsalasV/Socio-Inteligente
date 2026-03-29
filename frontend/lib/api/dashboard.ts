@@ -37,7 +37,23 @@ function normalizeDashboardPayload(clienteId: string, raw: UnknownRecord): Dashb
     materialidad_global: asNumber(raw.materialidad_global, 0),
     materialidad_ejecucion: asNumber(raw.materialidad_ejecucion, 0),
     umbral_trivial: asNumber(raw.umbral_trivial, 0),
+    materialidad_origen: asString(raw.materialidad_origen, ""),
     fase_actual: asString(raw.fase_actual, ""),
+    workflow_phase: asString(raw.workflow_phase, "planificacion"),
+    workflow_gates: Array.isArray(raw.workflow_gates)
+      ? raw.workflow_gates
+          .map((gate) => {
+            if (!isRecord(gate)) return null;
+            const status = asString(gate.status, "blocked");
+            return {
+              code: asString(gate.code, ""),
+              title: asString(gate.title, ""),
+              status: status === "ok" ? "ok" : "blocked",
+              detail: asString(gate.detail, ""),
+            };
+          })
+          .filter((gate): gate is DashboardData["workflow_gates"][number] => gate !== null)
+      : [],
     top_areas: topAreasRaw
       .map((item) => {
         if (!isRecord(item)) return null;

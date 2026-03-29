@@ -1,38 +1,31 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
+import {
+  getClienteDocumentos,
+  getClienteHallazgos,
+  uploadClienteDocumento,
+  type ClienteDocumento,
+} from "../../../lib/api/clientes";
 import { getPerfil } from "../../../lib/api/perfil";
+import { getExecutiveMemo } from "../../../lib/api/reportes";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
 
-const DOCUMENTS = [
-  { name: "Escritura de constitucion", date: "12 Ene 2021", type: "description" },
-  { name: "Contrato de prestamo LP", date: "05 Mar 2025", type: "contract" },
-  { name: "Registro tributario", date: "22 Nov 2025", type: "badge" },
-];
-
-const FINDINGS = [
-  {
-    cycle: "Ciclo 2024",
-    level: "MATERIAL",
-    text: "Debilidad en conciliacion de partidas intercompanias.",
-    state: "Remediado Q1-2025",
-    tone: "error",
-  },
-  {
-    cycle: "Ciclo 2023",
-    level: "SIGNIFICATIVO",
-    text: "Falta de soporte en gastos de representacion sobre umbral.",
-    state: "Historico",
-    tone: "primary",
-  },
-];
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 function readString(value: unknown, fallback = ""): string {
   return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function formatDate(input: string): string {
+  if (!input) return "Sin fecha";
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) return input;
+  return d.toLocaleDateString("es-EC", { year: "numeric", month: "short", day: "2-digit" });
 }
 
 export default function ClientMemoryPage() {
@@ -42,12 +35,22 @@ export default function ClientMemoryPage() {
   const [perfilName, setPerfilName] = useState("");
   const [perfilSector, setPerfilSector] = useState("Holding");
   const [perfilMarco, setPerfilMarco] = useState("NIIF para PYMES");
+  const [memoText, setMemoText] = useState("");
+  const [documentos, setDocumentos] = useState<ClienteDocumento[]>([]);
+  const [hallazgos, setHallazgos] = useState<Array<{ title: string; body: string }>>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let active = true;
     async function loadPerfil(): Promise<void> {
       try {
-        const perfil = await getPerfil(clienteId);
+        const [perfil, docs, findings, memo] = await Promise.all([
+          getPerfil(clienteId),
+          getClienteDocumentos(clienteId),
+          getClienteHallazgos(clienteId),
+          getExecutiveMemo(clienteId),
+        ]);
         if (!active) return;
         const root = (perfil?.perfil ?? {}) as Record<string, unknown>;
         const cliente = ((root.cliente as Record<string, unknown>) ?? {}) as Record<string, unknown>;
@@ -56,6 +59,9 @@ export default function ClientMemoryPage() {
         setPerfilName(readString(cliente.nombre_legal, clienteId));
         setPerfilSector(readString(cliente.sector, "Holding"));
         setPerfilMarco(readString(encargo.marco_referencial, "NIIF para PYMES"));
+        setDocumentos(docs);
+        setHallazgos(findings);
+        setMemoText(memo.memo || "");
       } catch {
         if (!active) return;
         setPerfilName(clienteId);
@@ -71,6 +77,16 @@ export default function ClientMemoryPage() {
   }, [clienteId]);
 
   const topRisks = useMemo(() => dashboard?.top_areas?.slice(0, 3) ?? [], [dashboard]);
+
+  async function handleUploadDocument(file: File): Promise<void> {
+    setUploadingDoc(true);
+    try {
+      const updated = await uploadClienteDocumento(clienteId, file);
+      setDocumentos(updated);
+    } finally {
+      setUploadingDoc(false);
+    }
+  }
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -119,7 +135,24 @@ export default function ClientMemoryPage() {
           <article className="sovereign-card !p-0 overflow-hidden">
             <div className="p-6 border-b border-black/5 flex items-center justify-between">
               <h3 className="font-headline text-3xl text-[#041627]">Repositorio de Documentos</h3>
-              <button className="text-xs uppercase tracking-[0.13em] font-bold text-teal-700">Cargar documento</button>
+              <button
+                type="button"
+                className="text-xs uppercase tracking-[0.13em] font-bold text-teal-700 disabled:opacity-60"
+                disabled={uploadingDoc}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploadingDoc ? "Cargando..." : "Cargar documento"}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleUploadDocument(file);
+                  e.currentTarget.value = "";
+                }}
+              />
             </div>
             <table className="w-full border-collapse">
               <thead>
@@ -130,21 +163,36 @@ export default function ClientMemoryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/5">
-                {DOCUMENTS.map((doc) => (
-                  <tr key={doc.name} className="hover:bg-[#f8fbff]">
+                {documentos.map((doc) => (
+                  <tr key={doc.id} className="hover:bg-[#f8fbff]">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-teal-700 text-base">{doc.type}</span>
+                        <span className="material-symbols-outlined text-teal-700 text-base">description</span>
                         <span className="text-sm font-medium text-slate-800">{doc.name}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-sm text-slate-500">{doc.date}</td>
+                    <td className="py-4 px-6 text-sm text-slate-500">{formatDate(doc.uploaded_at)}</td>
                     <td className="py-4 px-6 text-right text-slate-400">
-                      <button className="px-2"><span className="material-symbols-outlined text-base">visibility</span></button>
-                      <button className="px-2"><span className="material-symbols-outlined text-base">edit</span></button>
+                      <button
+                        className="px-2"
+                        type="button"
+                        onClick={() =>
+                          window.open(
+                            `${API_BASE}/clientes/${clienteId}/documentos/file?name=${encodeURIComponent(doc.name)}`,
+                            "_blank",
+                          )
+                        }
+                      >
+                        <span className="material-symbols-outlined text-base">visibility</span>
+                      </button>
                     </td>
                   </tr>
                 ))}
+                {documentos.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-6 px-6 text-sm text-slate-500">No hay documentos cargados.</td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </article>
@@ -158,12 +206,12 @@ export default function ClientMemoryPage() {
                 <h3 className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-bold">Memorandum estrategico AI</h3>
               </div>
               <h4 className="font-headline text-3xl">Cultura de control interno</h4>
-              <p className="font-headline italic text-lg text-slate-200 mt-4 leading-relaxed">
-                Se observan mejoras en segregacion de funciones. Aun se recomienda ampliar pruebas de recorrido en inventarios para cierre anual.
+              <p className="font-headline italic text-lg text-slate-200 mt-4 leading-relaxed whitespace-pre-wrap">
+                {memoText || "Aun no hay memo ejecutivo generado para este cliente."}
               </p>
               <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between text-[10px] uppercase tracking-[0.12em] text-slate-300">
                 <span>Socio AI</span>
-                <span>Actualizado hoy</span>
+                <span>{memoText ? "Memo disponible" : "Sin memo"}</span>
               </div>
             </div>
             <div className="absolute -right-12 -bottom-12 w-44 h-44 rounded-full bg-[#89d3d4]/10 blur-3xl" />
@@ -172,21 +220,21 @@ export default function ClientMemoryPage() {
           <article className="sovereign-card">
             <h3 className="font-headline text-3xl text-[#041627] mb-6">Historial de Hallazgos</h3>
             <div className="space-y-5">
-              {FINDINGS.map((f) => (
-                <div key={f.cycle} className="relative pl-10">
-                  <div className={`absolute left-0 top-1 w-6 h-6 rounded-full text-white flex items-center justify-center ${f.tone === "error" ? "bg-[#ba1a1a]" : "bg-[#041627]"}`}>
+              {hallazgos.map((f) => (
+                <div key={`${f.title}-${f.body.slice(0, 24)}`} className="relative pl-10">
+                  <div className="absolute left-0 top-1 w-6 h-6 rounded-full text-white flex items-center justify-center bg-[#041627]">
                     <span className="material-symbols-outlined text-sm">priority_high</span>
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-slate-900">{f.cycle}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${f.tone === "error" ? "bg-[#ffdad6] text-[#93000a]" : "bg-[#d2e4fb] text-[#0b1d2d]"}`}>{f.level}</span>
+                      <span className="font-semibold text-slate-900">{f.title}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#d2e4fb] text-[#0b1d2d]">REGISTRO</span>
                     </div>
-                    <p className="text-sm text-slate-700">{f.text}</p>
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400 mt-1">{f.state}</p>
+                    <p className="text-sm text-slate-700">{f.body || "Sin detalle."}</p>
                   </div>
                 </div>
               ))}
+              {hallazgos.length === 0 ? <p className="text-sm text-slate-500">No hay hallazgos registrados aún.</p> : null}
             </div>
           </article>
 

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { uploadClienteArchivo } from "../../../lib/api/clientes";
 import { getPerfil, savePerfil } from "../../../lib/api/perfil";
+import { SECTOR_OPTIONS } from "../../../lib/sectorCatalog";
 import type { PerfilPayload } from "../../../types/perfil";
 
 type Params = {
@@ -180,6 +181,27 @@ export default function OnboardingClientePage() {
     );
   }
 
+  const perfilCompleto = Boolean(
+    nombreLegal.trim() &&
+      sector.trim() &&
+      pais.trim() &&
+      fiscalYear.trim() &&
+      marco.trim() &&
+      norma.trim(),
+  );
+  const cuestionarioRespondido = Object.values(qa).some((value) => value === true);
+  const tbCargado = Boolean(tbFile.trim());
+  const mayorCargado = Boolean(mayorFile.trim());
+  const faseDefinida = ["planificacion", "ejecucion", "informe"].includes(faseAuditoria);
+
+  const checklist = [
+    { label: "Datos de cliente", ok: perfilCompleto },
+    { label: "Cuestionario de auditoria", ok: cuestionarioRespondido },
+    { label: "Trial Balance", ok: tbCargado },
+    { label: "Libro Mayor", ok: mayorCargado },
+    { label: "Fase de auditoria", ok: faseDefinida },
+  ];
+
   return (
     <div className="min-h-screen bg-[#f7fafc]">
       <nav className="fixed top-0 w-full z-40 bg-white/85 backdrop-blur-xl border-b border-black/5 px-6 md:px-10 py-4 flex items-center justify-between">
@@ -220,19 +242,9 @@ export default function OnboardingClientePage() {
                 <label className="flex flex-col gap-2">
                   <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Sector</span>
                   <select className="ghost-input" value={sector} onChange={(e) => setSector(e.target.value)}>
-                    <option>Holding</option>
-                    <option>Retail y Consumo</option>
-                    <option>Logistica y Transporte</option>
-                    <option>Tecnologia y SaaS</option>
-                    <option>Manufactura</option>
-                    <option>Servicios Financieros</option>
-                    <option>Construccion e Infraestructura</option>
-                    <option>Salud y Farmaceutico</option>
-                    <option>Educacion</option>
-                    <option>Energia y Utilities</option>
-                    <option>Agroindustria</option>
-                    <option>Gobierno y Sector Publico</option>
-                    <option>ONG y Fundaciones</option>
+                    {SECTOR_OPTIONS.map((item) => (
+                      <option key={item} value={item}>{item}</option>
+                    ))}
                   </select>
                 </label>
                 <label className="flex flex-col gap-2">
@@ -345,9 +357,14 @@ export default function OnboardingClientePage() {
             <div className="sovereign-card">
               <h4 className="font-headline text-2xl text-[#041627]">Checklist</h4>
               <ul className="mt-4 space-y-3 text-sm text-slate-700">
-                <li className="flex gap-2"><span className="material-symbols-outlined text-[#002f30] text-base">check_circle</span> Datos de cliente</li>
-                <li className="flex gap-2"><span className="material-symbols-outlined text-[#002f30] text-base">check_circle</span> Cuestionario de auditoria</li>
-                <li className="flex gap-2"><span className="material-symbols-outlined text-[#002f30] text-base">check_circle</span> Trial Balance / Mayor</li>
+                {checklist.map((item) => (
+                  <li key={item.label} className="flex gap-2">
+                    <span className={`material-symbols-outlined text-base ${item.ok ? "text-[#002f30]" : "text-slate-400"}`}>
+                      {item.ok ? "check_circle" : "radio_button_unchecked"}
+                    </span>
+                    <span>{item.label}</span>
+                  </li>
+                ))}
               </ul>
             </div>
 

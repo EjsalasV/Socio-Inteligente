@@ -7,6 +7,7 @@ from backend.schemas import (
     AreaRiesgo,
     BalanceKPIs,
     DashboardResponse,
+    DashboardWorkflowGate,
     ProgresoEncargo,
     UserContext,
 )
@@ -60,6 +61,15 @@ def _progreso_from_fase(fase_actual: str) -> int | None:
     return None
 
 
+def _normalize_workflow_phase(raw: str) -> str:
+    value = (raw or "").strip().lower()
+    if "inform" in value or "cier" in value:
+        return "informe"
+    if "ejec" in value or "visita" in value:
+        return "ejecucion"
+    return "planificacion"
+
+
 @router.get("/{cliente_id}", response_model=DashboardResponse)
 def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)) -> DashboardResponse:
     authorize_cliente_access(cliente_id, user)
@@ -68,6 +78,7 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
     from analysis.ranking_areas import calcular_ranking_areas
     from domain.services.leer_perfil import leer_perfil
     from domain.services.materialidad_service import calcular_materialidad
+    from backend.routes.workpapers import _generate_tasks, _merge_saved_tasks, _quality_gates
 
     perfil = leer_perfil(cliente_id) or {}
     resumen_tb = obtener_resumen_tb(cliente_id) or {}
@@ -122,10 +133,23 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
 
     total_areas = areas_completas + areas_en_proceso + areas_no_iniciadas
     pct_completado = int(round((areas_completas / total_areas) * 100, 0)) if total_areas > 0 else 0
-    fase_actual = _to_str(encargo.get("fase_actual", ""), "planificacion")
+    fase_actual = _to_str(encargo.get("fase_actual", ""), "")
+    workflow_phase = _normalize_workflow_phase(fase_actual)
     pct_from_fase = _progreso_from_fase(fase_actual)
     if pct_from_fase is not None:
         pct_completado = pct_from_fase
+
+    workflow_gates: list[DashboardWorkflowGate] = []
+    try:
+        generated = _generate_tasks(cliente_id)
+        merged = _merge_saved_tasks(cliente_id, generated)
+        gates = _quality_gates(cliente_id, merged)
+        workflow_gates = [
+            DashboardWorkflowGate(code=g.code, title=g.title, status=g.status, detail=g.detail)
+            for g in gates
+        ]
+    except Exception:
+        workflow_gates = []
 
     mp_perfil, me_perfil, trivial_perfil = _materialidad_from_perfil(perfil)
     mp_calc = _to_float(materialidad.get("materialidad_sugerida", 0.0))
@@ -135,12 +159,18 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
     mp = mp_perfil if mp_perfil > 0 else mp_calc
     me = me_perfil if me_perfil > 0 else me_calc
     trivial = trivial_perfil if trivial_perfil > 0 else trivial_calc
+    materialidad_origen = "perfil" if mp_perfil > 0 else ("motor" if mp_calc > 0 else "sin_definir")
+
+    industria = perfil.get("industria_inteligente", {}) if isinstance(perfil.get("industria_inteligente"), dict) else {}
+    sector = _to_str(cliente_info.get("sector", ""))
+    if not sector:
+        sector = _to_str(industria.get("sector_base", ""))
 
     payload = DashboardResponse(
         cliente_id=cliente_id,
         nombre_cliente=_to_str(cliente_info.get("nombre_legal", cliente_id), cliente_id),
         periodo=_to_str(encargo.get("anio_activo", "")),
-        sector=_to_str(cliente_info.get("sector", "")),
+        sector=sector,
         riesgo_global=_to_str((perfil.get("riesgo_global", {}) or {}).get("nivel", "MEDIO"), "MEDIO"),
         balance=balance,
         progreso=ProgresoEncargo(
@@ -154,7 +184,10 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
         materialidad_global=mp,
         materialidad_ejecucion=me,
         umbral_trivial=trivial,
+        materialidad_origen=materialidad_origen,
         fase_actual=fase_actual,
+        workflow_phase=workflow_phase,
+        workflow_gates=workflow_gates,
     )
 
     return payload

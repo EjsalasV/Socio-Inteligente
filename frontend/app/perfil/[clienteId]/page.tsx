@@ -4,6 +4,7 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { getPerfil, savePerfil } from "../../../lib/api/perfil";
+import { SECTOR_OPTIONS } from "../../../lib/sectorCatalog";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import type { PerfilFormData, PerfilPayload } from "../../../types/perfil";
 
@@ -80,7 +81,6 @@ function toPerfilPayload(base: PerfilPayload, form: PerfilFormData): PerfilPaylo
   return next;
 }
 
-const SECTORES = ["Holding", "Retail y Consumo", "Logistica y Transporte", "Tecnologia y SaaS", "Manufactura"];
 const MARCOS = ["NIIF para PYMES", "NIIF Plenas", "US GAAP", "Norma local"];
 const NORMAS = ["NIAs", "Normas Locales", "PCAOB"];
 
@@ -253,7 +253,7 @@ export default function PerfilClientePage() {
               <label className="flex flex-col gap-2">
                 <span className="text-xs font-bold tracking-wider uppercase text-slate-500">Sector industrial</span>
                 <select className="ghost-input w-full py-3" value={form.sector} onChange={(e: ChangeEvent<HTMLSelectElement>) => updateField("sector", e.target.value)}>
-                  {SECTORES.map((sector) => (
+                  {SECTOR_OPTIONS.map((sector) => (
                     <option key={sector} value={sector}>{sector}</option>
                   ))}
                 </select>

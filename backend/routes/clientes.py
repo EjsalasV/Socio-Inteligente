@@ -4,11 +4,12 @@ from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 
 from backend.auth import authorize_cliente_access, get_current_user
-from backend.repositories.file_repository import create_cliente, delete_cliente, list_clientes, read_perfil
-from backend.schemas import ApiResponse, ClienteCreateRequest, ClienteSummary, UserContext
+from backend.repositories.file_repository import create_cliente, delete_cliente, list_clientes, list_documentos, read_hallazgos, read_perfil
+from backend.schemas import ApiResponse, ClienteCreateRequest, ClienteDocumento, ClienteSummary, UserContext
 
 router = APIRouter(prefix="/clientes", tags=["clientes"])
 
@@ -128,3 +129,74 @@ async def upload_cliente_file(
             "columns": list(df.columns),
         }
     )
+
+
+@router.get("/{cliente_id}/documentos", response_model=ApiResponse)
+def get_cliente_documentos(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    docs = [ClienteDocumento(**doc).model_dump() for doc in list_documentos(cliente_id)]
+    return ApiResponse(data=docs)
+
+
+@router.post("/{cliente_id}/documentos/upload", response_model=ApiResponse)
+async def upload_cliente_documento(
+    cliente_id: str,
+    file: UploadFile = File(...),
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+
+    raw_name = (file.filename or "").strip()
+    if not raw_name:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Archivo sin nombre.")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Archivo vacio.")
+
+    docs_dir = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id / "documentos"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    target = docs_dir / raw_name
+    target.write_bytes(content)
+
+    docs = [ClienteDocumento(**doc).model_dump() for doc in list_documentos(cliente_id)]
+    return ApiResponse(data={"uploaded": True, "documento": raw_name, "documentos": docs})
+
+
+@router.get("/{cliente_id}/hallazgos", response_model=ApiResponse)
+def get_cliente_hallazgos(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    raw = read_hallazgos(cliente_id)
+    items: list[dict[str, str]] = []
+    current_title = ""
+    current_body: list[str] = []
+
+    for line in raw.splitlines():
+        if line.startswith("## "):
+            if current_title or current_body:
+                items.append({"title": current_title or "Hallazgo", "body": "\n".join(current_body).strip()})
+            current_title = line.replace("## ", "", 1).strip()
+            current_body = []
+        else:
+            current_body.append(line)
+    if current_title or current_body:
+        items.append({"title": current_title or "Hallazgo", "body": "\n".join(current_body).strip()})
+
+    items = [x for x in items if x.get("title") or x.get("body")]
+    return ApiResponse(data=items[-20:])
+
+
+@router.get("/{cliente_id}/documentos/file")
+def get_cliente_documento_file(
+    cliente_id: str,
+    name: str = Query(...),
+    user: UserContext = Depends(get_current_user),
+) -> FileResponse:
+    authorize_cliente_access(cliente_id, user)
+    base = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id
+    safe_name = Path(name).name
+    candidates = [base / "documentos" / safe_name, base / safe_name]
+    for path in candidates:
+        if path.exists() and path.is_file():
+            return FileResponse(path=path.resolve(), filename=safe_name)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento no encontrado.")

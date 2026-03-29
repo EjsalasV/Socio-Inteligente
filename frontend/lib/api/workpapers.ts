@@ -86,3 +86,38 @@ export async function patchWorkpaperTask(
     }),
   });
 }
+
+export async function createWorkpaperTask(
+  clienteId: string,
+  payload: {
+    area_code: string;
+    area_name: string;
+    title: string;
+    nia_ref?: string;
+    prioridad?: string;
+    required?: boolean;
+    evidence_note?: string;
+  },
+): Promise<{ created: boolean; task: WorkpaperPlanData["tasks"][number] | null }> {
+  const response = await authFetchJson<ApiEnvelope<unknown>>(`/papeles-trabajo/${clienteId}/tasks`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  const raw = typeof response?.data === "object" && response?.data !== null ? (response.data as UnknownRecord) : {};
+  const taskRaw = typeof raw.task === "object" && raw.task !== null ? (raw.task as UnknownRecord) : null;
+  if (!taskRaw) return { created: Boolean(raw.created), task: null };
+  return {
+    created: Boolean(raw.created),
+    task: {
+      id: asString(taskRaw.id),
+      area_code: asString(taskRaw.area_code),
+      area_name: asString(taskRaw.area_name),
+      title: asString(taskRaw.title),
+      nia_ref: asString(taskRaw.nia_ref),
+      prioridad: asString(taskRaw.prioridad),
+      required: asBoolean(taskRaw.required, true),
+      done: asBoolean(taskRaw.done, false),
+      evidence_note: asString(taskRaw.evidence_note),
+    },
+  };
+}

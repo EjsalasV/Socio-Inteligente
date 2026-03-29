@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
 from backend.auth import authorize_cliente_access, get_current_user
-from backend.repositories.file_repository import append_audit_log
+from backend.repositories.file_repository import append_audit_log, append_hallazgo
 from backend.schemas import ApiResponse, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse, UserContext
 from backend.services.rag_chat_service import generate_chat_response, generate_metodologia_response
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+
+
+class ChatExportRequest(BaseModel):
+    content: str
+    title: str | None = None
 
 
 @router.post("/{cliente_id}", response_model=ApiResponse)
@@ -70,3 +76,26 @@ def post_metodologia_alias(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     return post_metodologia(cliente_id=cliente_id, payload=payload, user=user)
+
+
+@router.post("/{cliente_id}/export", response_model=ApiResponse)
+def post_chat_export(
+    cliente_id: str,
+    payload: ChatExportRequest,
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    text = payload.content.strip()
+    if not text:
+        return ApiResponse(data={"saved": False, "reason": "empty_content"})
+
+    title = (payload.title or "Criterio exportado desde Socio Chat").strip()
+    append_hallazgo(cliente_id, f"## {title}\n\n{text}")
+
+    append_audit_log(
+        user_id=user.sub,
+        cliente_id=cliente_id,
+        endpoint="POST /chat/{cliente_id}/export",
+        extra={"title": title, "content_len": len(text)},
+    )
+    return ApiResponse(data={"saved": True, "title": title})

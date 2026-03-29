@@ -7,6 +7,19 @@ export interface ClienteOption {
   sector: string | null;
 }
 
+export interface ClienteDocumento {
+  id: string;
+  name: string;
+  kind: string;
+  uploaded_at: string;
+  path: string;
+}
+
+export interface ClienteHallazgo {
+  title: string;
+  body: string;
+}
+
 export interface CreateClienteInput {
   cliente_id: string;
   nombre: string;
@@ -78,4 +91,58 @@ export async function uploadClienteArchivo(
     original_name: typeof data.original_name === "string" ? data.original_name : file.name,
     rows: typeof data.rows === "number" ? data.rows : 0,
   };
+}
+
+export async function getClienteDocumentos(clienteId: string): Promise<ClienteDocumento[]> {
+  const response = await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}/documentos`);
+  const raw = Array.isArray(response?.data) ? response.data : [];
+  return raw
+    .map((item) => {
+      if (!isRecord(item)) return null;
+      return {
+        id: typeof item.id === "string" ? item.id : "",
+        name: typeof item.name === "string" ? item.name : "",
+        kind: typeof item.kind === "string" ? item.kind : "documento",
+        uploaded_at: typeof item.uploaded_at === "string" ? item.uploaded_at : "",
+        path: typeof item.path === "string" ? item.path : "",
+      };
+    })
+    .filter((item): item is ClienteDocumento => item !== null && Boolean(item.id));
+}
+
+export async function uploadClienteDocumento(clienteId: string, file: File): Promise<ClienteDocumento[]> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}/documentos/upload`, {
+    method: "POST",
+    body: formData,
+  });
+  const data = isRecord(response?.data) ? response.data : {};
+  const docs = Array.isArray(data.documentos) ? data.documentos : [];
+  return docs
+    .map((item) => {
+      if (!isRecord(item)) return null;
+      return {
+        id: typeof item.id === "string" ? item.id : "",
+        name: typeof item.name === "string" ? item.name : "",
+        kind: typeof item.kind === "string" ? item.kind : "documento",
+        uploaded_at: typeof item.uploaded_at === "string" ? item.uploaded_at : "",
+        path: typeof item.path === "string" ? item.path : "",
+      };
+    })
+    .filter((item): item is ClienteDocumento => item !== null && Boolean(item.id));
+}
+
+export async function getClienteHallazgos(clienteId: string): Promise<ClienteHallazgo[]> {
+  const response = await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}/hallazgos`);
+  const raw = Array.isArray(response?.data) ? response.data : [];
+  return raw
+    .map((item) => {
+      if (!isRecord(item)) return null;
+      return {
+        title: typeof item.title === "string" ? item.title : "Hallazgo",
+        body: typeof item.body === "string" ? item.body : "",
+      };
+    })
+    .filter((item): item is ClienteHallazgo => item !== null);
 }

@@ -37,33 +37,34 @@ export default function Sidebar() {
   const { clienteId, moduleKey, pathname } = useAuditContext();
   const [openMobile, setOpenMobile] = useState<boolean>(false);
 
-  const baseCliente = clienteId || "cliente_demo";
+  const baseCliente = clienteId || "";
+  const withCliente = (route: string): string => (baseCliente ? `/${route}/${baseCliente}` : "/clientes");
 
   const items = useMemo<NavItem[]>(
     () => [
-      { id: "perfil", key: "perfil", label: "Perfil Cliente", icon: "business_center", href: `/perfil/${baseCliente}` },
+      { id: "perfil", key: "perfil", label: "Perfil Cliente", icon: "business_center", href: withCliente("perfil") },
       { id: "clientes", key: "clientes", label: "Clientes", icon: "groups", href: "/clientes" },
-      { id: "dashboard", key: "dashboard", label: "Dashboard", icon: "dashboard", href: `/dashboard/${baseCliente}` },
-      { id: "risk-engine", key: "risk-engine", label: "Risk Engine", icon: "security", href: `/risk-engine/${baseCliente}` },
-      { id: "trial-balance", key: "trial-balance", label: "Trial Balance", icon: "account_balance_wallet", href: `/trial-balance/${baseCliente}` },
+      { id: "dashboard", key: "dashboard", label: "Dashboard", icon: "dashboard", href: withCliente("dashboard") },
+      { id: "risk-engine", key: "risk-engine", label: "Risk Engine", icon: "security", href: withCliente("risk-engine") },
+      { id: "trial-balance", key: "trial-balance", label: "Trial Balance", icon: "account_balance_wallet", href: withCliente("trial-balance") },
       {
         id: "estados-financieros",
         key: "estados-financieros",
         label: "Estados Financieros",
         icon: "bar_chart",
-        href: `/estados-financieros/${baseCliente}`,
+        href: withCliente("estados-financieros"),
       },
-      { id: "areas", key: "areas", label: "Workspace Áreas", icon: "receipt_long", href: `/areas/${baseCliente}/130` },
+      { id: "areas", key: "areas", label: "Workspace Áreas", icon: "receipt_long", href: withCliente("areas") },
       {
         id: "papeles-trabajo",
         key: "papeles-trabajo",
         label: "Papeles de Trabajo",
         icon: "task_alt",
-        href: `/papeles-trabajo/${baseCliente}`,
+        href: withCliente("papeles-trabajo"),
       },
-      { id: "socio-chat", key: "socio-chat", label: "Socio Chat", icon: "forum", href: `/socio-chat/${baseCliente}` },
-      { id: "client-memory", key: "client-memory", label: "Client Memory", icon: "folder_shared", href: `/client-memory/${baseCliente}` },
-      { id: "reportes", key: "reportes", label: "Reportes", icon: "description", href: `/reportes/${baseCliente}` },
+      { id: "socio-chat", key: "socio-chat", label: "Socio Chat", icon: "forum", href: withCliente("socio-chat") },
+      { id: "client-memory", key: "client-memory", label: "Client Memory", icon: "folder_shared", href: withCliente("client-memory") },
+      { id: "reportes", key: "reportes", label: "Reportes", icon: "description", href: withCliente("reportes") },
     ],
     [baseCliente],
   );
@@ -91,7 +92,9 @@ export default function Sidebar() {
           <nav className="space-y-2 flex-1 overflow-y-auto pr-1 min-h-0">
             {items.map((item) => {
               const active =
-                item.key === "areas"
+                !baseCliente || item.key === "clientes"
+                  ? pathname.startsWith("/clientes") || pathname.startsWith("/onboarding/")
+                  : item.key === "areas"
                   ? pathname.startsWith(`/areas/${baseCliente}`)
                   : item.key === "reportes"
                     ? pathname.startsWith(`/reportes/${baseCliente}`)
@@ -101,9 +104,7 @@ export default function Sidebar() {
                         ? pathname.startsWith(`/client-memory/${baseCliente}`)
                         : item.key === "papeles-trabajo"
                           ? pathname.startsWith(`/papeles-trabajo/${baseCliente}`)
-                    : item.key === "clientes"
-                      ? pathname.startsWith("/clientes") || pathname.startsWith("/onboarding/")
-                    : moduleKey === item.key;
+                        : moduleKey === item.key;
 
               return (
                 <Link

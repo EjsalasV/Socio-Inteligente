@@ -23,7 +23,7 @@ export default function DashboardContent({ data }: Props) {
         ? "text-amber-700"
         : "text-emerald-700";
 
-  const fase = (data.fase_actual || "").toLowerCase();
+  const fase = (data.workflow_phase || data.fase_actual || "").toLowerCase();
   const etapa =
     fase.includes("inform") || fase.includes("cierre")
       ? "Informe"
@@ -122,7 +122,32 @@ export default function DashboardContent({ data }: Props) {
                 </div>
               ))}
             </div>
-            <div className="mt-5 pt-4 border-t border-black/5 text-xs uppercase tracking-[0.12em] text-slate-500">
+            {data.workflow_gates?.length ? (
+              <div className="mt-5 pt-4 border-t border-black/5 space-y-2">
+                <p className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Quality Gates</p>
+                <div className="space-y-2">
+                  {data.workflow_gates.map((gate) => (
+                    <div key={gate.code} className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-navy-900">{gate.code}</span>
+                      <span
+                        className={
+                          gate.status === "ok"
+                            ? "rounded-full px-2 py-0.5 bg-emerald-100 text-emerald-800 font-semibold"
+                            : "rounded-full px-2 py-0.5 bg-rose-100 text-rose-800 font-semibold"
+                        }
+                      >
+                        {gate.status === "ok" ? "OK" : "BLOQUEADO"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <div
+              className={`${
+                data.workflow_gates?.length ? "mt-4 pt-1" : "mt-5 pt-4 border-t border-black/5"
+              } text-xs uppercase tracking-[0.12em] text-slate-500`}
+            >
               Etapa actual: <span className="font-bold text-navy-900">{etapa}</span>
             </div>
           </article>

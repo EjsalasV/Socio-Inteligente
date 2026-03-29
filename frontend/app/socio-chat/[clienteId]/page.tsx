@@ -4,7 +4,8 @@ import { FormEvent, useMemo, useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
-import { postChat } from "../../../lib/api";
+import { exportChatCriterion, postChat } from "../../../lib/api";
+import { createWorkpaperTask } from "../../../lib/api/workpapers";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
 import { useRiskEngine } from "../../../lib/hooks/useRiskEngine";
@@ -35,20 +36,8 @@ export default function SocioChatPage() {
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "seed-user",
-      role: "user",
-      timestamp: nowLabel(),
-      text: "Socio, ayúdame a priorizar los procedimientos para las areas de mayor riesgo del cliente.",
-    },
-    {
-      id: "seed-assistant",
-      role: "assistant",
-      timestamp: nowLabel(),
-      text: "Perfecto. Empecemos por las areas con mayor score y saldo relevante, y luego definimos pruebas sustantivas y de control por cada una.",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [actionMsg, setActionMsg] = useState("");
 
   const openRisks = useMemo(() => riskData?.areas_criticas?.slice(0, 2) ?? [], [riskData]);
   const recentThreads = useMemo(
@@ -67,15 +56,17 @@ export default function SocioChatPage() {
   );
 
   const references = useMemo(() => {
-    const refs = ["NIA 315 - Valoracion de riesgos.", "NIA 330 - Respuestas del auditor."];
-    const names = (dashboard?.top_areas ?? []).map((x) => x.nombre.toLowerCase()).join(" ");
-    if (names.includes("ingreso") || names.includes("cobrar") || names.includes("venta")) {
-      refs.unshift("NIIF 15 - Ingresos por contratos con clientes.");
-    } else {
-      refs.unshift("NIA 520 - Procedimientos analiticos.");
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+    if (lastAssistant?.citations?.length) {
+      return lastAssistant.citations.map((c) => c.source);
     }
-    return refs;
-  }, [dashboard]);
+    return ["NIA 315 - Valoracion de riesgos.", "NIA 330 - Respuestas del auditor."];
+  }, [messages]);
+
+  const lastAssistantMessage = useMemo(
+    () => [...messages].reverse().find((m) => m.role === "assistant") ?? null,
+    [messages],
+  );
 
   async function handleSend(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -119,6 +110,49 @@ export default function SocioChatPage() {
     }
   }
 
+  async function handleLinkToWorkpaper(): Promise<void> {
+    if (!lastAssistantMessage) {
+      setActionMsg("No hay criterio generado para vincular.");
+      return;
+    }
+    const top = dashboard?.top_areas?.[0];
+    if (!top) {
+      setActionMsg("No hay area priorizada para crear tarea.");
+      return;
+    }
+    const title = `Criterio Socio Chat: ${lastAssistantMessage.text.slice(0, 60)}${lastAssistantMessage.text.length > 60 ? "..." : ""}`;
+    try {
+      const result = await createWorkpaperTask(clienteId, {
+        area_code: top.codigo,
+        area_name: top.nombre,
+        title,
+        nia_ref: "NIA 500",
+        prioridad: top.prioridad,
+        required: true,
+        evidence_note: "",
+      });
+      setActionMsg(result.created ? "Tarea creada en Papeles de Trabajo." : "La tarea ya existia en Papeles.");
+    } catch (err) {
+      setActionMsg(err instanceof Error ? err.message : "No se pudo vincular a papeles.");
+    }
+  }
+
+  async function handleExportCriterion(): Promise<void> {
+    if (!lastAssistantMessage) {
+      setActionMsg("No hay respuesta para exportar.");
+      return;
+    }
+    try {
+      await exportChatCriterion(clienteId, {
+        title: "Criterio exportado desde Socio Chat",
+        content: lastAssistantMessage.text,
+      });
+      setActionMsg("Criterio exportado y guardado en hallazgos.");
+    } catch (err) {
+      setActionMsg(err instanceof Error ? err.message : "No se pudo exportar criterio.");
+    }
+  }
+
   if (dashboardLoading) return <DashboardSkeleton />;
   if (dashboardError) return <ErrorMessage message={dashboardError} />;
   if (!dashboard) return <ErrorMessage message="No hay contexto del cliente para Socio Chat." />;
@@ -156,10 +190,18 @@ export default function SocioChatPage() {
               <span className="text-xs uppercase tracking-[0.15em] text-slate-500 font-bold">Sesion activa</span>
             </div>
             <div className="flex items-center gap-2">
-              <button className="text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-full bg-white border border-black/10 text-slate-600">
+              <button
+                type="button"
+                onClick={() => void handleLinkToWorkpaper()}
+                className="text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-full bg-white border border-black/10 text-slate-600"
+              >
                 Vincular a papel
               </button>
-              <button className="text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-full text-white bg-[#041627]">
+              <button
+                type="button"
+                onClick={() => void handleExportCriterion()}
+                className="text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-full text-white bg-[#041627]"
+              >
                 Exportar criterio
               </button>
             </div>
@@ -193,6 +235,7 @@ export default function SocioChatPage() {
           </div>
 
           <div className="p-5 bg-[#f1f4f6]/35 border-t border-black/5">
+            {actionMsg ? <p className="text-xs text-slate-600 mb-3">{actionMsg}</p> : null}
             <div className="flex gap-2 mb-3 overflow-x-auto">
               {QUICK_PROMPTS.map((q) => (
                 <button

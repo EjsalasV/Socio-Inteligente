@@ -6,16 +6,19 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
 
 from backend.auth import authorize_cliente_access, get_current_user
-from backend.repositories.file_repository import read_hallazgos
+from backend.repositories.file_repository import append_hallazgo, read_hallazgos, read_memo, write_memo
 from backend.routes.dashboard import get_dashboard
 from backend.routes.workpapers import _generate_tasks, _merge_saved_tasks, _quality_gates
-from backend.schemas import ApiResponse, PdfSummaryResponse, UserContext
+from backend.schemas import ApiResponse, PdfSummaryResponse, ReportMemoResponse, UserContext
+from backend.services.rag_chat_service import generate_chat_response
 
 router = APIRouter(prefix="/reportes", tags=["reportes"])
 ROOT = Path(__file__).resolve().parents[2]
+EXPORTS_DIR = ROOT / "data" / "exports"
 
 
 def _safe_text(value: Any) -> str:
@@ -124,6 +127,24 @@ def _html_to_pdf_bytes(html: str) -> bytes:
     return output.getvalue()
 
 
+def _build_memo_fallback(*, dashboard: Any, top_areas: list[Any], hallazgos: str) -> str:
+    areas = ", ".join([f"{x.codigo} ({x.nombre})" for x in top_areas[:3]]) if top_areas else "sin areas destacadas"
+    short_h = hallazgos.strip()
+    if len(short_h) > 900:
+        short_h = short_h[:900] + "..."
+    return (
+        f"Memo Ejecutivo - {dashboard.nombre_cliente}\n\n"
+        f"Riesgo global: {dashboard.riesgo_global}.\n"
+        f"Materialidad de planeacion: {dashboard.materialidad_global:,.2f}.\n"
+        f"Areas prioritarias: {areas}.\n\n"
+        "Recomendacion:\n"
+        "1) Cerrar procedimientos pendientes en areas altas.\n"
+        "2) Documentar evidencia de soporte y conclusion por area.\n"
+        "3) Validar consistencia entre TB, Mayor y revelaciones.\n\n"
+        f"Contexto de hallazgos:\n{short_h}"
+    )
+
+
 @router.get("/{cliente_id}/executive-pdf", response_model=ApiResponse)
 def get_executive_pdf(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
@@ -132,11 +153,10 @@ def get_executive_pdf(cliente_id: str, user: UserContext = Depends(get_current_u
     html = _render_executive_html(dashboard=dashboard, top_areas=top_areas, hallazgos=hallazgos)
     pdf_bytes = _html_to_pdf_bytes(html)
 
-    exports_dir = ROOT / "data" / "exports"
-    exports_dir.mkdir(parents=True, exist_ok=True)
+    EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report_name = f"{cliente_id}_executive_summary_{timestamp}.pdf"
-    out_path = exports_dir / report_name
+    out_path = EXPORTS_DIR / report_name
     out_path.write_bytes(pdf_bytes)
 
     file_hash = hashlib.sha256(pdf_bytes).hexdigest()
@@ -147,5 +167,65 @@ def get_executive_pdf(cliente_id: str, user: UserContext = Depends(get_current_u
         path=str(out_path),
         file_hash=file_hash,
         size_bytes=len(pdf_bytes),
+    )
+    return ApiResponse(data=payload.model_dump())
+
+
+@router.get("/{cliente_id}/executive-pdf/file")
+def get_executive_pdf_file(
+    cliente_id: str,
+    path: str = Query(...),
+    user: UserContext = Depends(get_current_user),
+) -> FileResponse:
+    authorize_cliente_access(cliente_id, user)
+    target = Path(path)
+    if not target.is_absolute():
+        target = (ROOT / target).resolve()
+    else:
+        target = target.resolve()
+
+    exports_resolved = EXPORTS_DIR.resolve()
+    if not str(target).startswith(str(exports_resolved)):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ruta de archivo invalida.")
+    if not target.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Archivo no encontrado.")
+    return FileResponse(path=target, filename=target.name, media_type="application/pdf")
+
+
+@router.post("/{cliente_id}/memo", response_model=ApiResponse)
+def post_executive_memo(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    dashboard, top_areas, hallazgos = _ensure_required_sections(cliente_id, user)
+    query = (
+        "Genera un memo ejecutivo de auditoria en espanol para socio firmante. "
+        "Incluye: riesgo global, materialidad, top areas, recomendaciones accionables y siguiente paso."
+    )
+    rag = generate_chat_response(cliente_id, query)
+    memo = str(rag.get("answer") or "").strip()
+    if not memo:
+        memo = _build_memo_fallback(dashboard=dashboard, top_areas=top_areas, hallazgos=hallazgos)
+
+    write_memo(cliente_id, memo)
+    marker = f"## Memo Ejecutivo ({datetime.now(timezone.utc).date().isoformat()})"
+    append_hallazgo(cliente_id, f"{marker}\n\n{memo}")
+
+    payload = ReportMemoResponse(
+        cliente_id=cliente_id,
+        memo=memo,
+        generated_at=datetime.now(timezone.utc),
+        source="openai_rag" if str(rag.get("answer") or "").strip() else "fallback",
+    )
+    return ApiResponse(data=payload.model_dump())
+
+
+@router.get("/{cliente_id}/memo", response_model=ApiResponse)
+def get_executive_memo(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    memo = read_memo(cliente_id)
+    payload = ReportMemoResponse(
+        cliente_id=cliente_id,
+        memo=memo,
+        generated_at=datetime.now(timezone.utc),
+        source="saved" if memo else "empty",
     )
     return ApiResponse(data=payload.model_dump())

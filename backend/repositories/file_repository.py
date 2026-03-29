@@ -106,6 +106,72 @@ class FileRepository:
             encoding="utf-8",
         )
 
+    def memo_path(self, cliente_id: str) -> Path:
+        return self.cliente_dir(cliente_id) / "memo_ejecutivo.md"
+
+    def read_memo(self, cliente_id: str) -> str:
+        p = self.memo_path(cliente_id)
+        if not p.exists():
+            return ""
+        return p.read_text(encoding="utf-8").strip()
+
+    def write_memo(self, cliente_id: str, content: str) -> None:
+        cdir = self.cliente_dir(cliente_id)
+        cdir.mkdir(parents=True, exist_ok=True)
+        self.memo_path(cliente_id).write_text(content.strip() + "\n", encoding="utf-8")
+
+    def list_documentos(self, cliente_id: str) -> list[dict[str, Any]]:
+        cdir = self.cliente_dir(cliente_id)
+        docs_dir = cdir / "documentos"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+
+        out: list[dict[str, Any]] = []
+
+        def _kind_for_file(path: Path) -> str:
+            name = path.name.lower()
+            if name == "tb.xlsx":
+                return "trial_balance"
+            if name == "mayor.xlsx":
+                return "libro_mayor"
+            if path.suffix.lower() in {".pdf"}:
+                return "pdf"
+            if path.suffix.lower() in {".xlsx", ".xls", ".csv"}:
+                return "spreadsheet"
+            if path.suffix.lower() in {".md", ".txt"}:
+                return "note"
+            return "documento"
+
+        for path in [cdir / "tb.xlsx", cdir / "mayor.xlsx"]:
+            if not path.exists():
+                continue
+            stat = path.stat()
+            out.append(
+                {
+                    "id": path.name,
+                    "name": path.name,
+                    "kind": _kind_for_file(path),
+                    "uploaded_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
+                    "path": str(path),
+                }
+            )
+
+        for path in sorted(docs_dir.glob("*")):
+            if not path.is_file():
+                continue
+            stat = path.stat()
+            out.append(
+                {
+                    "id": path.name,
+                    "name": path.name,
+                    "kind": _kind_for_file(path),
+                    "uploaded_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
+                    "path": str(path),
+                }
+            )
+
+        out.sort(key=lambda x: x["uploaded_at"], reverse=True)
+        return out
+
     def create_cliente(self, *, cliente_id: str, nombre: str, sector: str | None = None) -> dict[str, Any]:
         cid = slugify_cliente_id(cliente_id) if cliente_id else slugify_cliente_id(nombre)
         if not cid:
@@ -427,6 +493,13 @@ def read_perfil(cliente_id: str) -> dict[str, Any]:
 
 def write_perfil(cliente_id: str, data: dict[str, Any]) -> None:
     repo.write_perfil(cliente_id, data)
+    # Mantiene sincronizado el cache de perfil usado por servicios de dominio.
+    try:
+        from domain.services.leer_perfil import set_perfil_cache
+
+        set_perfil_cache(cliente_id, data)
+    except Exception:
+        pass
 
 
 def read_hallazgos(cliente_id: str) -> str:
@@ -449,8 +522,27 @@ def write_workpapers(cliente_id: str, tasks: list[dict[str, Any]]) -> None:
     repo.write_workpapers(cliente_id, tasks)
 
 
+def read_memo(cliente_id: str) -> str:
+    return repo.read_memo(cliente_id)
+
+
+def write_memo(cliente_id: str, content: str) -> None:
+    repo.write_memo(cliente_id, content)
+
+
+def list_documentos(cliente_id: str) -> list[dict[str, Any]]:
+    return repo.list_documentos(cliente_id)
+
+
 def create_cliente(*, cliente_id: str, nombre: str, sector: str | None = None) -> dict[str, Any]:
-    return repo.create_cliente(cliente_id=cliente_id, nombre=nombre, sector=sector)
+    created = repo.create_cliente(cliente_id=cliente_id, nombre=nombre, sector=sector)
+    try:
+        from domain.services.leer_perfil import set_perfil_cache
+
+        set_perfil_cache(created.get("cliente_id", ""), read_perfil(created.get("cliente_id", "")))
+    except Exception:
+        pass
+    return created
 
 
 def slugify_cliente_id(raw: str) -> str:
@@ -472,7 +564,15 @@ def deep_merge_dict(base: dict[str, Any], patch: dict[str, Any]) -> dict[str, An
 
 
 def delete_cliente(cliente_id: str) -> bool:
-    return repo.delete_cliente(cliente_id)
+    deleted = repo.delete_cliente(cliente_id)
+    if deleted:
+        try:
+            from domain.services.leer_perfil import clear_perfil_cache
+
+            clear_perfil_cache(cliente_id)
+        except Exception:
+            pass
+    return deleted
 
 
 def append_audit_log(*, user_id: str, cliente_id: str, endpoint: str, extra: dict[str, Any] | None = None) -> None:

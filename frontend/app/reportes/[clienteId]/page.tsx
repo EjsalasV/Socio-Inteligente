@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
-import { generateExecutivePdf } from "../../../lib/api/reportes";
+import { downloadExecutivePdf, generateExecutiveMemo, generateExecutivePdf } from "../../../lib/api/reportes";
 import { formatMoney } from "../../../lib/formatters";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
@@ -15,6 +15,8 @@ export default function ReportesPage() {
   const { data, isLoading, error } = useDashboard(clienteId);
   const [reportMsg, setReportMsg] = useState<string>("");
   const [generating, setGenerating] = useState<boolean>(false);
+  const [memoGenerating, setMemoGenerating] = useState<boolean>(false);
+  const [lastMemo, setLastMemo] = useState<string>("");
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -28,6 +30,39 @@ export default function ReportesPage() {
       setReportMsg(`PDF generado: ${meta.report_name} (${(meta.size_bytes / 1024).toFixed(1)} KB)`);
     } catch (err) {
       setReportMsg(err instanceof Error ? err.message : "No se pudo generar el PDF.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function handleGenerateMemo(): Promise<void> {
+    setMemoGenerating(true);
+    setReportMsg("");
+    try {
+      const memo = await generateExecutiveMemo(clienteId);
+      setLastMemo(memo.memo);
+      setReportMsg("Memo ejecutivo generado y guardado en hallazgos.");
+    } catch (err) {
+      setReportMsg(err instanceof Error ? err.message : "No se pudo generar el memo.");
+    } finally {
+      setMemoGenerating(false);
+    }
+  }
+
+  async function handleDownloadPdf(): Promise<void> {
+    setGenerating(true);
+    setReportMsg("");
+    try {
+      const { blob, filename } = await downloadExecutivePdf(clienteId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+      setReportMsg(`PDF descargado: ${filename}`);
+    } catch (err) {
+      setReportMsg(err instanceof Error ? err.message : "No se pudo abrir el PDF.");
     } finally {
       setGenerating(false);
     }
@@ -65,8 +100,13 @@ export default function ReportesPage() {
           <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold">Materialidad</p>
           <h3 className="font-headline text-2xl text-[#041627] mt-2">{formatMoney(data.materialidad_global)}</h3>
           <p className="text-sm text-slate-600 mt-3">Base para pruebas sustantivas y evaluacion de desviaciones.</p>
-          <button className="mt-5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627]">
-            Descargar
+          <button
+            type="button"
+            onClick={() => void handleDownloadPdf()}
+            disabled={generating}
+            className="mt-5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627] disabled:opacity-60"
+          >
+            {generating ? "Abriendo..." : "Descargar"}
           </button>
         </article>
 
@@ -78,13 +118,24 @@ export default function ReportesPage() {
               <li key={x.codigo}>- {x.codigo} - {x.nombre}</li>
             ))}
           </ul>
-          <button className="mt-5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627]">
-            Generar memo
+          <button
+            type="button"
+            onClick={() => void handleGenerateMemo()}
+            disabled={memoGenerating}
+            className="mt-5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627] disabled:opacity-60"
+          >
+            {memoGenerating ? "Generando..." : "Generar memo"}
           </button>
         </article>
       </section>
 
       {reportMsg ? <section className="sovereign-card text-sm text-slate-600">{reportMsg}</section> : null}
+      {lastMemo ? (
+        <section className="sovereign-card">
+          <h3 className="font-headline text-2xl text-[#041627] mb-2">Memo Ejecutivo</h3>
+          <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{lastMemo}</p>
+        </section>
+      ) : null}
 
       <section className="sovereign-card">
         <h2 className="font-headline text-3xl text-[#041627] mb-4">Acciones</h2>

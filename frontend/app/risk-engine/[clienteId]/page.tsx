@@ -32,15 +32,15 @@ export default function RiskEnginePage() {
         <RiskMatrix data={data} />
         <RiskStrategyPanel areas={data.areas_criticas} />
         <CriticalRisks areas={data.areas_criticas} />
-        <RiskProcedureSuggestions areas={data.areas_criticas} />
+        <RiskProcedureSuggestions clienteId={clienteId} areas={data.areas_criticas} />
       </div>
 
       <footer className="mt-8 border-t border-slate-200 pt-8 flex justify-between items-center text-[10px] font-bold text-slate-400 tracking-widest uppercase">
         <div>Socio AI Risk Engine v2.4.0</div>
         <div className="flex space-x-8">
-          <a className="hover:text-[#041627] transition-colors" href="#">Documentation</a>
-          <a className="hover:text-[#041627] transition-colors" href="#">Methodology</a>
-          <a className="hover:text-[#041627] transition-colors" href="#">Audit Standards</a>
+          <a className="hover:text-[#041627] transition-colors" href={`/metodologia/${clienteId}`}>Documentation</a>
+          <a className="hover:text-[#041627] transition-colors" href={`/socio-chat/${clienteId}`}>Methodology</a>
+          <a className="hover:text-[#041627] transition-colors" href={`/reportes/${clienteId}`}>Audit Standards</a>
         </div>
       </footer>
     </div>
