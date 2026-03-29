@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
-from backend.main import app
+# Override JWT_SECRET_KEY for dummy schema generation
+os.environ["EXPORT_OPENAPI"] = "1"
+
+from backend.main import app  # noqa: E402
 
 
 def main() -> None:
     out = Path(__file__).resolve().parents[1] / "openapi.json"
-    out.write_text(json.dumps(app.openapi(), indent=2, ensure_ascii=False), encoding="utf-8")
+    schema = json.dumps(app.openapi(), indent=2, ensure_ascii=False)
+    out.write_text(schema, encoding="utf-8")
     print(f"OpenAPI exported to {out}")
 
 

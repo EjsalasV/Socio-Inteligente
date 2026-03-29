@@ -72,6 +72,53 @@
         ]
       }
     },
+    "/clientes/{cliente_id}": {
+      "delete": {
+        "tags": [
+          "clientes"
+        ],
+        "summary": "Remove Cliente",
+        "operationId": "remove_cliente_clientes__cliente_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/perfil/{cliente_id}": {
       "get": {
         "tags": [
@@ -954,6 +1001,21 @@
             "type": "number",
             "title": "Materialidad Global",
             "default": 0.0
+          },
+          "materialidad_ejecucion": {
+            "type": "number",
+            "title": "Materialidad Ejecucion",
+            "default": 0.0
+          },
+          "umbral_trivial": {
+            "type": "number",
+            "title": "Umbral Trivial",
+            "default": 0.0
+          },
+          "fase_actual": {
+            "type": "string",
+            "title": "Fase Actual",
+            "default": ""
           }
         },
         "type": "object",
