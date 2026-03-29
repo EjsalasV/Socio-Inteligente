@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -152,7 +152,7 @@ export default function ReportesPage() {
         <p className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-body">Centro Operativo de Reportes</p>
         <h1 className="font-headline text-5xl text-white mt-2">Emision y Trazabilidad</h1>
         <p className="font-body text-slate-200 mt-3 leading-relaxed text-base">
-          Cliente: <span className="font-semibold text-white">{data.nombre_cliente}</span> �
+          Cliente: <span className="font-semibold text-white">{data.nombre_cliente}</span> ·
           Periodo: <span className="font-semibold text-white"> {data.periodo || "Actual"}</span>
         </p>
       </section>
@@ -302,3 +302,4 @@ export default function ReportesPage() {
     </div>
   );
 }
+
