@@ -22,6 +22,8 @@ COPY core ./core
 COPY infra ./infra
 COPY llm ./llm
 COPY app ./app
+COPY data/catalogos ./data/catalogos
+COPY data/conocimiento_normativo ./data/conocimiento_normativo
 
 ENV PORT=8000
 EXPOSE 8000

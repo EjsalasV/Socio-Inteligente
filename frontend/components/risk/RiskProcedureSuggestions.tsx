@@ -35,6 +35,26 @@ function buildProcedures(areas: RiskCriticalArea[]): Procedure[] {
     });
   }
 
+  if (joined.includes("efectivo") || joined.includes("banco") || joined.includes("tesorer")) {
+    list.push({
+      nia: "NIA 505",
+      title: "Confirmaciones Bancarias y Conciliaciones",
+      description:
+        "Validar saldos de efectivo con confirmaciones externas y revisar partidas conciliatorias de cierre.",
+      vinculo: "Efectivo",
+    });
+  }
+
+  if (joined.includes("patrimonio") || joined.includes("inversion")) {
+    list.push({
+      nia: "NIA 540",
+      title: "Revisión de Estimaciones y Valuaciones",
+      description:
+        "Evaluar supuestos de valuación, deterioro y revelaciones en patrimonio e inversiones no corrientes.",
+      vinculo: "Patrimonio / Inversiones",
+    });
+  }
+
   list.push({
     nia: "NIA 520",
     title: "Procedimientos Analíticos Focalizados",
@@ -43,7 +63,15 @@ function buildProcedures(areas: RiskCriticalArea[]): Procedure[] {
     vinculo: "Análisis transversal",
   });
 
-  return list.slice(0, 2);
+  const deduped: Procedure[] = [];
+  const seen = new Set<string>();
+  for (const p of list) {
+    const key = `${p.nia}-${p.title}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(p);
+  }
+  return deduped.slice(0, 3);
 }
 
 export default function RiskProcedureSuggestions({ areas }: Props) {

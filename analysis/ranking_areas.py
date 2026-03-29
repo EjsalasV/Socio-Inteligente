@@ -50,21 +50,61 @@ def _inferir_peso(area: dict[str, Any]) -> float:
     return 0.9
 
 
-def _cargar_areas_auditoria() -> dict[str, dict[str, Any]]:
-    areas_catalogo = cargar_areas_catalogo()
-    if not areas_catalogo:
-        return AREAS_AUDITORIA_DEFAULT
+def _dynamic_area_name_from_ls(codigo: str) -> str:
+    code = str(codigo or "").strip()
+    if not code:
+        return "Area"
+    first = code[0]
+    if first == "1":
+        return f"Activo ({code})"
+    if first == "2":
+        return f"Pasivo ({code})"
+    if first == "3":
+        return f"Patrimonio ({code})"
+    if first == "4":
+        return f"Ingresos ({code})"
+    if first == "5":
+        return f"Gastos ({code})"
+    return f"Area {code}"
 
+
+def _cargar_areas_auditoria(tb: pd.DataFrame | None = None) -> dict[str, dict[str, Any]]:
+    areas_catalogo = cargar_areas_catalogo()
     salida: dict[str, dict[str, Any]] = {}
-    for area in areas_catalogo:
-        codigo = str(area.get("codigo", "")).strip()
-        if not codigo:
-            continue
-        salida[codigo] = {
-            "nombre": str(area.get("titulo", f"Area {codigo}")).strip() or f"Area {codigo}",
-            "peso": _inferir_peso(area),
-        }
-    return salida or AREAS_AUDITORIA_DEFAULT
+
+    if areas_catalogo:
+        for area in areas_catalogo:
+            codigo = str(area.get("codigo", "")).strip()
+            if not codigo:
+                continue
+            salida[codigo] = {
+                "nombre": str(area.get("titulo", f"Area {codigo}")).strip() or f"Area {codigo}",
+                "peso": _inferir_peso(area),
+            }
+
+    if isinstance(tb, pd.DataFrame) and not tb.empty and "ls" in tb.columns:
+        ls_values = (
+            tb["ls"]
+            .astype(str)
+            .str.strip()
+            .replace({"": None, "nan": None, "None": None})
+            .dropna()
+            .unique()
+            .tolist()
+        )
+        for raw_ls in ls_values:
+            codigo = str(raw_ls).strip()
+            if not codigo:
+                continue
+            if codigo not in salida:
+                salida[codigo] = {
+                    "nombre": _dynamic_area_name_from_ls(codigo),
+                    "peso": 0.9,
+                }
+
+    if not salida:
+        return AREAS_AUDITORIA_DEFAULT
+    return salida
 
 
 def _safe_call(func: Any, *args: Any, default: Any = None, **kwargs: Any) -> Any:
@@ -312,7 +352,7 @@ def calcular_ranking_areas(cliente: str) -> Optional[pd.DataFrame]:
         total_balance = _to_float(tb["saldo_abs"].sum())
         materialidad_ejecucion = _to_float(mat.get("materialidad_ejecucion", 0))
 
-        areas_auditoria = _cargar_areas_auditoria()
+        areas_auditoria = _cargar_areas_auditoria(tb=tb)
         resultados: list[dict[str, Any]] = []
 
         for codigo_area, info_area in areas_auditoria.items():

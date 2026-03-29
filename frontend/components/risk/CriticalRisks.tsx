@@ -30,11 +30,11 @@ function levelChip(level: string): { chipClass: string; borderClass: string; sco
 }
 
 export default function CriticalRisks({ areas, id = "riesgos-criticos" }: Props) {
-  const list = areas.slice(0, 3);
+  const list = areas.slice(0, 8);
 
   return (
     <section id={id} className="col-span-12 lg:col-span-5 space-y-4 scroll-mt-28">
-      <h2 className="font-headline text-2xl text-[#041627] font-semibold mb-6 px-2">Riesgos Criticos Detectados</h2>
+      <h2 className="font-headline text-2xl text-[#041627] font-semibold mb-6 px-2">Riesgos Detectados por Area</h2>
 
       {list.map((item) => {
         const ui = levelChip(item.nivel);
