@@ -13,7 +13,6 @@ COPY core ./core
 COPY infra ./infra
 COPY llm ./llm
 COPY app ./app
-COPY data ./data
 
 ENV PORT=8000
 EXPOSE 8000
