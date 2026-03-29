@@ -14,6 +14,8 @@ type ChatMessage = {
   role: "user" | "assistant";
   text: string;
   timestamp: string;
+  citations?: Array<{ source: string; excerpt: string }>;
+  confidence?: number;
 };
 
 const QUICK_PROMPTS = [
@@ -99,6 +101,8 @@ export default function SocioChatPage() {
         role: "assistant",
         timestamp: nowLabel(),
         text: answer,
+        citations: response?.data?.citations ?? [],
+        confidence: response?.data?.confidence ?? 0,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
@@ -169,6 +173,19 @@ export default function SocioChatPage() {
                     <p className="text-[10px] uppercase tracking-[0.16em] text-teal-700 font-bold mb-2">Criterio Socio AI</p>
                   ) : null}
                   <p className="text-sm leading-relaxed text-slate-800 whitespace-pre-wrap">{msg.text}</p>
+                  {msg.role === "assistant" && msg.citations && msg.citations.length > 0 ? (
+                    <div className="mt-3 space-y-1">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Fuentes</p>
+                      {msg.citations.slice(0, 2).map((c) => (
+                        <p key={`${msg.id}-${c.source}`} className="text-[11px] text-slate-500">
+                          {c.source}
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
+                  {msg.role === "assistant" && typeof msg.confidence === "number" ? (
+                    <p className="text-[10px] text-slate-500 mt-2">Confianza: {(msg.confidence * 100).toFixed(0)}%</p>
+                  ) : null}
                   <p className="text-[10px] text-slate-400 mt-2 uppercase tracking-[0.12em]">{msg.timestamp}</p>
                 </div>
               </div>

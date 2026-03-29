@@ -1,20 +1,32 @@
 from __future__ import annotations
 
+import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import yaml
 from fastapi import APIRouter, Depends
 
 from backend.auth import authorize_cliente_access, get_current_user
+from backend.constants.runtime_config import get_runtime_config
 from backend.schemas import ApiResponse, RiskCriticalArea, RiskEngineResponse, RiskMatrixCell, UserContext
 
 router = APIRouter(prefix="/risk-engine", tags=["risk-engine"])
+RUNTIME_CFG = get_runtime_config()
 
 
 def _to_int(value: Any, default: int = 0) -> int:
     try:
         return int(value)
+    except Exception:
+        return default
+
+
+def _to_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
     except Exception:
         return default
 
@@ -93,6 +105,228 @@ def _build_matrix_cells(areas: list[RiskCriticalArea]) -> list[list[RiskMatrixCe
     return grid
 
 
+def _norm_header(value: Any) -> str:
+    txt = str(value or "").strip().lower()
+    txt = unicodedata.normalize("NFKD", txt).encode("ascii", "ignore").decode("ascii")
+    txt = re.sub(r"[^a-z0-9]+", "_", txt).strip("_")
+    return txt
+
+
+def _normalize_code(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    if raw.endswith(".0"):
+        raw = raw[:-2]
+    return raw
+
+
+def _resolve_col(columns: list[str], candidates: list[str]) -> str | None:
+    for cand in candidates:
+        if cand in columns:
+            return cand
+    return None
+
+
+def _to_numeric(series: pd.Series) -> pd.Series:
+    s = series.astype(str).str.replace(",", "", regex=False).str.replace("$", "", regex=False).str.strip()
+    return pd.to_numeric(s, errors="coerce").fillna(0.0)
+
+
+def _load_mayor(cliente_id: str) -> pd.DataFrame:
+    path = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id / "mayor.xlsx"
+    if not path.exists():
+        return pd.DataFrame()
+    try:
+        df = pd.read_excel(path, engine="openpyxl")
+    except Exception:
+        return pd.DataFrame()
+    if df.empty:
+        return pd.DataFrame()
+    df = df.copy()
+    df.columns = [_norm_header(c) for c in df.columns]
+    return df
+
+
+def _build_code_to_area(cliente_id: str) -> dict[str, str]:
+    try:
+        from analysis.lector_tb import leer_tb
+
+        tb = leer_tb(cliente_id)
+        if tb is None or tb.empty:
+            return {}
+        work = tb.copy()
+        work.columns = [_norm_header(c) for c in work.columns]
+        code_col = _resolve_col(work.columns.tolist(), ["codigo", "numero_de_cuenta", "cuenta", "cod_cuenta"])
+        ls_col = _resolve_col(work.columns.tolist(), ["ls", "l_s", "l_s_", "linea_significancia", "l"])
+        if code_col is None or ls_col is None:
+            return {}
+        out: dict[str, str] = {}
+        for _, row in work.iterrows():
+            code = _normalize_code(row.get(code_col))
+            area = _normalize_code(row.get(ls_col))
+            if not code or not area:
+                continue
+            out[code] = area
+        return out
+    except Exception:
+        return {}
+
+
+def _map_area_for_account(account_code: str, code_to_area: dict[str, str]) -> str:
+    code = _normalize_code(account_code)
+    if not code:
+        return ""
+    if code in code_to_area:
+        return code_to_area[code]
+    prefixes = sorted(code_to_area.keys(), key=len, reverse=True)
+    for key in prefixes:
+        if code.startswith(key) or key.startswith(code):
+            return code_to_area[key]
+    return ""
+
+
+def _mayor_signals_by_area(cliente_id: str, tb_totals_by_area: dict[str, float]) -> dict[str, dict[str, Any]]:
+    df = _load_mayor(cliente_id)
+    if df.empty:
+        return {}
+
+    code_to_area = _build_code_to_area(cliente_id)
+    if not code_to_area:
+        return {}
+
+    cols = df.columns.tolist()
+    account_col = _resolve_col(cols, ["codigo", "cuenta", "numero_de_cuenta", "cuenta_codigo", "cod_cuenta"])
+    if account_col is None:
+        return {}
+
+    debit_col = _resolve_col(cols, ["debe", "debito", "debit"])
+    credit_col = _resolve_col(cols, ["haber", "credito", "credit"])
+    amount_col = _resolve_col(cols, ["monto", "importe", "amount", "valor"])
+    date_col = _resolve_col(cols, ["fecha", "date", "fecha_asiento", "f_contable"])
+    user_col = _resolve_col(cols, ["usuario", "user", "created_by"])
+    desc_col = _resolve_col(cols, ["descripcion", "detalle", "glosa", "concepto"])
+
+    work = df.copy()
+    work["account_code"] = work[account_col].apply(_normalize_code)
+    work["area_id"] = work["account_code"].apply(lambda x: _map_area_for_account(x, code_to_area))
+    work = work[work["area_id"] != ""]
+    if work.empty:
+        return {}
+
+    if amount_col:
+        work["amount_net"] = _to_numeric(work[amount_col])
+        work["amount_abs"] = work["amount_net"].abs()
+    elif debit_col and credit_col:
+        debit = _to_numeric(work[debit_col])
+        credit = _to_numeric(work[credit_col])
+        work["amount_net"] = debit - credit
+        work["amount_abs"] = (debit.abs() + credit.abs()) / 2.0
+    elif debit_col:
+        debit = _to_numeric(work[debit_col])
+        work["amount_net"] = debit
+        work["amount_abs"] = debit.abs()
+    else:
+        work["amount_net"] = 0.0
+        work["amount_abs"] = 0.0
+
+    if date_col:
+        work["txn_date"] = pd.to_datetime(work[date_col], errors="coerce")
+    else:
+        work["txn_date"] = pd.NaT
+
+    if user_col:
+        work["txn_user"] = work[user_col].astype(str).str.strip().replace({"": "N/A"})
+    else:
+        work["txn_user"] = "N/A"
+
+    if desc_col:
+        work["txn_desc"] = work[desc_col].astype(str).str.lower()
+    else:
+        work["txn_desc"] = ""
+
+    out: dict[str, dict[str, Any]] = {}
+    risk_cfg = RUNTIME_CFG.get("risk_engine", {}) if isinstance(RUNTIME_CFG, dict) else {}
+    weights = risk_cfg.get("weights", {}) if isinstance(risk_cfg, dict) else {}
+    caps = risk_cfg.get("caps", {}) if isinstance(risk_cfg, dict) else {}
+    w_closing = _to_float(weights.get("closing_entries"), 3.0)
+    w_user = _to_float(weights.get("user_spike_factor"), 40.0)
+    w_reversals = _to_float(weights.get("reversals"), 2.0)
+    w_dormant = _to_float(weights.get("dormant_accounts"), 2.0)
+    w_gap_divisor = max(0.1, _to_float(weights.get("tb_mayor_gap_divisor"), 8.0))
+
+    cap_closing = _to_float(caps.get("closing_entries"), 12.0)
+    cap_user = _to_float(caps.get("user_spike"), 10.0)
+    cap_reversals = _to_float(caps.get("reversals"), 8.0)
+    cap_dormant = _to_float(caps.get("dormant_accounts"), 8.0)
+    cap_gap = _to_float(caps.get("tb_mayor_gap"), 15.0)
+    cap_total = _to_float(caps.get("mayor_boost_total"), 25.0)
+    for area_id, grp in work.groupby("area_id"):
+        total_abs = float(grp["amount_abs"].sum())
+        if total_abs <= 0:
+            continue
+
+        p90 = float(grp["amount_abs"].quantile(0.90)) if len(grp) > 2 else float(grp["amount_abs"].max())
+        closing_count = 0
+        if grp["txn_date"].notna().any():
+            max_date = grp["txn_date"].max()
+            closing_mask = grp["txn_date"] >= (max_date - pd.Timedelta(days=3))
+            closing_count = int((closing_mask & (grp["amount_abs"] >= p90)).sum())
+
+        user_share = 0.0
+        if grp["txn_user"].nunique() > 0:
+            user_totals = grp.groupby("txn_user")["amount_abs"].sum()
+            user_share = float((user_totals.max() / total_abs) if total_abs > 0 else 0.0)
+
+        reversal_count = int(grp["txn_desc"].str.contains(r"revers|anul|ajuste|reclas", regex=True, na=False).sum())
+
+        dormant_count = 0
+        if grp["txn_date"].notna().any():
+            by_account_month = (
+                grp.dropna(subset=["txn_date"])
+                .assign(yyyymm=lambda x: x["txn_date"].dt.to_period("M").astype(str))
+                .groupby("account_code")
+                .agg(months=("yyyymm", "nunique"), amount=("amount_abs", "sum"))
+            )
+            if not by_account_month.empty:
+                cutoff = float(by_account_month["amount"].quantile(0.75))
+                dormant_count = int(((by_account_month["months"] <= 2) & (by_account_month["amount"] >= cutoff)).sum())
+
+        mayor_net = float(grp["amount_net"].sum())
+        tb_total = abs(_to_float(tb_totals_by_area.get(area_id, 0.0)))
+        correlation_gap_pct = 0.0
+        if tb_total > 0:
+            correlation_gap_pct = abs(abs(mayor_net) - tb_total) / tb_total * 100.0
+
+        components = {
+            "closing_entries": min(cap_closing, closing_count * w_closing),
+            "user_spike": min(cap_user, max(0.0, (user_share - 0.50) * w_user)),
+            "reversals": min(cap_reversals, reversal_count * w_reversals),
+            "dormant_accounts": min(cap_dormant, dormant_count * w_dormant),
+            "tb_mayor_gap": min(cap_gap, correlation_gap_pct / w_gap_divisor),
+        }
+        boost = min(cap_total, sum(components.values()))
+
+        drivers: list[str] = []
+        if components["closing_entries"] > 0:
+            drivers.append(f"Asientos de cierre inusuales ({closing_count})")
+        if components["user_spike"] > 0:
+            drivers.append(f"Concentracion por usuario ({user_share * 100:.1f}%)")
+        if components["reversals"] > 0:
+            drivers.append(f"Reversiones/ajustes atipicos ({reversal_count})")
+        if components["dormant_accounts"] > 0:
+            drivers.append(f"Cuentas con movimiento concentrado ({dormant_count})")
+        if components["tb_mayor_gap"] > 0:
+            drivers.append(f"Brecha TB vs Mayor ({correlation_gap_pct:.1f}%)")
+
+        out[area_id] = {
+            "boost": round(boost, 2),
+            "drivers": drivers[:3],
+            "components": {k: round(v, 2) for k, v in components.items()},
+        }
+    return out
+
+
 def _from_ranking(cliente_id: str) -> list[RiskCriticalArea]:
     try:
         from analysis.ranking_areas import calcular_ranking_areas
@@ -106,19 +340,35 @@ def _from_ranking(cliente_id: str) -> list[RiskCriticalArea]:
         if ranking.empty:
             return []
 
+        tb_totals_by_area = {
+            str(row.get("area") or ""): _to_float(row.get("saldo_total", 0.0))
+            for _, row in ranking.iterrows()
+        }
+        mayor_signals = _mayor_signals_by_area(cliente_id, tb_totals_by_area)
+
         out: list[RiskCriticalArea] = []
         for _, row in ranking.sort_values("score_riesgo", ascending=False).head(12).iterrows():
-            score = float(row.get("score_riesgo", 0.0) or 0.0)
-            frecuencia, impacto = _score_to_axes(score)
+            area_id = str(row.get("area") or "")
+            base_score = _to_float(row.get("score_riesgo", 0.0))
+            signal = mayor_signals.get(area_id, {})
+            mayor_boost = _to_float(signal.get("boost", 0.0))
+            final_score = min(99.0, base_score + mayor_boost)
+            frecuencia, impacto = _score_to_axes(final_score)
+
+            components = {"base_model": round(base_score, 2), "mayor_boost": round(mayor_boost, 2)}
+            components.update(signal.get("components", {}))
+
             out.append(
                 RiskCriticalArea(
-                    area_id=str(row.get("area") or ""),
-                    area_nombre=str(row.get("nombre") or f"Area {row.get('area', '')}"),
-                    score=round(score, 2),
-                    nivel=_normalize_level(score),
+                    area_id=area_id,
+                    area_nombre=str(row.get("nombre") or f"Area {area_id}"),
+                    score=round(final_score, 2),
+                    nivel=_normalize_level(final_score),
                     frecuencia=frecuencia,
                     impacto=impacto,
                     hallazgos_abiertos=_to_int(row.get("expert_flags_count", 0), 0),
+                    drivers=signal.get("drivers", []),
+                    score_components=components,
                 )
             )
         return out
@@ -150,6 +400,8 @@ def _from_area_files(cliente_id: str) -> list[RiskCriticalArea]:
                     frecuencia=frecuencia,
                     impacto=impacto,
                     hallazgos_abiertos=_to_int(hallazgos_count, 0),
+                    drivers=[],
+                    score_components={"base_model": round(score, 2)},
                 )
             )
 
@@ -174,6 +426,8 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
                 frecuencia=4,
                 impacto=4,
                 hallazgos_abiertos=0,
+                drivers=["Sin datos historicos suficientes; riesgo base por relevancia financiera."],
+                score_components={"base_model": 72.0},
             ),
             RiskCriticalArea(
                 area_id="200",
@@ -183,6 +437,8 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
                 frecuencia=4,
                 impacto=3,
                 hallazgos_abiertos=0,
+                drivers=[],
+                score_components={"base_model": 65.0},
             ),
             RiskCriticalArea(
                 area_id="1000",
@@ -192,6 +448,8 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
                 frecuencia=3,
                 impacto=3,
                 hallazgos_abiertos=0,
+                drivers=[],
+                score_components={"base_model": 52.0},
             ),
         ]
 

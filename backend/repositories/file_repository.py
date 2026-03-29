@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -87,6 +88,71 @@ class FileRepository:
         cdir.mkdir(parents=True, exist_ok=True)
         p = cdir / f"{area_code}.yaml"
         p.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+    def read_workpapers(self, cliente_id: str) -> list[dict[str, Any]]:
+        p = self.cliente_dir(cliente_id) / "papeles_trabajo.yaml"
+        data = self.read_yaml(p)
+        tasks = data.get("tasks") if isinstance(data, dict) else []
+        if not isinstance(tasks, list):
+            return []
+        return [t for t in tasks if isinstance(t, dict)]
+
+    def write_workpapers(self, cliente_id: str, tasks: list[dict[str, Any]]) -> None:
+        cdir = self.cliente_dir(cliente_id)
+        cdir.mkdir(parents=True, exist_ok=True)
+        p = cdir / "papeles_trabajo.yaml"
+        p.write_text(
+            yaml.safe_dump({"tasks": tasks}, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+
+    def create_cliente(self, *, cliente_id: str, nombre: str, sector: str | None = None) -> dict[str, Any]:
+        cid = slugify_cliente_id(cliente_id) if cliente_id else slugify_cliente_id(nombre)
+        if not cid:
+            raise ValueError("cliente_id invalido")
+
+        cdir = self.cliente_dir(cid)
+        if cdir.exists():
+            raise FileExistsError(f"El cliente '{cid}' ya existe")
+
+        cdir.mkdir(parents=True, exist_ok=False)
+        perfil = {
+            "cliente": {
+                "nombre_legal": nombre.strip(),
+                "nombre_corto": nombre.strip(),
+                "sector": (sector or "").strip() or "Holding",
+                "pais": "Ecuador",
+            },
+            "encargo": {
+                "anio_activo": datetime.now(timezone.utc).year,
+                "marco_referencial": "NIIF para PYMES",
+                "norma_auditoria": "NIAs",
+                "fase_actual": "planificacion",
+            },
+            "materialidad": {
+                "estado_materialidad": "preliminar",
+                "preliminar": {
+                    "materialidad_global": 0.0,
+                    "materialidad_desempeno": 0.0,
+                    "error_trivial": 0.0,
+                },
+                "final": {
+                    "materialidad_planeacion": None,
+                    "materialidad_ejecucion": None,
+                    "umbral_trivialidad": None,
+                },
+            },
+            "riesgo_global": {"nivel": "medio"},
+            "cuestionario_auditoria": {
+                "nomina": False,
+                "inventarios": False,
+                "ingresos_complejos": False,
+                "partes_relacionadas": False,
+                "multi_moneda": False,
+            },
+        }
+        self.write_perfil(cid, perfil)
+        return {"cliente_id": cid, "nombre": nombre.strip(), "sector": perfil["cliente"]["sector"]}
 
     def delete_cliente(self, cliente_id: str) -> bool:
         target = self.cliente_dir(cliente_id).resolve()
@@ -373,6 +439,36 @@ def append_hallazgo(cliente_id: str, content: str) -> None:
 
 def read_catalog_file(path: Path) -> str:
     return repo.read_catalog_file(path)
+
+
+def read_workpapers(cliente_id: str) -> list[dict[str, Any]]:
+    return repo.read_workpapers(cliente_id)
+
+
+def write_workpapers(cliente_id: str, tasks: list[dict[str, Any]]) -> None:
+    repo.write_workpapers(cliente_id, tasks)
+
+
+def create_cliente(*, cliente_id: str, nombre: str, sector: str | None = None) -> dict[str, Any]:
+    return repo.create_cliente(cliente_id=cliente_id, nombre=nombre, sector=sector)
+
+
+def slugify_cliente_id(raw: str) -> str:
+    text = str(raw or "").strip().lower()
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    text = re.sub(r"[^a-z0-9]+", "_", text)
+    text = re.sub(r"_+", "_", text).strip("_")
+    return text[:50]
+
+
+def deep_merge_dict(base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+    out = dict(base)
+    for key, value in patch.items():
+        if isinstance(value, dict) and isinstance(out.get(key), dict):
+            out[key] = deep_merge_dict(out[key], value)
+        else:
+            out[key] = value
+    return out
 
 
 def delete_cliente(cliente_id: str) -> bool:

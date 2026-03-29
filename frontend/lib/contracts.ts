@@ -8,6 +8,8 @@ export type ChatResponse = {
   cliente_id: string;
   answer: string;
   context_sources: string[];
+  citations?: Array<{ source: string; excerpt: string }>;
+  confidence?: number;
 };
 
 export type MetodoResponse = {
@@ -15,6 +17,8 @@ export type MetodoResponse = {
   area: string;
   explanation: string;
   context_sources: string[];
+  citations?: Array<{ source: string; excerpt: string }>;
+  confidence?: number;
 };
 
 export type ApiEnvelope<T> = {

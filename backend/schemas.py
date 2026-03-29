@@ -47,6 +47,12 @@ class ClienteSummary(BaseModel):
     sector: str | None = None
 
 
+class ClienteCreateRequest(BaseModel):
+    cliente_id: str | None = None
+    nombre: str
+    sector: str | None = None
+
+
 class ClienteProfile(BaseModel):
     cliente_id: str
     perfil: dict[str, Any]
@@ -117,6 +123,8 @@ class RiskCriticalArea(BaseModel):
     frecuencia: int
     impacto: int
     hallazgos_abiertos: int
+    drivers: list[str] = Field(default_factory=list)
+    score_components: dict[str, float] = Field(default_factory=dict)
 
 
 class RiskEngineResponse(BaseModel):
@@ -219,6 +227,8 @@ class ChatResponse(BaseModel):
     cliente_id: str
     answer: str
     context_sources: list[str]
+    citations: list[dict[str, str]] = Field(default_factory=list)
+    confidence: float = 0.0
 
 
 class MetodoRequest(BaseModel):
@@ -230,6 +240,8 @@ class MetodoResponse(BaseModel):
     area: str
     explanation: str
     context_sources: list[str]
+    citations: list[dict[str, str]] = Field(default_factory=list)
+    confidence: float = 0.0
 
 
 class PdfSummaryResponse(BaseModel):
@@ -237,3 +249,48 @@ class PdfSummaryResponse(BaseModel):
     report_name: str
     generated_at: datetime
     path: str
+    file_hash: str = ""
+    size_bytes: int = 0
+
+
+class WorkflowAdvanceRequest(BaseModel):
+    target_phase: str | None = None
+
+
+class WorkflowStateResponse(BaseModel):
+    cliente_id: str
+    previous_phase: str
+    current_phase: str
+    changed: bool
+    gates: list["QualityGateItem"]
+
+
+class WorkpaperTask(BaseModel):
+    id: str
+    area_code: str
+    area_name: str
+    title: str
+    nia_ref: str
+    prioridad: str
+    required: bool = True
+    done: bool = False
+    evidence_note: str = ""
+
+
+class WorkpaperTaskUpdateRequest(BaseModel):
+    done: bool
+    evidence_note: str = ""
+
+
+class QualityGateItem(BaseModel):
+    code: str
+    title: str
+    status: Literal["ok", "blocked"]
+    detail: str
+
+
+class WorkpaperPlanResponse(BaseModel):
+    cliente_id: str
+    tasks: list[WorkpaperTask]
+    gates: list[QualityGateItem]
+    completion_pct: float

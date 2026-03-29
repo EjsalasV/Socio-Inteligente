@@ -7,8 +7,8 @@ import pandas as pd
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from backend.auth import authorize_cliente_access, get_current_user
-from backend.repositories.file_repository import delete_cliente, list_clientes, read_perfil
-from backend.schemas import ApiResponse, ClienteSummary, UserContext
+from backend.repositories.file_repository import create_cliente, delete_cliente, list_clientes, read_perfil
+from backend.schemas import ApiResponse, ClienteCreateRequest, ClienteSummary, UserContext
 
 router = APIRouter(prefix="/clientes", tags=["clientes"])
 
@@ -24,6 +24,31 @@ def get_clientes(user: UserContext = Depends(get_current_user)) -> ApiResponse:
         sector = perfil.get("cliente", {}).get("sector")
         out.append(ClienteSummary(cliente_id=cid, nombre=nombre, sector=sector).model_dump())
     return ApiResponse(data=out)
+
+
+@router.post("", response_model=ApiResponse)
+def post_cliente(payload: ClienteCreateRequest, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    if user.role.lower() not in {"admin", "manager", "socio"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo perfiles administradores pueden crear clientes.",
+        )
+    nombre = payload.nombre.strip()
+    if not nombre:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="nombre es obligatorio")
+
+    try:
+        created = create_cliente(
+            cliente_id=(payload.cliente_id or "").strip(),
+            nombre=nombre,
+            sector=(payload.sector or "").strip() or None,
+        )
+    except FileExistsError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+    return ApiResponse(data=created)
 
 
 @router.delete("/{cliente_id}", response_model=ApiResponse)

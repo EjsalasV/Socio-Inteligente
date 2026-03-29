@@ -110,8 +110,13 @@ export default function AreaWorkspacePage() {
           <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
             <div className="flex items-start gap-5">
               <div className="bg-white/10 p-4 rounded-2xl border border-white/20">
-                <span className="material-symbols-outlined text-5xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  {highRisk ? "dangerous" : "verified_user"}
+                <span
+                  className={`inline-flex h-12 w-12 items-center justify-center rounded-full text-2xl font-bold ${
+                    highRisk ? "bg-red-700 text-white" : "bg-emerald-700 text-white"
+                  }`}
+                  aria-hidden="true"
+                >
+                  {highRisk ? "!" : "✓"}
                 </span>
               </div>
               <div>
@@ -140,7 +145,7 @@ export default function AreaWorkspacePage() {
 
           <div className="mt-7 pt-6 border-t border-white/10">
             <h4 className="text-xs font-bold tracking-[0.2em] uppercase mb-4 flex items-center">
-              <span className="material-symbols-outlined text-sm mr-2">list_alt</span>
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-white text-[10px] mr-2">•</span>
               Acciones requeridas para cierre
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -149,7 +154,7 @@ export default function AreaWorkspacePage() {
                 : ["Completar revisión de soportes", "Actualizar papeles de trabajo", "Documentar conclusión del área"]
               ).map((task) => (
                 <div key={task} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-white/60">check_circle</span>
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/15 text-white text-xs">✓</span>
                   <span className="text-sm text-white">{task}</span>
                 </div>
               ))}

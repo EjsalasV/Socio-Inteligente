@@ -14,6 +14,7 @@ type NavItem = {
     | "trial-balance"
     | "estados-financieros"
     | "areas"
+    | "papeles-trabajo"
     | "perfil"
     | "reportes"
     | "clientes"
@@ -21,6 +22,7 @@ type NavItem = {
     | "client-memory";
   label: string;
   icon: string;
+  iconLabel: string;
   href: string;
 };
 
@@ -40,22 +42,31 @@ export default function Sidebar() {
 
   const items = useMemo<NavItem[]>(
     () => [
-      { id: "perfil", key: "perfil", label: "Perfil Cliente", icon: "business_center", href: `/perfil/${baseCliente}` },
-      { id: "clientes", key: "clientes", label: "Clientes", icon: "groups", href: "/clientes" },
-      { id: "dashboard", key: "dashboard", label: "Dashboard", icon: "dashboard", href: `/dashboard/${baseCliente}` },
-      { id: "risk-engine", key: "risk-engine", label: "Risk Engine", icon: "security", href: `/risk-engine/${baseCliente}` },
-      { id: "trial-balance", key: "trial-balance", label: "Trial Balance", icon: "account_balance", href: `/trial-balance/${baseCliente}` },
+      { id: "perfil", key: "perfil", label: "Perfil Cliente", icon: "PF", iconLabel: "Perfil", href: `/perfil/${baseCliente}` },
+      { id: "clientes", key: "clientes", label: "Clientes", icon: "CL", iconLabel: "Clientes", href: "/clientes" },
+      { id: "dashboard", key: "dashboard", label: "Dashboard", icon: "DB", iconLabel: "Dashboard", href: `/dashboard/${baseCliente}` },
+      { id: "risk-engine", key: "risk-engine", label: "Risk Engine", icon: "RK", iconLabel: "Risk", href: `/risk-engine/${baseCliente}` },
+      { id: "trial-balance", key: "trial-balance", label: "Trial Balance", icon: "TB", iconLabel: "Trial Balance", href: `/trial-balance/${baseCliente}` },
       {
         id: "estados-financieros",
         key: "estados-financieros",
         label: "Estados Financieros",
-        icon: "bar_chart",
+        icon: "EF",
+        iconLabel: "Estados Financieros",
         href: `/estados-financieros/${baseCliente}`,
       },
-      { id: "areas", key: "areas", label: "Workspace Áreas", icon: "receipt_long", href: `/areas/${baseCliente}/130` },
-      { id: "socio-chat", key: "socio-chat", label: "Socio Chat", icon: "forum", href: `/socio-chat/${baseCliente}` },
-      { id: "client-memory", key: "client-memory", label: "Client Memory", icon: "folder_shared", href: `/client-memory/${baseCliente}` },
-      { id: "reportes", key: "reportes", label: "Reportes", icon: "description", href: `/reportes/${baseCliente}` },
+      { id: "areas", key: "areas", label: "Workspace Áreas", icon: "WA", iconLabel: "Workspace Areas", href: `/areas/${baseCliente}/130` },
+      {
+        id: "papeles-trabajo",
+        key: "papeles-trabajo",
+        label: "Papeles de Trabajo",
+        icon: "PT",
+        iconLabel: "Papeles de Trabajo",
+        href: `/papeles-trabajo/${baseCliente}`,
+      },
+      { id: "socio-chat", key: "socio-chat", label: "Socio Chat", icon: "SC", iconLabel: "Socio Chat", href: `/socio-chat/${baseCliente}` },
+      { id: "client-memory", key: "client-memory", label: "Client Memory", icon: "CM", iconLabel: "Client Memory", href: `/client-memory/${baseCliente}` },
+      { id: "reportes", key: "reportes", label: "Reportes", icon: "RP", iconLabel: "Reportes", href: `/reportes/${baseCliente}` },
     ],
     [baseCliente],
   );
@@ -68,7 +79,7 @@ export default function Sidebar() {
         onClick={() => setOpenMobile((v) => !v)}
         aria-label="Abrir navegacion"
       >
-        <span className="material-symbols-outlined">menu</span>
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#041627]/20 text-xs font-bold">≡</span>
       </button>
 
       <aside
@@ -91,6 +102,8 @@ export default function Sidebar() {
                       ? pathname.startsWith(`/socio-chat/${baseCliente}`)
                       : item.key === "client-memory"
                         ? pathname.startsWith(`/client-memory/${baseCliente}`)
+                        : item.key === "papeles-trabajo"
+                          ? pathname.startsWith(`/papeles-trabajo/${baseCliente}`)
                     : item.key === "clientes"
                       ? pathname.startsWith("/clientes") || pathname.startsWith("/onboarding/")
                     : moduleKey === item.key;
@@ -103,7 +116,13 @@ export default function Sidebar() {
                   className={`flex items-center gap-3 rounded-editorial px-4 py-3 transition-colors ${itemClass(active)}`}
                   onClick={() => setOpenMobile(false)}
                 >
-                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                  <span
+                    className="inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-[#041627]/20 bg-white/70 px-1 text-[10px] font-bold text-[#041627]"
+                    aria-label={item.iconLabel}
+                    title={item.iconLabel}
+                  >
+                    {item.icon}
+                  </span>
                   <span className="font-body text-sm">{item.label}</span>
                 </Link>
               );
@@ -117,9 +136,9 @@ export default function Sidebar() {
                 localStorage.removeItem("socio_token");
                 router.push("/");
               }}
-              className="w-full flex items-center gap-3 rounded-editorial px-4 py-3 text-slate-600 hover:bg-white/75 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[20px]">logout</span>
+            className="w-full flex items-center gap-3 rounded-editorial px-4 py-3 text-slate-600 hover:bg-white/75 transition-colors"
+          >
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#041627]/20 text-xs">↩</span>
               <span className="font-body text-sm">Volver al login</span>
             </button>
           </div>

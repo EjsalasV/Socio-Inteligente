@@ -220,6 +220,8 @@ function buildDemoRiskMatrix(): UnknownRecord {
         frecuencia: 5,
         impacto: 4,
         hallazgos_abiertos: 3,
+        drivers: ["Asientos de cierre inusuales", "Concentración por usuario", "Brecha TB vs Mayor"],
+        score_components: { base_model: 0.74, mayor_boost: 0.12, tb_mayor_gap: 0.07, closing_entries: 0.05 },
       },
       {
         area_id: "140",
@@ -229,6 +231,8 @@ function buildDemoRiskMatrix(): UnknownRecord {
         frecuencia: 4,
         impacto: 3,
         hallazgos_abiertos: 1,
+        drivers: ["Reversiones/ajustes atípicos"],
+        score_components: { base_model: 0.67, mayor_boost: 0.04, reversals: 0.04 },
       },
     ],
   };
@@ -260,6 +264,97 @@ function buildDemoDashboard(clienteId: string): UnknownRecord {
       { codigo: "130", nombre: "Cuentas por cobrar corrientes", score_riesgo: 0.86, prioridad: "alta", saldo_total: 4200000, con_saldo: true },
       { codigo: "140", nombre: "Efectivo y equivalentes a efectivo", score_riesgo: 0.71, prioridad: "media", saldo_total: 950000, con_saldo: true },
       { codigo: "14", nombre: "Inversiones no corrientes", score_riesgo: 0.68, prioridad: "media", saldo_total: 3800000, con_saldo: true },
+    ],
+  };
+}
+
+function buildDemoWorkpapers(clienteId: string): UnknownRecord {
+  return {
+    cliente_id: clienteId,
+    completion_pct: 42.86,
+    gates: [
+      { code: "PLAN", title: "Gate de Planificacion", status: "ok", detail: "Perfil base completo (cliente + encargo)." },
+      { code: "EXEC", title: "Gate de Ejecucion", status: "blocked", detail: "Ejecucion insuficiente (42.86%). Completa papeles criticos." },
+      { code: "REPORT", title: "Gate de Informe", status: "blocked", detail: "No listo: faltan papeles requeridos o conclusion de area en hallazgos." },
+    ],
+    tasks: [
+      {
+        id: "130-analitica",
+        area_code: "130",
+        area_name: "Cuentas por cobrar corrientes",
+        title: "Procedimiento analitico focalizado",
+        nia_ref: "NIA 520",
+        prioridad: "alta",
+        required: true,
+        done: true,
+        evidence_note: "Variacion vs PY revisada y conciliada con mayor auxiliar.",
+      },
+      {
+        id: "130-detalle",
+        area_code: "130",
+        area_name: "Cuentas por cobrar corrientes",
+        title: "Prueba sustantiva de detalle",
+        nia_ref: "NIA 500",
+        prioridad: "alta",
+        required: true,
+        done: false,
+        evidence_note: "",
+      },
+      {
+        id: "130-confirmacion",
+        area_code: "130",
+        area_name: "Cuentas por cobrar corrientes",
+        title: "Confirmacion externa de saldos",
+        nia_ref: "NIA 505",
+        prioridad: "alta",
+        required: true,
+        done: false,
+        evidence_note: "",
+      },
+      {
+        id: "140-analitica",
+        area_code: "140",
+        area_name: "Efectivo y equivalentes a efectivo",
+        title: "Procedimiento analitico focalizado",
+        nia_ref: "NIA 520",
+        prioridad: "media",
+        required: true,
+        done: true,
+        evidence_note: "Comparativo mensual de bancos sin outliers materiales.",
+      },
+      {
+        id: "140-conciliacion",
+        area_code: "140",
+        area_name: "Efectivo y equivalentes a efectivo",
+        title: "Conciliaciones bancarias y corte",
+        nia_ref: "NIA 505",
+        prioridad: "alta",
+        required: true,
+        done: false,
+        evidence_note: "",
+      },
+      {
+        id: "14-analitica",
+        area_code: "14",
+        area_name: "Inversiones no corrientes",
+        title: "Procedimiento analitico focalizado",
+        nia_ref: "NIA 520",
+        prioridad: "media",
+        required: true,
+        done: true,
+        evidence_note: "Analitica vertical y horizontal completada.",
+      },
+      {
+        id: "14-detalle",
+        area_code: "14",
+        area_name: "Inversiones no corrientes",
+        title: "Prueba sustantiva de detalle",
+        nia_ref: "NIA 500",
+        prioridad: "media",
+        required: true,
+        done: false,
+        evidence_note: "",
+      },
     ],
   };
 }
@@ -341,6 +436,28 @@ function mockApi<T>(path: string, init?: RequestInit): T {
     return envelope(buildDemoRiskMatrix()) as T;
   }
 
+  if (parts[0] === "workflow" && parts[1]) {
+    const current = parts[2] === "advance" && method === "POST" ? "ejecucion" : "planificacion";
+    return envelope({
+      cliente_id: parts[1],
+      previous_phase: "planificacion",
+      current_phase: current,
+      changed: method === "POST",
+      gates: [
+        { code: "PLAN", title: "Gate de Planificacion", status: "ok", detail: "Planificacion completa." },
+        { code: "EXEC", title: "Gate de Ejecucion", status: "blocked", detail: "Faltan papeles de ejecución." },
+        { code: "REPORT", title: "Gate de Informe", status: "blocked", detail: "No listo para informe final." },
+      ],
+    }) as T;
+  }
+
+  if (parts[0] === "papeles-trabajo" && parts[1]) {
+    if (method === "PATCH") {
+      return envelope({ task_id: parts[3], done: true, saved: true }) as T;
+    }
+    return envelope(buildDemoWorkpapers(parts[1])) as T;
+  }
+
   if (parts[0] === "areas" && parts[1] && parts[2]) {
     if (method === "PATCH") {
       return envelope({ ok: true }) as T;
@@ -368,8 +485,13 @@ function mockApi<T>(path: string, init?: RequestInit): T {
   if (parts[0] === "chat" && parts[1]) {
     return envelope({
       cliente_id: parts[1],
-      answer: "Modo demo activo. Esta respuesta es simulada hasta conectar backend productivo.",
-      context_sources: ["demo://chat"],
+      answer: "Modo demo activo. Esta respuesta simula RAG normativo con citas.",
+      context_sources: ["data/conocimiento_normativo/nias/nia_315.md", "data/clientes/cliente_demo/perfil.yaml"],
+      citations: [
+        { source: "data/conocimiento_normativo/nias/nia_315.md", excerpt: "La entidad y su entorno..." },
+        { source: "data/clientes/cliente_demo/perfil.yaml", excerpt: "riesgo_global: nivel: bajo" },
+      ],
+      confidence: 0.66,
     }) as T;
   }
 
@@ -378,7 +500,20 @@ function mockApi<T>(path: string, init?: RequestInit): T {
       cliente_id: parts[1],
       area: "130",
       explanation: "Modo demo activo. Explicacion metodologica simulada.",
-      context_sources: ["demo://metodologia"],
+      context_sources: ["data/conocimiento_normativo/metodologia/aseveraciones.md"],
+      citations: [{ source: "data/conocimiento_normativo/metodologia/aseveraciones.md", excerpt: "Valuación e integridad..." }],
+      confidence: 0.61,
+    }) as T;
+  }
+
+  if (parts[0] === "reportes" && parts[1] && parts[2] === "executive-pdf") {
+    return envelope({
+      cliente_id: parts[1],
+      report_name: `${parts[1]}_executive_summary_demo.pdf`,
+      generated_at: nowIso(),
+      path: `data/exports/${parts[1]}_executive_summary_demo.pdf`,
+      file_hash: "demo_hash",
+      size_bytes: 185430,
     }) as T;
   }
 

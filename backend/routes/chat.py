@@ -1,20 +1,13 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from fastapi import APIRouter, Depends
 
 from backend.auth import authorize_cliente_access, get_current_user
-from backend.repositories.file_repository import (
-    append_audit_log,
-    read_catalog_file,
-    read_hallazgos,
-    read_perfil,
-)
+from backend.repositories.file_repository import append_audit_log
 from backend.schemas import ApiResponse, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse, UserContext
+from backend.services.rag_chat_service import generate_chat_response, generate_metodologia_response
 
 router = APIRouter(prefix="/chat", tags=["chat"])
-ROOT = Path(__file__).resolve().parents[2]
 
 
 @router.post("/{cliente_id}", response_model=ApiResponse)
@@ -24,18 +17,7 @@ def post_chat(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
-
-    perfil = read_perfil(cliente_id)
-    hallazgos = read_hallazgos(cliente_id)
-    sector = str(perfil.get("cliente", {}).get("sector", "N/D"))
-
-    answer = (
-        f"[Socio AI] Cliente {cliente_id} ({sector}). "
-        f"Consulta recibida: '{payload.message}'. "
-        "Respuesta preliminar basada en perfil y hallazgos del encargo actual."
-    )
-    if hallazgos.strip():
-        answer += " Se incorporó contexto histórico de hallazgos documentados."
+    rag = generate_chat_response(cliente_id, payload.message)
 
     append_audit_log(
         user_id=user.sub,
@@ -46,8 +28,10 @@ def post_chat(
 
     data = ChatResponse(
         cliente_id=cliente_id,
-        answer=answer,
-        context_sources=["perfil.yaml", "hallazgos.md"],
+        answer=str(rag.get("answer", "")),
+        context_sources=[str(x) for x in rag.get("context_sources", []) if str(x).strip()],
+        citations=[c for c in rag.get("citations", []) if isinstance(c, dict)],
+        confidence=float(rag.get("confidence", 0.0) or 0.0),
     )
     return ApiResponse(data=data.model_dump())
 
@@ -59,16 +43,7 @@ def post_metodologia(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
-
-    asev = read_catalog_file(ROOT / "data" / "conocimiento_normativo" / "metodologia" / "aseveraciones.md")
-    nia315 = read_catalog_file(ROOT / "data" / "conocimiento_normativo" / "nias" / "nia_315.md")
-
-    explanation = (
-        f"Para el área {payload.area}, la aseveración clave se determina desde aseveraciones.md "
-        "y su relevancia para cierre se sustenta con nia_315.md sobre valoración de riesgos."
-    )
-    if asev.strip() and nia315.strip():
-        explanation += " Ambos documentos fueron cargados en contexto para esta respuesta."
+    rag = generate_metodologia_response(cliente_id, payload.area)
 
     append_audit_log(
         user_id=user.sub,
@@ -80,8 +55,10 @@ def post_metodologia(
     data = MetodoResponse(
         cliente_id=cliente_id,
         area=payload.area,
-        explanation=explanation,
-        context_sources=["aseveraciones.md", "nia_315.md"],
+        explanation=str(rag.get("answer", "")),
+        context_sources=[str(x) for x in rag.get("context_sources", []) if str(x).strip()],
+        citations=[c for c in rag.get("citations", []) if isinstance(c, dict)],
+        confidence=float(rag.get("confidence", 0.0) or 0.0),
     )
     return ApiResponse(data=data.model_dump())
 

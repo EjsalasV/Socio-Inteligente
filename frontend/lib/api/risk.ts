@@ -38,6 +38,13 @@ function normalizeCriticalArea(value: unknown): RiskCriticalArea | null {
     frecuencia: asNumber(record.frecuencia, 1),
     impacto: asNumber(record.impacto, 1),
     hallazgos_abiertos: asNumber(record.hallazgos_abiertos, 0),
+    drivers: Array.isArray(record.drivers) ? record.drivers.map((x) => asString(x)).filter(Boolean) : [],
+    score_components:
+      typeof record.score_components === "object" && record.score_components !== null
+        ? Object.fromEntries(
+            Object.entries(record.score_components as Record<string, unknown>).map(([k, v]) => [k, asNumber(v)]),
+          )
+        : {},
   };
 }
 

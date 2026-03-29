@@ -1,0 +1,19 @@
+risk_engine:
+  weights:
+    closing_entries: 3.0
+    user_spike_factor: 40.0
+    reversals: 2.0
+    dormant_accounts: 2.0
+    tb_mayor_gap_divisor: 8.0
+  caps:
+    closing_entries: 12.0
+    user_spike: 10.0
+    reversals: 8.0
+    dormant_accounts: 8.0
+    tb_mayor_gap: 15.0
+    mayor_boost_total: 25.0
+
+workflow:
+  thresholds:
+    exec_required_completion_pct: 70.0
+    report_required_completion_pct: 95.0

@@ -21,6 +21,8 @@ export interface RiskCriticalArea {
   frecuencia: number;
   impacto: number;
   hallazgos_abiertos: number;
+  drivers?: string[];
+  score_components?: Record<string, number>;
 }
 
 export interface RiskEngineResponse {

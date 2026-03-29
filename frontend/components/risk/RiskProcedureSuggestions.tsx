@@ -52,8 +52,8 @@ export default function RiskProcedureSuggestions({ areas }: Props) {
   return (
     <section className="col-span-12 lg:col-span-7 bg-[#f1f4f6] p-8 rounded-xl">
       <div className="flex items-center space-x-3 mb-8">
-        <span className="material-symbols-outlined text-[#001919] text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-          bolt
+        <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-[#001919] text-[#a5eff0] text-xs font-bold" aria-hidden="true">
+          AI
         </span>
         <h2 className="font-headline text-2xl text-[#041627] font-semibold">Socio AI - Sugerencia de Procedimientos</h2>
       </div>
@@ -66,14 +66,14 @@ export default function RiskProcedureSuggestions({ areas }: Props) {
                 <span className="text-[#001919] font-bold text-xs uppercase tracking-wider">{procedure.nia}</span>
               </div>
               <button className="text-slate-400 hover:text-[#041627] transition-colors" type="button" aria-label="Agregar procedimiento">
-                <span className="material-symbols-outlined">add_circle</span>
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-current text-sm">+</span>
               </button>
             </div>
             <h5 className="font-bold text-slate-900 mb-2">{procedure.title}</h5>
             <p className="text-sm text-slate-600 mb-4">{procedure.description}</p>
             <div className="flex items-center space-x-4 text-[10px] font-bold text-[#001919] uppercase tracking-widest">
               <span className="flex items-center">
-                <span className="material-symbols-outlined text-sm mr-1">task_alt</span>
+                <span className="mr-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#001919] text-white text-[10px]">✓</span>
                 Vinculado a: {procedure.vinculo}
               </span>
             </div>

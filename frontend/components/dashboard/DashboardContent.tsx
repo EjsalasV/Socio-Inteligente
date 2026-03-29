@@ -85,8 +85,11 @@ export default function DashboardContent({ data }: Props) {
 
           <article className="risk-high">
             <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined text-[#ba1a1a]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                warning
+              <span
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#ba1a1a] text-white text-xs font-bold"
+                aria-hidden="true"
+              >
+                !
               </span>
               <h4 className="font-headline text-2xl text-[#93000a]">Anomalias y alertas de cumplimiento</h4>
             </div>
@@ -107,8 +110,13 @@ export default function DashboardContent({ data }: Props) {
                 { label: "Informe", done: etapa === "Informe" },
               ].map((step) => (
                 <div key={step.label} className="flex items-center gap-3">
-                  <span className={`material-symbols-outlined ${step.done ? "text-emerald-700" : "text-slate-400"}`}>
-                    {step.done ? "check_circle" : "radio_button_unchecked"}
+                  <span
+                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs ${
+                      step.done ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 text-slate-400"
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {step.done ? "✓" : ""}
                   </span>
                   <span className={`text-sm ${step.done ? "text-navy-900 font-semibold" : "text-slate-500"}`}>{step.label}</span>
                 </div>

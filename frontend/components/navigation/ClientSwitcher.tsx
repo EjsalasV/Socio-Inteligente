@@ -50,6 +50,7 @@ export default function ClientSwitcher({ clienteId: overrideClienteId }: Props) 
     if (moduleKey === "trial-balance") return `/trial-balance/${nextId}`;
     if (moduleKey === "estados-financieros") return `/estados-financieros/${nextId}`;
     if (moduleKey === "areas") return `/areas/${nextId}/130`;
+    if (moduleKey === "papeles-trabajo") return `/papeles-trabajo/${nextId}`;
     if (moduleKey === "perfil") return `/perfil/${nextId}`;
     if (moduleKey === "socio-chat") return `/socio-chat/${nextId}`;
     if (moduleKey === "client-memory") return `/client-memory/${nextId}`;

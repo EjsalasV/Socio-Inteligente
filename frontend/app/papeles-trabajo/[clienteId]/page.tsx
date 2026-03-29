@@ -1,0 +1,197 @@
+﻿"use client";
+
+import { useMemo, useState } from "react";
+
+import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
+import ErrorMessage from "../../../components/dashboard/ErrorMessage";
+import { advanceWorkflow } from "../../../lib/api/workflow";
+import { useAuditContext } from "../../../lib/hooks/useAuditContext";
+import { useWorkpapers } from "../../../lib/hooks/useWorkpapers";
+
+type EvidenceDraftMap = Record<string, string>;
+
+function gateColor(status: "ok" | "blocked"): string {
+  return status === "ok" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200";
+}
+
+function priorityColor(priority: string): string {
+  const normalized = priority.toLowerCase();
+  if (normalized === "alta") return "bg-red-50 text-red-700 border-red-200";
+  if (normalized === "media") return "bg-amber-50 text-amber-700 border-amber-200";
+  return "bg-slate-50 text-slate-600 border-slate-200";
+}
+
+export default function PapelesTrabajoPage() {
+  const { clienteId } = useAuditContext();
+  const { data, isLoading, error, savingTaskId, updateTask } = useWorkpapers(clienteId);
+  const [evidenceDrafts, setEvidenceDrafts] = useState<EvidenceDraftMap>({});
+  const [workflowMsg, setWorkflowMsg] = useState<string>("");
+
+  const groupedTasks = useMemo(() => {
+    if (!data) return [];
+    const groups = new Map<string, { areaCode: string; areaName: string; tasks: typeof data.tasks }>();
+    for (const task of data.tasks) {
+      const key = `${task.area_code}-${task.area_name}`;
+      const existing = groups.get(key);
+      if (existing) {
+        existing.tasks.push(task);
+      } else {
+        groups.set(key, {
+          areaCode: task.area_code,
+          areaName: task.area_name,
+          tasks: [task],
+        });
+      }
+    }
+    return Array.from(groups.values()).sort((a, b) => a.areaCode.localeCompare(b.areaCode));
+  }, [data]);
+
+  if (isLoading) return <DashboardSkeleton />;
+  if (error) return <ErrorMessage message={error} />;
+  if (!data) return <ErrorMessage message="No hay plan de papeles de trabajo para este cliente." />;
+
+  return (
+    <div className="pt-4 pb-10 space-y-8 max-w-[1500px]">
+      <section className="rounded-editorial p-7 text-white border border-[#041627]/20 bg-gradient-to-br from-[#041627] to-[#1a2b3c]">
+        <p className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-body">Control de Calidad</p>
+        <h1 className="font-headline text-5xl text-white mt-2">Papeles de Trabajo y Quality Gates</h1>
+        <p className="font-body text-slate-200 mt-3 leading-relaxed text-base">
+          Cliente: <span className="font-semibold text-white">{data.cliente_id}</span> ·
+          Avance requerido: <span className="font-semibold text-white"> {data.completion_pct.toFixed(1)}%</span>
+        </p>
+      </section>
+
+      <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {data.gates.map((gate) => (
+          <article key={gate.code} className={`sovereign-card border ${gateColor(gate.status)}`}>
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-[0.14em] font-bold">{gate.code}</p>
+              <span
+                className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                  gate.status === "ok" ? "bg-emerald-700 text-white" : "bg-red-700 text-white"
+                }`}
+                aria-hidden="true"
+              >
+                {gate.status === "ok" ? "✓" : "!"}
+              </span>
+            </div>
+            <h3 className="font-headline text-2xl mt-2">{gate.title}</h3>
+            <p className="text-sm mt-3">{gate.detail}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="sovereign-card">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.15em] text-slate-500 font-bold">Avance de Ejecucion</p>
+            <h2 className="font-headline text-3xl text-[#041627] mt-1">{data.completion_pct.toFixed(1)}%</h2>
+          </div>
+          <div className="w-full md:w-[380px] h-3 bg-[#e5e9eb] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-[#041627] to-[#1a2b3c] transition-all"
+              style={{ width: `${Math.max(0, Math.min(100, data.completion_pct))}%` }}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const next = await advanceWorkflow(clienteId, "ejecucion");
+                  setWorkflowMsg(`Fase actual: ${next.current_phase.toUpperCase()}.`);
+                } catch (err) {
+                  setWorkflowMsg(err instanceof Error ? err.message : "No se pudo avanzar a ejecucion.");
+                }
+              }}
+              className="px-3 py-2 rounded-xl text-xs font-semibold border border-[#041627]/15 text-[#041627] hover:bg-[#f1f4f6]"
+            >
+              Pasar a Ejecucion
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const next = await advanceWorkflow(clienteId, "informe");
+                  setWorkflowMsg(`Fase actual: ${next.current_phase.toUpperCase()}.`);
+                } catch (err) {
+                  setWorkflowMsg(err instanceof Error ? err.message : "No se pudo avanzar a informe.");
+                }
+              }}
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-[#041627] text-white hover:opacity-90"
+            >
+              Pasar a Informe
+            </button>
+          </div>
+        </div>
+        {workflowMsg ? <p className="mt-3 text-xs text-slate-600">{workflowMsg}</p> : null}
+      </section>
+
+      <section className="space-y-6">
+        {groupedTasks.map((group) => (
+          <article key={`${group.areaCode}-${group.areaName}`} className="sovereign-card">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <h3 className="font-headline text-3xl text-[#041627]">
+                {group.areaCode} · {group.areaName}
+              </h3>
+              <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">
+                {group.tasks.filter((t) => t.done).length}/{group.tasks.length} completados
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {group.tasks.map((task) => {
+                const evidenceValue = evidenceDrafts[task.id] ?? task.evidence_note ?? "";
+                return (
+                  <div key={task.id} className="rounded-editorial border border-[#041627]/10 p-4 bg-white">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={task.done}
+                          onChange={(event) => {
+                            void updateTask(task.id, event.target.checked, evidenceValue);
+                          }}
+                          disabled={savingTaskId === task.id}
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-[#041627] focus:ring-[#041627]"
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold text-[#041627]">{task.title}</span>
+                          <span className="block text-xs text-slate-500 mt-1">{task.nia_ref}</span>
+                        </span>
+                      </label>
+
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.12em] font-bold border ${priorityColor(task.prioridad)}`}>
+                        {task.prioridad}
+                      </span>
+                    </div>
+
+                    <div className="mt-4">
+                      <label htmlFor={`evidence-${task.id}`} className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
+                        Evidencia
+                      </label>
+                      <textarea
+                        id={`evidence-${task.id}`}
+                        value={evidenceValue}
+                        onChange={(event) => {
+                          setEvidenceDrafts((prev) => ({ ...prev, [task.id]: event.target.value }));
+                        }}
+                        onBlur={() => {
+                          if (evidenceValue !== (task.evidence_note ?? "")) {
+                            void updateTask(task.id, task.done, evidenceValue);
+                          }
+                        }}
+                        placeholder="Soporte del procedimiento, referencia WP, conclusion breve..."
+                        className="mt-2 w-full min-h-[74px] rounded-editorial border border-[#041627]/10 bg-[#f8fbff] px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#041627]/35"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        ))}
+      </section>
+    </div>
+  );
+}

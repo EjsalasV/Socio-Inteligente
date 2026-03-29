@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from backend.auth import authorize_cliente_access, get_current_user
-from backend.repositories.file_repository import read_perfil, write_perfil
+from backend.repositories.file_repository import append_audit_log, deep_merge_dict, read_perfil, write_perfil
 from backend.schemas import ApiResponse, ClienteProfile, UserContext
 
 router = APIRouter(prefix="/perfil", tags=["perfil"])
@@ -19,5 +19,21 @@ def get_perfil(cliente_id: str, user: UserContext = Depends(get_current_user)) -
 @router.put("/{cliente_id}", response_model=ApiResponse)
 def put_perfil(cliente_id: str, payload: dict, user: UserContext = Depends(get_current_user)) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
-    write_perfil(cliente_id, payload)
-    return ApiResponse(data=ClienteProfile(cliente_id=cliente_id, perfil=payload).model_dump())
+    current = read_perfil(cliente_id)
+    patch = payload if isinstance(payload, dict) else {}
+    merged = deep_merge_dict(current, patch)
+    write_perfil(cliente_id, merged)
+
+    changed_keys: list[str] = []
+    for key in patch.keys():
+        if current.get(key) != merged.get(key):
+            changed_keys.append(str(key))
+
+    append_audit_log(
+        user_id=user.sub,
+        cliente_id=cliente_id,
+        endpoint="PUT /perfil/{cliente_id}",
+        extra={"changed_top_level_keys": changed_keys},
+    )
+
+    return ApiResponse(data=ClienteProfile(cliente_id=cliente_id, perfil=merged).model_dump())

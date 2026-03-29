@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { getClientes, type ClienteOption } from "../../lib/api/clientes";
 import { useAuditContext } from "../../lib/hooks/useAuditContext";
+import { useWorkflow } from "../../lib/hooks/useWorkflow";
 import ClientSwitcher from "./ClientSwitcher";
 
 function resolveClienteName(clienteId: string, clientes: ClienteOption[]): string {
@@ -16,6 +17,7 @@ export default function Header() {
   const router = useRouter();
   const { clienteId, moduleLabel } = useAuditContext();
   const [clientes, setClientes] = useState<ClienteOption[]>([]);
+  const { data: workflow } = useWorkflow(clienteId);
 
   useEffect(() => {
     let active = true;
@@ -36,6 +38,8 @@ export default function Header() {
   }, []);
 
   const clienteName = useMemo(() => resolveClienteName(clienteId, clientes), [clienteId, clientes]);
+  const phase = workflow?.current_phase ?? "planificacion";
+  const phaseIndex = phase === "informe" ? 3 : phase === "ejecucion" ? 2 : 1;
 
   function handleLogout(): void {
     localStorage.removeItem("socio_token");
@@ -50,6 +54,13 @@ export default function Header() {
           <h1 className="font-headline text-3xl text-navy-900 leading-tight">
             {clienteName} <span className="text-slate-400">/</span> {moduleLabel}
           </h1>
+          <div className="mt-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.13em] text-slate-500">
+            <span className={phaseIndex >= 1 ? "text-emerald-700 font-semibold" : ""}>Planificación</span>
+            <span>•</span>
+            <span className={phaseIndex >= 2 ? "text-emerald-700 font-semibold" : ""}>Ejecución</span>
+            <span>•</span>
+            <span className={phaseIndex >= 3 ? "text-emerald-700 font-semibold" : ""}>Informe</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 md:gap-4">

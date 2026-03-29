@@ -89,7 +89,14 @@ export default function LeadSchedule({ cuentas, currentYear, previousYear, title
                       onClick={() => void handleCheck(row.codigo, !row.checked)}
                       aria-label={`Marcar cuenta ${row.codigo}`}
                     >
-                      <span className="material-symbols-outlined text-base">{row.checked ? "check_circle" : "radio_button_unchecked"}</span>
+                      <span
+                        className={`inline-flex h-4 w-4 items-center justify-center rounded-full border text-[10px] ${
+                          row.checked ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 text-slate-300"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {row.checked ? "✓" : ""}
+                      </span>
                     </button>
                   </td>
                 </tr>

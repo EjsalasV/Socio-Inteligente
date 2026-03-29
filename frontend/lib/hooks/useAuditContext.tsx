@@ -9,6 +9,7 @@ type AuditModule =
   | "trial-balance"
   | "estados-financieros"
   | "areas"
+  | "papeles-trabajo"
   | "perfil"
   | "reportes"
   | "socio-chat"
@@ -35,6 +36,7 @@ function parseFromPath(pathname: string): AuditContextValue {
   if (first === "trial-balance") moduleKey = "trial-balance";
   if (first === "estados-financieros") moduleKey = "estados-financieros";
   if (first === "reportes") moduleKey = "reportes";
+  if (first === "papeles-trabajo") moduleKey = "papeles-trabajo";
   if (first === "socio-chat") moduleKey = "socio-chat";
   if (first === "client-memory") moduleKey = "client-memory";
 
@@ -44,6 +46,7 @@ function parseFromPath(pathname: string): AuditContextValue {
     "trial-balance": "Trial Balance",
     "estados-financieros": "Estados Financieros",
     areas: "Áreas L/S",
+    "papeles-trabajo": "Papeles de Trabajo",
     perfil: "Perfil Cliente",
     reportes: "Reportes",
     "socio-chat": "Socio Chat",

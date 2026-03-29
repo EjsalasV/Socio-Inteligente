@@ -1,4 +1,4 @@
-from . import auth, clientes, perfil, dashboard, risk_engine, areas, chat, metodologia, reportes
+from . import auth, clientes, perfil, dashboard, risk_engine, areas, chat, metodologia, reportes, workpapers, workflow
 
 __all__ = [
     "auth",
@@ -10,4 +10,6 @@ __all__ = [
     "chat",
     "metodologia",
     "reportes",
+    "workpapers",
+    "workflow",
 ]
