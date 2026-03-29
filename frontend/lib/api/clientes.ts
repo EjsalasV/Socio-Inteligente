@@ -49,3 +49,9 @@ export async function createCliente(input: CreateClienteInput): Promise<ClienteO
   }
   return cliente;
 }
+
+export async function deleteCliente(clienteId: string): Promise<void> {
+  await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}`, {
+    method: "DELETE",
+  });
+}

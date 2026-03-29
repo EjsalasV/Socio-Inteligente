@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { createCliente, getClientes, type ClienteOption } from "../../lib/api/clientes";
+import { createCliente, deleteCliente, getClientes, type ClienteOption } from "../../lib/api/clientes";
 
 function slugify(input: string): string {
   return input
@@ -23,6 +23,7 @@ export default function ClientesPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [clientes, setClientes] = useState<ClienteOption[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [nombre, setNombre] = useState("");
   const [sector, setSector] = useState("Holding");
@@ -102,6 +103,25 @@ export default function ClientesPage() {
     }
   }
 
+  async function handleDeleteClient(cliente: ClienteOption): Promise<void> {
+    const confirmed = window.confirm(
+      `Vas a borrar el cliente "${cliente.nombre}" (${cliente.cliente_id}). Esta accion no se puede deshacer. Continuar?`,
+    );
+    if (!confirmed) return;
+
+    setDeletingId(cliente.cliente_id);
+    setError("");
+    try {
+      await deleteCliente(cliente.cliente_id);
+      setClientes((prev) => prev.filter((item) => item.cliente_id !== cliente.cliente_id));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No se pudo borrar el cliente.";
+      setError(message);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f7fafc]">
       <nav className="fixed top-0 w-full z-40 bg-white/85 backdrop-blur-xl border-b border-black/5 px-6 md:px-10 py-4 flex items-center justify-between">
@@ -161,6 +181,14 @@ export default function ClientesPage() {
                       </p>
                     </div>
                     <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteClient(cliente)}
+                        disabled={deletingId === cliente.cliente_id}
+                        className="px-4 py-2 rounded-xl text-sm border border-[#ba1a1a]/30 text-[#93000a] bg-[#ffdad6]/40 hover:bg-[#ffdad6] disabled:opacity-60"
+                      >
+                        {deletingId === cliente.cliente_id ? "Borrando..." : "Borrar"}
+                      </button>
                       <Link href={`/onboarding/${cliente.cliente_id}`} className="px-4 py-2 rounded-xl text-sm bg-white border border-black/10 text-slate-700 hover:bg-slate-50">
                         Onboarding
                       </Link>

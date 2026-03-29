@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -86,6 +87,16 @@ class FileRepository:
         cdir.mkdir(parents=True, exist_ok=True)
         p = cdir / f"{area_code}.yaml"
         p.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+    def delete_cliente(self, cliente_id: str) -> bool:
+        target = self.cliente_dir(cliente_id).resolve()
+        base = self.data_clientes.resolve()
+        if not str(target).startswith(str(base)):
+            return False
+        if not target.exists():
+            return False
+        shutil.rmtree(target)
+        return True
 
     def _read_tb(self, cliente_id: str) -> list[dict[str, Any]]:
         tb_path = self.cliente_dir(cliente_id) / "tb.xlsx"
@@ -362,6 +373,10 @@ def append_hallazgo(cliente_id: str, content: str) -> None:
 
 def read_catalog_file(path: Path) -> str:
     return repo.read_catalog_file(path)
+
+
+def delete_cliente(cliente_id: str) -> bool:
+    return repo.delete_cliente(cliente_id)
 
 
 def append_audit_log(*, user_id: str, cliente_id: str, endpoint: str, extra: dict[str, Any] | None = None) -> None:

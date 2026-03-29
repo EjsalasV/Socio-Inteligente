@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.auth import get_current_user
-from backend.repositories.file_repository import list_clientes, read_perfil
+from backend.auth import authorize_cliente_access, get_current_user
+from backend.repositories.file_repository import delete_cliente, list_clientes, read_perfil
 from backend.schemas import ApiResponse, ClienteSummary, UserContext
 
 router = APIRouter(prefix="/clientes", tags=["clientes"])
@@ -20,3 +20,15 @@ def get_clientes(user: UserContext = Depends(get_current_user)) -> ApiResponse:
         sector = perfil.get("cliente", {}).get("sector")
         out.append(ClienteSummary(cliente_id=cid, nombre=nombre, sector=sector).model_dump())
     return ApiResponse(data=out)
+
+
+@router.delete("/{cliente_id}", response_model=ApiResponse)
+def remove_cliente(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    deleted = delete_cliente(cliente_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cliente no encontrado: {cliente_id}",
+        )
+    return ApiResponse(data={"cliente_id": cliente_id, "deleted": True})
