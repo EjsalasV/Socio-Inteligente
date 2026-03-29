@@ -73,6 +73,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clientes/{cliente_id}/documentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cliente Documentos */
+        get: operations["get_cliente_documentos_clientes__cliente_id__documentos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clientes/{cliente_id}/documentos/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Cliente Documento */
+        post: operations["upload_cliente_documento_clientes__cliente_id__documentos_upload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clientes/{cliente_id}/hallazgos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cliente Hallazgos */
+        get: operations["get_cliente_hallazgos_clientes__cliente_id__hallazgos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clientes/{cliente_id}/documentos/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cliente Documento File */
+        get: operations["get_cliente_documento_file_clientes__cliente_id__documentos_file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/perfil/{cliente_id}": {
         parameters: {
             query?: never;
@@ -227,6 +295,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chat/{cliente_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Chat Export */
+        post: operations["post_chat_export_chat__cliente_id__export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/metodologia/{cliente_id}": {
         parameters: {
             query?: never;
@@ -255,6 +340,41 @@ export interface paths {
         get: operations["get_executive_pdf_reportes__cliente_id__executive_pdf_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reportes/{cliente_id}/executive-pdf/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Executive Pdf File */
+        get: operations["get_executive_pdf_file_reportes__cliente_id__executive_pdf_file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reportes/{cliente_id}/memo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Executive Memo */
+        get: operations["get_executive_memo_reportes__cliente_id__memo_get"];
+        put?: never;
+        /** Post Executive Memo */
+        post: operations["post_executive_memo_reportes__cliente_id__memo_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -293,6 +413,23 @@ export interface paths {
         head?: never;
         /** Patch Workpaper Task */
         patch: operations["patch_workpaper_task_papeles_trabajo__cliente_id__tasks__task_id__patch"];
+        trace?: never;
+    };
+    "/papeles-trabajo/{cliente_id}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Workpaper Task */
+        post: operations["post_workpaper_task_papeles_trabajo__cliente_id__tasks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/workflow/{cliente_id}": {
@@ -428,10 +565,22 @@ export interface components {
              */
             gastos: number;
         };
+        /** Body_upload_cliente_documento_clientes__cliente_id__documentos_upload_post */
+        Body_upload_cliente_documento_clientes__cliente_id__documentos_upload_post: {
+            /** File */
+            file: string;
+        };
         /** Body_upload_cliente_file_clientes__cliente_id__upload__kind__post */
         Body_upload_cliente_file_clientes__cliente_id__upload__kind__post: {
             /** File */
             file: string;
+        };
+        /** ChatExportRequest */
+        ChatExportRequest: {
+            /** Content */
+            content: string;
+            /** Title */
+            title?: string | null;
         };
         /** ChatRequest */
         ChatRequest: {
@@ -479,10 +628,36 @@ export interface components {
              */
             umbral_trivial: number;
             /**
+             * Materialidad Origen
+             * @default
+             */
+            materialidad_origen: string;
+            /**
              * Fase Actual
              * @default
              */
             fase_actual: string;
+            /**
+             * Workflow Phase
+             * @default planificacion
+             */
+            workflow_phase: string;
+            /** Workflow Gates */
+            workflow_gates?: components["schemas"]["DashboardWorkflowGate"][];
+        };
+        /** DashboardWorkflowGate */
+        DashboardWorkflowGate: {
+            /** Code */
+            code: string;
+            /** Title */
+            title: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "blocked";
+            /** Detail */
+            detail: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -546,6 +721,35 @@ export interface components {
         WorkflowAdvanceRequest: {
             /** Target Phase */
             target_phase?: string | null;
+        };
+        /** WorkpaperTaskCreateRequest */
+        WorkpaperTaskCreateRequest: {
+            /** Area Code */
+            area_code: string;
+            /** Area Name */
+            area_name: string;
+            /** Title */
+            title: string;
+            /**
+             * Nia Ref
+             * @default
+             */
+            nia_ref: string;
+            /**
+             * Prioridad
+             * @default media
+             */
+            prioridad: string;
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+            /**
+             * Evidence Note
+             * @default
+             */
+            evidence_note: string;
         };
         /** WorkpaperTaskUpdateRequest */
         WorkpaperTaskUpdateRequest: {
@@ -706,6 +910,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cliente_documentos_clientes__cliente_id__documentos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_cliente_documento_clientes__cliente_id__documentos_upload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_cliente_documento_clientes__cliente_id__documentos_upload_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cliente_hallazgos_clientes__cliente_id__hallazgos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cliente_documento_file_clientes__cliente_id__documentos_file_get: {
+        parameters: {
+            query: {
+                name: string;
+            };
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -1059,6 +1393,41 @@ export interface operations {
             };
         };
     };
+    post_chat_export_chat__cliente_id__export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     metodologia_endpoint_metodologia__cliente_id__post: {
         parameters: {
             query?: never;
@@ -1095,6 +1464,101 @@ export interface operations {
         };
     };
     get_executive_pdf_reportes__cliente_id__executive_pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_executive_pdf_file_reportes__cliente_id__executive_pdf_file_get: {
+        parameters: {
+            query: {
+                path: string;
+            };
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_executive_memo_reportes__cliente_id__memo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_executive_memo_reportes__cliente_id__memo_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1169,6 +1633,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["WorkpaperTaskUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_workpaper_task_papeles_trabajo__cliente_id__tasks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkpaperTaskCreateRequest"];
             };
         };
         responses: {
