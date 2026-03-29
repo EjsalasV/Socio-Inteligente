@@ -2,6 +2,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    pkg-config \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.api.txt .
 RUN pip install --no-cache-dir -r requirements.api.txt
 
