@@ -2,10 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.api.txt .
+RUN pip install --no-cache-dir -r requirements.api.txt
 
 # Copiar solo lo necesario para FastAPI
 COPY backend ./backend
@@ -15,6 +13,7 @@ COPY core ./core
 COPY infra ./infra
 COPY llm ./llm
 COPY app ./app
+COPY data ./data
 
 ENV PORT=8000
 EXPOSE 8000
