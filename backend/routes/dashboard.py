@@ -97,7 +97,7 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
         else:
             ranking_visible = ranking
         if ranking_visible.empty:
-            ranking_visible = ranking
+            ranking_visible = ranking.iloc[0:0]
 
         for _, row in ranking_visible.iterrows():
             prioridad = _to_str(row.get("prioridad", "baja"), "baja").lower()
@@ -122,7 +122,7 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
 
     total_areas = areas_completas + areas_en_proceso + areas_no_iniciadas
     pct_completado = int(round((areas_completas / total_areas) * 100, 0)) if total_areas > 0 else 0
-    fase_actual = _to_str(encargo.get("fase_actual", ""), "")
+    fase_actual = _to_str(encargo.get("fase_actual", ""), "planificacion")
     pct_from_fase = _progreso_from_fase(fase_actual)
     if pct_from_fase is not None:
         pct_completado = pct_from_fase

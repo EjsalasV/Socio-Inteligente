@@ -1,7 +1,7 @@
 import type { ApiEnvelope, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse } from "./contracts";
 import { getLsName, normalizeLsCode } from "./lsCatalog";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const DEMO_TOKEN_PREFIX = "demo_";
 const DEMO_ONLY = process.env.NEXT_PUBLIC_DEMO_ONLY === "1";
 const DEMO_CLIENTES_KEY = "socio_demo_clientes";
@@ -21,6 +21,7 @@ function envelope<T>(data: T): ApiEnvelope<T> {
 }
 
 function isDemoToken(token: string | null): boolean {
+  if (!DEMO_ONLY) return false;
   return Boolean(token && token.startsWith(DEMO_TOKEN_PREFIX));
 }
 
@@ -529,7 +530,12 @@ export class TokenExpiredError extends Error {
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("socio_token");
+  const token = localStorage.getItem("socio_token");
+  if (!DEMO_ONLY && token && token.startsWith(DEMO_TOKEN_PREFIX)) {
+    localStorage.removeItem("socio_token");
+    return null;
+  }
+  return token;
 }
 
 function requireToken(): string {
@@ -562,7 +568,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       headers,
     });
   } catch (error) {
-    if (isDemoToken(token)) {
+    if (DEMO_ONLY || isDemoToken(token)) {
       return mockApi<T>(path, init);
     }
     throw error;

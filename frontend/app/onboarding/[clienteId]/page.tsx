@@ -48,6 +48,7 @@ export default function OnboardingClientePage() {
   const [fiscalYear, setFiscalYear] = useState("2025");
   const [marco, setMarco] = useState("NIIF para PYMES");
   const [norma, setNorma] = useState("NIAs");
+  const [faseAuditoria, setFaseAuditoria] = useState("planificacion");
   const [tbFile, setTbFile] = useState("");
   const [mayorFile, setMayorFile] = useState("");
   const [tbSelectedFile, setTbSelectedFile] = useState<File | null>(null);
@@ -90,6 +91,7 @@ export default function OnboardingClientePage() {
         setFiscalYear(String(encargo.anio_activo ?? "2025"));
         setMarco(typeof encargo.marco_referencial === "string" && encargo.marco_referencial.trim() ? encargo.marco_referencial : "NIIF para PYMES");
         setNorma(typeof encargo.norma_auditoria === "string" && encargo.norma_auditoria.trim() ? encargo.norma_auditoria : "NIAs");
+        setFaseAuditoria(typeof encargo.fase_actual === "string" && encargo.fase_actual.trim() ? encargo.fase_actual : "planificacion");
         setTbFile(typeof carga.trial_balance_nombre === "string" ? carga.trial_balance_nombre : "");
         setMayorFile(typeof carga.libro_mayor_nombre === "string" ? carga.libro_mayor_nombre : "");
         setQa({
@@ -146,6 +148,7 @@ export default function OnboardingClientePage() {
           anio_activo: Number(fiscalYear),
           marco_referencial: marco,
           norma_auditoria: norma,
+          fase_actual: faseAuditoria,
         },
         cuestionario_auditoria: qa,
         carga_archivos: {
@@ -223,6 +226,13 @@ export default function OnboardingClientePage() {
                     <option>Tecnologia y SaaS</option>
                     <option>Manufactura</option>
                     <option>Servicios Financieros</option>
+                    <option>Construccion e Infraestructura</option>
+                    <option>Salud y Farmaceutico</option>
+                    <option>Educacion</option>
+                    <option>Energia y Utilities</option>
+                    <option>Agroindustria</option>
+                    <option>Gobierno y Sector Publico</option>
+                    <option>ONG y Fundaciones</option>
                   </select>
                 </label>
                 <label className="flex flex-col gap-2">
@@ -255,6 +265,14 @@ export default function OnboardingClientePage() {
             <div className="sovereign-card">
               <h2 className="font-headline text-3xl text-[#041627] mb-6">2. Preguntas clave de auditoria</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label className="md:col-span-2 flex flex-col gap-2 mb-2">
+                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Fase actual de auditoria</span>
+                  <select className="ghost-input" value={faseAuditoria} onChange={(e) => setFaseAuditoria(e.target.value)}>
+                    <option value="planificacion">Planificacion</option>
+                    <option value="ejecucion">Ejecucion</option>
+                    <option value="informe">Informe</option>
+                  </select>
+                </label>
                 {[
                   { key: "nomina", label: "Tiene nomina relevante" },
                   { key: "inventarios", label: "Tiene inventarios materiales" },

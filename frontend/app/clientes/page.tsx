@@ -229,6 +229,13 @@ export default function ClientesPage() {
                   <option>Tecnologia y SaaS</option>
                   <option>Manufactura</option>
                   <option>Servicios Financieros</option>
+                  <option>Construccion e Infraestructura</option>
+                  <option>Salud y Farmaceutico</option>
+                  <option>Educacion</option>
+                  <option>Energia y Utilities</option>
+                  <option>Agroindustria</option>
+                  <option>Gobierno y Sector Publico</option>
+                  <option>ONG y Fundaciones</option>
                 </select>
               </label>
 

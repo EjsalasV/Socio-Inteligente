@@ -18,7 +18,7 @@ type LoginApiResponse = {
   message?: string;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const DEMO_USER = "joaosalas123@gmail.com";
 const DEMO_PASS = "1234";
 const DEMO_ONLY = process.env.NEXT_PUBLIC_DEMO_ONLY === "1";
@@ -88,22 +88,12 @@ export default function LoginPage() {
       }
 
       if (!res.ok) {
-        if (isDemoCredentials(username, password)) {
-          localStorage.setItem("socio_token", "demo_token_local");
-          router.push("/clientes");
-          return;
-        }
         setError(extractErrorMessage(payload, "No se pudo iniciar sesion."));
         return;
       }
 
       const token = extractToken(payload);
       if (!token) {
-        if (isDemoCredentials(username, password)) {
-          localStorage.setItem("socio_token", "demo_token_local");
-          router.push("/clientes");
-          return;
-        }
         setError("La respuesta de autenticacion no incluyo token.");
         return;
       }
@@ -117,11 +107,6 @@ export default function LoginPage() {
         router.push("/clientes");
       }
     } catch {
-      if (isDemoCredentials(username, password)) {
-        localStorage.setItem("socio_token", "demo_token_local");
-        router.push("/clientes");
-        return;
-      }
       setError("No se pudo conectar con el backend de autenticacion.");
     } finally {
       setIsLoading(false);
