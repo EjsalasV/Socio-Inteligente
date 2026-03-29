@@ -21,6 +21,11 @@ scripts/
 deploy/
 
 data/
+!data/
+!data/catalogos/
+!data/catalogos/**
+!data/conocimiento_normativo/
+!data/conocimiento_normativo/**
 *.xlsx
 *.csv
 *.parquet
