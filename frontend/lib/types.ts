@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clientes/{cliente_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Cliente */
+        delete: operations["remove_cliente_clientes__cliente_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/perfil/{cliente_id}": {
         parameters: {
             query?: never;
@@ -351,6 +368,21 @@ export interface components {
              * @default 0
              */
             materialidad_global: number;
+            /**
+             * Materialidad Ejecucion
+             * @default 0
+             */
+            materialidad_ejecucion: number;
+            /**
+             * Umbral Trivial
+             * @default 0
+             */
+            umbral_trivial: number;
+            /**
+             * Fase Actual
+             * @default
+             */
+            fase_actual: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -468,6 +500,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    remove_cliente_clientes__cliente_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
