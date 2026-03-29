@@ -7,7 +7,14 @@ type Props = {
 
 export default function DashboardContent({ data }: Props) {
   const progreso = Math.max(0, Math.min(100, data.progreso_auditoria));
-  const orderedAreas = [...(data.top_areas ?? [])].sort((a, b) => b.score_riesgo - a.score_riesgo);
+  const orderedAreas = [...(data.top_areas ?? [])]
+    .filter((area) => area.con_saldo)
+    .sort((a, b) => b.score_riesgo - a.score_riesgo);
+
+  const riskPct = (score: number): number => {
+    if (score <= 1) return Math.max(0, Math.min(100, score * 100));
+    return Math.max(0, Math.min(100, score));
+  };
 
   const riesgoTone =
     data.riesgo_global.toUpperCase() === "ALTO"
@@ -16,8 +23,15 @@ export default function DashboardContent({ data }: Props) {
         ? "text-amber-700"
         : "text-emerald-700";
 
+  const fase = (data.fase_actual || "").toLowerCase();
   const etapa =
-    progreso >= 85 ? "Informe" : progreso >= 45 ? "Ejecucion" : "Planificacion";
+    fase.includes("inform") || fase.includes("cierre")
+      ? "Informe"
+      : fase.includes("ejec") || fase.includes("visita")
+        ? "Ejecucion"
+        : fase.includes("plan")
+          ? "Planificacion"
+          : "Sin definir";
 
   return (
     <div className="space-y-8 pb-8">
@@ -43,7 +57,7 @@ export default function DashboardContent({ data }: Props) {
 
             <div className="space-y-4">
               {orderedAreas.slice(0, 5).map((area) => {
-                const pct = Math.max(8, Math.min(100, area.score_riesgo * 100));
+                const pct = Math.max(8, riskPct(area.score_riesgo));
                 const bar =
                   area.prioridad.toLowerCase() === "alta"
                     ? "bg-[#ba1a1a]"
@@ -55,7 +69,7 @@ export default function DashboardContent({ data }: Props) {
                   <div key={`${area.codigo}-${area.nombre}`} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-semibold text-navy-900">{area.codigo} - {area.nombre}</span>
-                      <span className="text-slate-500 font-medium">{(area.score_riesgo * 100).toFixed(1)}%</span>
+                      <span className="text-slate-500 font-medium">{riskPct(area.score_riesgo).toFixed(1)}%</span>
                     </div>
                     <div className="h-2 rounded-full bg-[#ebeef0] overflow-hidden">
                       <div className={`h-full ${bar}`} style={{ width: `${pct}%` }} />
@@ -63,6 +77,9 @@ export default function DashboardContent({ data }: Props) {
                   </div>
                 );
               })}
+              {orderedAreas.length === 0 ? (
+                <p className="text-sm text-slate-500">Aun no hay areas con saldo relevante para ranking.</p>
+              ) : null}
             </div>
           </article>
 
@@ -85,9 +102,9 @@ export default function DashboardContent({ data }: Props) {
             <h4 className="font-headline text-2xl text-navy-900 mb-4">Ciclo de Vida de Auditoria</h4>
             <div className="space-y-4">
               {[
-                { label: "Planificacion", done: progreso >= 30 },
-                { label: "Ejecucion", done: progreso >= 60 },
-                { label: "Informe", done: progreso >= 90 },
+                { label: "Planificacion", done: etapa === "Planificacion" || etapa === "Ejecucion" || etapa === "Informe" },
+                { label: "Ejecucion", done: etapa === "Ejecucion" || etapa === "Informe" },
+                { label: "Informe", done: etapa === "Informe" },
               ].map((step) => (
                 <div key={step.label} className="flex items-center gap-3">
                   <span className={`material-symbols-outlined ${step.done ? "text-emerald-700" : "text-slate-400"}`}>

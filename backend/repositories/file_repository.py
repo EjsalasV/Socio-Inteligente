@@ -120,6 +120,15 @@ class FileRepository:
         keys = list(rows[0].keys())
         saldo_cols = [k for k in keys if isinstance(k, str) and k.lower().startswith("saldo")]
 
+        def _col_abs_sum(col: str) -> float:
+            total = 0.0
+            for row in rows:
+                try:
+                    total += abs(float(row.get(col, 0.0) or 0.0))
+                except Exception:
+                    continue
+            return total
+
         year_pairs: list[tuple[int, str]] = []
         for col in saldo_cols:
             match = re.search(r"(20\d{2})", col)
@@ -129,11 +138,26 @@ class FileRepository:
         if year_pairs:
             year_pairs.sort(key=lambda x: x[0], reverse=True)
             current_year, current_col = year_pairs[0]
+            current_nonzero = _col_abs_sum(current_col) > 0.0
+
+            if current_nonzero:
+                if len(year_pairs) > 1:
+                    previous_year, previous_col = year_pairs[1]
+                else:
+                    previous_year, previous_col = current_year - 1, None
+                return current_col, previous_col, str(current_year), str(previous_year)
+
+            preliminar_col = next((c for c in saldo_cols if "preliminar" in c.lower()), None)
+            if preliminar_col and _col_abs_sum(preliminar_col) > 0.0:
+                if len(year_pairs) > 1:
+                    previous_year, previous_col = year_pairs[1]
+                else:
+                    previous_year, previous_col = current_year - 1, None
+                return preliminar_col, previous_col, "Preliminar", str(previous_year)
+
             if len(year_pairs) > 1:
                 previous_year, previous_col = year_pairs[1]
-            else:
-                previous_year, previous_col = current_year - 1, None
-            return current_col, previous_col, str(current_year), str(previous_year)
+                return previous_col, None, str(previous_year), str(previous_year - 1)
 
         if len(saldo_cols) >= 2:
             return saldo_cols[-1], saldo_cols[-2], "Actual", "Anterior"

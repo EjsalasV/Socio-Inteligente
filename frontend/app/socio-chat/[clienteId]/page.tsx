@@ -22,24 +22,6 @@ const QUICK_PROMPTS = [
   "Redacta un parrafo para informe...",
 ];
 
-const RECENT_THREADS = [
-  {
-    title: "Consulta NIIF 15 - Ingresos",
-    subtitle: "Revision de contratos de software...",
-    period: "Cierre Anual 2025",
-  },
-  {
-    title: "Riesgo de fraude - Inventarios",
-    subtitle: "Analisis de mermas en retail",
-    period: "Cierre Anual 2025",
-  },
-  {
-    title: "Control interno - Nomina",
-    subtitle: "Segregacion de funciones en TI",
-    period: "Planificacion",
-  },
-];
-
 function nowLabel(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -56,17 +38,42 @@ export default function SocioChatPage() {
       id: "seed-user",
       role: "user",
       timestamp: nowLabel(),
-      text: "Socio, necesito criterio para un contrato de implementacion que mezcla licencias y soporte por 3 anos.",
+      text: "Socio, ayúdame a priorizar los procedimientos para las areas de mayor riesgo del cliente.",
     },
     {
       id: "seed-assistant",
       role: "assistant",
       timestamp: nowLabel(),
-      text: "Segun NIIF 15 debes separar obligaciones de desempeno. Licencia y soporte suelen reconocerse en momentos distintos; el soporte se reconoce a lo largo del tiempo.",
+      text: "Perfecto. Empecemos por las areas con mayor score y saldo relevante, y luego definimos pruebas sustantivas y de control por cada una.",
     },
   ]);
 
   const openRisks = useMemo(() => riskData?.areas_criticas?.slice(0, 2) ?? [], [riskData]);
+  const recentThreads = useMemo(
+    () => {
+      const periodLabel = dashboard?.periodo ? `Periodo ${dashboard.periodo}` : "Periodo actual";
+      return (dashboard?.top_areas ?? [])
+        .filter((item) => item.con_saldo)
+        .slice(0, 3)
+        .map((item) => ({
+          title: `Analisis de area ${item.codigo}`,
+          subtitle: item.nombre,
+          period: periodLabel,
+        }));
+    },
+    [dashboard],
+  );
+
+  const references = useMemo(() => {
+    const refs = ["NIA 315 - Valoracion de riesgos.", "NIA 330 - Respuestas del auditor."];
+    const names = (dashboard?.top_areas ?? []).map((x) => x.nombre.toLowerCase()).join(" ");
+    if (names.includes("ingreso") || names.includes("cobrar") || names.includes("venta")) {
+      refs.unshift("NIIF 15 - Ingresos por contratos con clientes.");
+    } else {
+      refs.unshift("NIA 520 - Procedimientos analiticos.");
+    }
+    return refs;
+  }, [dashboard]);
 
   async function handleSend(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -121,7 +128,7 @@ export default function SocioChatPage() {
             <span className="material-symbols-outlined text-slate-400">edit_square</span>
           </div>
           <div className="space-y-2 overflow-y-auto pr-1">
-            {RECENT_THREADS.map((thread, idx) => (
+            {recentThreads.map((thread, idx) => (
               <button
                 type="button"
                 key={`${thread.title}-${idx}`}
@@ -132,6 +139,9 @@ export default function SocioChatPage() {
                 <p className="text-[11px] text-slate-500 mt-1">{thread.subtitle}</p>
               </button>
             ))}
+            {recentThreads.length === 0 ? (
+              <p className="text-xs text-slate-500 px-2">No hay conversaciones recientes para este cliente.</p>
+            ) : null}
           </div>
         </aside>
 
@@ -228,9 +238,11 @@ export default function SocioChatPage() {
           <article className="sovereign-card">
             <h4 className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-bold mb-4">Referencias tecnicas</h4>
             <ul className="space-y-2">
-              <li className="p-3 rounded-xl bg-white border border-black/10 text-xs text-slate-700">NIIF 15 - Obligaciones de desempeno.</li>
-              <li className="p-3 rounded-xl bg-white border border-black/10 text-xs text-slate-700">NIA 315 - Valoracion de riesgos.</li>
-              <li className="p-3 rounded-xl bg-white border border-black/10 text-xs text-slate-700">NIA 330 - Respuestas del auditor.</li>
+              {references.map((ref) => (
+                <li key={ref} className="p-3 rounded-xl bg-white border border-black/10 text-xs text-slate-700">
+                  {ref}
+                </li>
+              ))}
             </ul>
           </article>
         </aside>

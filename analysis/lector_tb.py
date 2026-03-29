@@ -62,6 +62,13 @@ def _to_numeric(series: pd.Series) -> pd.Series:
     return pd.to_numeric(s, errors="coerce").fillna(0.0)
 
 
+def _is_effectively_empty(series: pd.Series) -> bool:
+    numeric = pd.to_numeric(series, errors="coerce")
+    if numeric.notna().sum() == 0:
+        return True
+    return float(numeric.fillna(0.0).abs().sum()) == 0.0
+
+
 def _normalizar_ls_val(v: Any) -> str:
     txt = str(v).strip()
     if not txt or txt.lower() in {"nan", "none"}:
@@ -167,12 +174,23 @@ def _mapear_columnas_canonicas(tb: pd.DataFrame) -> pd.DataFrame:
     s2024_src = _first_col(tb, ["saldo_2024", "saldo_anterior"])
     spre_src = _first_col(tb, ["saldo_preliminar"])
 
-    tb["saldo_2025"] = _to_numeric(tb[s2025_src]) if s2025_src else 0.0
-    tb["saldo_2024"] = _to_numeric(tb[s2024_src]) if s2024_src else 0.0
-    tb["saldo_preliminar"] = _to_numeric(tb[spre_src]) if spre_src else tb["saldo_2025"]
+    saldo_2025_series = tb[s2025_src] if s2025_src else pd.Series([0.0] * len(tb))
+    saldo_2024_series = tb[s2024_src] if s2024_src else pd.Series([0.0] * len(tb))
+    saldo_preliminar_series = tb[spre_src] if spre_src else pd.Series([0.0] * len(tb))
 
-    # columna base esperada por modulos existentes
-    tb["saldo_actual"] = tb["saldo_2025"]
+    tb["saldo_2025"] = _to_numeric(saldo_2025_series)
+    tb["saldo_2024"] = _to_numeric(saldo_2024_series)
+    tb["saldo_preliminar"] = _to_numeric(saldo_preliminar_series)
+
+    # Si "Saldo 2025" viene vacío (muy común en cargas preliminares),
+    # usar "Saldo preliminar" como saldo actual real del trabajo.
+    if not _is_effectively_empty(saldo_2025_series):
+        tb["saldo_actual"] = tb["saldo_2025"]
+    elif not _is_effectively_empty(saldo_preliminar_series):
+        tb["saldo_actual"] = tb["saldo_preliminar"]
+    else:
+        tb["saldo_actual"] = tb["saldo_2024"]
+
     tb["saldo"] = tb["saldo_actual"]
 
     return tb

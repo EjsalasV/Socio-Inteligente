@@ -35,6 +35,9 @@ function normalizeDashboardPayload(clienteId: string, raw: UnknownRecord): Dashb
     nombre_cliente: asString(raw.nombre_cliente, clienteId),
     sector: asString(raw.sector, ""),
     materialidad_global: asNumber(raw.materialidad_global, 0),
+    materialidad_ejecucion: asNumber(raw.materialidad_ejecucion, 0),
+    umbral_trivial: asNumber(raw.umbral_trivial, 0),
+    fase_actual: asString(raw.fase_actual, ""),
     top_areas: topAreasRaw
       .map((item) => {
         if (!isRecord(item)) return null;

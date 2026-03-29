@@ -7,6 +7,7 @@ El auditor siempre decide el valor final.
 NIA 320: Materialidad en la planificación y ejecución de auditoría
 """
 
+import builtins
 import yaml
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -17,6 +18,14 @@ from analysis.lector_tb import leer_tb, obtener_resumen_tb
 # Rutas
 DATA_ROOT = Path(__file__).parent.parent.parent / "data"
 REGLAS_PATH = DATA_ROOT / "catalogos" / "reglas_materialidad.yaml"
+
+
+def print(*args, **kwargs):  # type: ignore[override]
+    try:
+        builtins.print(*args, **kwargs)
+    except UnicodeEncodeError:
+        safe_args = [str(arg).encode("ascii", "ignore").decode("ascii") for arg in args]
+        builtins.print(*safe_args, **kwargs)
 
 
 def obtener_reglas() -> Dict:

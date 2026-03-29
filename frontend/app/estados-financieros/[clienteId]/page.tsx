@@ -21,10 +21,17 @@ export default function EstadosFinancierosPage() {
 
   const baseOptions = useMemo(() => getLsOptions(8).map((x) => normalizeLsCode(x.codigo)), []);
   const dynamicOptions = useMemo(
-    () => (dashboard?.top_areas ?? []).map((x) => normalizeLsCode(x.codigo)).filter(Boolean),
+    () =>
+      (dashboard?.top_areas ?? [])
+        .filter((x) => x.con_saldo)
+        .map((x) => normalizeLsCode(x.codigo))
+        .filter(Boolean),
     [dashboard],
   );
-  const options = useMemo(() => Array.from(new Set([...baseOptions, ...dynamicOptions])), [baseOptions, dynamicOptions]);
+  const options = useMemo(() => {
+    if (dynamicOptions.length > 0) return Array.from(new Set(dynamicOptions));
+    return Array.from(new Set(baseOptions));
+  }, [baseOptions, dynamicOptions]);
   const [selectedArea, setSelectedArea] = useState<string>(options[0] ?? "140");
 
   useEffect(() => {
@@ -40,8 +47,8 @@ export default function EstadosFinancierosPage() {
       .slice(0, 8);
   }, [areaData]);
 
-  const me = (dashboard?.materialidad_global ?? 0) * 0.75;
-  const triviales = (dashboard?.materialidad_global ?? 0) * 0.05;
+  const me = dashboard?.materialidad_ejecucion ?? (dashboard?.materialidad_global ?? 0) * 0.75;
+  const triviales = dashboard?.umbral_trivial ?? (dashboard?.materialidad_global ?? 0) * 0.05;
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;

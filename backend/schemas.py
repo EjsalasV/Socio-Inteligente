@@ -87,6 +87,9 @@ class DashboardResponse(BaseModel):
     progreso: ProgresoEncargo
     top_areas: list[AreaRiesgo]
     materialidad_global: float = 0.0
+    materialidad_ejecucion: float = 0.0
+    umbral_trivial: float = 0.0
+    fase_actual: str = ""
 
 
 class RiskItem(BaseModel):

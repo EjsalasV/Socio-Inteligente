@@ -33,6 +33,9 @@ export interface DashboardResponse {
   progreso: ProgresoEncargo;
   top_areas: AreaRiesgo[];
   materialidad_global: number;
+  materialidad_ejecucion: number;
+  umbral_trivial: number;
+  fase_actual: string;
 }
 
 export interface DashboardData {
@@ -48,5 +51,8 @@ export interface DashboardData {
   nombre_cliente: string;
   sector: string;
   materialidad_global: number;
+  materialidad_ejecucion: number;
+  umbral_trivial: number;
+  fase_actual: string;
   top_areas: AreaRiesgo[];
 }

@@ -93,9 +93,40 @@ def _build_matrix_cells(areas: list[RiskCriticalArea]) -> list[list[RiskMatrixCe
     return grid
 
 
-@router.get("/{cliente_id}", response_model=ApiResponse)
-def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
-    authorize_cliente_access(cliente_id, user)
+def _from_ranking(cliente_id: str) -> list[RiskCriticalArea]:
+    try:
+        from analysis.ranking_areas import calcular_ranking_areas
+
+        ranking = calcular_ranking_areas(cliente_id)
+        if ranking is None or ranking.empty:
+            return []
+
+        if "con_saldo" in ranking.columns:
+            ranking = ranking[ranking["con_saldo"] == True]  # noqa: E712
+        if ranking.empty:
+            return []
+
+        out: list[RiskCriticalArea] = []
+        for _, row in ranking.sort_values("score_riesgo", ascending=False).head(12).iterrows():
+            score = float(row.get("score_riesgo", 0.0) or 0.0)
+            frecuencia, impacto = _score_to_axes(score)
+            out.append(
+                RiskCriticalArea(
+                    area_id=str(row.get("area") or ""),
+                    area_nombre=str(row.get("nombre") or f"Area {row.get('area', '')}"),
+                    score=round(score, 2),
+                    nivel=_normalize_level(score),
+                    frecuencia=frecuencia,
+                    impacto=impacto,
+                    hallazgos_abiertos=_to_int(row.get("expert_flags_count", 0), 0),
+                )
+            )
+        return out
+    except Exception:
+        return []
+
+
+def _from_area_files(cliente_id: str) -> list[RiskCriticalArea]:
     cliente_root = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id
     areas_dir = cliente_root / "areas"
     critical_areas: list[RiskCriticalArea] = []
@@ -108,7 +139,7 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
 
             score, hallazgos_count, _pendientes_count = _compute_score(area_data)
             area_id = str(area_data.get("codigo") or area_file.stem)
-            area_name = str(area_data.get("nombre") or f"Área {area_id}")
+            area_name = str(area_data.get("nombre") or f"Area {area_id}")
             frecuencia, impacto = _score_to_axes(score)
             critical_areas.append(
                 RiskCriticalArea(
@@ -122,8 +153,18 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
                 )
             )
 
+    return critical_areas
+
+
+@router.get("/{cliente_id}", response_model=ApiResponse)
+def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+
+    critical_areas = _from_ranking(cliente_id)
     if not critical_areas:
-        # Fallback para clientes sin archivos por área.
+        critical_areas = _from_area_files(cliente_id)
+
+    if not critical_areas:
         critical_areas = [
             RiskCriticalArea(
                 area_id="14",
