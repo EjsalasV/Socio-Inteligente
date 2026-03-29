@@ -33,6 +33,8 @@ jobs:
 
   contract-types:
     runs-on: ubuntu-latest
+    env:
+      JWT_SECRET_KEY: ci_dummy_secret_for_openapi_export
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

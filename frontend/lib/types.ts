@@ -31,7 +31,42 @@ export interface paths {
         /** Get Clientes */
         get: operations["get_clientes_clientes_get"];
         put?: never;
+        /** Post Cliente */
+        post: operations["post_cliente_clientes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clientes/{cliente_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         post?: never;
+        /** Remove Cliente */
+        delete: operations["remove_cliente_clientes__cliente_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clientes/{cliente_id}/upload/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Cliente File */
+        post: operations["upload_cliente_file_clientes__cliente_id__upload__kind__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -226,6 +261,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/papeles-trabajo/{cliente_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Workpapers */
+        get: operations["get_workpapers_papeles_trabajo__cliente_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/papeles-trabajo/{cliente_id}/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Workpaper Task */
+        patch: operations["patch_workpaper_task_papeles_trabajo__cliente_id__tasks__task_id__patch"];
+        trace?: never;
+    };
+    "/workflow/{cliente_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Workflow State */
+        get: operations["get_workflow_state_workflow__cliente_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflow/{cliente_id}/advance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Advance Workflow */
+        post: operations["advance_workflow_workflow__cliente_id__advance_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -325,10 +428,24 @@ export interface components {
              */
             gastos: number;
         };
+        /** Body_upload_cliente_file_clientes__cliente_id__upload__kind__post */
+        Body_upload_cliente_file_clientes__cliente_id__upload__kind__post: {
+            /** File */
+            file: string;
+        };
         /** ChatRequest */
         ChatRequest: {
             /** Message */
             message: string;
+        };
+        /** ClienteCreateRequest */
+        ClienteCreateRequest: {
+            /** Cliente Id */
+            cliente_id?: string | null;
+            /** Nombre */
+            nombre: string;
+            /** Sector */
+            sector?: string | null;
         };
         /** DashboardResponse */
         DashboardResponse: {
@@ -351,6 +468,21 @@ export interface components {
              * @default 0
              */
             materialidad_global: number;
+            /**
+             * Materialidad Ejecucion
+             * @default 0
+             */
+            materialidad_ejecucion: number;
+            /**
+             * Umbral Trivial
+             * @default 0
+             */
+            umbral_trivial: number;
+            /**
+             * Fase Actual
+             * @default
+             */
+            fase_actual: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -410,6 +542,21 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** WorkflowAdvanceRequest */
+        WorkflowAdvanceRequest: {
+            /** Target Phase */
+            target_phase?: string | null;
+        };
+        /** WorkpaperTaskUpdateRequest */
+        WorkpaperTaskUpdateRequest: {
+            /** Done */
+            done: boolean;
+            /**
+             * Evidence Note
+             * @default
+             */
+            evidence_note: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -468,6 +615,106 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    post_cliente_clientes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClienteCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_cliente_clientes__cliente_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_cliente_file_clientes__cliente_id__upload__kind__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_cliente_file_clientes__cliente_id__upload__kind__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -857,6 +1104,139 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workpapers_papeles_trabajo__cliente_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_workpaper_task_papeles_trabajo__cliente_id__tasks__task_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkpaperTaskUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workflow_state_workflow__cliente_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    advance_workflow_workflow__cliente_id__advance_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowAdvanceRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

@@ -70,6 +70,163 @@
             "HTTPBearer": []
           }
         ]
+      },
+      "post": {
+        "tags": [
+          "clientes"
+        ],
+        "summary": "Post Cliente",
+        "operationId": "post_cliente_clientes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClienteCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/clientes/{cliente_id}": {
+      "delete": {
+        "tags": [
+          "clientes"
+        ],
+        "summary": "Remove Cliente",
+        "operationId": "remove_cliente_clientes__cliente_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clientes/{cliente_id}/upload/{kind}": {
+      "post": {
+        "tags": [
+          "clientes"
+        ],
+        "summary": "Upload Cliente File",
+        "operationId": "upload_cliente_file_clientes__cliente_id__upload__kind__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Kind"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_cliente_file_clientes__cliente_id__upload__kind__post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/perfil/{cliente_id}": {
@@ -742,6 +899,223 @@
         }
       }
     },
+    "/papeles-trabajo/{cliente_id}": {
+      "get": {
+        "tags": [
+          "papeles-trabajo"
+        ],
+        "summary": "Get Workpapers",
+        "operationId": "get_workpapers_papeles_trabajo__cliente_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/papeles-trabajo/{cliente_id}/tasks/{task_id}": {
+      "patch": {
+        "tags": [
+          "papeles-trabajo"
+        ],
+        "summary": "Patch Workpaper Task",
+        "operationId": "patch_workpaper_task_papeles_trabajo__cliente_id__tasks__task_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkpaperTaskUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workflow/{cliente_id}": {
+      "get": {
+        "tags": [
+          "workflow"
+        ],
+        "summary": "Get Workflow State",
+        "operationId": "get_workflow_state_workflow__cliente_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workflow/{cliente_id}/advance": {
+      "post": {
+        "tags": [
+          "workflow"
+        ],
+        "summary": "Advance Workflow",
+        "operationId": "advance_workflow_workflow__cliente_id__advance_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowAdvanceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -902,6 +1276,20 @@
         "type": "object",
         "title": "BalanceKPIs"
       },
+      "Body_upload_cliente_file_clientes__cliente_id__upload__kind__post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_cliente_file_clientes__cliente_id__upload__kind__post"
+      },
       "ChatRequest": {
         "properties": {
           "message": {
@@ -914,6 +1302,41 @@
           "message"
         ],
         "title": "ChatRequest"
+      },
+      "ClienteCreateRequest": {
+        "properties": {
+          "cliente_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cliente Id"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "sector": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre"
+        ],
+        "title": "ClienteCreateRequest"
       },
       "DashboardResponse": {
         "properties": {
@@ -954,6 +1377,21 @@
             "type": "number",
             "title": "Materialidad Global",
             "default": 0.0
+          },
+          "materialidad_ejecucion": {
+            "type": "number",
+            "title": "Materialidad Ejecucion",
+            "default": 0.0
+          },
+          "umbral_trivial": {
+            "type": "number",
+            "title": "Umbral Trivial",
+            "default": 0.0
+          },
+          "fase_actual": {
+            "type": "string",
+            "title": "Fase Actual",
+            "default": ""
           }
         },
         "type": "object",
@@ -1085,6 +1523,41 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WorkflowAdvanceRequest": {
+        "properties": {
+          "target_phase": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Phase"
+          }
+        },
+        "type": "object",
+        "title": "WorkflowAdvanceRequest"
+      },
+      "WorkpaperTaskUpdateRequest": {
+        "properties": {
+          "done": {
+            "type": "boolean",
+            "title": "Done"
+          },
+          "evidence_note": {
+            "type": "string",
+            "title": "Evidence Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "done"
+        ],
+        "title": "WorkpaperTaskUpdateRequest"
       }
     },
     "securitySchemes": {
