@@ -788,7 +788,13 @@ def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
         # En chat general intentamos LLM aun sin chunks para no degradar preguntas conversacionales.
         return _llm_answer(query, chunks, mode="chat", cliente_id=cliente_id)
     except Exception:
-        pass
+        # Fallback contextual: si el proveedor AI falla, mantenemos respuestas utiles por dominio.
+        if _is_risk_question(query):
+            return _risk_answer(cliente_id, query)
+        if _is_next_steps_question(query):
+            return _next_steps_answer(cliente_id)
+        if _is_greeting(query):
+            return _fallback_answer(query, cliente_id, [], mode="chat")
     return _fallback_answer(query, cliente_id, chunks, mode="chat")
 
 
