@@ -202,7 +202,27 @@ def retrieve_context_chunks(cliente_id: str, query: str, *, top_k: int = 6) -> l
     return out
 
 
-def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk]) -> dict[str, Any]:
+def _is_greeting(query: str) -> bool:
+    q = (query or "").strip().lower()
+    if not q:
+        return False
+    greetings = {
+        "hola",
+        "buenas",
+        "buen dia",
+        "buenos dias",
+        "buenas tardes",
+        "buenas noches",
+        "hello",
+        "hi",
+        "hey",
+    }
+    if q in greetings:
+        return True
+    return any(q.startswith(g + " ") for g in greetings)
+
+
+def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], *, mode: str = "chat") -> dict[str, Any]:
     sources = [c.source for c in chunks]
     first_context = chunks[0].excerpt[:240] if chunks else "Sin contexto recuperado."
     citations: list[dict[str, str]] = []
@@ -219,15 +239,39 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk]) 
                 "jurisdiccion": str(meta.get("jurisdiccion") or ""),
             }
         )
-    return {
-        "answer": (
-            f"[Socio AI RAG - fallback] Consulta: '{query}'. "
-            f"Cliente: {cliente_id}. Analiza la normativa aplicable y valida evidencia con base en fuentes recuperadas."
+    if mode == "chat":
+        if _is_greeting(query):
+            answer = (
+                f"Hola. Soy Socio AI y ya tengo activo el contexto del cliente `{cliente_id}`.\n\n"
+                "Te puedo ayudar en tres frentes:\n"
+                "1) Analisis de riesgo por area.\n"
+                "2) Procedimientos segun NIA/NIIF.\n"
+                "3) Redaccion de hallazgos y conclusion.\n\n"
+                "Dime en que area quieres que trabajemos primero."
+            )
+            confidence = 0.65
+        else:
+            answer = (
+                f"Recibi tu consulta sobre `{query}` para el cliente `{cliente_id}`.\n\n"
+                "Ahora mismo no encontre contexto recuperado suficiente en la base documental. "
+                "Puedo avanzar con criterio auditor general, y si quieres mayor precision te sugiero "
+                "subir soporte (actas, contratos, politicas, anexos) en Client Memory.\n\n"
+                f"Contexto disponible: {first_context}"
+            )
+            confidence = 0.35 if chunks else 0.18
+    else:
+        answer = (
+            f"No se pudo completar la recuperacion normativa para `{query}` en modo `{mode}`. "
+            "Se recomienda validar manualmente NIA/NIIF aplicables y evidencia de soporte."
             f"\n\nContexto clave: {first_context}"
-        ),
+        )
+        confidence = 0.30 if chunks else 0.15
+
+    return {
+        "answer": answer,
         "citations": citations,
         "context_sources": sources,
-        "confidence": 0.42 if chunks else 0.18,
+        "confidence": confidence,
         "prompt_meta": {"prompt_id": "fallback", "prompt_version": "v1"},
     }
 
@@ -319,7 +363,7 @@ def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
             return _llm_answer(query, chunks, mode="chat")
     except Exception:
         pass
-    return _fallback_answer(query, cliente_id, chunks)
+    return _fallback_answer(query, cliente_id, chunks, mode="chat")
 
 
 def generate_metodologia_response(cliente_id: str, area: str) -> dict[str, Any]:
@@ -330,7 +374,7 @@ def generate_metodologia_response(cliente_id: str, area: str) -> dict[str, Any]:
             return _llm_answer(query, chunks, mode="metodologia")
     except Exception:
         pass
-    return _fallback_answer(query, cliente_id, chunks)
+    return _fallback_answer(query, cliente_id, chunks, mode="metodologia")
 
 
 def generate_judgement_response(cliente_id: str, query: str, *, mode: str = "judgement_risk") -> dict[str, Any]:
@@ -340,4 +384,4 @@ def generate_judgement_response(cliente_id: str, query: str, *, mode: str = "jud
             return _llm_answer(query, chunks, mode=mode)
     except Exception:
         pass
-    return _fallback_answer(query, cliente_id, chunks)
+    return _fallback_answer(query, cliente_id, chunks, mode=mode)
