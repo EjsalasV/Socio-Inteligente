@@ -75,6 +75,15 @@ export default function ReportesPage() {
     if (items.length === 0) return null;
     return items.slice().sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())[0];
   }, [history]);
+  const tbStage = (data?.tb_stage || "sin_saldos").toLowerCase();
+  const tbStageLabel =
+    tbStage === "final"
+      ? "Corte Final"
+      : tbStage === "preliminar"
+        ? "Corte Preliminar"
+        : tbStage === "inicial"
+          ? "Corte Inicial"
+          : "Sin saldos";
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -167,6 +176,7 @@ export default function ReportesPage() {
         <p className="font-body text-slate-200 mt-3 leading-relaxed text-base">
           Cliente: <span className="font-semibold text-white">{data.nombre_cliente}</span> ·
           Periodo: <span className="font-semibold text-white"> {data.periodo || "Actual"}</span>
+          {" "}· TB: <span className="font-semibold text-white">{tbStageLabel}</span>
         </p>
       </section>
 

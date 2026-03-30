@@ -70,11 +70,18 @@ def _normalize_workflow_phase(raw: str) -> str:
     return "planificacion"
 
 
+def _normalize_tb_stage(raw: object) -> str:
+    value = _to_str(raw, "").strip().lower()
+    if value in {"final", "preliminar", "inicial", "sin_saldos"}:
+        return value
+    return "sin_saldos"
+
+
 @router.get("/{cliente_id}", response_model=DashboardResponse)
 def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)) -> DashboardResponse:
     authorize_cliente_access(cliente_id, user)
 
-    from analysis.lector_tb import obtener_resumen_tb
+    from analysis.lector_tb import leer_tb, obtener_resumen_tb
     from analysis.ranking_areas import calcular_ranking_areas
     from domain.services.leer_perfil import leer_perfil
     from domain.services.materialidad_service import calcular_materialidad
@@ -82,6 +89,7 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
 
     perfil = leer_perfil(cliente_id) or {}
     resumen_tb = obtener_resumen_tb(cliente_id) or {}
+    tb = leer_tb(cliente_id)
     ranking = calcular_ranking_areas(cliente_id)
     materialidad = calcular_materialidad(cliente_id) or {}
 
@@ -185,6 +193,7 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
         materialidad_ejecucion=me,
         umbral_trivial=trivial,
         materialidad_origen=materialidad_origen,
+        tb_stage=_normalize_tb_stage(tb["tb_stage"].iloc[0] if tb is not None and not tb.empty and "tb_stage" in tb.columns else ""),
         fase_actual=fase_actual,
         workflow_phase=workflow_phase,
         workflow_gates=workflow_gates,

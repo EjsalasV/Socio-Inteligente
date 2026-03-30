@@ -38,6 +38,7 @@ function normalizeDashboardPayload(clienteId: string, raw: UnknownRecord): Dashb
     materialidad_ejecucion: asNumber(raw.materialidad_ejecucion, 0),
     umbral_trivial: asNumber(raw.umbral_trivial, 0),
     materialidad_origen: asString(raw.materialidad_origen, ""),
+    tb_stage: asString(raw.tb_stage, "sin_saldos"),
     fase_actual: asString(raw.fase_actual, ""),
     workflow_phase: asString(raw.workflow_phase, "planificacion"),
     workflow_gates: Array.isArray(raw.workflow_gates)

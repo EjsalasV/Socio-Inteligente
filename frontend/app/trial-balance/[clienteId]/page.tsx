@@ -49,6 +49,15 @@ export default function TrialBalancePage() {
   const deltaVsResultado = Math.abs(accountingDelta - resultadoPeriodo);
   const balanceOk = balanceDelta < 1;
   const isResultadoPeriodo = !balanceOk && deltaVsResultado < 1;
+  const tbStage = (dashboard?.tb_stage || "sin_saldos").toLowerCase();
+  const tbStageLabel =
+    tbStage === "final"
+      ? "Corte Final"
+      : tbStage === "preliminar"
+        ? "Corte Preliminar"
+        : tbStage === "inicial"
+          ? "Corte Inicial"
+          : "Sin saldos";
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -62,6 +71,11 @@ export default function TrialBalancePage() {
           <p className="font-body text-sm text-slate-500 mt-2">
             Ejercicio {dashboard.periodo || "Actual"} · Cliente {dashboard.nombre_cliente}
           </p>
+          <div className="mt-3">
+            <span className="inline-flex items-center rounded-full border border-[#041627]/20 bg-[#f1f4f6] px-3 py-1 text-[11px] font-semibold text-[#041627]">
+              TB: {tbStageLabel}
+            </span>
+          </div>
         </div>
 
         <div className="min-w-[320px]">
@@ -95,7 +109,7 @@ export default function TrialBalancePage() {
             {balanceOk
               ? "Activo = Pasivo + Patrimonio"
               : isResultadoPeriodo
-                ? `La diferencia corresponde al resultado del periodo: ${formatMoney(resultadoPeriodo)}`
+                ? `Resultado del periodo reflejado en patrimonio: ${formatMoney(resultadoPeriodo)}`
                 : `Diferencia real: ${formatMoney(balanceDelta)}`}
           </p>
         </article>
@@ -186,8 +200,9 @@ export default function TrialBalancePage() {
               <span className="material-symbols-outlined text-[#89d3d4]" style={{ fontVariationSettings: "'FILL' 1" }}>
                 smart_toy
               </span>
-              <h3 className="font-headline text-2xl text-[#a5eff0]">Socio IA - Hallazgos</h3>
+              <h3 className="font-headline text-2xl text-[#a5eff0]">Socio AI - Guia de Aseveraciones</h3>
             </div>
+            <p className="text-[11px] text-[#89d3d4] mb-4">Base deterministica del motor (catalogo tecnico), no respuesta generativa.</p>
 
             <div className="space-y-4">
               {(areaData?.aseveraciones ?? []).slice(0, 3).map((a, idx) => (

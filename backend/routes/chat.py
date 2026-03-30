@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+import os
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from backend.auditor_pipeline import execute_pipeline
 from backend.auth import authorize_cliente_access, get_current_user
-from backend.repositories.file_repository import append_audit_log, append_hallazgo
+from backend.repositories.file_repository import (
+    append_audit_log,
+    append_chat_message,
+    append_hallazgo,
+    list_area_codes,
+    read_chat_history,
+)
 from backend.schemas import ApiResponse, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse, UserContext
 from backend.services.rag_chat_service import generate_chat_response, generate_metodologia_response
 
@@ -16,6 +25,39 @@ class ChatExportRequest(BaseModel):
     title: str | None = None
 
 
+def _is_true(value: str | None) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _select_area_code(cliente_id: str) -> str:
+    codes = list_area_codes(cliente_id)
+    if not codes:
+        return "140"
+    # Prefer active balance areas when available.
+    for preferred in ["140", "130", "200", "14"]:
+        if preferred in codes:
+            return preferred
+    return str(codes[0])
+
+
+def _run_chat_engine(cliente_id: str, message: str) -> dict:
+    use_pipeline = _is_true(os.getenv("USE_AUDITOR_PIPELINE"))
+    if not use_pipeline:
+        return generate_chat_response(cliente_id, message)
+
+    try:
+        return execute_pipeline(
+            cliente_id=cliente_id,
+            codigo_area=_select_area_code(cliente_id),
+            modo="consulta_rapida",
+            señales_python={},
+            consulta_adicional=message,
+        )
+    except Exception:
+        # Fallback resiliente para no romper chat en productivo.
+        return generate_chat_response(cliente_id, message)
+
+
 @router.post("/{cliente_id}", response_model=ApiResponse)
 def post_chat(
     cliente_id: str,
@@ -23,7 +65,15 @@ def post_chat(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
-    rag = generate_chat_response(cliente_id, payload.message)
+    rag = _run_chat_engine(cliente_id, payload.message)
+    append_chat_message(
+        cliente_id,
+        {
+            "role": "user",
+            "text": payload.message,
+            "user_id": user.sub,
+        },
+    )
 
     append_audit_log(
         user_id=user.sub,
@@ -41,7 +91,39 @@ def post_chat(
         prompt_id=str((rag.get("prompt_meta") or {}).get("prompt_id") or ""),
         prompt_version=str((rag.get("prompt_meta") or {}).get("prompt_version") or ""),
     )
+    append_chat_message(
+        cliente_id,
+        {
+            "role": "assistant",
+            "text": data.answer,
+            "citations": data.citations,
+            "confidence": data.confidence,
+            "prompt_id": data.prompt_id,
+            "prompt_version": data.prompt_version,
+            "user_id": user.sub,
+        },
+    )
     return ApiResponse(data=data.model_dump())
+
+
+@router.get("/{cliente_id}/history", response_model=ApiResponse)
+def get_chat_history(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    rows = read_chat_history(cliente_id)
+    safe_rows: list[dict] = []
+    for row in rows[-120:]:
+        if not isinstance(row, dict):
+            continue
+        safe_rows.append(
+            {
+                "role": str(row.get("role") or ""),
+                "text": str(row.get("text") or ""),
+                "timestamp": str(row.get("timestamp") or ""),
+                "citations": row.get("citations") if isinstance(row.get("citations"), list) else [],
+                "confidence": float(row.get("confidence") or 0.0) if row.get("confidence") is not None else 0.0,
+            }
+        )
+    return ApiResponse(data={"messages": safe_rows})
 
 
 @router.post("/{cliente_id}/metodologia", response_model=ApiResponse)
@@ -51,7 +133,20 @@ def post_metodologia(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
-    rag = generate_metodologia_response(cliente_id, payload.area)
+    use_pipeline = _is_true(os.getenv("USE_AUDITOR_PIPELINE"))
+    if use_pipeline:
+        try:
+            rag = execute_pipeline(
+                cliente_id=cliente_id,
+                codigo_area=str(payload.area or _select_area_code(cliente_id)),
+                modo="briefing",
+                señales_python={},
+                consulta_adicional=f"Metodologia y procedimientos para area {payload.area}",
+            )
+        except Exception:
+            rag = generate_metodologia_response(cliente_id, payload.area)
+    else:
+        rag = generate_metodologia_response(cliente_id, payload.area)
 
     append_audit_log(
         user_id=user.sub,

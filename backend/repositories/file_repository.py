@@ -302,6 +302,33 @@ class FileRepository:
                 on_conflict="cliente_id",
             )
 
+    def read_chat_history(self, cliente_id: str) -> list[dict[str, Any]]:
+        p = self.cliente_dir(cliente_id) / "chat_history.json"
+        if not p.exists():
+            return []
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+        if not isinstance(data, list):
+            return []
+        out: list[dict[str, Any]] = []
+        for row in data:
+            if isinstance(row, dict):
+                out.append(row)
+        return out[-200:]
+
+    def append_chat_message(self, cliente_id: str, message: dict[str, Any]) -> None:
+        cdir = self.cliente_dir(cliente_id)
+        cdir.mkdir(parents=True, exist_ok=True)
+        history = self.read_chat_history(cliente_id)
+        row = dict(message)
+        if "timestamp" not in row:
+            row["timestamp"] = datetime.now(timezone.utc).isoformat()
+        history.append(row)
+        p = cdir / "chat_history.json"
+        p.write_text(json.dumps(history[-200:], ensure_ascii=False, indent=2), encoding="utf-8")
+
     def list_documentos(self, cliente_id: str) -> list[dict[str, Any]]:
         cdir = self.cliente_dir(cliente_id)
         docs_dir = cdir / "documentos"
@@ -727,6 +754,14 @@ def read_memo(cliente_id: str) -> str:
 
 def write_memo(cliente_id: str, content: str) -> None:
     repo.write_memo(cliente_id, content)
+
+
+def read_chat_history(cliente_id: str) -> list[dict[str, Any]]:
+    return repo.read_chat_history(cliente_id)
+
+
+def append_chat_message(cliente_id: str, message: dict[str, Any]) -> None:
+    repo.append_chat_message(cliente_id, message)
 
 
 def list_documentos(cliente_id: str) -> list[dict[str, Any]]:

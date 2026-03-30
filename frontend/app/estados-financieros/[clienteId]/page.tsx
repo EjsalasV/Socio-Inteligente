@@ -49,6 +49,15 @@ export default function EstadosFinancierosPage() {
 
   const me = dashboard?.materialidad_ejecucion ?? (dashboard?.materialidad_global ?? 0) * 0.75;
   const triviales = dashboard?.umbral_trivial ?? (dashboard?.materialidad_global ?? 0) * 0.05;
+  const tbStage = (dashboard?.tb_stage || "sin_saldos").toLowerCase();
+  const tbStageLabel =
+    tbStage === "final"
+      ? "Corte Final"
+      : tbStage === "preliminar"
+        ? "Corte Preliminar"
+        : tbStage === "inicial"
+          ? "Corte Inicial"
+          : "Sin saldos";
   const materialidadOrigenLabel =
     dashboard?.materialidad_origen === "perfil"
       ? "Definida en perfil del cliente"
@@ -68,6 +77,11 @@ export default function EstadosFinancierosPage() {
           <p className="font-body text-sm text-slate-500 mt-2">
             Cliente {dashboard.nombre_cliente} · Periodo {dashboard.periodo || "Actual"}
           </p>
+          <div className="mt-3">
+            <span className="inline-flex items-center rounded-full border border-[#041627]/20 bg-[#f1f4f6] px-3 py-1 text-[11px] font-semibold text-[#041627]">
+              TB: {tbStageLabel}
+            </span>
+          </div>
         </div>
         <div className="min-w-[320px]">
           <label className="block text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold mb-2">Area</label>

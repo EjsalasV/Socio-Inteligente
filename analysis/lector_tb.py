@@ -184,12 +184,36 @@ def _mapear_columnas_canonicas(tb: pd.DataFrame) -> pd.DataFrame:
 
     # Si "Saldo 2025" viene vacío (muy común en cargas preliminares),
     # usar "Saldo preliminar" como saldo actual real del trabajo.
-    if not _is_effectively_empty(saldo_2025_series):
+    has_2025 = not _is_effectively_empty(saldo_2025_series)
+    has_preliminar = not _is_effectively_empty(saldo_preliminar_series)
+    has_2024 = not _is_effectively_empty(saldo_2024_series)
+
+    # Seleccion efectiva segun estado del trabajo:
+    # final -> 2025, preliminar -> saldo preliminar, inicial -> 2024.
+    if has_2025:
         tb["saldo_actual"] = tb["saldo_2025"]
-    elif not _is_effectively_empty(saldo_preliminar_series):
+        tb["saldo_anterior"] = tb["saldo_preliminar"] if has_preliminar else tb["saldo_2024"]
+        tb["tb_stage"] = "final"
+        tb["saldo_fuente_actual"] = "saldo_2025"
+        tb["saldo_fuente_anterior"] = "saldo_preliminar" if has_preliminar else "saldo_2024"
+    elif has_preliminar:
         tb["saldo_actual"] = tb["saldo_preliminar"]
-    else:
+        tb["saldo_anterior"] = tb["saldo_2024"]
+        tb["tb_stage"] = "preliminar"
+        tb["saldo_fuente_actual"] = "saldo_preliminar"
+        tb["saldo_fuente_anterior"] = "saldo_2024"
+    elif has_2024:
         tb["saldo_actual"] = tb["saldo_2024"]
+        tb["saldo_anterior"] = pd.Series([0.0] * len(tb))
+        tb["tb_stage"] = "inicial"
+        tb["saldo_fuente_actual"] = "saldo_2024"
+        tb["saldo_fuente_anterior"] = "none"
+    else:
+        tb["saldo_actual"] = pd.Series([0.0] * len(tb))
+        tb["saldo_anterior"] = pd.Series([0.0] * len(tb))
+        tb["tb_stage"] = "sin_saldos"
+        tb["saldo_fuente_actual"] = "none"
+        tb["saldo_fuente_anterior"] = "none"
 
     tb["saldo"] = tb["saldo_actual"]
 

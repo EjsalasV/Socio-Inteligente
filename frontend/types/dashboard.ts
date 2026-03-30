@@ -43,6 +43,7 @@ export interface DashboardResponse {
   materialidad_ejecucion: number;
   umbral_trivial: number;
   materialidad_origen: string;
+  tb_stage: "final" | "preliminar" | "inicial" | "sin_saldos" | string;
   fase_actual: string;
   workflow_phase: string;
   workflow_gates: DashboardWorkflowGate[];
@@ -64,6 +65,7 @@ export interface DashboardData {
   materialidad_ejecucion: number;
   umbral_trivial: number;
   materialidad_origen: string;
+  tb_stage: "final" | "preliminar" | "inicial" | "sin_saldos" | string;
   fase_actual: string;
   workflow_phase: string;
   workflow_gates: DashboardWorkflowGate[];

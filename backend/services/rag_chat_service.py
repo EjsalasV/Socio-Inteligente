@@ -249,11 +249,17 @@ def _is_data_inventory_question(query: str) -> bool:
         "que informacion tienes",
         "que sabes",
         "que info tienes",
+        "que informacion",
+        "que datos",
+        "informacion tienes",
+        "datos tienes",
         "what data",
         "what info",
         "what do you know",
     ]
-    return any(h in q for h in hints)
+    if any(h in q for h in hints):
+        return True
+    return ("informa" in q or "dato" in q) and ("tienes" in q or "sabes" in q)
 
 
 def _inventory_answer(cliente_id: str) -> dict[str, Any]:
@@ -335,6 +341,28 @@ def _inventory_answer(cliente_id: str) -> dict[str, Any]:
     }
 
 
+def _client_snapshot(cliente_id: str) -> str:
+    perfil = read_perfil(cliente_id) or {}
+    workflow = read_workflow(cliente_id) or {}
+    hallazgos = read_hallazgos(cliente_id) or ""
+    docs = list_documentos(cliente_id) or []
+    cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
+    encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
+    docs_names = [str(d.get("name") or "") for d in docs if isinstance(d, dict)]
+    has_tb = "tb.xlsx" in docs_names
+    has_mayor = "mayor.xlsx" in docs_names
+    hallazgos_count = len([x for x in hallazgos.splitlines() if x.strip().startswith("## ")])
+    return (
+        f"Cliente: {str(cliente.get('nombre_legal') or cliente_id)} | "
+        f"Sector: {str(cliente.get('sector') or 'N/D')} | "
+        f"Marco: {str(encargo.get('marco_referencial') or 'N/D')} | "
+        f"Fase: {str(workflow.get('current_phase') or encargo.get('fase_actual') or 'planificacion')} | "
+        f"TB: {'si' if has_tb else 'no'} | Mayor: {'si' if has_mayor else 'no'} | "
+        f"Docs extra: {len([x for x in docs_names if x not in {'tb.xlsx', 'mayor.xlsx'}])} | "
+        f"Hallazgos: {hallazgos_count}"
+    )
+
+
 def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], *, mode: str = "chat") -> dict[str, Any]:
     sources = [c.source for c in chunks]
     first_context = chunks[0].excerpt[:240] if chunks else "Sin contexto recuperado."
@@ -401,7 +429,7 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
     }
 
 
-def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat") -> dict[str, Any]:
+def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat", cliente_id: str = "") -> dict[str, Any]:
     provider = (os.getenv("AI_PROVIDER") or "openai").strip().lower()
     from openai import OpenAI
 
@@ -426,6 +454,9 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat")
             for c in chunks[:6]
         ]
     )
+    snapshot = _client_snapshot(cliente_id) if cliente_id else ""
+    if snapshot:
+        joined_context = f"[SNAPSHOT CLIENTE]\n{snapshot}\n\n{joined_context}".strip()
     instruction, prompt_meta = render_prompt(mode, query=query, context=joined_context)
 
     response = client.responses.create(
@@ -484,10 +515,12 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat")
 def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
     if _is_data_inventory_question(query):
         return _inventory_answer(cliente_id)
+    if _is_greeting(query):
+        return _fallback_answer(query, cliente_id, [], mode="chat")
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
     try:
         # En chat general intentamos LLM aun sin chunks para no degradar preguntas conversacionales.
-        return _llm_answer(query, chunks, mode="chat")
+        return _llm_answer(query, chunks, mode="chat", cliente_id=cliente_id)
     except Exception:
         pass
     return _fallback_answer(query, cliente_id, chunks, mode="chat")
@@ -498,7 +531,7 @@ def generate_metodologia_response(cliente_id: str, area: str) -> dict[str, Any]:
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
     try:
         if chunks:
-            return _llm_answer(query, chunks, mode="metodologia")
+            return _llm_answer(query, chunks, mode="metodologia", cliente_id=cliente_id)
     except Exception:
         pass
     return _fallback_answer(query, cliente_id, chunks, mode="metodologia")
@@ -508,7 +541,7 @@ def generate_judgement_response(cliente_id: str, query: str, *, mode: str = "jud
     chunks = _retrieve_chunks(cliente_id, query, top_k=8)
     try:
         if chunks:
-            return _llm_answer(query, chunks, mode=mode)
+            return _llm_answer(query, chunks, mode=mode, cliente_id=cliente_id)
     except Exception:
         pass
     return _fallback_answer(query, cliente_id, chunks, mode=mode)

@@ -99,3 +99,18 @@ export async function exportChatCriterion(
     body: JSON.stringify(payload),
   });
 }
+
+export type ChatHistoryItem = {
+  role: "user" | "assistant";
+  text: string;
+  timestamp: string;
+  citations?: Array<Record<string, unknown>>;
+  confidence?: number;
+};
+
+export async function getChatHistory(
+  clienteId: string,
+): Promise<ApiEnvelope<{ messages: ChatHistoryItem[] }>> {
+  requireToken();
+  return apiFetch<ApiEnvelope<{ messages: ChatHistoryItem[] }>>(`/chat/${clienteId}/history`);
+}

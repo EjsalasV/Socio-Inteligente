@@ -1,10 +1,10 @@
 ﻿"use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
-import { exportChatCriterion, postChat } from "../../../lib/api";
+import { exportChatCriterion, getChatHistory, postChat } from "../../../lib/api";
 import { createWorkpaperTask } from "../../../lib/api/workpapers";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
@@ -47,20 +47,45 @@ export default function SocioChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [actionMsg, setActionMsg] = useState("");
 
+  useEffect(() => {
+    let active = true;
+    async function loadHistory(): Promise<void> {
+      try {
+        const response = await getChatHistory(clienteId);
+        if (!active) return;
+        const raw = Array.isArray(response?.data?.messages) ? response.data.messages : [];
+        const mapped: ChatMessage[] = raw
+          .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.text === "string")
+          .map((m, idx) => ({
+            id: `h-${idx}-${m.timestamp || ""}`,
+            role: m.role,
+            text: m.text,
+            timestamp: m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : nowLabel(),
+            citations: Array.isArray(m.citations) ? (m.citations as ChatMessage["citations"]) : [],
+            confidence: typeof m.confidence === "number" ? m.confidence : 0,
+          }));
+        setMessages(mapped.slice(-120));
+      } catch {
+        if (!active) return;
+      }
+    }
+    if (clienteId) void loadHistory();
+    return () => {
+      active = false;
+    };
+  }, [clienteId]);
+
   const openRisks = useMemo(() => riskData?.areas_criticas?.slice(0, 2) ?? [], [riskData]);
   const recentThreads = useMemo(
     () => {
-      const periodLabel = dashboard?.periodo ? `Periodo ${dashboard.periodo}` : "Periodo actual";
-      return (dashboard?.top_areas ?? [])
-        .filter((item) => item.con_saldo)
-        .slice(0, 3)
-        .map((item) => ({
-          title: `Analisis de area ${item.codigo}`,
-          subtitle: item.nombre,
-          period: periodLabel,
-        }));
+      const userMsgs = messages.filter((m) => m.role === "user").slice(-6).reverse();
+      return userMsgs.slice(0, 3).map((m) => ({
+        title: m.text.length > 55 ? `${m.text.slice(0, 55)}...` : m.text,
+        subtitle: "Consulta del usuario",
+        period: m.timestamp,
+      }));
     },
-    [dashboard],
+    [messages],
   );
 
   const references = useMemo(() => {

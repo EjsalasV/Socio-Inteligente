@@ -32,6 +32,15 @@ export default function DashboardContent({ data }: Props) {
         : fase.includes("plan")
           ? "Planificacion"
           : "Sin definir";
+  const tbStage = (data.tb_stage || "sin_saldos").toLowerCase();
+  const tbStageLabel =
+    tbStage === "final"
+      ? "Corte Final"
+      : tbStage === "preliminar"
+        ? "Corte Preliminar"
+        : tbStage === "inicial"
+          ? "Corte Inicial"
+          : "Sin saldos";
 
   return (
     <div className="space-y-8 pb-8">
@@ -41,7 +50,8 @@ export default function DashboardContent({ data }: Props) {
         <p className="font-body text-slate-200 mt-3 leading-relaxed text-base">
           Cliente: <span className="font-semibold text-white">{data.nombre_cliente}</span> ·
           Periodo: <span className="font-semibold text-white"> {data.periodo || "Actual"}</span> ·
-          Sector: <span className="font-semibold text-white"> {data.sector || "N/D"}</span>
+          Sector: <span className="font-semibold text-white"> {data.sector || "N/D"}</span> ·
+          TB: <span className="font-semibold text-white"> {tbStageLabel}</span>
         </p>
       </section>
 

@@ -103,6 +103,7 @@ class DashboardResponse(BaseModel):
     materialidad_ejecucion: float = 0.0
     umbral_trivial: float = 0.0
     materialidad_origen: str = ""
+    tb_stage: str = "sin_saldos"
     fase_actual: str = ""
     workflow_phase: str = "planificacion"
     workflow_gates: list[DashboardWorkflowGate] = Field(default_factory=list)
