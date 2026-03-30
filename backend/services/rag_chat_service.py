@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from backend.repositories.file_repository import list_documentos, read_hallazgos, read_perfil, read_workflow
 from backend.services.prompt_service import render_prompt, validate_minimum_output
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -239,6 +240,101 @@ def _current_provider_label() -> str:
     return f"OpenAI ({model})"
 
 
+def _is_data_inventory_question(query: str) -> bool:
+    q = (query or "").strip().lower()
+    if not q:
+        return False
+    hints = [
+        "que datos tienes",
+        "que informacion tienes",
+        "que sabes",
+        "que info tienes",
+        "what data",
+        "what info",
+        "what do you know",
+    ]
+    return any(h in q for h in hints)
+
+
+def _inventory_answer(cliente_id: str) -> dict[str, Any]:
+    perfil = read_perfil(cliente_id) or {}
+    workflow = read_workflow(cliente_id) or {}
+    hallazgos = read_hallazgos(cliente_id) or ""
+    docs = list_documentos(cliente_id) or []
+
+    cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
+    encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
+    materialidad = perfil.get("materialidad", {}) if isinstance(perfil.get("materialidad"), dict) else {}
+
+    docs_names = [str(d.get("name") or "") for d in docs if isinstance(d, dict)]
+    has_tb = "tb.xlsx" in docs_names
+    has_mayor = "mayor.xlsx" in docs_names
+    extra_docs = [n for n in docs_names if n not in {"tb.xlsx", "mayor.xlsx"}]
+    hallazgos_count = len([x for x in hallazgos.splitlines() if x.strip().startswith("## ")])
+    phase = str(workflow.get("current_phase") or encargo.get("fase_actual") or "planificacion").strip()
+
+    mp = 0.0
+    if isinstance(materialidad, dict):
+        prelim = materialidad.get("preliminar", {}) if isinstance(materialidad.get("preliminar"), dict) else {}
+        final = materialidad.get("final", {}) if isinstance(materialidad.get("final"), dict) else {}
+        for key in ["materialidad_planeacion", "materialidad_global"]:
+            if key in final and final.get(key):
+                try:
+                    mp = float(final.get(key))
+                    break
+                except Exception:
+                    pass
+            if key in prelim and prelim.get(key):
+                try:
+                    mp = float(prelim.get(key))
+                    break
+                except Exception:
+                    pass
+
+    answer = (
+        f"Tengo este contexto activo del cliente `{cliente_id}`:\n\n"
+        f"1) Perfil: nombre `{str(cliente.get('nombre_legal') or cliente_id)}`, sector `{str(cliente.get('sector') or 'N/D')}`, marco `{str(encargo.get('marco_referencial') or 'N/D')}`.\n"
+        f"2) Datos financieros: TB {'si' if has_tb else 'no'} | Mayor {'si' if has_mayor else 'no'}.\n"
+        f"3) Documentos adicionales: {len(extra_docs)} cargados.\n"
+        f"4) Hallazgos registrados: {hallazgos_count}.\n"
+        f"5) Fase de workflow: `{phase}`.\n"
+        f"6) Materialidad de referencia: {'definida' if mp > 0 else 'no definida'}.\n\n"
+        "Si quieres, te digo en 30 segundos que falta para pasar a la siguiente etapa."
+    )
+
+    return {
+        "answer": answer,
+        "citations": [
+            {
+                "source": f"data/clientes/{cliente_id}/perfil.yaml",
+                "excerpt": "Perfil de cliente y encargo",
+                "norma": "Contexto cliente",
+                "version": "v1",
+                "vigente_desde": "",
+                "ultima_actualizacion": "",
+                "jurisdiccion": "Interna",
+            },
+            {
+                "source": f"data/clientes/{cliente_id}/workflow.yaml",
+                "excerpt": "Estado de workflow y gates",
+                "norma": "Contexto cliente",
+                "version": "v1",
+                "vigente_desde": "",
+                "ultima_actualizacion": "",
+                "jurisdiccion": "Interna",
+            },
+        ],
+        "context_sources": [
+            f"data/clientes/{cliente_id}/perfil.yaml",
+            f"data/clientes/{cliente_id}/workflow.yaml",
+        ],
+        "confidence": 0.82,
+        "provider": "inventory",
+        "model": "deterministic",
+        "prompt_meta": {"prompt_id": "inventory", "prompt_version": "v1"},
+    }
+
+
 def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], *, mode: str = "chat") -> dict[str, Any]:
     sources = [c.source for c in chunks]
     first_context = chunks[0].excerpt[:240] if chunks else "Sin contexto recuperado."
@@ -277,6 +373,8 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
                 "3) Si falla el proveedor, activo fallback controlado."
             )
             confidence = 0.7
+        elif _is_data_inventory_question(query):
+            return _inventory_answer(cliente_id)
         else:
             answer = (
                 f"Recibi tu consulta sobre `{query}` para el cliente `{cliente_id}`.\n\n"
@@ -384,6 +482,8 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat")
 
 
 def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
+    if _is_data_inventory_question(query):
+        return _inventory_answer(cliente_id)
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
     try:
         # En chat general intentamos LLM aun sin chunks para no degradar preguntas conversacionales.
