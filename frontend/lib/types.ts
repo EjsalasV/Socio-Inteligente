@@ -261,6 +261,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chat/{cliente_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Chat History */
+        get: operations["get_chat_history_chat__cliente_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chat/{cliente_id}/metodologia": {
         parameters: {
             query?: never;
@@ -649,6 +666,11 @@ export interface components {
              * @default
              */
             materialidad_origen: string;
+            /**
+             * Tb Stage
+             * @default sin_saldos
+             */
+            tb_stage: string;
             /**
              * Fase Actual
              * @default
@@ -1319,6 +1341,37 @@ export interface operations {
                 "application/json": components["schemas"]["ChatRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_chat_history_chat__cliente_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
