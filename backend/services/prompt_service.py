@@ -65,8 +65,10 @@ def render_prompt(mode: str, *, query: str, context: str) -> tuple[str, dict[str
 
 def validate_minimum_output(text: str, *, mode: str) -> tuple[bool, list[str]]:
     content = (text or "").strip().lower()
+    if mode == "chat":
+        # En chat priorizamos conversacion natural; no forzamos plantilla rigida.
+        return (len(content) > 0), ([] if len(content) > 0 else ["respuesta_vacia"])
     rules: dict[str, list[str]] = {
-        "chat": ["criterio", "accion", "evidencia"],
         "metodologia": ["criterio", "accion", "evidencia"],
         "memo": ["riesgo", "materialidad", "recomend"],
         "hallazgo": ["condicion", "criterio", "causa", "efecto", "recomend"],

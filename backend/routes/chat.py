@@ -41,7 +41,9 @@ def _select_area_code(cliente_id: str) -> str:
 
 
 def _run_chat_engine(cliente_id: str, message: str) -> dict:
-    use_pipeline = _is_true(os.getenv("USE_AUDITOR_PIPELINE"))
+    # El chat principal debe sentirse conversacional.
+    # El pipeline estructurado se puede activar de forma explicita para chat si se requiere.
+    use_pipeline = _is_true(os.getenv("USE_AUDITOR_PIPELINE_CHAT"))
     if not use_pipeline:
         return generate_chat_response(cliente_id, message)
 
@@ -50,7 +52,7 @@ def _run_chat_engine(cliente_id: str, message: str) -> dict:
             cliente_id=cliente_id,
             codigo_area=_select_area_code(cliente_id),
             modo="consulta_rapida",
-            señales_python={},
+            senales_python={},
             consulta_adicional=message,
         )
     except Exception:
@@ -140,7 +142,7 @@ def post_metodologia(
                 cliente_id=cliente_id,
                 codigo_area=str(payload.area or _select_area_code(cliente_id)),
                 modo="briefing",
-                señales_python={},
+                senales_python={},
                 consulta_adicional=f"Metodologia y procedimientos para area {payload.area}",
             )
         except Exception:

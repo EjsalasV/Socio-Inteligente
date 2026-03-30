@@ -78,6 +78,7 @@ export default function ClientMemoryPage() {
   }, [clienteId]);
 
   const topRisks = useMemo(() => dashboard?.top_areas?.slice(0, 3) ?? [], [dashboard]);
+  const fileHelpText = "PDF/TXT se abren en nueva pestana. XLSX/CSV normalmente se descargan para revision.";
 
   async function handleUploadDocument(file: File): Promise<void> {
     setUploadingDoc(true);
@@ -163,6 +164,7 @@ export default function ClientMemoryPage() {
                 }}
               />
             </div>
+            <div className="px-6 py-2 bg-[#f8fbff] border-b border-black/5 text-[11px] text-slate-500">{fileHelpText}</div>
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-[#f1f4f6]/70">
@@ -185,6 +187,7 @@ export default function ClientMemoryPage() {
                       <button
                         className="px-2"
                         type="button"
+                        title="Abrir o descargar documento"
                         onClick={() =>
                           window.open(
                             `${API_BASE}/clientes/${clienteId}/documentos/file?name=${encodeURIComponent(doc.name)}`,
@@ -213,15 +216,15 @@ export default function ClientMemoryPage() {
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-5">
                 <span className="material-symbols-outlined text-[#89d3d4]" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
-                <h3 className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-bold">Memorandum estrategico AI</h3>
+                <h3 className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-bold">Resumen Ejecutivo (AI + criterio auditor)</h3>
               </div>
-              <h4 className="font-headline text-3xl">Cultura de control interno</h4>
+              <h4 className="font-headline text-3xl">Memoria estrategica del cliente</h4>
               <p className="font-headline italic text-lg text-slate-200 mt-4 leading-relaxed whitespace-pre-wrap">
-                {memoText || "Aun no hay memo ejecutivo generado para este cliente."}
+                {memoText || "Aun no hay resumen ejecutivo generado. Puedes crearlo desde la pestana Reportes con el boton 'Generar memo ejecutivo'."}
               </p>
               <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between text-[10px] uppercase tracking-[0.12em] text-slate-300">
                 <span>Socio AI</span>
-                <span>{memoText ? "Memo disponible" : "Sin memo"}</span>
+                <span>{memoText ? "Resumen disponible" : "Pendiente de generar"}</span>
               </div>
             </div>
             <div className="absolute -right-12 -bottom-12 w-44 h-44 rounded-full bg-[#89d3d4]/10 blur-3xl" />
@@ -244,7 +247,7 @@ export default function ClientMemoryPage() {
                   </div>
                 </div>
               ))}
-              {hallazgos.length === 0 ? <p className="text-sm text-slate-500">No hay hallazgos registrados aún.</p> : null}
+              {hallazgos.length === 0 ? <p className="text-sm text-slate-500">No hay hallazgos registrados aun.</p> : null}
             </div>
           </article>
 
@@ -264,3 +267,4 @@ export default function ClientMemoryPage() {
     </div>
   );
 }
+

@@ -886,6 +886,53 @@
         }
       }
     },
+    "/chat/{cliente_id}/history": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Get Chat History",
+        "operationId": "get_chat_history_chat__cliente_id__history_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/chat/{cliente_id}/metodologia": {
       "post": {
         "tags": [
@@ -1942,6 +1989,11 @@
             "type": "string",
             "title": "Materialidad Origen",
             "default": ""
+          },
+          "tb_stage": {
+            "type": "string",
+            "title": "Tb Stage",
+            "default": "sin_saldos"
           },
           "fase_actual": {
             "type": "string",

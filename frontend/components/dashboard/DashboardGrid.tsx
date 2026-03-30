@@ -9,11 +9,11 @@ type Props = {
 export default function DashboardGrid({ data }: Props) {
   return (
     <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-      <SovereignCard title="Activo" value={formatMoney(data.activo)} subtext="Total maestro" />
-      <SovereignCard title="Pasivo" value={formatMoney(data.pasivo)} subtext="Total maestro" />
-      <SovereignCard title="Patrimonio" value={formatMoney(data.patrimonio)} subtext="Total maestro" />
-      <SovereignCard title="Ingresos" value={formatMoney(data.ingresos)} subtext="Acumulado periodo" />
-      <SovereignCard title="Gastos" value={formatMoney(data.gastos)} subtext="Acumulado periodo" />
+      <SovereignCard title="Activo" value={formatMoney(data.activo, "USD", 0)} subtext="Total maestro" />
+      <SovereignCard title="Pasivo" value={formatMoney(data.pasivo, "USD", 0)} subtext="Total maestro" />
+      <SovereignCard title="Patrimonio" value={formatMoney(data.patrimonio, "USD", 0)} subtext="Total maestro" />
+      <SovereignCard title="Ingresos" value={formatMoney(data.ingresos, "USD", 0)} subtext="Acumulado periodo" />
+      <SovereignCard title="Gastos" value={formatMoney(data.gastos, "USD", 0)} subtext="Acumulado periodo" />
     </section>
   );
 }

@@ -45,11 +45,11 @@ def execute_pipeline(
     cliente_id: str,
     codigo_area: str,
     modo: str,
-    señales_python: dict[str, Any] | None = None,
+    senales_python: dict[str, Any] | None = None,
     chunks_rag: list[dict[str, Any]] | None = None,
     consulta_adicional: str = "",
 ) -> dict[str, Any]:
-    signals_python = señales_python or {}
+    signals_python = senales_python or {}
     perfil, area = load_context(cliente_id, codigo_area)
 
     normalized_chunks = _normalize_chunks(chunks_rag)

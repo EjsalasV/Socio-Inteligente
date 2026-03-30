@@ -207,6 +207,9 @@ def _is_greeting(query: str) -> bool:
     q = (query or "").strip().lower()
     if not q:
         return False
+    # Si la frase ya contiene intencion de analisis, no tratar como saludo.
+    if _is_risk_question(q) or _is_data_inventory_question(q) or _is_provider_question(q):
+        return False
     greetings = {
         "hola",
         "buenas",
@@ -220,7 +223,11 @@ def _is_greeting(query: str) -> bool:
     }
     if q in greetings:
         return True
-    return any(q.startswith(g + " ") for g in greetings)
+    cleaned = re.sub(r"[^a-zA-Z0-9\s]+", " ", q)
+    tokens = [t for t in cleaned.split() if t]
+    if len(tokens) <= 2 and " ".join(tokens) in greetings:
+        return True
+    return False
 
 
 def _is_provider_question(query: str) -> bool:
@@ -260,6 +267,162 @@ def _is_data_inventory_question(query: str) -> bool:
     if any(h in q for h in hints):
         return True
     return ("informa" in q or "dato" in q) and ("tienes" in q or "sabes" in q)
+
+
+def _is_risk_question(query: str) -> bool:
+    q = (query or "").strip().lower()
+    if not q:
+        return False
+    risk_hints = [
+        "riesgo",
+        "riesgos",
+        "exposicion",
+        "area critica",
+        "top area",
+        "que riesgo tiene",
+        "nivel de riesgo",
+    ]
+    return any(h in q for h in risk_hints)
+
+
+def _is_next_steps_question(query: str) -> bool:
+    q = (query or "").strip().lower()
+    if not q:
+        return False
+    hints = [
+        "que hacemos primero",
+        "que sigue",
+        "siguiente paso",
+        "por donde empiezo",
+        "dame un plan",
+        "como arrancamos",
+        "que hago primero",
+    ]
+    return any(h in q for h in hints)
+
+
+def _risk_answer(cliente_id: str) -> dict[str, Any]:
+    perfil = read_perfil(cliente_id) or {}
+    cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
+    riesgo_global = perfil.get("riesgo_global", {}) if isinstance(perfil.get("riesgo_global"), dict) else {}
+    nivel_global = str(riesgo_global.get("nivel") or "MEDIO").upper()
+
+    top_lines: list[str] = []
+    try:
+        from analysis.ranking_areas import calcular_ranking_areas
+
+        ranking = calcular_ranking_areas(cliente_id)
+        if ranking is not None and not ranking.empty:
+            vis = ranking.copy()
+            if "con_saldo" in vis.columns:
+                vis = vis[vis["con_saldo"] == True]  # noqa: E712
+            for _, row in vis.head(3).iterrows():
+                area = str(row.get("area") or "")
+                nombre = str(row.get("nombre") or f"Area {area}")
+                score = float(row.get("score_riesgo") or 0.0)
+                prioridad = str(row.get("prioridad") or "media").upper()
+                top_lines.append(f"- {area} {nombre}: {score:.1f}% ({prioridad})")
+    except Exception:
+        top_lines = []
+
+    cliente_nombre = str(cliente.get("nombre_legal") or cliente_id)
+    if not top_lines:
+        answer = (
+            f"Riesgo actual del cliente `{cliente_nombre}`: **{nivel_global}**.\n\n"
+            "Aun no tengo ranking de areas con saldo suficiente para priorizar. "
+            "Siguiente paso: valida que el TB este cargado y luego te devuelvo top 3 areas criticas con score."
+        )
+        confidence = 0.62
+    else:
+        answer = (
+            f"Riesgo global actual de la holding `{cliente_nombre}`: **{nivel_global}**.\n\n"
+            "Top areas por riesgo en este momento:\n"
+            + "\n".join(top_lines)
+            + "\n\nSi quieres, te digo ahora mismo que pruebas de control y sustantivas ejecutar primero."
+        )
+        confidence = 0.86
+
+    return {
+        "answer": answer,
+        "citations": [
+            {
+                "source": f"data/clientes/{cliente_id}/perfil.yaml",
+                "excerpt": "Riesgo global y contexto del cliente",
+                "norma": "Contexto cliente",
+                "version": "v1",
+                "vigente_desde": "",
+                "ultima_actualizacion": "",
+                "jurisdiccion": "Interna",
+            },
+        ],
+        "context_sources": [f"data/clientes/{cliente_id}/perfil.yaml"],
+        "confidence": confidence,
+        "provider": "deterministic",
+        "model": "risk_snapshot_v1",
+        "prompt_meta": {"prompt_id": "risk_snapshot", "prompt_version": "v1"},
+    }
+
+
+def _next_steps_answer(cliente_id: str) -> dict[str, Any]:
+    perfil = read_perfil(cliente_id) or {}
+    cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
+    cliente_nombre = str(cliente.get("nombre_legal") or cliente_id)
+
+    lines: list[str] = []
+    try:
+        from analysis.ranking_areas import calcular_ranking_areas
+
+        ranking = calcular_ranking_areas(cliente_id)
+        if ranking is not None and not ranking.empty:
+            vis = ranking.copy()
+            if "con_saldo" in vis.columns:
+                vis = vis[vis["con_saldo"] == True]  # noqa: E712
+            for _, row in vis.head(3).iterrows():
+                area = str(row.get("area") or "")
+                nombre = str(row.get("nombre") or f"Area {area}")
+                score = float(row.get("score_riesgo") or 0.0)
+                lines.append(f"{area} {nombre} ({score:.1f}%)")
+    except Exception:
+        lines = []
+
+    if not lines:
+        answer = (
+            f"Vamos en este orden para `{cliente_nombre}`:\n\n"
+            "1) Confirmar que TB y mayor esten cargados y vigentes.\n"
+            "2) Definir materialidad final del encargo.\n"
+            "3) Abrir papeles de trabajo y ejecutar pruebas en areas criticas.\n\n"
+            "Si quieres, te doy ese plan ya en checklist de trabajo."
+        )
+        confidence = 0.64
+    else:
+        answer = (
+            f"Perfecto. Para `{cliente_nombre}`, arranquemos asi:\n\n"
+            f"1) Prioriza `{lines[0]}` y ejecuta pruebas sustantivas de entrada.\n"
+            f"2) Continua con `{lines[1] if len(lines) > 1 else lines[0]}` y valida soportes de cierre.\n"
+            f"3) Cierra con `{lines[2] if len(lines) > 2 else lines[-1]}` y documenta conclusion tecnica.\n\n"
+            "Si quieres, te lo convierto ahora en tareas concretas de Papeles de Trabajo."
+        )
+        confidence = 0.84
+
+    return {
+        "answer": answer,
+        "citations": [
+            {
+                "source": f"data/clientes/{cliente_id}/perfil.yaml",
+                "excerpt": "Contexto base del cliente",
+                "norma": "Contexto cliente",
+                "version": "v1",
+                "vigente_desde": "",
+                "ultima_actualizacion": "",
+                "jurisdiccion": "Interna",
+            },
+        ],
+        "context_sources": [f"data/clientes/{cliente_id}/perfil.yaml"],
+        "confidence": confidence,
+        "provider": "deterministic",
+        "model": "next_steps_v1",
+        "prompt_meta": {"prompt_id": "next_steps", "prompt_version": "v1"},
+    }
 
 
 def _inventory_answer(cliente_id: str) -> dict[str, Any]:
@@ -403,13 +566,13 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
             confidence = 0.7
         elif _is_data_inventory_question(query):
             return _inventory_answer(cliente_id)
+        elif _is_next_steps_question(query):
+            return _next_steps_answer(cliente_id)
         else:
             answer = (
-                f"Recibi tu consulta sobre `{query}` para el cliente `{cliente_id}`.\n\n"
-                "Ahora mismo no encontre contexto recuperado suficiente en la base documental. "
-                "Puedo avanzar con criterio auditor general, y si quieres mayor precision te sugiero "
-                "subir soporte (actas, contratos, politicas, anexos) en Client Memory.\n\n"
-                f"Contexto disponible: {first_context}"
+                f"Entiendo tu consulta sobre `{query}` para `{cliente_id}`.\n\n"
+                "Te puedo responder con criterio auditor general, pero para precision de cliente "
+                "necesito mas contexto documental (actas, contratos, politicas, anexos) en Client Memory."
             )
             confidence = 0.35 if chunks else 0.18
     else:
@@ -459,19 +622,23 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat",
         joined_context = f"[SNAPSHOT CLIENTE]\n{snapshot}\n\n{joined_context}".strip()
     instruction, prompt_meta = render_prompt(mode, query=query, context=joined_context)
 
+    user_content = (
+        f"Consulta:\n{query}\n\n"
+        "Responde de forma conversacional, concreta y accionable para un auditor."
+        if mode == "chat"
+        else (
+            f"Consulta:\n{query}\n\n"
+            "Devuelve recomendacion accionable con criterio, pasos y evidencia."
+        )
+    )
+
     response = client.responses.create(
         model=model,
         input=[
             {"role": "system", "content": instruction},
-            {
-                "role": "user",
-                "content": (
-                    f"Consulta:\n{query}\n\n"
-                    "Devuelve recomendacion accionable con criterio, pasos y evidencia."
-                ),
-            },
+            {"role": "user", "content": user_content},
         ],
-        temperature=0.2,
+        temperature=0.35 if mode == "chat" else 0.2,
     )
 
     text = getattr(response, "output_text", "") or ""
@@ -515,6 +682,10 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat",
 def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
     if _is_data_inventory_question(query):
         return _inventory_answer(cliente_id)
+    if _is_risk_question(query):
+        return _risk_answer(cliente_id)
+    if _is_next_steps_question(query):
+        return _next_steps_answer(cliente_id)
     if _is_greeting(query):
         return _fallback_answer(query, cliente_id, [], mode="chat")
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)

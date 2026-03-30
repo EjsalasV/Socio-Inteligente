@@ -1,10 +1,10 @@
-export function formatMoney(value: number, currency: string = "USD"): string {
+export function formatMoney(value: number, currency: string = "USD", maximumFractionDigits: number = 2): string {
   const abs = Math.abs(value);
   const formatted = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits,
   }).format(abs);
 
   if (value < 0) {

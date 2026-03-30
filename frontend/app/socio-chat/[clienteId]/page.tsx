@@ -33,6 +33,33 @@ const QUICK_PROMPTS = [
   "Redacta un parrafo para informe...",
 ];
 
+function normalizeRefPath(path: string): string {
+  if (!path) return "Fuente tecnica";
+  return path.replace(/\\/g, "/");
+}
+
+function prettyRefLabel(path: string): string {
+  const p = normalizeRefPath(path);
+  const parts = p.split("/").filter(Boolean);
+  const file = parts[parts.length - 1] || p;
+  const base = file.replace(/\.md$/i, "").replace(/_/g, " ");
+  return base.replace(/\b\w/g, (x) => x.toUpperCase());
+}
+
+function uniqueCitations(
+  citations: NonNullable<ChatMessage["citations"]>,
+): NonNullable<ChatMessage["citations"]> {
+  const seen = new Set<string>();
+  const out: NonNullable<ChatMessage["citations"]> = [];
+  for (const c of citations) {
+    const key = `${normalizeRefPath(c.source || "")}|${c.norma || ""}`;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(c);
+  }
+  return out;
+}
+
 function nowLabel(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -91,9 +118,21 @@ export default function SocioChatPage() {
   const references = useMemo(() => {
     const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
     if (lastAssistant?.citations?.length) {
-      return lastAssistant.citations.map((c) => c.source);
+      const unique = new Map<string, string>();
+      for (const c of lastAssistant.citations) {
+        const source = normalizeRefPath(c.source || "");
+        if (!source || unique.has(source)) continue;
+        const label = c.norma ? `${c.norma} · ${prettyRefLabel(source)}` : prettyRefLabel(source);
+        unique.set(source, label);
+      }
+      if (unique.size > 0) {
+        return Array.from(unique.entries()).map(([source, label]) => ({ source, label }));
+      }
     }
-    return ["NIA 315 - Valoracion de riesgos.", "NIA 330 - Respuestas del auditor."];
+    return [
+      { source: "NIA 315", label: "NIA 315 · Valoracion de riesgos" },
+      { source: "NIA 330", label: "NIA 330 · Respuestas del auditor" },
+    ];
   }, [messages]);
 
   const lastAssistantMessage = useMemo(
@@ -257,9 +296,9 @@ export default function SocioChatPage() {
                   {msg.role === "assistant" && msg.citations && msg.citations.length > 0 ? (
                     <div className="mt-3 space-y-1">
                       <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Fuentes</p>
-                      {msg.citations.slice(0, 2).map((c) => (
+                      {uniqueCitations(msg.citations).slice(0, 3).map((c) => (
                         <div key={`${msg.id}-${c.source}`} className="text-[11px] text-slate-500">
-                          <p>{c.source}</p>
+                          <p>{prettyRefLabel(c.source)}</p>
                           <p className="text-[10px] text-slate-400">
                             {c.norma ? `${c.norma}` : "Norma"} · Vigente: {c.vigente_desde || "N/D"} · Actualizado: {c.ultima_actualizacion || "N/D"}
                           </p>
@@ -341,8 +380,9 @@ export default function SocioChatPage() {
             <h4 className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-bold mb-4">Referencias tecnicas</h4>
             <ul className="space-y-2">
               {references.map((ref) => (
-                <li key={ref} className="p-3 rounded-xl bg-white border border-black/10 text-xs text-slate-700">
-                  {ref}
+                <li key={ref.source} className="p-3 rounded-xl bg-white border border-black/10 text-xs text-slate-700">
+                  <p className="font-semibold">{ref.label}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">{ref.source}</p>
                 </li>
               ))}
             </ul>
