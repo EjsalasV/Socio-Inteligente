@@ -30,9 +30,14 @@ export default function RiskEnginePage() {
 
       <div className="grid grid-cols-12 gap-8">
         <RiskMatrix data={data} />
-        <RiskStrategyPanel clienteId={clienteId} areas={data.areas_criticas} strategy={data.strategy} />
+        <RiskStrategyPanel areas={data.areas_criticas} strategy={data.strategy} />
         <CriticalRisks areas={data.areas_criticas} />
-        <RiskProcedureSuggestions clienteId={clienteId} areas={data.areas_criticas} />
+        <RiskProcedureSuggestions
+          clienteId={clienteId}
+          areas={data.areas_criticas}
+          controlTests={data.strategy.control_tests}
+          substantiveTests={data.strategy.substantive_tests}
+        />
       </div>
 
       <footer className="mt-8 border-t border-slate-200 pt-8 flex justify-between items-center text-[10px] font-bold text-slate-400 tracking-widest uppercase">

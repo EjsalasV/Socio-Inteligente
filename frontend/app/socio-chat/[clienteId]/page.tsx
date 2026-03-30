@@ -216,6 +216,12 @@ export default function SocioChatPage() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-white to-[#f8fbff]">
+            {messages.length === 0 ? (
+              <div className="rounded-2xl border border-[#041627]/10 bg-white p-5 text-sm text-slate-600">
+                Socio AI listo. Escribe una consulta tecnica (NIA/NIIF, procedimientos, hallazgos o conclusion) y te
+                respondere con criterio y fuentes.
+              </div>
+            ) : null}
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[82%] rounded-2xl p-4 ${msg.role === "user" ? "bg-[#eef3fa] rounded-tr-none" : "bg-white border border-[#041627]/10 rounded-tl-none shadow-sm"}`}>

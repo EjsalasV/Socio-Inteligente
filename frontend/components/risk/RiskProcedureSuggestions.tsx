@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { createWorkpaperTask } from "../../lib/api/workpapers";
-import type { RiskCriticalArea } from "../../types/risk";
+import type { RiskCriticalArea, RiskStrategyTest } from "../../types/risk";
 
 type Procedure = {
   nia: string;
@@ -13,6 +13,8 @@ type Procedure = {
 type Props = {
   clienteId: string;
   areas: RiskCriticalArea[];
+  controlTests?: RiskStrategyTest[];
+  substantiveTests?: RiskStrategyTest[];
 };
 
 function buildProcedures(areas: RiskCriticalArea[]): Procedure[] {
@@ -107,14 +109,43 @@ function inferTargetArea(areas: RiskCriticalArea[], procedure: Procedure): RiskC
   return areas[0] ?? null;
 }
 
-export default function RiskProcedureSuggestions({ clienteId, areas }: Props) {
+export default function RiskProcedureSuggestions({
+  clienteId,
+  areas,
+  controlTests = [],
+  substantiveTests = [],
+}: Props) {
   const procedures = buildProcedures(areas);
+  const aiControl = controlTests.slice(0, 3).map((x) => ({
+    nia: x.nia_ref || "NIA",
+    title: x.title,
+    description: x.description,
+    vinculo: x.area_nombre,
+    area_id: x.area_id,
+    prioridad: x.priority,
+  }));
+  const aiSubstantive = substantiveTests.slice(0, 3).map((x) => ({
+    nia: x.nia_ref || "NIA",
+    title: x.title,
+    description: x.description,
+    vinculo: x.area_nombre,
+    area_id: x.area_id,
+    prioridad: x.priority,
+  }));
+  const fallback = procedures.map((p) => ({ ...p, area_id: "", prioridad: "media" }));
+  const controlList = aiControl.length ? aiControl : fallback.slice(0, 3);
+  const subList = aiSubstantive.length ? aiSubstantive : fallback.slice(0, 3);
   const [savingKey, setSavingKey] = useState<string>("");
   const [feedback, setFeedback] = useState<string>("");
 
-  async function handleAddProcedure(procedure: Procedure): Promise<void> {
+  async function handleAddProcedure(
+    procedure: Procedure & { area_id?: string; prioridad?: string },
+    forcedAreaId?: string,
+  ): Promise<void> {
     const key = `${procedure.nia}-${procedure.title}`;
-    const targetArea = inferTargetArea(areas, procedure);
+    const targetArea =
+      (forcedAreaId ? areas.find((a) => a.area_id === forcedAreaId) ?? null : null) ??
+      inferTargetArea(areas, procedure);
     if (!targetArea) {
       setFeedback("No hay areas de riesgo para vincular este procedimiento.");
       return;
@@ -127,7 +158,7 @@ export default function RiskProcedureSuggestions({ clienteId, areas }: Props) {
         area_name: targetArea.area_nombre,
         title: procedure.title,
         nia_ref: procedure.nia,
-        prioridad: targetArea.nivel.toLowerCase(),
+        prioridad: (procedure.prioridad || targetArea.nivel || "media").toLowerCase(),
         required: true,
         evidence_note: procedure.description,
       });
@@ -153,7 +184,7 @@ export default function RiskProcedureSuggestions({ clienteId, areas }: Props) {
       </div>
 
       <div className="space-y-6">
-        {procedures.map((procedure) => (
+        {controlList.map((procedure) => (
           <div key={`${procedure.nia}-${procedure.title}`} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/50">
             <div className="flex justify-between items-start mb-4">
               <div className="bg-[#001919]/5 px-3 py-1 rounded-full border border-[#001919]/10">
@@ -163,7 +194,7 @@ export default function RiskProcedureSuggestions({ clienteId, areas }: Props) {
                 className="text-slate-400 hover:text-[#041627] transition-colors disabled:opacity-50"
                 type="button"
                 aria-label="Agregar procedimiento"
-                onClick={() => void handleAddProcedure(procedure)}
+                onClick={() => void handleAddProcedure(procedure, procedure.area_id)}
                 disabled={savingKey === `${procedure.nia}-${procedure.title}`}
               >
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-current text-sm">+</span>
@@ -179,6 +210,37 @@ export default function RiskProcedureSuggestions({ clienteId, areas }: Props) {
             </div>
           </div>
         ))}
+      </div>
+      <div className="mt-8 pt-6 border-t border-slate-200/60">
+        <h3 className="font-headline text-xl text-[#041627] mb-4">Pruebas sugeridas (Sustantivas)</h3>
+        <div className="space-y-6">
+          {subList.map((procedure) => (
+            <div key={`sub-${procedure.nia}-${procedure.title}`} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/50">
+              <div className="flex justify-between items-start mb-4">
+                <div className="bg-[#041627]/5 px-3 py-1 rounded-full border border-[#041627]/10">
+                  <span className="text-[#041627] font-bold text-xs uppercase tracking-wider">{procedure.nia}</span>
+                </div>
+                <button
+                  className="text-slate-400 hover:text-[#041627] transition-colors disabled:opacity-50"
+                  type="button"
+                  aria-label="Agregar procedimiento sustantivo"
+                  onClick={() => void handleAddProcedure(procedure, procedure.area_id)}
+                  disabled={savingKey === `${procedure.nia}-${procedure.title}`}
+                >
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-current text-sm">+</span>
+                </button>
+              </div>
+              <h5 className="font-bold text-slate-900 mb-2">{procedure.title}</h5>
+              <p className="text-sm text-slate-600 mb-4">{procedure.description}</p>
+              <div className="flex items-center space-x-4 text-[10px] font-bold text-[#001919] uppercase tracking-widest">
+                <span className="flex items-center">
+                  <span className="mr-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#041627] text-white text-[10px]">?</span>
+                  Vinculado a: {procedure.vinculo}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
       {feedback ? <p className="mt-4 text-xs text-slate-600">{feedback}</p> : null}
     </section>

@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from backend.auth import authorize_cliente_access, get_current_user
 from backend.repositories.file_repository import create_cliente, delete_cliente, list_clientes, list_documentos, read_hallazgos, read_perfil
 from backend.schemas import ApiResponse, ClienteCreateRequest, ClienteDocumento, ClienteSummary, UserContext
+from backend.services.document_ingest_service import ingest_document_for_rag
 
 router = APIRouter(prefix="/clientes", tags=["clientes"])
 
@@ -158,9 +159,14 @@ async def upload_cliente_documento(
     docs_dir.mkdir(parents=True, exist_ok=True)
     target = docs_dir / raw_name
     target.write_bytes(content)
+    ingestion: dict[str, object] = {"indexed": False, "text_chars": 0}
+    try:
+        ingestion = ingest_document_for_rag(cliente_id, target)
+    except Exception:
+        ingestion = {"indexed": False, "text_chars": 0}
 
     docs = [ClienteDocumento(**doc).model_dump() for doc in list_documentos(cliente_id)]
-    return ApiResponse(data={"uploaded": True, "documento": raw_name, "documentos": docs})
+    return ApiResponse(data={"uploaded": True, "documento": raw_name, "documentos": docs, "ingestion": ingestion})
 
 
 @router.get("/{cliente_id}/hallazgos", response_model=ApiResponse)

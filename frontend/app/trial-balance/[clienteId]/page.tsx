@@ -43,8 +43,12 @@ export default function TrialBalancePage() {
     () => (areaData?.aseveraciones ?? []).filter((a) => a.riesgo_tipico.toLowerCase().includes("alto")).length,
     [areaData],
   );
-  const balanceDelta = Math.abs((dashboard?.activo ?? 0) - ((dashboard?.pasivo ?? 0) + (dashboard?.patrimonio ?? 0)));
+  const accountingDelta = (dashboard?.activo ?? 0) - ((dashboard?.pasivo ?? 0) + (dashboard?.patrimonio ?? 0));
+  const resultadoPeriodo = (dashboard?.ingresos ?? 0) - (dashboard?.gastos ?? 0);
+  const balanceDelta = Math.abs(accountingDelta);
+  const deltaVsResultado = Math.abs(accountingDelta - resultadoPeriodo);
   const balanceOk = balanceDelta < 1;
+  const isResultadoPeriodo = !balanceOk && deltaVsResultado < 1;
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -80,9 +84,19 @@ export default function TrialBalancePage() {
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <article className="sovereign-card border-l-4 border-[#041627]">
           <p className="text-[10px] font-body font-bold uppercase tracking-[0.14em] text-slate-500">Balance A/L</p>
-          <h3 className="font-headline text-2xl text-[#041627] mt-3">{balanceOk ? "Cuadrado" : "Descuadrado"}</h3>
-          <p className={`text-xs mt-2 ${balanceOk ? "text-slate-500" : "text-[#ba1a1a] font-semibold"}`}>
-            {balanceOk ? "Activo = Pasivo + Patrimonio" : `Diferencia: ${formatMoney(balanceDelta)}`}
+          <h3 className="font-headline text-2xl text-[#041627] mt-3">
+            {balanceOk ? "Cuadrado" : isResultadoPeriodo ? "Cuadrado (con resultado del periodo)" : "Descuadrado"}
+          </h3>
+          <p
+            className={`text-xs mt-2 ${
+              balanceOk || isResultadoPeriodo ? "text-slate-500" : "text-[#ba1a1a] font-semibold"
+            }`}
+          >
+            {balanceOk
+              ? "Activo = Pasivo + Patrimonio"
+              : isResultadoPeriodo
+                ? `La diferencia corresponde al resultado del periodo: ${formatMoney(resultadoPeriodo)}`
+                : `Diferencia real: ${formatMoney(balanceDelta)}`}
           </p>
         </article>
 

@@ -110,6 +110,7 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, str]
     out: list[tuple[str, str, dict[str, str]]] = []
     perfil_path = CLIENTES_ROOT / cliente_id / "perfil.yaml"
     hallazgos_path = CLIENTES_ROOT / cliente_id / "hallazgos.md"
+    docs_text_dir = CLIENTES_ROOT / cliente_id / "documentos_text"
 
     base_meta = {
         "norma": "Contexto cliente",
@@ -139,6 +140,19 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, str]
                 out.append((rel, text, meta))
         except Exception:
             pass
+    if docs_text_dir.exists():
+        for path in sorted(docs_text_dir.glob("*.md")):
+            try:
+                text = path.read_text(encoding="utf-8").strip()
+            except Exception:
+                continue
+            if not text:
+                continue
+            rel = str(path.relative_to(ROOT))
+            meta = dict(base_meta)
+            meta["norma"] = "Documentacion cliente"
+            meta["ultima_actualizacion"] = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).date().isoformat()
+            out.append((rel, text, meta))
     return out
 
 

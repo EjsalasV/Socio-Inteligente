@@ -39,6 +39,7 @@ export default function ClientMemoryPage() {
   const [documentos, setDocumentos] = useState<ClienteDocumento[]>([]);
   const [hallazgos, setHallazgos] = useState<Array<{ title: string; body: string }>>([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -80,9 +81,17 @@ export default function ClientMemoryPage() {
 
   async function handleUploadDocument(file: File): Promise<void> {
     setUploadingDoc(true);
+    setUploadMsg("");
     try {
-      const updated = await uploadClienteDocumento(clienteId, file);
-      setDocumentos(updated);
+      const result = await uploadClienteDocumento(clienteId, file);
+      setDocumentos(result.documentos);
+      setUploadMsg(
+        result.ingestion.indexed
+          ? `Documento indexado para AI (${result.ingestion.text_chars} caracteres).`
+          : "Documento cargado. No se pudo extraer texto util para AI.",
+      );
+    } catch (error) {
+      setUploadMsg(error instanceof Error ? error.message : "No se pudo cargar el documento.");
     } finally {
       setUploadingDoc(false);
     }
@@ -195,6 +204,7 @@ export default function ClientMemoryPage() {
                 ) : null}
               </tbody>
             </table>
+            {uploadMsg ? <div className="px-6 py-3 text-xs text-slate-600 border-t border-black/5">{uploadMsg}</div> : null}
           </article>
         </div>
 

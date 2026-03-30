@@ -110,7 +110,15 @@ export async function getClienteDocumentos(clienteId: string): Promise<ClienteDo
     .filter((item): item is ClienteDocumento => item !== null && Boolean(item.id));
 }
 
-export async function uploadClienteDocumento(clienteId: string, file: File): Promise<ClienteDocumento[]> {
+export interface DocumentoIngestionResult {
+  indexed: boolean;
+  text_chars: number;
+}
+
+export async function uploadClienteDocumento(
+  clienteId: string,
+  file: File,
+): Promise<{ documentos: ClienteDocumento[]; ingestion: DocumentoIngestionResult }> {
   const formData = new FormData();
   formData.append("file", file);
   const response = await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}/documentos/upload`, {
@@ -119,7 +127,7 @@ export async function uploadClienteDocumento(clienteId: string, file: File): Pro
   });
   const data = isRecord(response?.data) ? response.data : {};
   const docs = Array.isArray(data.documentos) ? data.documentos : [];
-  return docs
+  const documentos = docs
     .map((item) => {
       if (!isRecord(item)) return null;
       return {
@@ -131,6 +139,14 @@ export async function uploadClienteDocumento(clienteId: string, file: File): Pro
       };
     })
     .filter((item): item is ClienteDocumento => item !== null && Boolean(item.id));
+  const ingestionRaw = isRecord(data.ingestion) ? data.ingestion : {};
+  return {
+    documentos,
+    ingestion: {
+      indexed: Boolean(ingestionRaw.indexed),
+      text_chars: typeof ingestionRaw.text_chars === "number" ? ingestionRaw.text_chars : 0,
+    },
+  };
 }
 
 export async function getClienteHallazgos(clienteId: string): Promise<ClienteHallazgo[]> {
