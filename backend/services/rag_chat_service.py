@@ -222,6 +222,23 @@ def _is_greeting(query: str) -> bool:
     return any(q.startswith(g + " ") for g in greetings)
 
 
+def _is_provider_question(query: str) -> bool:
+    q = (query or "").strip().lower()
+    if not q:
+        return False
+    hints = ["deepseek", "deepsekk", "openai", "modelo", "model", "ia eres", "que modelo", "provider"]
+    return any(h in q for h in hints)
+
+
+def _current_provider_label() -> str:
+    provider = (os.getenv("AI_PROVIDER") or "openai").strip().lower()
+    if provider == "deepseek":
+        model = (os.getenv("DEEPSEEK_CHAT_MODEL") or "deepseek-chat").strip() or "deepseek-chat"
+        return f"DeepSeek ({model})"
+    model = (os.getenv("OPENAI_CHAT_MODEL") or "gpt-4o-mini").strip() or "gpt-4o-mini"
+    return f"OpenAI ({model})"
+
+
 def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], *, mode: str = "chat") -> dict[str, Any]:
     sources = [c.source for c in chunks]
     first_context = chunks[0].excerpt[:240] if chunks else "Sin contexto recuperado."
@@ -250,6 +267,16 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
                 "Dime en que area quieres que trabajemos primero."
             )
             confidence = 0.65
+        elif _is_provider_question(query):
+            provider_label = _current_provider_label()
+            answer = (
+                f"Si. En este backend estoy configurado para usar `{provider_label}`.\n\n"
+                "Importante:\n"
+                "1) Python calcula numeros, materialidad y gates.\n"
+                "2) La AI aplica juicio profesional y recomendaciones.\n"
+                "3) Si falla el proveedor, activo fallback controlado."
+            )
+            confidence = 0.7
         else:
             answer = (
                 f"Recibi tu consulta sobre `{query}` para el cliente `{cliente_id}`.\n\n"
@@ -359,8 +386,8 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat")
 def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
     try:
-        if chunks:
-            return _llm_answer(query, chunks, mode="chat")
+        # En chat general intentamos LLM aun sin chunks para no degradar preguntas conversacionales.
+        return _llm_answer(query, chunks, mode="chat")
     except Exception:
         pass
     return _fallback_answer(query, cliente_id, chunks, mode="chat")
