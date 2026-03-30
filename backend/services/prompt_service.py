@@ -7,6 +7,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 PROMPTS_ROOT = ROOT / "backend" / "prompts" / "v1"
+PERSONA_PATH = ROOT / "backend" / "prompts" / "persona_auditor.md"
 
 
 def _safe_read(path: Path) -> str:
@@ -57,9 +58,34 @@ def get_prompt_template(mode: str) -> tuple[str, dict[str, str]]:
     }
 
 
+def get_base_persona() -> tuple[str, dict[str, str]]:
+    raw = _safe_read(PERSONA_PATH)
+    if not raw.strip():
+        fallback = (
+            "Eres Socio AI, auditor senior. "
+            "Responde con criterio tecnico, accion concreta y evidencia verificable."
+        )
+        return fallback, {
+            "persona_id": "fallback",
+            "persona_version": "v1",
+            "persona_owner": "socio-ai-core",
+            "persona_updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+    meta = _extract_meta(raw)
+    return raw, {
+        "persona_id": meta.get("prompt", "persona_auditor"),
+        "persona_version": meta.get("version", "v1"),
+        "persona_owner": meta.get("owner", "socio-ai-core"),
+        "persona_updated_at": meta.get("updated_at", ""),
+    }
+
+
 def render_prompt(mode: str, *, query: str, context: str) -> tuple[str, dict[str, str]]:
     template, meta = get_prompt_template(mode)
-    rendered = template.replace("{{query}}", query.strip()).replace("{{context}}", context.strip())
+    persona, persona_meta = get_base_persona()
+    rendered_task = template.replace("{{query}}", query.strip()).replace("{{context}}", context.strip())
+    rendered = f"{persona.strip()}\n\n---\n\n{rendered_task.strip()}"
+    meta = {**meta, **persona_meta}
     return rendered, meta
 
 

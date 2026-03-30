@@ -285,6 +285,14 @@ def _is_risk_question(query: str) -> bool:
     return any(h in q for h in risk_hints)
 
 
+def _is_risk_why_question(query: str) -> bool:
+    q = (query or "").strip().lower()
+    if not q:
+        return False
+    why_hints = ["porque", "por que", "por qué", "why", "motivo", "razon", "razón"]
+    return _is_risk_question(q) and any(h in q for h in why_hints)
+
+
 def _is_next_steps_question(query: str) -> bool:
     q = (query or "").strip().lower()
     if not q:
@@ -301,13 +309,14 @@ def _is_next_steps_question(query: str) -> bool:
     return any(h in q for h in hints)
 
 
-def _risk_answer(cliente_id: str) -> dict[str, Any]:
+def _risk_answer(cliente_id: str, query: str = "") -> dict[str, Any]:
     perfil = read_perfil(cliente_id) or {}
     cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
     riesgo_global = perfil.get("riesgo_global", {}) if isinstance(perfil.get("riesgo_global"), dict) else {}
     nivel_global = str(riesgo_global.get("nivel") or "MEDIO").upper()
 
     top_lines: list[str] = []
+    top_rows: list[dict[str, Any]] = []
     try:
         from analysis.ranking_areas import calcular_ranking_areas
 
@@ -322,10 +331,29 @@ def _risk_answer(cliente_id: str) -> dict[str, Any]:
                 score = float(row.get("score_riesgo") or 0.0)
                 prioridad = str(row.get("prioridad") or "media").upper()
                 top_lines.append(f"- {area} {nombre}: {score:.1f}% ({prioridad})")
+                top_rows.append({"area": area, "nombre": nombre, "score": score, "prioridad": prioridad})
     except Exception:
         top_lines = []
+        top_rows = []
 
     cliente_nombre = str(cliente.get("nombre_legal") or cliente_id)
+    justificacion = str(riesgo_global.get("justificacion_corta") or "").strip()
+
+    def _driver_hint(area_name: str) -> str:
+        n = area_name.lower()
+        if "inversion" in n:
+            return "valuacion de inversiones, VPP y revelaciones asociadas"
+        if "patrimonio" in n:
+            return "movimientos de capital, resultados acumulados y revelacion"
+        if "gasto" in n:
+            return "clasificacion del gasto y riesgo tributario de deducibilidad"
+        if "cuentas por cobrar" in n:
+            return "existencia, recuperabilidad y corte de cartera"
+        if "efectivo" in n:
+            return "integridad de tesoreria y conciliaciones bancarias"
+        return "consistencia contable y soporte de saldos"
+
+    explain_mode = _is_risk_why_question(query)
     if not top_lines:
         answer = (
             f"Riesgo actual del cliente `{cliente_nombre}`: **{nivel_global}**.\n\n"
@@ -333,12 +361,43 @@ def _risk_answer(cliente_id: str) -> dict[str, Any]:
             "Siguiente paso: valida que el TB este cargado y luego te devuelvo top 3 areas criticas con score."
         )
         confidence = 0.62
+    elif explain_mode:
+        top = top_rows[0] if top_rows else {}
+        top_name = str(top.get("nombre") or "area principal")
+        top_score = float(top.get("score") or 0.0)
+        reason_lines: list[str] = []
+        if justificacion:
+            reason_lines.append(f"- Contexto de encargo: {justificacion}")
+        reason_lines.append(f"- Mayor concentracion de exposicion en `{top_name}` (score {top_score:.1f}%).")
+
+        if len(top_rows) > 1 and float(top_rows[1].get("score") or 0.0) >= 45:
+            reason_lines.append(
+                f"- Segunda area con peso relevante `{top_rows[1].get('nombre')}` (score {float(top_rows[1].get('score') or 0.0):.1f}%)."
+            )
+
+        unique_drivers = []
+        for row in top_rows[:3]:
+            hint = _driver_hint(str(row.get("nombre") or ""))
+            if hint not in unique_drivers:
+                unique_drivers.append(hint)
+        for hint in unique_drivers[:3]:
+            reason_lines.append(f"- Driver tecnico: {hint}.")
+
+        answer = (
+            f"Buena pregunta. El riesgo global de `{cliente_nombre}` esta en **{nivel_global}** "
+            "porque la exposicion no esta totalmente dispersa, sino concentrada en areas sensibles de juicio.\n\n"
+            "Fundamento:\n"
+            + "\n".join(reason_lines)
+            + "\n\nEn resumen: no esta en BAJO porque hay concentracion y juicio tecnico; "
+            "no lo llevo a MUY ALTO porque el resto de areas no muestran deterioro extremo al mismo nivel."
+        )
+        confidence = 0.9
     else:
         answer = (
             f"Riesgo global actual de la holding `{cliente_nombre}`: **{nivel_global}**.\n\n"
             "Top areas por riesgo en este momento:\n"
             + "\n".join(top_lines)
-            + "\n\nSi quieres, te digo ahora mismo que pruebas de control y sustantivas ejecutar primero."
+            + "\n\nSi quieres, te explico el por que tecnico de ese nivel y que pruebas ejecutar primero."
         )
         confidence = 0.86
 
@@ -526,6 +585,36 @@ def _client_snapshot(cliente_id: str) -> str:
     )
 
 
+def _risk_snapshot(cliente_id: str) -> str:
+    lines: list[str] = []
+    try:
+        from analysis.ranking_areas import calcular_ranking_areas
+
+        ranking = calcular_ranking_areas(cliente_id)
+        if ranking is None or ranking.empty:
+            return ""
+        vis = ranking.copy()
+        if "con_saldo" in vis.columns:
+            vis = vis[vis["con_saldo"] == True]  # noqa: E712
+        if vis.empty:
+            return ""
+        lines.append("Top areas por riesgo (motor Python):")
+        for _, row in vis.head(5).iterrows():
+            area = str(row.get("area") or "")
+            nombre = str(row.get("nombre") or "")
+            score = float(row.get("score_riesgo") or 0.0)
+            prioridad = str(row.get("prioridad") or "media")
+            drivers: list[str] = []
+            raw_drivers = row.get("drivers")
+            if isinstance(raw_drivers, list):
+                drivers = [str(x) for x in raw_drivers if str(x).strip()]
+            driver_txt = f" | drivers: {', '.join(drivers[:3])}" if drivers else ""
+            lines.append(f"- {area} {nombre}: score={score:.2f}, prioridad={prioridad}{driver_txt}")
+    except Exception:
+        return ""
+    return "\n".join(lines)
+
+
 def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], *, mode: str = "chat") -> dict[str, Any]:
     sources = [c.source for c in chunks]
     first_context = chunks[0].excerpt[:240] if chunks else "Sin contexto recuperado."
@@ -546,12 +635,9 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
     if mode == "chat":
         if _is_greeting(query):
             answer = (
-                f"Hola. Soy Socio AI y ya tengo activo el contexto del cliente `{cliente_id}`.\n\n"
-                "Te puedo ayudar en tres frentes:\n"
-                "1) Analisis de riesgo por area.\n"
-                "2) Procedimientos segun NIA/NIIF.\n"
-                "3) Redaccion de hallazgos y conclusion.\n\n"
-                "Dime en que area quieres que trabajemos primero."
+                f"Hola. Tengo activo el contexto del cliente `{cliente_id}`.\n\n"
+                "Podemos revisar riesgo, procedimientos o hallazgos. "
+                "Si quieres, empezamos por la pregunta mas importante de hoy."
             )
             confidence = 0.65
         elif _is_provider_question(query):
@@ -618,13 +704,28 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat",
         ]
     )
     snapshot = _client_snapshot(cliente_id) if cliente_id else ""
+    risk_snapshot = _risk_snapshot(cliente_id) if cliente_id else ""
     if snapshot:
         joined_context = f"[SNAPSHOT CLIENTE]\n{snapshot}\n\n{joined_context}".strip()
+    if risk_snapshot:
+        joined_context = f"{joined_context}\n\n[SNAPSHOT RIESGO]\n{risk_snapshot}".strip()
     instruction, prompt_meta = render_prompt(mode, query=query, context=joined_context)
+
+    reasoning_hint = ""
+    if _is_risk_why_question(query):
+        reasoning_hint = (
+            "\nAdemas: explica explicitamente por que ese nivel de riesgo es razonable, "
+            "incluyendo causa, impacto y que evidencia faltaria para subir o bajar el nivel."
+        )
+    elif _is_risk_question(query):
+        reasoning_hint = (
+            "\nAdemas: no repitas solo el ranking; interpreta los datos y concluye con criterio auditor."
+        )
 
     user_content = (
         f"Consulta:\n{query}\n\n"
         "Responde de forma conversacional, concreta y accionable para un auditor."
+        + reasoning_hint
         if mode == "chat"
         else (
             f"Consulta:\n{query}\n\n"
@@ -682,12 +783,6 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat",
 def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
     if _is_data_inventory_question(query):
         return _inventory_answer(cliente_id)
-    if _is_risk_question(query):
-        return _risk_answer(cliente_id)
-    if _is_next_steps_question(query):
-        return _next_steps_answer(cliente_id)
-    if _is_greeting(query):
-        return _fallback_answer(query, cliente_id, [], mode="chat")
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
     try:
         # En chat general intentamos LLM aun sin chunks para no degradar preguntas conversacionales.
