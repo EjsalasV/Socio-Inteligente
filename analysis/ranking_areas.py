@@ -136,6 +136,12 @@ def _to_float(v: Any) -> float:
         return 0.0
 
 
+def _safe_percentage(numerator: float, denominator: float) -> float:
+    if denominator <= 0:
+        return 0.0
+    return (numerator / denominator) * 100
+
+
 def _resolve_col(df: pd.DataFrame, candidates: list[str]) -> str | None:
     for c in candidates:
         if c in df.columns:
@@ -433,7 +439,7 @@ def _calcular_score_area(
         return base
 
     saldo_area = _to_float(tb_area["saldo_abs"].sum())
-    pct_total = (saldo_area / total_balance * 100) if total_balance > 0 else 0.0
+    pct_total = _safe_percentage(saldo_area, total_balance)
     score_materialidad = min(pct_total / 2.5, 40)
 
     if not variaciones.empty:
@@ -447,7 +453,7 @@ def _calcular_score_area(
     score_complejidad = min(num_cuentas / 20, 20)
     score_riesgo_inherente = info["peso"] * 10
 
-    materialidad_relativa = (saldo_area / materialidad_ejecucion * 100) if materialidad_ejecucion > 0 else 0.0
+    materialidad_relativa = _safe_percentage(saldo_area, materialidad_ejecucion)
 
     flags = detectar_expert_flags(
         codigo_area=codigo,
