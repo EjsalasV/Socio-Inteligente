@@ -20,7 +20,7 @@ def configurar_logging() -> logging.Logger:
     config_log = obtener_logging_config()
 
     logger = logging.getLogger("socio_ai")
-    nivel = config_log.get("nivel", "INFO").upper()
+    nivel = str(config_log.get("level", "INFO")).upper()
     logger.setLevel(getattr(logging, nivel, logging.INFO))
 
     # Evitar duplicar handlers si ya fue configurado
@@ -38,7 +38,7 @@ def configurar_logging() -> logging.Logger:
     logger.addHandler(console_handler)
 
     # Handler de archivo rotativo
-    archivo = config_log.get("archivo")
+    archivo = config_log.get("file")
     if archivo:
         ruta_log = Path(archivo)
         ruta_log.parent.mkdir(parents=True, exist_ok=True)
