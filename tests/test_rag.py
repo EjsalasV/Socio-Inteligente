@@ -117,19 +117,27 @@ def test_cargar_documentos_no_empty_chunks():
 # ── Vector store tests (mocked) ──────────────────────────────
 
 from infra.rag import vector_store
+from infra.rag.errors import RagBackendUnavailableError
 
 
 def test_esta_indexado_returns_bool():
     """esta_indexado should return bool without crashing."""
-    result = vector_store.esta_indexado()
-    assert isinstance(result, bool)
+    try:
+        result = vector_store.esta_indexado()
+        assert isinstance(result, bool)
+    except RagBackendUnavailableError:
+        # Explicit backend errors are valid in degraded environments.
+        assert True
 
 
 def test_total_indexado_returns_int():
     """total_indexado should return int without crashing."""
-    result = vector_store.total_indexado()
-    assert isinstance(result, int)
-    assert result >= 0
+    try:
+        result = vector_store.total_indexado()
+        assert isinstance(result, int)
+        assert result >= 0
+    except RagBackendUnavailableError:
+        assert True
 
 
 def test_buscar_normativa_sin_indexar_returns_empty():
@@ -196,3 +204,16 @@ def test_inicializar_rag_sin_documentos():
         result = inicializar_rag(forzar=True)
         assert result["estado"] == "sin_documentos"
         assert result["total_chunks"] == 0
+
+
+def test_inicializar_rag_degradado_si_chromadb_no_disponible():
+    with patch("infra.rag.retriever.esta_indexado", side_effect=RagBackendUnavailableError("down")):
+        result = inicializar_rag(forzar=False)
+        assert result["estado"] == "degradado"
+        assert result["total_chunks"] == 0
+
+
+def test_recuperar_contexto_devuelve_vacio_en_modo_degradado():
+    with patch("infra.rag.retriever.esta_indexado", side_effect=RagBackendUnavailableError("down")):
+        result = recuperar_contexto_normativo("materialidad")
+        assert result == ""
