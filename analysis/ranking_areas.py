@@ -8,6 +8,8 @@ import pandas as pd
 from analysis.expert_flags import detectar_expert_flags
 from analysis.lector_tb import leer_tb, obtener_resumen_tb
 from analysis.variaciones import calcular_variaciones
+from core.configuracion import obtener_audit_areas_config
+from core.logger import obtener_logger
 from core.utils.normalizaciones import normalizar_ls
 from infra.repositories.catalogo_repository import cargar_areas_catalogo
 
@@ -29,6 +31,7 @@ AREAS_AUDITORIA_DEFAULT = {
     "170": {"nombre": "Propiedad e Inversion", "peso": 0.9},
     "200": {"nombre": "Patrimonio", "peso": 1.1},
 }
+LOGGER = obtener_logger()
 
 
 def _inferir_peso(area: dict[str, Any]) -> float:
@@ -69,13 +72,23 @@ def _dynamic_area_name_from_ls(codigo: str) -> str:
 
 
 def _cargar_areas_auditoria(tb: pd.DataFrame | None = None) -> dict[str, dict[str, Any]]:
-    areas_catalogo = cargar_areas_catalogo()
     salida: dict[str, dict[str, Any]] = {}
 
+    # Prioridad 1: áreas configuradas explícitamente en config.yaml.
+    for area in obtener_audit_areas_config():
+        salida[area["code"]] = {
+            "nombre": area["name"],
+            "peso": area["weight"],
+        }
+
+    # Prioridad 2: catálogo base (rellena faltantes).
+    areas_catalogo = cargar_areas_catalogo()
     if areas_catalogo:
         for area in areas_catalogo:
             codigo = str(area.get("codigo", "")).strip()
             if not codigo:
+                continue
+            if codigo in salida:
                 continue
             salida[codigo] = {
                 "nombre": str(area.get("titulo", f"Area {codigo}")).strip() or f"Area {codigo}",
@@ -112,7 +125,7 @@ def _safe_call(func: Any, *args: Any, default: Any = None, **kwargs: Any) -> Any
         return default
     try:
         return func(*args, **kwargs)
-    except Exception:
+    except (ValueError, TypeError, KeyError, OSError):
         return default
 
 
@@ -246,7 +259,7 @@ def _debug_area_selection(
     if not var_area.empty and "ls" in var_area.columns:
         var_ls = [str(x) for x in var_area["ls"].dropna().astype(str).head(5).tolist()]
 
-    print(
+    LOGGER.info(
         f"[RANK-DEBUG] area={codigo} nombre={nombre} "
         f"tb_method={tb_method} tb_rows={len(tb_area)} tb_ls_sample={tb_ls} tb_names_sample={tb_names} "
         f"var_method={var_method} var_rows={len(var_area)} var_ls_sample={var_ls}"
@@ -373,7 +386,8 @@ def calcular_ranking_areas(cliente: str) -> Optional[pd.DataFrame]:
         ranking_df["ranking"] = range(1, len(ranking_df) + 1)
         return ranking_df
 
-    except Exception:
+    except (ValueError, TypeError, KeyError) as exc:
+        LOGGER.error("ranking.error_calculando", extra={"cliente": cliente, "error": str(exc)})
         return None
 
 
