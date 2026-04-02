@@ -33,9 +33,21 @@ socio_ai/
 # Instalar dependencias
 pip install -r requirements.txt
 
-# Configurar variables de entorno
-export OPENAI_API_KEY="tu-clave-api"
+# Configurar entorno local seguro (Linux/macOS)
+cp .env.example .env
+# Edita .env y coloca tus claves reales (no se versiona en Git)
 ```
+
+```powershell
+# Configurar entorno local seguro (Windows PowerShell)
+Copy-Item .env.example .env
+```
+
+Variables mínimas recomendadas en `.env`:
+- `AI_PROVIDER` (`deepseek` u `openai`)
+- `DEEPSEEK_API_KEY` o `OPENAI_API_KEY`
+- `ENV` (`development` o `production`)
+- `SOCIOAI_DEBUG` (`false` en producción)
 
 ## 💻 Uso
 
@@ -56,6 +68,11 @@ Editar `config.yaml` para personalizar:
 - Umbrales de materialidad
 - Rutas de datos
 - Configuración de logging
+
+Notas de seguridad:
+- No subas claves a Git. `.env` está ignorado por `.gitignore`.
+- En producción, mantén `ENV=production` y `SOCIOAI_DEBUG=false`.
+- Rota inmediatamente cualquier clave expuesta accidentalmente.
 
 ## 📚 Documentación
 

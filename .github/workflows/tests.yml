@@ -29,7 +29,7 @@ jobs:
         env:
           PYTHONIOENCODING: utf-8
         run: |
-          python -m pytest tests/ -v --tb=short
+          python -m pytest tests/ -v --tb=short --cov=. --cov-report=term --cov-fail-under=55
 
   contract-types:
     runs-on: ubuntu-latest
