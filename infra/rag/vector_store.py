@@ -8,8 +8,12 @@ import os
 import tempfile
 from typing import Any
 
+from core.logger import obtener_logger
+from infra.rag.errors import RagBackendUnavailableError
+
 _MODELO_CACHE: Any = None
 _MODELO_NOMBRE = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+LOGGER = obtener_logger()
 
 
 def _get_modelo():
@@ -19,11 +23,11 @@ def _get_modelo():
         try:
             from sentence_transformers import SentenceTransformer
 
-            print("[RAG] Cargando modelo de embeddings...")
+            LOGGER.info("[RAG] Cargando modelo de embeddings...")
             _MODELO_CACHE = SentenceTransformer(_MODELO_NOMBRE)
-            print("[RAG] Modelo cargado y cacheado.")
+            LOGGER.info("[RAG] Modelo cargado y cacheado.")
         except ImportError:
-            raise ImportError(
+            raise RagBackendUnavailableError(
                 "sentence-transformers no instalado. "
                 "Ejecuta: pip install sentence-transformers"
             )
@@ -50,9 +54,15 @@ def _get_chroma_path() -> str:
 
 
 def _get_client():
-    import chromadb
+    try:
+        import chromadb
+    except ImportError as exc:
+        raise RagBackendUnavailableError("chromadb no instalado") from exc
 
-    return chromadb.PersistentClient(path=_get_chroma_path())
+    try:
+        return chromadb.PersistentClient(path=_get_chroma_path())
+    except Exception as exc:  # chromadb raises driver/runtime-specific errors
+        raise RagBackendUnavailableError(f"no se pudo inicializar chromadb: {exc}") from exc
 
 
 def _get_collection(client=None):
@@ -89,7 +99,7 @@ def indexar_documentos(documentos: list[dict[str, Any]]) -> int:
             for d in documentos
         ]
 
-        print(f"[RAG] Generando embeddings para {len(textos)} chunks...")
+        LOGGER.info("[RAG] Generando embeddings para %s chunks...", len(textos))
         embeddings = modelo.encode(textos, show_progress_bar=True).tolist()
 
         coleccion = _get_collection()
@@ -104,11 +114,13 @@ def indexar_documentos(documentos: list[dict[str, Any]]) -> int:
             )
 
         total = coleccion.count()
-        print(f"[RAG] Indexacion completa. Total en vector store: {total}")
+        LOGGER.info("[RAG] Indexacion completa. Total en vector store: %s", total)
         return total
 
-    except Exception as e:
-        print(f"[RAG] Error indexando: {e}")
+    except RagBackendUnavailableError:
+        raise
+    except (ValueError, KeyError, TypeError) as exc:
+        LOGGER.error("[RAG] Error indexando: %s", exc)
         return 0
 
 
@@ -167,8 +179,10 @@ def buscar_normativa(
 
         return salida
 
-    except Exception as e:
-        print(f"[RAG] Error buscando: {e}")
+    except RagBackendUnavailableError:
+        raise
+    except (ValueError, KeyError, TypeError) as exc:
+        LOGGER.error("[RAG] Error buscando: %s", exc)
         return []
 
 
@@ -177,7 +191,9 @@ def esta_indexado() -> bool:
     try:
         coleccion = _get_collection()
         return coleccion.count() > 0
-    except Exception:
+    except RagBackendUnavailableError:
+        raise
+    except (ValueError, KeyError, TypeError):
         return False
 
 
@@ -185,5 +201,7 @@ def total_indexado() -> int:
     """Retorna el número de chunks indexados."""
     try:
         return _get_collection().count()
-    except Exception:
+    except RagBackendUnavailableError:
+        raise
+    except (ValueError, KeyError, TypeError):
         return 0

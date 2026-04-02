@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from core.logger import obtener_logger
+from infra.rag.errors import RagBackendUnavailableError
 from infra.rag.knowledge_loader import cargar_documentos
 from infra.rag.vector_store import (
     buscar_normativa,
@@ -13,6 +15,8 @@ from infra.rag.vector_store import (
     indexar_documentos,
     total_indexado,
 )
+
+LOGGER = obtener_logger()
 
 
 def inicializar_rag(forzar: bool = False) -> dict[str, Any]:
@@ -25,23 +29,26 @@ def inicializar_rag(forzar: bool = False) -> dict[str, Any]:
     Returns:
         dict con estado de la inicialización.
     """
-    if not forzar and esta_indexado():
-        total = total_indexado()
-        print(f"[RAG] Ya inicializado ({total} chunks). Usar forzar=True para re-indexar.")
-        return {"estado": "ya_indexado", "total_chunks": total}
+    try:
+        if not forzar and esta_indexado():
+            total = total_indexado()
+            LOGGER.info("[RAG] Ya inicializado (%s chunks).", total)
+            return {"estado": "ya_indexado", "total_chunks": total}
 
-    print("[RAG] Iniciando indexacion de base normativa...")
-    documentos = cargar_documentos()
+        LOGGER.info("[RAG] Iniciando indexacion de base normativa...")
+        documentos = cargar_documentos()
+        if not documentos:
+            return {"estado": "sin_documentos", "total_chunks": 0}
 
-    if not documentos:
-        return {"estado": "sin_documentos", "total_chunks": 0}
-
-    total = indexar_documentos(documentos)
-    return {
-        "estado": "indexado",
-        "total_chunks": total,
-        "documentos_fuente": len(documentos),
-    }
+        total = indexar_documentos(documentos)
+        return {
+            "estado": "indexado",
+            "total_chunks": total,
+            "documentos_fuente": len(documentos),
+        }
+    except RagBackendUnavailableError as exc:
+        LOGGER.error("[RAG] Backend no disponible: %s", exc)
+        return {"estado": "degradado", "total_chunks": 0, "motivo": str(exc)}
 
 # Keyword signals: if query contains these words, boost chunks
 # from the matching source
@@ -125,16 +132,20 @@ def recuperar_contexto_normativo(
     """
     import time
 
-    if not esta_indexado():
-        print("[RAG] Vector store vacío. Ejecuta: python -m app.cli_commands indexar")
-        return ""
+    try:
+        if not esta_indexado():
+            LOGGER.warning("[RAG] Vector store vacio. Ejecuta indexacion.")
+            return ""
 
-    t_inicio = time.time()
-    resultados = buscar_normativa(consulta, n_resultados, fuente_filtro)
-    latencia = round(time.time() - t_inicio, 3)
+        t_inicio = time.time()
+        resultados = buscar_normativa(consulta, n_resultados, fuente_filtro)
+        latencia = round(time.time() - t_inicio, 3)
 
-    if not resultados:
-        print(f"[RAG] Sin resultados para: '{consulta[:60]}' ({latencia}s)")
+        if not resultados:
+            LOGGER.info("[RAG] Sin resultados para consulta '%s' (%ss)", consulta[:60], latencia)
+            return ""
+    except RagBackendUnavailableError as exc:
+        LOGGER.error("[RAG] Modo degradado por backend no disponible: %s", exc)
         return ""
 
     # Re-rank: apply keyword boost and sort by adjusted score
@@ -148,7 +159,7 @@ def recuperar_contexto_normativo(
     # Update log to show adjusted scores
     relevancia_max = max(r["relevancia_ajustada"] for r in resultados)
     fuentes = [f"{r['fuente']}:{r['titulo']}" for r in resultados]
-    print(
+    LOGGER.info(
         f"[RAG] consulta='{consulta[:50]}' "
         f"chunks={len(resultados)} "
         f"relevancia_max={relevancia_max:.3f} "
