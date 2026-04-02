@@ -1,15 +1,15 @@
 # ====================================================================
-# SOCIO AI - CONFIGURACIÓN UNIFICADA FINAL
+# SOCIO AI - UNIFIED CONFIG
 # ====================================================================
 
-# Aplicación
+# Application
 app:
   name: "SocioAI"
   version: "1.0.0"
-  environment: "development"
-  debug: true
+  environment: "auto"
+  debug: false
 
-# Configuración de LLM
+# LLM configuration
 llm:
   provider: "deepseek"
   model: "deepseek-chat"
@@ -21,7 +21,7 @@ llm_models:
   - "deepseek-chat"
   - "deepseek-reasoner"
 
-# Materialidad
+# Materiality
 materialidad:
   benchmarks:
     revenue: 0.05
@@ -37,7 +37,7 @@ vector_store:
   chunk_size: 1000
   chunk_overlap: 100
 
-# Rutas
+# Paths
 paths:
   data_root: "data"
   clients: "data/clientes"
@@ -48,20 +48,18 @@ paths:
   processed: "data/processed"
   exports: "data/exports"
 
-# Logging (NUEVO + COMPATIBLE)
+# Logging
 logging:
   level: "INFO"
-  nivel: "INFO"
   format: "json"
   timestamp_format: "%Y-%m-%d %H:%M:%S"
   file: "logs/socio_ai.log"
-  archivo: "logs/socio_ai.log"
   max_size: "100MB"
   max_bytes: 10485760
   retention: 30
   backup_count: 5
 
-# Variaciones
+# Variations
 variaciones:
   umbral_absoluto: 1000.0
   umbral_porcentual: 20.0
@@ -90,7 +88,7 @@ scoring:
     - [10, 2]
     - [1, 1]
 
-# Riesgos
+# Risks
 riesgos:
   materialidad_relativa:
     alto: 0.75
@@ -101,31 +99,36 @@ riesgos:
     alto: 5
     medio: 3
 
-# Validación
+# Validation
 validacion:
   tolerancia_cuadre: 5.0
-  año_minimo: 1900
-  año_maximo: 2100
+  ano_minimo: 1900
+  ano_maximo: 2100
 
-# Formato
+# Format
 formato:
   decimales_default: 2
   divisa_default: "USD"
 
-# Áreas de auditoría
+# Audit areas
 audit_areas:
   - code: "130"
     name: "Cuentas por Cobrar"
+    weight: 0.85
   - code: "140"
     name: "Efectivo"
+    weight: 0.9
   - code: "145"
     name: "Impuestos - Activos"
+    weight: 0.75
   - code: "170"
-    name: "Propiedad e Inversión"
+    name: "Propiedad e Inversion"
+    weight: 0.8
   - code: "200"
     name: "Patrimonio"
+    weight: 0.95
 
-# Sectores
+# Sectors
 sectors:
   - "comerciales"
   - "servicios"
