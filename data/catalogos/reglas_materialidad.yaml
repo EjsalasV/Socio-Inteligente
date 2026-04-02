@@ -1,12 +1,13 @@
 # Reglas de Materialidad por Tipo de Entidad/Sector
-# Las reglas siguen NIAs 320 y normativas de auditoría de Ecuador
+# Las reglas siguen NIAs 320 y normativas de auditoria de Ecuador
 
 # Estructura:
 # - tipo_entidad o sector: nombre del tipo
-#   base: qué base usar (activos, patrimonio, ingresos)
-#   porcentaje_min: mínimo recomendado
-#   porcentaje_max: máximo recomendado
-#   descripcion: notas sobre cuándo usar
+#   base: que base usar (activos, patrimonio, ingresos)
+#   porcentaje_min: minimo recomendado
+#   porcentaje_max: maximo recomendado
+#   minimum_threshold: umbral minimo por sector/entidad
+#   descripcion: notas sobre cuando usar
 
 reglas_por_entidad:
   SOCIEDAD_ANONIMA:
@@ -43,43 +44,49 @@ reglas_por_entidad:
     base: "activos"
     porcentaje_min: 0.05
     porcentaje_max: 0.10
-    descripcion: "Servicios fúnebres - usa 5-10% de activos"
+    descripcion: "Servicios funebres - usa 5-10% de activos"
 
 reglas_por_sector:
   comerciales:
     base: "activos"
     porcentaje_min: 0.03
     porcentaje_max: 0.05
+    minimum_threshold: 100000
     descripcion: "Comercio - usa 3-5% de activos"
 
   servicios:
     base: "ingresos"
     porcentaje_min: 0.05
     porcentaje_max: 0.10
+    minimum_threshold: 80000
     descripcion: "Servicios - usa 5-10% de ingresos"
 
   manufactura:
     base: "activos"
     porcentaje_min: 0.03
     porcentaje_max: 0.05
+    minimum_threshold: 120000
     descripcion: "Manufactura - usa 3-5% de activos"
 
   financiero:
     base: "activos"
     porcentaje_min: 0.01
     porcentaje_max: 0.03
-    descripcion: "Sector financiero - usa 1-3% de activos (más restrictivo)"
+    minimum_threshold: 150000
+    descripcion: "Sector financiero - usa 1-3% de activos (mas restrictivo)"
 
   agricultura:
     base: "activos"
     porcentaje_min: 0.05
     porcentaje_max: 0.10
+    minimum_threshold: 70000
     descripcion: "Agricultura - usa 5-10% de activos"
 
   sin_fines_de_lucro:
     base: "patrimonio"
     porcentaje_min: 0.02
     porcentaje_max: 0.05
+    minimum_threshold: 40000
     descripcion: "Sin fines de lucro - usa 2-5% del patrimonio"
 
 # Regla por defecto (si no coincide con arriba)
@@ -87,7 +94,8 @@ regla_defecto:
   base: "activos"
   porcentaje_min: 0.03
   porcentaje_max: 0.05
-  descripcion: "Regla por defecto cuando no se encuentra clasificación"
+  minimum_threshold: 100000
+  descripcion: "Regla por defecto cuando no se encuentra clasificacion"
 
 # Benchmark por tipo de cliente
 # Usado cuando no tenemos datos del TB
