@@ -10,7 +10,19 @@ from backend.routes import areas, auth, chat, clientes, dashboard, metodologia, 
 app = FastAPI(title="Socio AI Backend", version="0.1.0")
 
 _origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
-_origins = [origin.strip() for origin in _origins_raw.split(",") if origin.strip()]
+
+
+def _normalize_origin(origin: str) -> str:
+    # Browsers send Origin without trailing slash. Normalize env values to avoid
+    # mismatches like https://site.vercel.app/ vs https://site.vercel.app
+    return origin.strip().rstrip("/")
+
+
+_origins = []
+for _origin in _origins_raw.split(","):
+    cleaned = _normalize_origin(_origin)
+    if cleaned and cleaned not in _origins:
+        _origins.append(cleaned)
 _is_prod = os.getenv("ENV", "development").lower() == "production"
 
 app.add_middleware(
