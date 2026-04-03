@@ -5,11 +5,15 @@ function stripTrailingSlash(value: string): string {
 }
 
 export function getApiBase(): string {
+  // In browser always use Next.js proxy to avoid direct CORS/network edge cases.
+  if (typeof window !== "undefined") {
+    return "/api";
+  }
   const configured = PUBLIC_API_BASE.trim();
   if (configured) {
     return stripTrailingSlash(configured);
   }
-  // Default to Next.js same-origin proxy to avoid CORS dependency in browsers.
+  // Server-side fallback.
   return "/api";
 }
 
