@@ -138,6 +138,9 @@ def normalize_perfil_doc_v1(doc: dict[str, Any]) -> dict[str, Any]:
         data["riesgo_global"] = {}
     if not isinstance(data.get("cuestionario_auditoria"), dict):
         data["cuestionario_auditoria"] = {}
+    # Backward compatibility: perfiles legacy pueden venir sin nivel de riesgo.
+    if not str(data["riesgo_global"].get("nivel") or "").strip():
+        data["riesgo_global"]["nivel"] = "medio"
     data["encargo"]["fase_actual"] = _fase_normalizada(str(data["encargo"].get("fase_actual", "")))
     return data
 
