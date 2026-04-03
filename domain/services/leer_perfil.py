@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any, Dict, Optional
 from pathlib import Path
@@ -27,13 +27,13 @@ def clear_perfil_cache(cliente: str) -> None:
 
 def leer_perfil(cliente: str) -> Optional[Dict[str, Any]]:
     """
-    Lee el perfil de un cliente desde el repositorio y valida su estructura básica.
+    Lee el perfil de un cliente desde el repositorio y valida su estructura bÃ¡sica.
 
     Args:
         cliente: Nombre de la carpeta del cliente.
 
     Returns:
-        dict con el perfil cargado si es válido, o None si falla.
+        dict con el perfil cargado si es vÃ¡lido, o None si falla.
     """
     # Check module cache first
     cached = get_perfil_cache(cliente)
@@ -44,14 +44,14 @@ def leer_perfil(cliente: str) -> Optional[Dict[str, Any]]:
         perfil = repo_cargar_perfil(cliente)
 
         if not perfil:
-            print(f"⚠️ No se encontró perfil para el cliente: {cliente}")
+            print(f"[WARN] No se encontro perfil para el cliente: {cliente}")
             return None
 
         validar_perfil_basico(perfil)
         return perfil
 
     except Exception as e:
-        print(f"❌ Error al leer perfil de {cliente}: {e}")
+        print(f"[ERROR] Error al leer perfil de {cliente}: {e}")
         return None
 
 
@@ -128,7 +128,7 @@ def obtener_reguladores_secundarios(perfil: Dict[str, Any]) -> list[Any]:
 
 
 # =========================================================
-# ACCESOS RÁPIDOS CLIENTE
+# ACCESOS RÃPIDOS CLIENTE
 # =========================================================
 
 def obtener_nombre_cliente(perfil: Dict[str, Any]) -> str:
@@ -168,7 +168,7 @@ def obtener_subsector(perfil: Dict[str, Any]) -> str:
 
 
 # =========================================================
-# ACCESOS RÁPIDOS ENCARGO
+# ACCESOS RÃPIDOS ENCARGO
 # =========================================================
 
 def obtener_periodo(perfil: Dict[str, Any]) -> int | None:
@@ -213,7 +213,7 @@ def obtener_encargado_asignado(perfil: Dict[str, Any]) -> str:
 
 
 # =========================================================
-# ACCESOS RÁPIDOS MATERIALIDAD
+# ACCESOS RÃPIDOS MATERIALIDAD
 # =========================================================
 
 def obtener_base_materialidad(perfil: Dict[str, Any]) -> str:
@@ -246,7 +246,7 @@ def obtener_umbral_trivialidad(perfil: Dict[str, Any]) -> float | None:
 
 
 # =========================================================
-# VALIDACIÓN
+# VALIDACIÃ“N
 # =========================================================
 
 def validar_perfil_basico(perfil: Dict[str, Any]) -> None:
@@ -271,7 +271,7 @@ def validar_perfil_basico(perfil: Dict[str, Any]) -> None:
 
     if faltantes:
         raise ValueError(
-            "El perfil no tiene completos los siguientes campos mínimos: "
+            "El perfil no tiene completos los siguientes campos mÃ­nimos: "
             + ", ".join(faltantes)
         )
 
@@ -354,5 +354,6 @@ def cargar_perfil(cliente: str) -> Optional[Dict[str, Any]]:
 
 
 def ruta_tb_cliente(cliente: str) -> str:
-    """Compatibilidad con API legacy para ubicación de tb.xlsx."""
+    """Compatibilidad con API legacy para ubicaciÃ³n de tb.xlsx."""
     return str(Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente / "tb.xlsx")
+
