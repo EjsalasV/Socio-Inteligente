@@ -4,7 +4,7 @@ const API_BASE =
   process.env.API_BASE_INTERNAL ??
   process.env.NEXT_PUBLIC_API_BASE ??
   process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:8000";
+  "https://socio-inteligente-production.up.railway.app";
 
 function stripTrailingSlash(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
@@ -32,13 +32,25 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   const body =
     method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer();
 
-  const upstream = await fetch(targetUrl, {
-    method,
-    headers,
-    body,
-    redirect: "manual",
-    cache: "no-store",
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(targetUrl, {
+      method,
+      headers,
+      body,
+      redirect: "manual",
+      cache: "no-store",
+    });
+  } catch (error) {
+    return Response.json(
+      {
+        detail: "No se pudo conectar desde Vercel al backend.",
+        target: targetUrl,
+        error: error instanceof Error ? error.message : "unknown_error",
+      },
+      { status: 502 },
+    );
+  }
 
   const responseHeaders = new Headers(upstream.headers);
   responseHeaders.delete("content-encoding");
@@ -74,4 +86,3 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 export async function OPTIONS(request: NextRequest, context: { params: Promise<{ path: string[] }> }): Promise<Response> {
   return proxy(request, context);
 }
-
