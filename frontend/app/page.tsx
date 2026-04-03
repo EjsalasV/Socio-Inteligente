@@ -4,7 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { getClientes } from "../lib/api/clientes";
-import { buildApiUrl, getApiBase } from "../lib/api-base";
+import { buildApiUrl, getApiBase, getBrowserOrigin } from "../lib/api-base";
 
 type LoginApiData = {
   access_token?: string;
@@ -87,7 +87,9 @@ export default function LoginPage() {
         router.push("/clientes");
       }
     } catch {
-      setError(`No se pudo conectar con el backend de autenticacion (${getApiBase()}).`);
+      setError(
+        `No se pudo conectar con el backend de autenticacion (${getApiBase()}). Origin actual: ${getBrowserOrigin()}.`,
+      );
     } finally {
       setIsLoading(false);
     }

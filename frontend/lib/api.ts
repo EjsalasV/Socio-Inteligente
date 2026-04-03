@@ -1,5 +1,5 @@
 import type { ApiEnvelope, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse } from "./contracts";
-import { buildApiUrl, getApiBase } from "./api-base";
+import { buildApiUrl, getApiBase, getBrowserOrigin } from "./api-base";
 
 export class TokenExpiredError extends Error {
   constructor(message: string = "JWT token expired or invalid") {
@@ -39,7 +39,9 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       headers,
     });
   } catch {
-    throw new Error(`No se pudo conectar con el backend (${getApiBase()}).`);
+    throw new Error(
+      `No se pudo conectar con el backend (${getApiBase()}). Origin actual: ${getBrowserOrigin()}.`,
+    );
   }
 
   if (res.status === 401) {
