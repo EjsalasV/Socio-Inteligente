@@ -1,4 +1,5 @@
 import { authFetchJson } from "../api";
+import { buildApiUrl } from "../api-base";
 import type { ApiEnvelope } from "../contracts";
 
 export interface ExecutivePdfMeta {
@@ -40,8 +41,6 @@ export interface ReportHistoryPayload {
   };
   items: ReportHistoryItem[];
 }
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export async function generateExecutivePdf(clienteId: string): Promise<ExecutivePdfMeta> {
   const response = await authFetchJson<ApiEnvelope<unknown>>(`/reportes/${clienteId}/executive-pdf`);
@@ -86,7 +85,7 @@ export async function downloadExecutivePdf(clienteId: string): Promise<{ blob: B
     throw new Error("Missing JWT token in session");
   }
 
-  const response = await fetch(`${API_BASE}/reportes/${clienteId}/executive-pdf`, {
+  const response = await fetch(buildApiUrl(`/reportes/${clienteId}/executive-pdf`), {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -99,7 +98,7 @@ export async function downloadExecutivePdf(clienteId: string): Promise<{ blob: B
   const path = typeof raw.path === "string" ? raw.path : "";
   const filename = typeof raw.report_name === "string" ? raw.report_name : `${clienteId}_executive_summary.pdf`;
 
-  const fileResponse = await fetch(`${API_BASE}/reportes/${clienteId}/executive-pdf/file?path=${encodeURIComponent(path)}`, {
+  const fileResponse = await fetch(buildApiUrl(`/reportes/${clienteId}/executive-pdf/file?path=${encodeURIComponent(path)}`), {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -119,7 +118,7 @@ export async function downloadExecutivePdfByPath(
   if (!token) {
     throw new Error("Missing JWT token in session");
   }
-  const fileResponse = await fetch(`${API_BASE}/reportes/${clienteId}/executive-pdf/file?path=${encodeURIComponent(path)}`, {
+  const fileResponse = await fetch(buildApiUrl(`/reportes/${clienteId}/executive-pdf/file?path=${encodeURIComponent(path)}`), {
     headers: {
       Authorization: `Bearer ${token}`,
     },

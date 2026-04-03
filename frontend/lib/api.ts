@@ -1,6 +1,5 @@
 import type { ApiEnvelope, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse } from "./contracts";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import { buildApiUrl, getApiBase } from "./api-base";
 
 export class TokenExpiredError extends Error {
   constructor(message: string = "JWT token expired or invalid") {
@@ -35,12 +34,12 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
+    res = await fetch(buildApiUrl(path), {
       ...init,
       headers,
     });
   } catch {
-    throw new Error("No se pudo conectar con el backend.");
+    throw new Error(`No se pudo conectar con el backend (${getApiBase()}).`);
   }
 
   if (res.status === 401) {

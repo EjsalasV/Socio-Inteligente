@@ -12,10 +12,9 @@ import {
 } from "../../../lib/api/clientes";
 import { getPerfil } from "../../../lib/api/perfil";
 import { getExecutiveMemo } from "../../../lib/api/reportes";
+import { buildApiUrl } from "../../../lib/api-base";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 function readString(value: unknown, fallback = ""): string {
   return typeof value === "string" && value.trim() ? value : fallback;
@@ -190,7 +189,7 @@ export default function ClientMemoryPage() {
                         title="Abrir o descargar documento"
                         onClick={() =>
                           window.open(
-                            `${API_BASE}/clientes/${clienteId}/documentos/file?name=${encodeURIComponent(doc.name)}`,
+                            buildApiUrl(`/clientes/${clienteId}/documentos/file?name=${encodeURIComponent(doc.name)}`),
                             "_blank",
                           )
                         }

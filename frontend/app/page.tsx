@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { getClientes } from "../lib/api/clientes";
+import { buildApiUrl, getApiBase } from "../lib/api-base";
 
 type LoginApiData = {
   access_token?: string;
@@ -17,8 +18,6 @@ type LoginApiResponse = {
   detail?: string;
   message?: string;
 };
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 function extractErrorMessage(payload: unknown, fallback: string): string {
   if (!payload || typeof payload !== "object") return fallback;
@@ -55,7 +54,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const res = await fetch(buildApiUrl("/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: username.trim(), password }),
@@ -88,7 +87,7 @@ export default function LoginPage() {
         router.push("/clientes");
       }
     } catch {
-      setError("No se pudo conectar con el backend de autenticacion.");
+      setError(`No se pudo conectar con el backend de autenticacion (${getApiBase()}).`);
     } finally {
       setIsLoading(false);
     }
