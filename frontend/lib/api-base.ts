@@ -9,12 +9,8 @@ export function getApiBase(): string {
   if (configured) {
     return stripTrailingSlash(configured);
   }
-
-  if (typeof window !== "undefined" && window.location?.origin) {
-    return stripTrailingSlash(window.location.origin);
-  }
-
-  return "http://localhost:8000";
+  // Default to Next.js same-origin proxy to avoid CORS dependency in browsers.
+  return "/api";
 }
 
 export function buildApiUrl(path: string): string {
