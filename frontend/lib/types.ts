@@ -415,6 +415,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reportes/{cliente_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Report Status */
+        get: operations["get_report_status_reportes__cliente_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/papeles-trabajo/{cliente_id}": {
         parameters: {
             query?: never;
@@ -630,6 +647,59 @@ export interface components {
             /** Sector */
             sector?: string | null;
         };
+        /** DashboardMaterialidadDetalle */
+        DashboardMaterialidadDetalle: {
+            /**
+             * Nia Base
+             * @default NIA 320
+             */
+            nia_base: string;
+            /**
+             * Base Usada
+             * @default
+             */
+            base_usada: string;
+            /**
+             * Base Valor
+             * @default 0
+             */
+            base_valor: number;
+            /**
+             * Porcentaje Aplicado
+             * @default 0
+             */
+            porcentaje_aplicado: number;
+            /**
+             * Porcentaje Rango Min
+             * @default 0
+             */
+            porcentaje_rango_min: number;
+            /**
+             * Porcentaje Rango Max
+             * @default 0
+             */
+            porcentaje_rango_max: number;
+            /**
+             * Criterio Seleccion Pct
+             * @default
+             */
+            criterio_seleccion_pct: string;
+            /**
+             * Origen Regla
+             * @default
+             */
+            origen_regla: string;
+            /**
+             * Minimum Threshold Aplicado
+             * @default 0
+             */
+            minimum_threshold_aplicado: number;
+            /**
+             * Minimum Threshold Origen
+             * @default
+             */
+            minimum_threshold_origen: string;
+        };
         /** DashboardResponse */
         DashboardResponse: {
             /** Cliente Id */
@@ -683,6 +753,23 @@ export interface components {
             workflow_phase: string;
             /** Workflow Gates */
             workflow_gates?: components["schemas"]["DashboardWorkflowGate"][];
+            /**
+             * Balance Status
+             * @default cuadrado
+             * @enum {string}
+             */
+            balance_status: "cuadrado" | "resultado_periodo" | "descuadrado";
+            /**
+             * Resultado Periodo
+             * @default 0
+             */
+            resultado_periodo: number;
+            /**
+             * Balance Delta
+             * @default 0
+             */
+            balance_delta: number;
+            materialidad_detalle?: components["schemas"]["DashboardMaterialidadDetalle"];
         };
         /** DashboardWorkflowGate */
         DashboardWorkflowGate: {
@@ -1535,7 +1622,9 @@ export interface operations {
     };
     get_executive_pdf_reportes__cliente_id__executive_pdf_get: {
         parameters: {
-            query?: never;
+            query?: {
+                mode?: string;
+            };
             header?: never;
             path: {
                 cliente_id: string;
@@ -1660,6 +1749,37 @@ export interface operations {
         };
     };
     get_report_history_reportes__cliente_id__historial_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_status_reportes__cliente_id__status_get: {
         parameters: {
             query?: never;
             header?: never;
