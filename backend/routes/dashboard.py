@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.auth import authorize_cliente_access, get_current_user
 from backend.schemas import (
@@ -103,141 +103,163 @@ def _extract_tb_stage(tb: object) -> str:
 @router.get("/{cliente_id}", response_model=DashboardResponse)
 def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)) -> DashboardResponse:
     authorize_cliente_access(cliente_id, user)
-
-    from analysis.lector_tb import leer_tb, obtener_resumen_tb
-    from analysis.ranking_areas import calcular_ranking_areas
-    from domain.services.leer_perfil import leer_perfil
-    from domain.services.materialidad_service import calcular_materialidad
-    from backend.routes.workpapers import _generate_tasks, _merge_saved_tasks, _quality_gates
-
+    stage = "init"
     try:
-        perfil = leer_perfil(cliente_id) or {}
-    except Exception:
-        perfil = {}
-    try:
-        resumen_tb = obtener_resumen_tb(cliente_id) or {}
-    except Exception:
-        resumen_tb = {}
-    try:
-        tb = leer_tb(cliente_id)
-    except Exception:
-        tb = None
-    try:
-        ranking = calcular_ranking_areas(cliente_id)
-    except Exception:
-        ranking = None
-    try:
-        materialidad = calcular_materialidad(cliente_id) or {}
-    except Exception:
-        materialidad = {}
+        stage = "imports"
+        from analysis.lector_tb import leer_tb, obtener_resumen_tb
+        from analysis.ranking_areas import calcular_ranking_areas
+        from backend.routes.workpapers import _generate_tasks, _merge_saved_tasks, _quality_gates
+        from domain.services.leer_perfil import leer_perfil
+        from domain.services.materialidad_service import calcular_materialidad
 
-    cliente_info = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
-    encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
+        stage = "load.perfil"
+        try:
+            perfil = leer_perfil(cliente_id) or {}
+        except Exception:
+            perfil = {}
+        stage = "load.resumen_tb"
+        try:
+            resumen_tb = obtener_resumen_tb(cliente_id) or {}
+        except Exception:
+            resumen_tb = {}
+        stage = "load.tb"
+        try:
+            tb = leer_tb(cliente_id)
+        except Exception:
+            tb = None
+        stage = "load.ranking"
+        try:
+            ranking = calcular_ranking_areas(cliente_id)
+        except Exception:
+            ranking = None
+        stage = "load.materialidad"
+        try:
+            materialidad = calcular_materialidad(cliente_id) or {}
+        except Exception:
+            materialidad = {}
 
-    balance = BalanceKPIs(
-        activo=abs(_to_float(resumen_tb.get("ACTIVO", 0))),
-        pasivo=abs(_to_float(resumen_tb.get("PASIVO", 0))),
-        patrimonio=abs(_to_float(resumen_tb.get("PATRIMONIO", 0))),
-        ingresos=abs(_to_float(resumen_tb.get("INGRESOS", 0))),
-        gastos=abs(_to_float(resumen_tb.get("GASTOS", 0))),
-    )
+        stage = "build.balance"
+        cliente_info = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
+        encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
 
-    top_areas: list[AreaRiesgo] = []
-    areas_completas = 0
-    areas_en_proceso = 0
-    areas_no_iniciadas = 0
+        balance = BalanceKPIs(
+            activo=abs(_to_float(resumen_tb.get("ACTIVO", 0))),
+            pasivo=abs(_to_float(resumen_tb.get("PASIVO", 0))),
+            patrimonio=abs(_to_float(resumen_tb.get("PATRIMONIO", 0))),
+            ingresos=abs(_to_float(resumen_tb.get("INGRESOS", 0))),
+            gastos=abs(_to_float(resumen_tb.get("GASTOS", 0))),
+        )
 
-    if ranking is not None and not ranking.empty:
-        if "con_saldo" in ranking.columns:
-            try:
-                saldo_series = ranking["saldo_total"].astype(float) if "saldo_total" in ranking.columns else 0.0
-                ranking_visible = ranking[(ranking["con_saldo"] == True) | (saldo_series > 0.0)]  # noqa: E712
-            except Exception:
-                ranking_visible = ranking
-        else:
-            ranking_visible = ranking
-        if ranking_visible.empty:
-            ranking_visible = ranking.iloc[0:0]
+        stage = "build.areas"
+        top_areas: list[AreaRiesgo] = []
+        areas_completas = 0
+        areas_en_proceso = 0
+        areas_no_iniciadas = 0
 
-        for _, row in ranking_visible.iterrows():
-            prioridad = _to_str(row.get("prioridad", "baja"), "baja").lower()
-            if prioridad == "baja":
-                areas_completas += 1
-            elif prioridad == "media":
-                areas_en_proceso += 1
+        if ranking is not None and not ranking.empty:
+            if "con_saldo" in ranking.columns:
+                try:
+                    saldo_series = ranking["saldo_total"].astype(float) if "saldo_total" in ranking.columns else 0.0
+                    ranking_visible = ranking[(ranking["con_saldo"] == True) | (saldo_series > 0.0)]  # noqa: E712
+                except Exception:
+                    ranking_visible = ranking
             else:
-                areas_no_iniciadas += 1
+                ranking_visible = ranking
+            if ranking_visible.empty:
+                ranking_visible = ranking.iloc[0:0]
 
-        for _, row in ranking_visible.head(8).iterrows():
-            top_areas.append(
-                AreaRiesgo(
-                    codigo=_to_str(row.get("area", "")),
-                    nombre=_to_str(row.get("nombre", "")),
-                    score_riesgo=_to_float(row.get("score_riesgo", 0.0)),
-                    prioridad=_to_str(row.get("prioridad", "baja"), "baja"),
-                    saldo_total=_to_float(row.get("saldo_total", 0.0)),
-                    con_saldo=bool(row.get("con_saldo", False)),
+            for _, row in ranking_visible.iterrows():
+                prioridad = _to_str(row.get("prioridad", "baja"), "baja").lower()
+                if prioridad == "baja":
+                    areas_completas += 1
+                elif prioridad == "media":
+                    areas_en_proceso += 1
+                else:
+                    areas_no_iniciadas += 1
+
+            for _, row in ranking_visible.head(8).iterrows():
+                top_areas.append(
+                    AreaRiesgo(
+                        codigo=_to_str(row.get("area", "")),
+                        nombre=_to_str(row.get("nombre", "")),
+                        score_riesgo=_to_float(row.get("score_riesgo", 0.0)),
+                        prioridad=_to_str(row.get("prioridad", "baja"), "baja"),
+                        saldo_total=_to_float(row.get("saldo_total", 0.0)),
+                        con_saldo=bool(row.get("con_saldo", False)),
+                    )
                 )
-            )
 
-    total_areas = areas_completas + areas_en_proceso + areas_no_iniciadas
-    pct_completado = int(round((areas_completas / total_areas) * 100, 0)) if total_areas > 0 else 0
-    fase_actual = _to_str(encargo.get("fase_actual", ""), "")
-    workflow_phase = _normalize_workflow_phase(fase_actual)
-    pct_from_fase = _progreso_from_fase(fase_actual)
-    if pct_from_fase is not None:
-        pct_completado = pct_from_fase
+        stage = "build.progress"
+        total_areas = areas_completas + areas_en_proceso + areas_no_iniciadas
+        pct_completado = int(round((areas_completas / total_areas) * 100, 0)) if total_areas > 0 else 0
+        fase_actual = _to_str(encargo.get("fase_actual", ""), "")
+        workflow_phase = _normalize_workflow_phase(fase_actual)
+        pct_from_fase = _progreso_from_fase(fase_actual)
+        if pct_from_fase is not None:
+            pct_completado = pct_from_fase
 
-    workflow_gates: list[DashboardWorkflowGate] = []
-    try:
-        generated = _generate_tasks(cliente_id)
-        merged = _merge_saved_tasks(cliente_id, generated)
-        gates, _coverage = _quality_gates(cliente_id, merged)
-        workflow_gates = [
-            DashboardWorkflowGate(code=g.code, title=g.title, status=g.status, detail=g.detail)
-            for g in gates
-        ]
-    except Exception:
-        workflow_gates = []
+        stage = "build.gates"
+        workflow_gates: list[DashboardWorkflowGate] = []
+        try:
+            generated = _generate_tasks(cliente_id)
+            merged = _merge_saved_tasks(cliente_id, generated)
+            gates, _coverage = _quality_gates(cliente_id, merged)
+            workflow_gates = [
+                DashboardWorkflowGate(code=g.code, title=g.title, status=g.status, detail=g.detail)
+                for g in gates
+            ]
+        except Exception:
+            workflow_gates = []
 
-    mp_perfil, me_perfil, trivial_perfil = _materialidad_from_perfil(perfil)
-    mp_calc = _to_float(materialidad.get("materialidad_sugerida", 0.0))
-    me_calc = _to_float(materialidad.get("materialidad_desempeno", 0.0))
-    trivial_calc = _to_float(materialidad.get("error_trivial", 0.0))
+        stage = "build.materialidad"
+        mp_perfil, me_perfil, trivial_perfil = _materialidad_from_perfil(perfil)
+        mp_calc = _to_float(materialidad.get("materialidad_sugerida", 0.0))
+        me_calc = _to_float(materialidad.get("materialidad_desempeno", 0.0))
+        trivial_calc = _to_float(materialidad.get("error_trivial", 0.0))
 
-    mp = mp_perfil if mp_perfil > 0 else mp_calc
-    me = me_perfil if me_perfil > 0 else me_calc
-    trivial = trivial_perfil if trivial_perfil > 0 else trivial_calc
-    materialidad_origen = "perfil" if mp_perfil > 0 else ("motor" if mp_calc > 0 else "sin_definir")
+        mp = mp_perfil if mp_perfil > 0 else mp_calc
+        me = me_perfil if me_perfil > 0 else me_calc
+        trivial = trivial_perfil if trivial_perfil > 0 else trivial_calc
+        materialidad_origen = "perfil" if mp_perfil > 0 else ("motor" if mp_calc > 0 else "sin_definir")
 
-    industria = perfil.get("industria_inteligente", {}) if isinstance(perfil.get("industria_inteligente"), dict) else {}
-    sector = _to_str(cliente_info.get("sector", ""))
-    if not sector:
-        sector = _to_str(industria.get("sector_base", ""))
+        stage = "build.payload"
+        industria = perfil.get("industria_inteligente", {}) if isinstance(perfil.get("industria_inteligente"), dict) else {}
+        sector = _to_str(cliente_info.get("sector", ""))
+        if not sector:
+            sector = _to_str(industria.get("sector_base", ""))
 
-    payload = DashboardResponse(
-        cliente_id=cliente_id,
-        nombre_cliente=_to_str(cliente_info.get("nombre_legal", cliente_id), cliente_id),
-        periodo=_to_str(encargo.get("anio_activo", "")),
-        sector=sector,
-        riesgo_global=_extract_riesgo_global_nivel(perfil),
-        balance=balance,
-        progreso=ProgresoEncargo(
-            pct_completado=pct_completado,
-            areas_completas=areas_completas,
-            areas_en_proceso=areas_en_proceso,
-            areas_no_iniciadas=areas_no_iniciadas,
-            total_areas=total_areas,
-        ),
-        top_areas=top_areas,
-        materialidad_global=mp,
-        materialidad_ejecucion=me,
-        umbral_trivial=trivial,
-        materialidad_origen=materialidad_origen,
-        tb_stage=_extract_tb_stage(tb),
-        fase_actual=fase_actual,
-        workflow_phase=workflow_phase,
-        workflow_gates=workflow_gates,
-    )
+        payload = DashboardResponse(
+            cliente_id=cliente_id,
+            nombre_cliente=_to_str(cliente_info.get("nombre_legal", cliente_id), cliente_id),
+            periodo=_to_str(encargo.get("anio_activo", "")),
+            sector=sector,
+            riesgo_global=_extract_riesgo_global_nivel(perfil),
+            balance=balance,
+            progreso=ProgresoEncargo(
+                pct_completado=pct_completado,
+                areas_completas=areas_completas,
+                areas_en_proceso=areas_en_proceso,
+                areas_no_iniciadas=areas_no_iniciadas,
+                total_areas=total_areas,
+            ),
+            top_areas=top_areas,
+            materialidad_global=mp,
+            materialidad_ejecucion=me,
+            umbral_trivial=trivial,
+            materialidad_origen=materialidad_origen,
+            tb_stage=_extract_tb_stage(tb),
+            fase_actual=fase_actual,
+            workflow_phase=workflow_phase,
+            workflow_gates=workflow_gates,
+        )
 
-    return payload
+        return payload
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "message": "Error interno en dashboard.",
+                "stage": stage,
+                "error": str(exc),
+            },
+        ) from exc
