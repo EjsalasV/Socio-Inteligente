@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from fastapi import APIRouter, Depends
 
 from backend.auth import authorize_cliente_access, get_current_user
@@ -17,7 +19,10 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 def _to_float(value: object, default: float = 0.0) -> float:
     try:
-        return float(value)
+        v = float(value)
+        if math.isnan(v) or math.isinf(v):
+            return default
+        return v
     except Exception:
         return default
 
@@ -77,6 +82,24 @@ def _normalize_tb_stage(raw: object) -> str:
     return "sin_saldos"
 
 
+def _extract_riesgo_global_nivel(perfil: dict) -> str:
+    raw = perfil.get("riesgo_global")
+    if isinstance(raw, dict):
+        return _to_str(raw.get("nivel", "MEDIO"), "MEDIO")
+    if isinstance(raw, str):
+        return _to_str(raw, "MEDIO")
+    return "MEDIO"
+
+
+def _extract_tb_stage(tb: object) -> str:
+    try:
+        if tb is not None and not tb.empty and "tb_stage" in tb.columns:
+            return _normalize_tb_stage(tb["tb_stage"].iloc[0])
+    except Exception:
+        pass
+    return "sin_saldos"
+
+
 @router.get("/{cliente_id}", response_model=DashboardResponse)
 def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)) -> DashboardResponse:
     authorize_cliente_access(cliente_id, user)
@@ -87,11 +110,26 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
     from domain.services.materialidad_service import calcular_materialidad
     from backend.routes.workpapers import _generate_tasks, _merge_saved_tasks, _quality_gates
 
-    perfil = leer_perfil(cliente_id) or {}
-    resumen_tb = obtener_resumen_tb(cliente_id) or {}
-    tb = leer_tb(cliente_id)
-    ranking = calcular_ranking_areas(cliente_id)
-    materialidad = calcular_materialidad(cliente_id) or {}
+    try:
+        perfil = leer_perfil(cliente_id) or {}
+    except Exception:
+        perfil = {}
+    try:
+        resumen_tb = obtener_resumen_tb(cliente_id) or {}
+    except Exception:
+        resumen_tb = {}
+    try:
+        tb = leer_tb(cliente_id)
+    except Exception:
+        tb = None
+    try:
+        ranking = calcular_ranking_areas(cliente_id)
+    except Exception:
+        ranking = None
+    try:
+        materialidad = calcular_materialidad(cliente_id) or {}
+    except Exception:
+        materialidad = {}
 
     cliente_info = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
     encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
@@ -111,8 +149,11 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
 
     if ranking is not None and not ranking.empty:
         if "con_saldo" in ranking.columns:
-            saldo_series = ranking["saldo_total"].astype(float) if "saldo_total" in ranking.columns else 0.0
-            ranking_visible = ranking[(ranking["con_saldo"] == True) | (saldo_series > 0.0)]  # noqa: E712
+            try:
+                saldo_series = ranking["saldo_total"].astype(float) if "saldo_total" in ranking.columns else 0.0
+                ranking_visible = ranking[(ranking["con_saldo"] == True) | (saldo_series > 0.0)]  # noqa: E712
+            except Exception:
+                ranking_visible = ranking
         else:
             ranking_visible = ranking
         if ranking_visible.empty:
@@ -179,7 +220,7 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
         nombre_cliente=_to_str(cliente_info.get("nombre_legal", cliente_id), cliente_id),
         periodo=_to_str(encargo.get("anio_activo", "")),
         sector=sector,
-        riesgo_global=_to_str((perfil.get("riesgo_global", {}) or {}).get("nivel", "MEDIO"), "MEDIO"),
+        riesgo_global=_extract_riesgo_global_nivel(perfil),
         balance=balance,
         progreso=ProgresoEncargo(
             pct_completado=pct_completado,
@@ -193,7 +234,7 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
         materialidad_ejecucion=me,
         umbral_trivial=trivial,
         materialidad_origen=materialidad_origen,
-        tb_stage=_normalize_tb_stage(tb["tb_stage"].iloc[0] if tb is not None and not tb.empty and "tb_stage" in tb.columns else ""),
+        tb_stage=_extract_tb_stage(tb),
         fase_actual=fase_actual,
         workflow_phase=workflow_phase,
         workflow_gates=workflow_gates,
