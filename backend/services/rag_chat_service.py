@@ -634,12 +634,13 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
         )
     if mode == "chat":
         if _is_greeting(query):
+            snapshot = _client_snapshot(cliente_id)
             answer = (
-                f"Hola. Tengo activo el contexto del cliente `{cliente_id}`.\n\n"
-                "Podemos revisar riesgo, procedimientos o hallazgos. "
-                "Si quieres, empezamos por la pregunta mas importante de hoy."
+                f"Hola. Estoy contigo en el cliente `{cliente_id}`.\n\n"
+                f"Contexto rapido:\n{snapshot}\n\n"
+                "Dime que quieres resolver primero y lo trabajamos en modo auditor."
             )
-            confidence = 0.65
+            confidence = 0.72
         elif _is_provider_question(query):
             provider_label = _current_provider_label()
             answer = (
@@ -655,12 +656,15 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
         elif _is_next_steps_question(query):
             return _next_steps_answer(cliente_id)
         else:
+            snapshot = _client_snapshot(cliente_id)
+            risk_snapshot = _risk_snapshot(cliente_id)
             answer = (
                 f"Entiendo tu consulta sobre `{query}` para `{cliente_id}`.\n\n"
-                "Te puedo responder con criterio auditor general, pero para precision de cliente "
-                "necesito mas contexto documental (actas, contratos, politicas, anexos) en Client Memory."
+                f"Estado actual que tengo:\n{snapshot}\n\n"
+                f"{risk_snapshot if risk_snapshot else 'Aun no tengo ranking con saldo para priorizar areas.'}\n\n"
+                "Con esto te doy criterio inicial ya mismo, y luego lo afinamos con evidencia adicional si hace falta."
             )
-            confidence = 0.35 if chunks else 0.18
+            confidence = 0.68 if chunks else 0.55
     else:
         answer = (
             f"No se pudo completar la recuperacion normativa para `{query}` en modo `{mode}`. "
@@ -676,6 +680,13 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
         "confidence": confidence,
         "prompt_meta": {"prompt_id": "fallback", "prompt_version": "v1"},
     }
+
+
+def _has_llm_credentials() -> bool:
+    provider = (os.getenv("AI_PROVIDER") or "openai").strip().lower()
+    if provider == "deepseek":
+        return bool((os.getenv("DEEPSEEK_API_KEY") or "").strip())
+    return bool((os.getenv("OPENAI_API_KEY") or "").strip())
 
 
 def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat", cliente_id: str = "") -> dict[str, Any]:
@@ -781,21 +792,23 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat",
 
 
 def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
+    # Respuestas de alto valor y baja latencia, siempre contextuales.
     if _is_data_inventory_question(query):
         return _inventory_answer(cliente_id)
+    if _is_risk_question(query):
+        return _risk_answer(cliente_id, query)
+    if _is_next_steps_question(query):
+        return _next_steps_answer(cliente_id)
+
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
+    if not _has_llm_credentials():
+        return _fallback_answer(query, cliente_id, chunks, mode="chat")
+
     try:
-        # En chat general intentamos LLM aun sin chunks para no degradar preguntas conversacionales.
+        # En chat general intentamos LLM aun sin chunks para mantener experiencia conversacional.
         return _llm_answer(query, chunks, mode="chat", cliente_id=cliente_id)
     except Exception:
-        # Fallback contextual: si el proveedor AI falla, mantenemos respuestas utiles por dominio.
-        if _is_risk_question(query):
-            return _risk_answer(cliente_id, query)
-        if _is_next_steps_question(query):
-            return _next_steps_answer(cliente_id)
-        if _is_greeting(query):
-            return _fallback_answer(query, cliente_id, [], mode="chat")
-    return _fallback_answer(query, cliente_id, chunks, mode="chat")
+        return _fallback_answer(query, cliente_id, chunks, mode="chat")
 
 
 def generate_metodologia_response(cliente_id: str, area: str) -> dict[str, Any]:
