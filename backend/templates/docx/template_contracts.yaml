@@ -1,5 +1,5 @@
 carta_control_interno:
-  template_version: "v1"
+  template_version: "v2-inverdama-2025"
   document_type: "carta_control_interno"
   placeholders_supported:
     - "{{firm_logo}}"
@@ -11,12 +11,14 @@ carta_control_interno:
     - "{{borrador_badge}}"
     - "{{signature_partner}}"
   required_sections:
-    - "intro"
-    - "responsibility"
-    - "limitations"
-    - "findings"
+    - "cover"
+    - "contenido"
+    - "letter_intro"
+    - "major_interest_findings"
+    - "internal_control_findings"
     - "closing"
   optional_sections:
+    - "findings"
     - "management_response"
     - "signature_block"
 

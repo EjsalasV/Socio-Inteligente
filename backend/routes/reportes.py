@@ -195,7 +195,14 @@ def _section_matches_critical(section_id: str, critical_section: str) -> bool:
     crit = _safe_text(critical_section)
     if not sid or not crit:
         return False
-    return sid == crit or sid.startswith(f"{crit}:")
+    if sid == crit or sid.startswith(f"{crit}:"):
+        return True
+    # Compatibilidad entre IDs legacy y nuevos.
+    if crit == "findings" and (sid.startswith("hallazgo:") or sid.startswith("finding:")):
+        return True
+    if crit == "hallazgo" and (sid.startswith("hallazgo:") or sid.startswith("finding:")):
+        return True
+    return False
 
 
 def _section_hashes(document: dict[str, Any]) -> dict[str, str]:
@@ -212,7 +219,17 @@ def _section_hashes(document: dict[str, Any]) -> dict[str, str]:
             raw = json.dumps(section, ensure_ascii=False, sort_keys=True)
             hashes[sid] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
     else:
-        for key in ["intro", "responsibility", "limitations", "closing"]:
+        for key in [
+            "cover",
+            "contenido",
+            "letter_intro",
+            "intro",
+            "responsibility",
+            "limitations",
+            "closing",
+            "major_interest_findings",
+            "internal_control_findings",
+        ]:
             value = document.get(key)
             if value is None:
                 continue
@@ -225,7 +242,7 @@ def _section_hashes(document: dict[str, Any]) -> dict[str, str]:
                     continue
                 fid = _safe_text(finding.get("id")) or str(idx)
                 raw = json.dumps(finding, ensure_ascii=False, sort_keys=True)
-                hashes[f"finding:{fid}"] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+                hashes[f"hallazgo:{fid}"] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
     return hashes
 
 
@@ -513,7 +530,18 @@ def _extract_section_ids(document_snapshot: dict[str, Any]) -> set[str]:
             if sid:
                 ids.add(sid)
     else:
-        for sid in ["intro", "responsibility", "limitations", "findings", "closing"]:
+        for sid in [
+            "cover",
+            "contenido",
+            "letter_intro",
+            "intro",
+            "responsibility",
+            "limitations",
+            "major_interest_findings",
+            "internal_control_findings",
+            "findings",
+            "closing",
+        ]:
             if sid in document_snapshot:
                 ids.add(sid)
     return ids
@@ -543,10 +571,14 @@ def _extract_sections(document_snapshot: dict[str, Any], required_sections: list
             )
     else:
         fallback_sections = [
+            ("cover", "Portada"),
+            ("contenido", "Contenido"),
+            ("letter_intro", "Bloque de carta"),
             ("intro", "Introducción"),
             ("responsibility", "Responsabilidad de la administración"),
             ("limitations", "Limitaciones"),
-            ("findings", "Hallazgos"),
+            ("major_interest_findings", "Aspectos de mayor interés"),
+            ("internal_control_findings", "Aspectos de control interno"),
             ("closing", "Cierre"),
         ]
         for sid, title in fallback_sections:
@@ -561,6 +593,18 @@ def _extract_sections(document_snapshot: dict[str, Any], required_sections: list
                     }
                 )
         findings = document_snapshot.get("findings")
+        if not isinstance(findings, list):
+            major = (
+                document_snapshot.get("major_interest_findings")
+                if isinstance(document_snapshot.get("major_interest_findings"), list)
+                else []
+            )
+            control = (
+                document_snapshot.get("internal_control_findings")
+                if isinstance(document_snapshot.get("internal_control_findings"), list)
+                else []
+            )
+            findings = [*major, *control]
         if isinstance(findings, list):
             for idx, finding in enumerate(findings, start=1):
                 if not isinstance(finding, dict):
@@ -568,7 +612,7 @@ def _extract_sections(document_snapshot: dict[str, Any], required_sections: list
                 fid = _safe_text(finding.get("id")) or f"finding_{idx}"
                 out.append(
                     {
-                        "section_id": f"finding:{fid}",
+                        "section_id": f"hallazgo:{fid}",
                         "section_title": _safe_text(finding.get("titulo")) or f"Hallazgo {idx}",
                         "is_required": True,
                         "status": "pending",
@@ -1258,9 +1302,17 @@ def _get_section_links_for_current(cliente_id: str, document_type: str, current_
 def _section_content_from_snapshot(snapshot: dict[str, Any], section_id: str) -> Any:
     if not isinstance(snapshot, dict):
         return ""
-    if section_id.startswith("finding:"):
+    if section_id.startswith("hallazgo:") or section_id.startswith("finding:"):
         target = section_id.split(":", 1)[1]
         findings = snapshot.get("findings")
+        if not isinstance(findings, list):
+            major = snapshot.get("major_interest_findings") if isinstance(snapshot.get("major_interest_findings"), list) else []
+            control = (
+                snapshot.get("internal_control_findings")
+                if isinstance(snapshot.get("internal_control_findings"), list)
+                else []
+            )
+            findings = [*major, *control]
         if isinstance(findings, list):
             for f in findings:
                 if not isinstance(f, dict):

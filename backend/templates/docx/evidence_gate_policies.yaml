@@ -3,7 +3,7 @@ carta_control_interno:
   enforce_evidence_gate_on_issued: true
   minimum_coverage_percent: 100
   critical_sections:
-    - "findings"
+    - "hallazgo"
 
 niif_pymes_borrador:
   enforce_evidence_gate_on_approved: true

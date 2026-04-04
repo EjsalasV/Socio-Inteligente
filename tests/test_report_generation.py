@@ -60,7 +60,70 @@ def test_build_and_render_internal_control_letter_structure() -> None:
     md = rgs.render_internal_control_letter_markdown(doc)
     assert "BORRADOR" in md
     assert "Segregacion de funciones" in md
-    assert "Respuesta de gerencia" in md
+    assert "Comentarios de la Administración" in md
+    assert "ASPECTOS DE MAYOR INTERÉS" in md
+
+
+def test_internal_control_finding_classification_and_pending_comment() -> None:
+    doc = rgs.build_internal_control_letter(
+        company_name="ACME S.A.",
+        period_end="2025-12-31",
+        recipient="Gerencia General",
+        findings=[
+            {
+                "id": "OBS-01",
+                "titulo": "Riesgo alto",
+                "prioridad": "alta",
+                "observacion": "obs alta",
+                "recomendacion": "rec alta",
+                "comentarios_administracion": "",
+            },
+            {
+                "id": "OBS-02",
+                "titulo": "Riesgo medio",
+                "prioridad": "media",
+                "observacion": "obs media",
+                "recomendacion": "rec media",
+                "comentarios_administracion": "ok",
+            },
+        ],
+        include_management_response=True,
+    )
+    major = doc.get("major_interest_findings") or []
+    control = doc.get("internal_control_findings") or []
+    assert len(major) == 1
+    assert len(control) == 1
+    assert (major[0].get("comentarios_administracion") or "") == "[[PENDIENTE]]"
+
+
+def test_internal_control_letter_with_zero_findings_keeps_structure() -> None:
+    doc = rgs.build_internal_control_letter(
+        company_name="ACME S.A.",
+        period_end="2025-12-31",
+        recipient="Gerencia General",
+        findings=[],
+        include_management_response=True,
+    )
+    assert "cover" in doc
+    assert "contenido" in doc
+    assert "letter_intro" in doc
+    assert isinstance(doc.get("major_interest_findings"), list)
+    assert isinstance(doc.get("internal_control_findings"), list)
+    md = rgs.render_internal_control_letter_markdown(doc)
+    assert "ASPECTOS DE MAYOR INTERÉS" in md
+    assert "ASPECTOS DE CONTROL INTERNO" in md
+
+
+def test_internal_control_letter_uses_recipient_in_locked_template() -> None:
+    doc = rgs.build_internal_control_letter(
+        company_name="ACME S.A.",
+        period_end="2025-12-31",
+        recipient="Gerencia Financiera",
+        findings=[],
+        include_management_response=True,
+    )
+    recipient_block = ((doc.get("letter_intro") or {}) if isinstance(doc.get("letter_intro"), dict) else {}).get("recipient_block")
+    assert "Gerencia Financiera" in str(recipient_block or "")
 
 
 def test_generate_niif_draft_fallback_metadata() -> None:
@@ -200,13 +263,15 @@ def test_transition_gerente_can_approve_from_reviewed() -> None:
                             "document_type": "carta_control_interno",
                             "requested_by": "u_senior",
                             "generated_at": datetime.now(timezone.utc).isoformat(),
-                            "required_sections": ["intro", "responsibility", "limitations", "findings", "closing"],
+                            "required_sections": ["cover", "contenido", "letter_intro", "major_interest_findings", "internal_control_findings", "closing"],
                         },
                         "document_snapshot": {
-                            "intro": "ok",
-                            "responsibility": "ok",
-                            "limitations": "ok",
-                            "findings": [],
+                            "cover": "ok",
+                            "contenido": "ok",
+                            "letter_intro": "ok",
+                            "major_interest_findings": [],
+                            "internal_control_findings": [],
+                            "findings": [{"id": "OBS-01", "titulo": "Hallazgo demo"}],
                             "closing": "ok",
                         },
                     }
@@ -220,13 +285,13 @@ def test_transition_gerente_can_approve_from_reviewed() -> None:
         document_type="carta_control_interno",
         document_version=2,
         sections=[
-            {"section_id": "findings", "section_title": "Hallazgos", "is_required": True, "status": "pending", "sources": []},
+            {"section_id": "hallazgo:OBS-01", "section_title": "Hallazgo demo", "is_required": True, "status": "pending", "sources": []},
         ],
     )
     reportes.post_document_section_evidence(
         cliente_id,
         "carta_control_interno",
-        "findings",
+        "hallazgo:OBS-01",
         payload={"source_type": "workpaper", "source_id": "wp_01", "reference": "WP-01", "label": "Cedula hallazgos"},
         user=_user(role="senior"),
     )
@@ -263,13 +328,15 @@ def test_transition_only_socio_can_issue() -> None:
                             "document_type": "carta_control_interno",
                             "requested_by": "u_senior",
                             "generated_at": datetime.now(timezone.utc).isoformat(),
-                            "required_sections": ["intro", "responsibility", "limitations", "findings", "closing"],
+                            "required_sections": ["cover", "contenido", "letter_intro", "major_interest_findings", "internal_control_findings", "closing"],
                         },
                         "document_snapshot": {
-                            "intro": "ok",
-                            "responsibility": "ok",
-                            "limitations": "ok",
-                            "findings": [],
+                            "cover": "ok",
+                            "contenido": "ok",
+                            "letter_intro": "ok",
+                            "major_interest_findings": [],
+                            "internal_control_findings": [],
+                            "findings": [{"id": "OBS-02", "titulo": "Hallazgo demo emision"}],
                             "closing": "ok",
                         },
                     }
@@ -283,13 +350,13 @@ def test_transition_only_socio_can_issue() -> None:
         document_type="carta_control_interno",
         document_version=3,
         sections=[
-            {"section_id": "findings", "section_title": "Hallazgos", "is_required": True, "status": "pending", "sources": []},
+            {"section_id": "hallazgo:OBS-02", "section_title": "Hallazgo demo emision", "is_required": True, "status": "pending", "sources": []},
         ],
     )
     reportes.post_document_section_evidence(
         cliente_id,
         "carta_control_interno",
-        "findings",
+        "hallazgo:OBS-02",
         payload={"source_type": "workpaper", "source_id": "wp_issued", "reference": "WP-02", "label": "Soporte emisión"},
         user=_user(role="senior"),
     )
@@ -324,12 +391,14 @@ def test_quality_check_has_score_and_semaphore() -> None:
             "document_type": "carta_control_interno",
             "requested_by": "u1",
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "required_sections": ["intro", "responsibility", "limitations", "findings", "closing"],
+            "required_sections": ["cover", "contenido", "letter_intro", "major_interest_findings", "internal_control_findings", "closing"],
         },
         "document_snapshot": {
-            "intro": "ok",
-            "responsibility": "ok",
-            "limitations": "ok",
+            "cover": "ok",
+            "contenido": "ok",
+            "letter_intro": "ok",
+            "major_interest_findings": [],
+            "internal_control_findings": [],
             "findings": [],
             "closing": "ok",
         },
@@ -480,13 +549,15 @@ def test_transition_blocks_approve_without_critical_support() -> None:
                             "document_type": "carta_control_interno",
                             "requested_by": "u_senior",
                             "generated_at": datetime.now(timezone.utc).isoformat(),
-                            "required_sections": ["intro", "responsibility", "limitations", "findings", "closing"],
+                            "required_sections": ["cover", "contenido", "letter_intro", "major_interest_findings", "internal_control_findings", "closing"],
                         },
                         "document_snapshot": {
-                            "intro": "ok",
-                            "responsibility": "ok",
-                            "limitations": "ok",
-                            "findings": [],
+                            "cover": "ok",
+                            "contenido": "ok",
+                            "letter_intro": "ok",
+                            "major_interest_findings": [],
+                            "internal_control_findings": [],
+                            "findings": [{"id": "OBS-03", "titulo": "Hallazgo bloqueante"}],
                             "closing": "ok",
                         },
                     }
@@ -500,7 +571,7 @@ def test_transition_blocks_approve_without_critical_support() -> None:
         document_type="carta_control_interno",
         document_version=6,
         sections=[
-            {"section_id": "findings", "section_title": "Hallazgos", "is_required": True, "status": "pending", "sources": []},
+            {"section_id": "hallazgo:OBS-03", "section_title": "Hallazgo bloqueante", "is_required": True, "status": "pending", "sources": []},
         ],
     )
     with pytest.raises(HTTPException) as exc:

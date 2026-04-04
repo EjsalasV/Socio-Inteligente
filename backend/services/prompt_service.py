@@ -100,7 +100,7 @@ def validate_minimum_output(text: str, *, mode: str) -> tuple[bool, list[str]]:
         "metodologia": ["criterio", "accion", "evidencia"],
         "memo": ["riesgo", "materialidad", "recomend"],
         "hallazgo": ["condicion", "criterio", "causa", "efecto", "recomend"],
-        "carta_control_interno": ["introduccion", "responsabilidad", "hallazgo", "recomend"],
+        "carta_control_interno": ["aspectos de mayor interés", "aspectos de control interno", "observación", "recomendación"],
         "niif_notas": ["informacion general", "base de preparacion", "juicios", "notas"],
     }
     required = rules.get(mode, ["criterio", "accion", "evidencia"])
