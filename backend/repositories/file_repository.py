@@ -41,6 +41,55 @@ class FileRepository:
     def cliente_dir(self, cliente_id: str) -> Path:
         return self.data_clientes / cliente_id
 
+    def _resolve_cliente_dir(self, cliente_id: str, *, for_write: bool = False) -> Path:
+        cid = str(cliente_id or "").strip()
+        exact = self.cliente_dir(cid)
+        if exact.exists():
+            return exact
+
+        if not self.data_clientes.exists() or not cid:
+            return exact
+
+        year_pattern_exact = re.compile(rf"^{re.escape(cid)}_(20\d{{2}})$")
+        year_pattern_generic = re.compile(r"^(?P<base>.+)_(?P<year>20\d{2})$")
+        cid_norm = cid.lower()
+        best_dir: Path | None = None
+        best_year = -1
+        for item in self.data_clientes.iterdir():
+            if not item.is_dir():
+                continue
+            m = year_pattern_exact.match(item.name)
+            if not m:
+                mg = year_pattern_generic.match(item.name)
+                if not mg:
+                    continue
+                base = mg.group("base").lower()
+                if not (base in cid_norm or cid_norm in base):
+                    continue
+                year = int(mg.group("year"))
+            else:
+                year = int(m.group(1))
+            if year > best_year:
+                best_year = year
+                best_dir = item
+
+        if best_dir is not None:
+            return best_dir
+        return exact
+
+    @staticmethod
+    def _perfil_has_core_data(perfil: dict[str, Any]) -> bool:
+        if not isinstance(perfil, dict) or not perfil:
+            return False
+        cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
+        encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
+        return bool(
+            str(cliente.get("nombre_legal") or "").strip()
+            or str(cliente.get("nombre_corto") or "").strip()
+            or encargo.get("anio_activo")
+            or str(cliente.get("sector") or "").strip()
+        )
+
     def list_clientes(self) -> list[str]:
         if supabase_store.is_configured():
             remote = supabase_store.list_clientes()
@@ -59,6 +108,7 @@ class FileRepository:
         return {}
 
     def read_perfil(self, cliente_id: str) -> dict[str, Any]:
+        local = normalize_perfil_doc_v1(self.read_yaml(self._resolve_cliente_dir(cliente_id) / "perfil.yaml"))
         if supabase_store.is_configured():
             remote = supabase_store.fetch_single_json(
                 "cliente_perfiles",
@@ -66,12 +116,14 @@ class FileRepository:
                 "perfil_json",
             )
             if isinstance(remote, dict) and remote:
-                return normalize_perfil_doc_v1(remote)
-        return normalize_perfil_doc_v1(self.read_yaml(self.cliente_dir(cliente_id) / "perfil.yaml"))
+                remote_norm = normalize_perfil_doc_v1(remote)
+                if self._perfil_has_core_data(remote_norm):
+                    return remote_norm
+        return local
 
     def write_perfil(self, cliente_id: str, data: dict[str, Any]) -> None:
         normalized = normalize_perfil_doc_v1(data)
-        cdir = self.cliente_dir(cliente_id)
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
         cdir.mkdir(parents=True, exist_ok=True)
         p = cdir / "perfil.yaml"
         p.write_text(yaml.safe_dump(normalized, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -108,13 +160,13 @@ class FileRepository:
                 text = str(remote.get("markdown") or "").strip()
                 if text:
                     return text
-        p = self.cliente_dir(cliente_id) / "hallazgos.md"
+        p = self._resolve_cliente_dir(cliente_id) / "hallazgos.md"
         if not p.exists():
             return ""
         return p.read_text(encoding="utf-8")
 
     def append_hallazgo(self, cliente_id: str, content: str) -> None:
-        cdir = self.cliente_dir(cliente_id)
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
         cdir.mkdir(parents=True, exist_ok=True)
         p = cdir / "hallazgos.md"
         previous = p.read_text(encoding="utf-8") if p.exists() else ""
@@ -137,7 +189,7 @@ class FileRepository:
         return path.read_text(encoding="utf-8")
 
     def list_area_files(self, cliente_id: str) -> list[Path]:
-        areas_dir = self.cliente_dir(cliente_id) / "areas"
+        areas_dir = self._resolve_cliente_dir(cliente_id) / "areas"
         if not areas_dir.exists():
             return []
         return sorted(areas_dir.glob("*.yaml"))
@@ -168,12 +220,12 @@ class FileRepository:
             )
             if isinstance(remote, dict) and remote:
                 return normalize_area_doc_v1(remote, area_code=area_ls)
-        p = self.cliente_dir(cliente_id) / "areas" / f"{area_ls}.yaml"
+        p = self._resolve_cliente_dir(cliente_id) / "areas" / f"{area_ls}.yaml"
         return normalize_area_doc_v1(self.read_yaml(p), area_code=area_ls)
 
     def write_area_yaml(self, cliente_id: str, area_code: str, data: dict[str, Any]) -> None:
         normalized = normalize_area_doc_v1(data, area_code=area_code)
-        cdir = self.cliente_dir(cliente_id) / "areas"
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True) / "areas"
         cdir.mkdir(parents=True, exist_ok=True)
         p = cdir / f"{area_code}.yaml"
         p.write_text(yaml.safe_dump(normalized, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -201,7 +253,7 @@ class FileRepository:
                 tasks_remote = normalized_remote.get("tasks")
                 if isinstance(tasks_remote, list):
                     return [t for t in tasks_remote if isinstance(t, dict)]
-        p = self.cliente_dir(cliente_id) / "papeles_trabajo.yaml"
+        p = self._resolve_cliente_dir(cliente_id) / "papeles_trabajo.yaml"
         data = self.read_yaml(p)
         normalized = normalize_workpapers_doc_v1(data if isinstance(data, dict) else {}, cliente_id=cliente_id)
         tasks = normalized.get("tasks")
@@ -218,12 +270,12 @@ class FileRepository:
             )
             if isinstance(remote, dict):
                 return remote
-        p = self.cliente_dir(cliente_id) / "workflow.yaml"
+        p = self._resolve_cliente_dir(cliente_id) / "workflow.yaml"
         data = self.read_yaml(p)
         return data if isinstance(data, dict) else {}
 
     def write_workflow(self, cliente_id: str, state: dict[str, Any]) -> None:
-        cdir = self.cliente_dir(cliente_id)
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
         cdir.mkdir(parents=True, exist_ok=True)
         p = cdir / "workflow.yaml"
         p.write_text(yaml.safe_dump(state, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -245,7 +297,7 @@ class FileRepository:
             # Fallback defensivo: persistimos igualmente en disco con formato minimo normalizado.
             payload = normalize_workpapers_doc_v1({"tasks": tasks}, cliente_id=cliente_id)
 
-        cdir = self.cliente_dir(cliente_id)
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
         cdir.mkdir(parents=True, exist_ok=True)
         p = cdir / "papeles_trabajo.yaml"
         p.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -261,7 +313,7 @@ class FileRepository:
             )
 
     def memo_path(self, cliente_id: str) -> Path:
-        return self.cliente_dir(cliente_id) / "memo_ejecutivo.md"
+        return self._resolve_cliente_dir(cliente_id) / "memo_ejecutivo.md"
 
     def read_memo(self, cliente_id: str) -> str:
         if supabase_store.is_configured():
@@ -280,7 +332,7 @@ class FileRepository:
         return p.read_text(encoding="utf-8").strip()
 
     def write_memo(self, cliente_id: str, content: str) -> None:
-        cdir = self.cliente_dir(cliente_id)
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
         cdir.mkdir(parents=True, exist_ok=True)
         self.memo_path(cliente_id).write_text(content.strip() + "\n", encoding="utf-8")
         if supabase_store.is_configured():
@@ -303,7 +355,7 @@ class FileRepository:
             )
 
     def read_chat_history(self, cliente_id: str) -> list[dict[str, Any]]:
-        p = self.cliente_dir(cliente_id) / "chat_history.json"
+        p = self._resolve_cliente_dir(cliente_id) / "chat_history.json"
         if not p.exists():
             return []
         try:
@@ -319,7 +371,7 @@ class FileRepository:
         return out[-200:]
 
     def append_chat_message(self, cliente_id: str, message: dict[str, Any]) -> None:
-        cdir = self.cliente_dir(cliente_id)
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
         cdir.mkdir(parents=True, exist_ok=True)
         history = self.read_chat_history(cliente_id)
         row = dict(message)
@@ -330,7 +382,7 @@ class FileRepository:
         p.write_text(json.dumps(history[-200:], ensure_ascii=False, indent=2), encoding="utf-8")
 
     def list_documentos(self, cliente_id: str) -> list[dict[str, Any]]:
-        cdir = self.cliente_dir(cliente_id)
+        cdir = self._resolve_cliente_dir(cliente_id)
         docs_dir = cdir / "documentos"
         docs_dir.mkdir(parents=True, exist_ok=True)
 
@@ -449,7 +501,7 @@ class FileRepository:
         return True
 
     def _read_tb(self, cliente_id: str) -> list[dict[str, Any]]:
-        tb_path = self.cliente_dir(cliente_id) / "tb.xlsx"
+        tb_path = self._resolve_cliente_dir(cliente_id) / "tb.xlsx"
         if not tb_path.exists() or tb_path.stat().st_size == 0:
             return []
 

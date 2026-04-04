@@ -8,6 +8,7 @@ en la estructura: data/clientes/{cliente}/
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -18,12 +19,47 @@ DATA_ROOT = Path(__file__).parent.parent.parent / "data"
 CLIENTES_PATH = DATA_ROOT / "clientes"
 
 
+def _resolve_cliente_dir(cliente: str) -> Path:
+    cid = str(cliente or "").strip()
+    exact = CLIENTES_PATH / cid
+    if exact.exists():
+        return exact
+
+    if not CLIENTES_PATH.exists() or not cid:
+        return exact
+
+    year_pattern_exact = re.compile(rf"^{re.escape(cid)}_(20\d{{2}})$")
+    year_pattern_generic = re.compile(r"^(?P<base>.+)_(?P<year>20\d{2})$")
+    cid_norm = cid.lower()
+    best_dir: Path | None = None
+    best_year = -1
+    for item in CLIENTES_PATH.iterdir():
+        if not item.is_dir():
+            continue
+        m = year_pattern_exact.match(item.name)
+        if not m:
+            mg = year_pattern_generic.match(item.name)
+            if not mg:
+                continue
+            base = mg.group("base").lower()
+            if not (base in cid_norm or cid_norm in base):
+                continue
+            year = int(mg.group("year"))
+        else:
+            year = int(m.group(1))
+        if year > best_year:
+            best_year = year
+            best_dir = item
+
+    return best_dir or exact
+
+
 def cargar_perfil(cliente: str) -> dict:
     """
     Carga el perfil del cliente desde perfil.yaml
     """
     try:
-        path = CLIENTES_PATH / cliente / "perfil.yaml"
+        path = _resolve_cliente_dir(cliente) / "perfil.yaml"
         if not path.exists():
             return {}
 
@@ -80,7 +116,7 @@ def cargar_tb(cliente: str) -> pd.DataFrame:
     Carga el trial balance desde tb.xlsx
     """
     try:
-        path = CLIENTES_PATH / cliente / "tb.xlsx"
+        path = _resolve_cliente_dir(cliente) / "tb.xlsx"
         if not path.exists():
             return pd.DataFrame()
 
@@ -108,7 +144,7 @@ def cargar_hallazgos(cliente: str) -> list:
     Carga hallazgos previos desde hallazgos_previos.yaml
     """
     try:
-        path = CLIENTES_PATH / cliente / "hallazgos_previos.yaml"
+        path = _resolve_cliente_dir(cliente) / "hallazgos_previos.yaml"
         if not path.exists():
             return []
 
@@ -132,7 +168,7 @@ def cargar_patrones(cliente: str) -> list:
     Carga patrones desde patrones.yaml
     """
     try:
-        path = CLIENTES_PATH / cliente / "patrones.yaml"
+        path = _resolve_cliente_dir(cliente) / "patrones.yaml"
         if not path.exists():
             return []
 
@@ -156,7 +192,7 @@ def guardar_materialidad(cliente: str, data: dict) -> bool:
     Guarda materialidad en materialidad.yaml
     """
     try:
-        path = CLIENTES_PATH / cliente / "materialidad.yaml"
+        path = _resolve_cliente_dir(cliente) / "materialidad.yaml"
         path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
