@@ -1,10 +1,15 @@
 import { NextRequest } from "next/server";
 
+const DEFAULT_API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:8000"
+    : "https://socio-inteligente-production.up.railway.app";
+
 const API_BASE =
   process.env.API_BASE_INTERNAL ??
   process.env.NEXT_PUBLIC_API_BASE ??
   process.env.NEXT_PUBLIC_API_URL ??
-  "https://socio-inteligente-production.up.railway.app";
+  DEFAULT_API_BASE;
 
 function stripTrailingSlash(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
@@ -55,6 +60,9 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   const responseHeaders = new Headers(upstream.headers);
   responseHeaders.delete("content-encoding");
   responseHeaders.delete("content-length");
+  if (process.env.NODE_ENV !== "production") {
+    responseHeaders.set("x-proxy-target", targetUrl);
+  }
 
   return new Response(upstream.body, {
     status: upstream.status,

@@ -1,0 +1,14 @@
+carta_control_interno:
+  enforce_evidence_gate_on_approved: true
+  enforce_evidence_gate_on_issued: true
+  minimum_coverage_percent: 100
+  critical_sections:
+    - "findings"
+
+niif_pymes_borrador:
+  enforce_evidence_gate_on_approved: true
+  enforce_evidence_gate_on_issued: true
+  minimum_coverage_percent: 80
+  critical_sections:
+    - "base_preparacion"
+    - "notas_especificas"

@@ -1,0 +1,46 @@
+carta_control_interno:
+  template_version: "v1"
+  document_type: "carta_control_interno"
+  placeholders_supported:
+    - "{{firm_logo}}"
+    - "{{firm_name}}"
+    - "{{recipient}}"
+    - "{{subject}}"
+    - "{{period_end}}"
+    - "{{company_name}}"
+    - "{{borrador_badge}}"
+    - "{{signature_partner}}"
+  required_sections:
+    - "intro"
+    - "responsibility"
+    - "limitations"
+    - "findings"
+    - "closing"
+  optional_sections:
+    - "management_response"
+    - "signature_block"
+
+niif_pymes_borrador:
+  template_version: "v1"
+  document_type: "niif_pymes_borrador"
+  placeholders_supported:
+    - "{{firm_logo}}"
+    - "{{firm_name}}"
+    - "{{company_name}}"
+    - "{{period_end}}"
+    - "{{ifrs_for_smes_version}}"
+    - "{{early_adoption}}"
+    - "{{borrador_badge}}"
+    - "{{approval_block}}"
+    - "{{signature_legal_rep}}"
+    - "{{signature_accountant}}"
+  required_sections:
+    - "informacion_general"
+    - "base_preparacion"
+    - "juicios"
+    - "notas_especificas"
+    - "cierre"
+  optional_sections:
+    - "politicas"
+    - "indice"
+    - "approval_block"

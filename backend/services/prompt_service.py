@@ -34,6 +34,8 @@ def get_prompt_template(mode: str) -> tuple[str, dict[str, str]]:
         "memo": "memo_ejecutivo.md",
         "hallazgo": "estructurador_hallazgo.md",
         "judgement_risk": "judgement_risk.md",
+        "carta_control_interno": "carta_control_interno.md",
+        "niif_notas": "niif_notas.md",
     }
     filename = mapping.get(mode, "consulta_rapida.md")
     path = PROMPTS_ROOT / filename
@@ -98,6 +100,8 @@ def validate_minimum_output(text: str, *, mode: str) -> tuple[bool, list[str]]:
         "metodologia": ["criterio", "accion", "evidencia"],
         "memo": ["riesgo", "materialidad", "recomend"],
         "hallazgo": ["condicion", "criterio", "causa", "efecto", "recomend"],
+        "carta_control_interno": ["introduccion", "responsabilidad", "hallazgo", "recomend"],
+        "niif_notas": ["informacion general", "base de preparacion", "juicios", "notas"],
     }
     required = rules.get(mode, ["criterio", "accion", "evidencia"])
     missing = [token for token in required if token not in content]

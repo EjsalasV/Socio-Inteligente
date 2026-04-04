@@ -317,6 +317,80 @@ class ReportMemoResponse(BaseModel):
     source: str = "motor"
 
 
+class InternalControlLetterRequest(BaseModel):
+    recipient: str = "Gerencia General"
+    include_management_response: bool = True
+    max_findings: int = Field(10, ge=1, le=25)
+
+
+class GenerationMetadata(BaseModel):
+    source: Literal["llm", "fallback"] = "fallback"
+    provider: str = "fallback"
+    model: str = ""
+    prompt_id: str = ""
+    prompt_version: str = ""
+    document_type: str = ""
+    template_mode: Literal["custom", "default", "fallback"] = "fallback"
+    template_version: str = "v1-default"
+    placeholders_supported: list[str] = Field(default_factory=list)
+    required_sections: list[str] = Field(default_factory=list)
+    optional_sections: list[str] = Field(default_factory=list)
+    generated_at: datetime
+    requested_by: str = ""
+    input_payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class GeneratedArtifact(BaseModel):
+    artifact_type: Literal["markdown", "docx"] = "markdown"
+    artifact_path: str
+    artifact_hash: str
+    template_version: str = "v1-default"
+    size_bytes: int = 0
+
+
+class InternalControlLetterResponse(BaseModel):
+    cliente_id: str
+    generated_at: datetime
+    recipient: str
+    findings_count: int
+    source: str = "fallback"
+    document_version: int = 1
+    supersedes_version: int | None = None
+    is_current: bool = True
+    state: Literal["draft", "reviewed", "approved", "issued"] = "draft"
+    diff_from_previous: dict[str, Any] = Field(default_factory=dict)
+    document: dict[str, Any] = Field(default_factory=dict)
+    generation_metadata: GenerationMetadata
+    artifacts: list[GeneratedArtifact] = Field(default_factory=list)
+    content: str
+    path: str = ""
+
+
+class NIIFPymesDraftRequest(BaseModel):
+    ifrs_for_smes_version: Literal["2015", "2025"] = "2025"
+    early_adoption: bool = False
+    include_policy_section: bool = True
+
+
+class NIIFPymesDraftResponse(BaseModel):
+    cliente_id: str
+    generated_at: datetime
+    period_end: str
+    ifrs_for_smes_version: str
+    early_adoption: bool
+    source: str = "fallback"
+    document_version: int = 1
+    supersedes_version: int | None = None
+    is_current: bool = True
+    state: Literal["draft", "reviewed", "approved", "issued"] = "draft"
+    diff_from_previous: dict[str, Any] = Field(default_factory=dict)
+    document: dict[str, Any] = Field(default_factory=dict)
+    generation_metadata: GenerationMetadata
+    artifacts: list[GeneratedArtifact] = Field(default_factory=list)
+    content: str
+    path: str = ""
+
+
 class ReportStatusResponse(BaseModel):
     cliente_id: str
     gates: list["QualityGateItem"] = Field(default_factory=list)
