@@ -25,6 +25,7 @@ COPY app ./app
 COPY config.yaml ./config.yaml
 COPY data/catalogos ./data/catalogos
 COPY data/conocimiento_normativo ./data/conocimiento_normativo
+COPY data/clientes ./data/clientes
 
 ENV PORT=8000
 EXPOSE 8000
