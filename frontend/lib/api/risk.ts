@@ -68,6 +68,7 @@ function normalizeStrategyTest(value: unknown, fallbackType: "control" | "sustan
     description: asString(record.description, ""),
     where_to_execute: where,
     priority,
+    workpaper_linkable: Boolean(record.workpaper_linkable ?? true),
   };
 }
 
@@ -106,6 +107,8 @@ export async function getRiskEngineData(clienteId: string): Promise<RiskEngineRe
       .filter((item): item is RiskCriticalArea => item !== null)
       .sort((a, b) => b.score - a.score);
 
+    const recommendedRaw = Array.isArray(raw.recommended_tests) ? raw.recommended_tests : [];
+
     return {
       cliente_id: asString(raw.cliente_id, clienteId),
       eje_x: asString(raw.eje_x, "Impacto"),
@@ -113,6 +116,9 @@ export async function getRiskEngineData(clienteId: string): Promise<RiskEngineRe
       quadrants,
       areas_criticas,
       strategy: normalizeStrategy(raw.strategy),
+      recommended_tests: recommendedRaw
+        .map((x) => normalizeStrategyTest(x, "control"))
+        .filter((item): item is RiskStrategyTest => item !== null),
     };
   } catch (error) {
     if (error instanceof TokenExpiredError) {

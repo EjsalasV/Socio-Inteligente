@@ -35,6 +35,7 @@ export interface RiskStrategyTest {
   description: string;
   where_to_execute: "workpapers";
   priority: "alta" | "media" | "baja";
+  workpaper_linkable?: boolean;
 }
 
 export interface RiskStrategy {
@@ -53,6 +54,7 @@ export interface RiskEngineResponse {
   quadrants: RiskMatrixCell[][];
   areas_criticas: RiskCriticalArea[];
   strategy: RiskStrategy;
+  recommended_tests?: RiskStrategyTest[];
 }
 
 export type RiskMatrixData = RiskEngineResponse;

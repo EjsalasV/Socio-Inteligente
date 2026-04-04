@@ -92,6 +92,7 @@ def post_chat(
         confidence=float(rag.get("confidence", 0.0) or 0.0),
         prompt_id=str((rag.get("prompt_meta") or {}).get("prompt_id") or ""),
         prompt_version=str((rag.get("prompt_meta") or {}).get("prompt_version") or ""),
+        mode_used=str(rag.get("mode_used") or "chat"),
     )
     append_chat_message(
         cliente_id,

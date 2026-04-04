@@ -1182,6 +1182,17 @@
               "type": "string",
               "title": "Cliente Id"
             }
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(draft|final)$",
+              "default": "draft",
+              "title": "Mode"
+            }
           }
         ],
         "responses": {
@@ -1361,6 +1372,53 @@
         ],
         "summary": "Get Report History",
         "operationId": "get_report_history_reportes__cliente_id__historial_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reportes/{cliente_id}/status": {
+      "get": {
+        "tags": [
+          "reportes"
+        ],
+        "summary": "Get Report Status",
+        "operationId": "get_report_status_reportes__cliente_id__status_get",
         "security": [
           {
             "HTTPBearer": []
@@ -1935,6 +1993,62 @@
         ],
         "title": "ClienteCreateRequest"
       },
+      "DashboardMaterialidadDetalle": {
+        "properties": {
+          "nia_base": {
+            "type": "string",
+            "title": "Nia Base",
+            "default": "NIA 320"
+          },
+          "base_usada": {
+            "type": "string",
+            "title": "Base Usada",
+            "default": ""
+          },
+          "base_valor": {
+            "type": "number",
+            "title": "Base Valor",
+            "default": 0.0
+          },
+          "porcentaje_aplicado": {
+            "type": "number",
+            "title": "Porcentaje Aplicado",
+            "default": 0.0
+          },
+          "porcentaje_rango_min": {
+            "type": "number",
+            "title": "Porcentaje Rango Min",
+            "default": 0.0
+          },
+          "porcentaje_rango_max": {
+            "type": "number",
+            "title": "Porcentaje Rango Max",
+            "default": 0.0
+          },
+          "criterio_seleccion_pct": {
+            "type": "string",
+            "title": "Criterio Seleccion Pct",
+            "default": ""
+          },
+          "origen_regla": {
+            "type": "string",
+            "title": "Origen Regla",
+            "default": ""
+          },
+          "minimum_threshold_aplicado": {
+            "type": "number",
+            "title": "Minimum Threshold Aplicado",
+            "default": 0.0
+          },
+          "minimum_threshold_origen": {
+            "type": "string",
+            "title": "Minimum Threshold Origen",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "DashboardMaterialidadDetalle"
+      },
       "DashboardResponse": {
         "properties": {
           "cliente_id": {
@@ -2011,6 +2125,29 @@
             },
             "type": "array",
             "title": "Workflow Gates"
+          },
+          "balance_status": {
+            "type": "string",
+            "enum": [
+              "cuadrado",
+              "resultado_periodo",
+              "descuadrado"
+            ],
+            "title": "Balance Status",
+            "default": "cuadrado"
+          },
+          "resultado_periodo": {
+            "type": "number",
+            "title": "Resultado Periodo",
+            "default": 0.0
+          },
+          "balance_delta": {
+            "type": "number",
+            "title": "Balance Delta",
+            "default": 0.0
+          },
+          "materialidad_detalle": {
+            "$ref": "#/components/schemas/DashboardMaterialidadDetalle"
           }
         },
         "type": "object",

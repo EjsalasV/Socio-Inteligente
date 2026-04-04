@@ -11,7 +11,9 @@ import {
   generateExecutivePdf,
   getExecutiveMemo,
   getReportHistory,
+  getReportStatus,
   type ReportHistoryPayload,
+  type ReportStatusPayload,
 } from "../../../lib/api/reportes";
 import { formatMoney } from "../../../lib/formatters";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
@@ -40,6 +42,7 @@ export default function ReportesPage() {
   const [historyLoading, setHistoryLoading] = useState<boolean>(true);
   const [historyError, setHistoryError] = useState<string>("");
   const [history, setHistory] = useState<ReportHistoryPayload | null>(null);
+  const [statusPayload, setStatusPayload] = useState<ReportStatusPayload | null>(null);
   const [lastMemo, setLastMemo] = useState<string>("");
 
   async function refreshHistory(): Promise<void> {
@@ -47,7 +50,9 @@ export default function ReportesPage() {
     setHistoryError("");
     try {
       const [hist, memo] = await Promise.all([getReportHistory(clienteId), getExecutiveMemo(clienteId)]);
+      const status = await getReportStatus(clienteId);
       setHistory(hist);
+      setStatusPayload(status);
       setLastMemo(memo.memo || "");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "No se pudo cargar el centro operativo de reportes.";
@@ -96,7 +101,7 @@ export default function ReportesPage() {
       if (finalMode && gateMap.get("REPORT")?.status !== "ok") {
         throw new Error("No se puede emitir informe final: Gate REPORT en estado bloqueado.");
       }
-      const meta = await generateExecutivePdf(clienteId);
+      const meta = await generateExecutivePdf(clienteId, finalMode ? "final" : "draft");
       setReportMsg(
         finalMode
           ? `Informe final generado: ${meta.report_name} (${(meta.size_bytes / 1024).toFixed(1)} KB)`
@@ -200,6 +205,16 @@ export default function ReportesPage() {
             Cobertura por afirmaciones: <b>{history?.coverage_summary.coverage_pct ?? 0}%</b>
             {" "}({history?.coverage_summary.covered_assertions ?? 0}/{history?.coverage_summary.total_assertions ?? 0})
           </div>
+          {(statusPayload?.missing_sections?.length ?? 0) > 0 ? (
+            <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
+              Faltantes para emision final:
+              <ul className="mt-2 list-disc list-inside">
+                {statusPayload?.missing_sections?.slice(0, 5).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {gateMap.get("REPORT")?.status !== "ok" ? (
             <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
               Emision final bloqueada: completa tareas requeridas en Papeles de Trabajo y registra conclusion tecnica en hallazgos.
@@ -222,7 +237,7 @@ export default function ReportesPage() {
         <button
           type="button"
           onClick={() => void handleGeneratePdf(false)}
-          disabled={generatingPdf}
+          disabled={generatingPdf || (statusPayload ? !statusPayload.can_emit_draft : false)}
           className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627] disabled:opacity-60 bg-white"
         >
           {generatingPdf ? "Procesando..." : "Generar borrador interno"}
@@ -230,7 +245,7 @@ export default function ReportesPage() {
         <button
           type="button"
           onClick={() => void handleGeneratePdf(true)}
-          disabled={generatingPdf || gateMap.get("REPORT")?.status !== "ok"}
+          disabled={generatingPdf || (statusPayload ? !statusPayload.can_emit_final : gateMap.get("REPORT")?.status !== "ok")}
           className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-[0.12em] bg-[#041627] text-white disabled:opacity-60"
         >
           {generatingPdf ? "Procesando..." : "Emitir informe final"}

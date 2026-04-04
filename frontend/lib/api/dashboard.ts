@@ -55,6 +55,35 @@ function normalizeDashboardPayload(clienteId: string, raw: UnknownRecord): Dashb
           })
           .filter((gate): gate is DashboardData["workflow_gates"][number] => gate !== null)
       : [],
+    balance_status: asString(raw.balance_status, "cuadrado"),
+    resultado_periodo: asNumber(raw.resultado_periodo, 0),
+    balance_delta: asNumber(raw.balance_delta, 0),
+    materialidad_detalle:
+      isRecord(raw.materialidad_detalle)
+        ? {
+            nia_base: asString(raw.materialidad_detalle.nia_base, "NIA 320"),
+            base_usada: asString(raw.materialidad_detalle.base_usada, ""),
+            base_valor: asNumber(raw.materialidad_detalle.base_valor, 0),
+            porcentaje_aplicado: asNumber(raw.materialidad_detalle.porcentaje_aplicado, 0),
+            porcentaje_rango_min: asNumber(raw.materialidad_detalle.porcentaje_rango_min, 0),
+            porcentaje_rango_max: asNumber(raw.materialidad_detalle.porcentaje_rango_max, 0),
+            criterio_seleccion_pct: asString(raw.materialidad_detalle.criterio_seleccion_pct, ""),
+            origen_regla: asString(raw.materialidad_detalle.origen_regla, ""),
+            minimum_threshold_aplicado: asNumber(raw.materialidad_detalle.minimum_threshold_aplicado, 0),
+            minimum_threshold_origen: asString(raw.materialidad_detalle.minimum_threshold_origen, ""),
+          }
+        : {
+            nia_base: "NIA 320",
+            base_usada: "",
+            base_valor: 0,
+            porcentaje_aplicado: 0,
+            porcentaje_rango_min: 0,
+            porcentaje_rango_max: 0,
+            criterio_seleccion_pct: "",
+            origen_regla: "",
+            minimum_threshold_aplicado: 0,
+            minimum_threshold_origen: "",
+          },
     top_areas: topAreasRaw
       .map((item) => {
         if (!isRecord(item)) return null;

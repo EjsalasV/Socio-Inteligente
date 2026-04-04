@@ -667,5 +667,6 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
         quadrants=quadrants,
         areas_criticas=critical_areas[:8],
         strategy=strategy,
+        recommended_tests=[*(strategy.control_tests or []), *(strategy.substantive_tests or [])],
     )
     return ApiResponse(data=payload.model_dump())

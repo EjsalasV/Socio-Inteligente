@@ -25,6 +25,7 @@ type ChatMessage = {
     jurisdiccion?: string;
   }>;
   confidence?: number;
+  mode_used?: string;
 };
 
 const QUICK_PROMPTS = [
@@ -129,10 +130,7 @@ export default function SocioChatPage() {
         return Array.from(unique.entries()).map(([source, label]) => ({ source, label }));
       }
     }
-    return [
-      { source: "NIA 315", label: "NIA 315 · Valoracion de riesgos" },
-      { source: "NIA 330", label: "NIA 330 · Respuestas del auditor" },
-    ];
+    return [];
   }, [messages]);
 
   const lastAssistantMessage = useMemo(
@@ -166,6 +164,7 @@ export default function SocioChatPage() {
         text: answer,
         citations: response?.data?.citations ?? [],
         confidence: response?.data?.confidence ?? 0,
+        mode_used: response?.data?.mode_used ?? "chat",
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
@@ -307,7 +306,10 @@ export default function SocioChatPage() {
                     </div>
                   ) : null}
                   {msg.role === "assistant" && typeof msg.confidence === "number" ? (
-                    <p className="text-[10px] text-slate-500 mt-2">Confianza: {(msg.confidence * 100).toFixed(0)}%</p>
+                    <p className="text-[10px] text-slate-500 mt-2">
+                      Confianza: {(msg.confidence * 100).toFixed(0)}%
+                      {msg.mode_used ? ` · modo: ${msg.mode_used}` : ""}
+                    </p>
                   ) : null}
                   <p className="text-[10px] text-slate-400 mt-2 uppercase tracking-[0.12em]">{msg.timestamp}</p>
                 </div>
@@ -385,6 +387,11 @@ export default function SocioChatPage() {
                   <p className="text-[10px] text-slate-500 mt-1">{ref.source}</p>
                 </li>
               ))}
+              {references.length === 0 ? (
+                <li className="p-3 rounded-xl bg-white border border-black/10 text-xs text-slate-500">
+                  Sin referencias tecnicas en la ultima respuesta.
+                </li>
+              ) : null}
             </ul>
           </article>
         </aside>

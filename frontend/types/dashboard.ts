@@ -47,6 +47,21 @@ export interface DashboardResponse {
   fase_actual: string;
   workflow_phase: string;
   workflow_gates: DashboardWorkflowGate[];
+  balance_status: "cuadrado" | "resultado_periodo" | "descuadrado" | string;
+  resultado_periodo: number;
+  balance_delta: number;
+  materialidad_detalle: {
+    nia_base: string;
+    base_usada: string;
+    base_valor: number;
+    porcentaje_aplicado: number;
+    porcentaje_rango_min: number;
+    porcentaje_rango_max: number;
+    criterio_seleccion_pct: string;
+    origen_regla: string;
+    minimum_threshold_aplicado: number;
+    minimum_threshold_origen: string;
+  };
 }
 
 export interface DashboardData {
@@ -69,5 +84,20 @@ export interface DashboardData {
   fase_actual: string;
   workflow_phase: string;
   workflow_gates: DashboardWorkflowGate[];
+  balance_status: "cuadrado" | "resultado_periodo" | "descuadrado" | string;
+  resultado_periodo: number;
+  balance_delta: number;
+  materialidad_detalle: {
+    nia_base: string;
+    base_usada: string;
+    base_valor: number;
+    porcentaje_aplicado: number;
+    porcentaje_rango_min: number;
+    porcentaje_rango_max: number;
+    criterio_seleccion_pct: string;
+    origen_regla: string;
+    minimum_threshold_aplicado: number;
+    minimum_threshold_origen: string;
+  };
   top_areas: AreaRiesgo[];
 }

@@ -168,6 +168,10 @@ export default function DashboardContent({ data }: Props) {
               Riesgo global <span className={riesgoTone}>{data.riesgo_global}</span> con avance de <b>{progreso.toFixed(1)}%</b>.
               Se recomienda cerrar areas criticas antes del informe final.
             </p>
+            <p className="text-xs text-slate-200 mt-3">
+              NIA 320 · Base: <b>{data.materialidad_detalle.base_usada || "N/D"}</b> ·
+              % aplicado: <b>{data.materialidad_detalle.porcentaje_aplicado.toFixed(2)}%</b>
+            </p>
           </article>
         </div>
       </section>

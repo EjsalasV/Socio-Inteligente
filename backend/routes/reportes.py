@@ -52,7 +52,7 @@ def _append_history(cliente_id: str, record: dict[str, Any]) -> None:
     path.write_text(json.dumps(history[-50:], ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def _ensure_required_sections(cliente_id: str, user: UserContext) -> tuple[Any, list[Any], str]:
+def _report_requirements(cliente_id: str, user: UserContext) -> dict[str, Any]:
     dashboard = get_dashboard(cliente_id=cliente_id, user=user)
     top_areas = list(dashboard.top_areas or [])
     hallazgos = read_hallazgos(cliente_id).strip()
@@ -61,20 +61,61 @@ def _ensure_required_sections(cliente_id: str, user: UserContext) -> tuple[Any, 
     gates, coverage = _quality_gates(cliente_id, merged)
     gates_map = {g.code: g.status for g in gates}
 
-    errors: list[str] = []
+    missing_sections: list[str] = []
     if not top_areas:
-        errors.append("No hay areas priorizadas para el resumen ejecutivo.")
+        missing_sections.append("No hay areas priorizadas para el resumen ejecutivo.")
     if not hallazgos:
-        errors.append("No existe conclusion tecnica en hallazgos.")
+        missing_sections.append("No existe conclusion tecnica en hallazgos.")
     if gates_map.get("REPORT") != "ok":
-        errors.append("Gate REPORT debe estar en estado ok para emitir informe.")
+        missing_sections.append("Gate REPORT debe estar en estado ok para emitir informe.")
     if coverage.total_assertions > 0 and coverage.coverage_pct <= 0:
-        errors.append("No existe cobertura de afirmaciones documentada para las areas del cliente.")
-    if errors:
+        missing_sections.append("No existe cobertura de afirmaciones documentada para las areas del cliente.")
+
+    can_emit_final = len(missing_sections) == 0
+    can_emit_draft = bool(top_areas)
+    return {
+        "dashboard": dashboard,
+        "top_areas": top_areas,
+        "hallazgos": hallazgos,
+        "gates": gates,
+        "gates_map": gates_map,
+        "coverage": coverage,
+        "missing_sections": missing_sections,
+        "can_emit_draft": can_emit_draft,
+        "can_emit_final": can_emit_final,
+    }
+
+
+def _ensure_required_sections(cliente_id: str, user: UserContext, *, final_mode: bool) -> tuple[Any, list[Any], str]:
+    report = _report_requirements(cliente_id, user)
+    dashboard = report["dashboard"]
+    top_areas = report["top_areas"]
+    hallazgos = report["hallazgos"]
+    missing_sections = report["missing_sections"]
+    can_emit_draft = bool(report["can_emit_draft"])
+    can_emit_final = bool(report["can_emit_final"])
+    gates_map = report["gates_map"]
+
+    if final_mode and not can_emit_final:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"message": "Faltan secciones obligatorias para generar el PDF.", "errors": errors, "gates": gates_map},
+            detail={
+                "message": "Faltan secciones obligatorias para generar el PDF final.",
+                "errors": missing_sections,
+                "gates": gates_map,
+            },
         )
+    if (not final_mode) and (not can_emit_draft):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "message": "No hay informacion minima para emitir borrador interno.",
+                "errors": ["No hay areas priorizadas para el resumen ejecutivo."],
+                "gates": gates_map,
+            },
+        )
+    if not hallazgos:
+        hallazgos = "Borrador interno sin conclusion consolidada aun. Completar hallazgos para emision final."
     return dashboard, top_areas, hallazgos
 
 
@@ -175,10 +216,15 @@ def _build_memo_fallback(*, dashboard: Any, top_areas: list[Any], hallazgos: str
 
 
 @router.get("/{cliente_id}/executive-pdf", response_model=ApiResponse)
-def get_executive_pdf(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+def get_executive_pdf(
+    cliente_id: str,
+    mode: str = Query("draft", pattern="^(draft|final)$"),
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
 
-    dashboard, top_areas, hallazgos = _ensure_required_sections(cliente_id, user)
+    final_mode = mode == "final"
+    dashboard, top_areas, hallazgos = _ensure_required_sections(cliente_id, user, final_mode=final_mode)
     html = _render_executive_html(dashboard=dashboard, top_areas=top_areas, hallazgos=hallazgos)
     pdf_bytes = _html_to_pdf_bytes(html)
 
@@ -199,7 +245,7 @@ def get_executive_pdf(cliente_id: str, user: UserContext = Depends(get_current_u
             "file_hash": file_hash,
             "size_bytes": len(pdf_bytes),
             "status": "success",
-            "origin": "motor_html_pdf",
+            "origin": "motor_html_pdf_final" if final_mode else "motor_html_pdf_draft",
         },
     )
     payload = PdfSummaryResponse(
@@ -237,7 +283,7 @@ def get_executive_pdf_file(
 @router.post("/{cliente_id}/memo", response_model=ApiResponse)
 def post_executive_memo(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
-    dashboard, top_areas, hallazgos = _ensure_required_sections(cliente_id, user)
+    dashboard, top_areas, hallazgos = _ensure_required_sections(cliente_id, user, final_mode=False)
     query = (
         "Genera un memo ejecutivo de auditoria en espanol para socio firmante. "
         "Incluye: riesgo global, materialidad, top areas, recomendaciones accionables y siguiente paso."
@@ -302,5 +348,21 @@ def get_report_history(cliente_id: str, user: UserContext = Depends(get_current_
             "gate_status": gate_map,
             "coverage_summary": coverage.model_dump(),
             "items": history,
+        }
+    )
+
+
+@router.get("/{cliente_id}/status", response_model=ApiResponse)
+def get_report_status(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    report = _report_requirements(cliente_id, user)
+    return ApiResponse(
+        data={
+            "cliente_id": cliente_id,
+            "gates": [g.model_dump() for g in report.get("gates", [])],
+            "missing_sections": report.get("missing_sections", []),
+            "can_emit_draft": bool(report.get("can_emit_draft")),
+            "can_emit_final": bool(report.get("can_emit_final")),
+            "coverage_summary": report.get("coverage").model_dump() if report.get("coverage") else {},
         }
     )

@@ -1,13 +1,21 @@
 from __future__ import annotations
 
 import os
+import time
+from uuid import uuid4
 
 from fastapi import FastAPI
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
+import logging
 
 from backend.routes import areas, auth, chat, clientes, dashboard, metodologia, perfil, reportes, risk_engine, workpapers, workflow
 
 app = FastAPI(title="Socio AI Backend", version="0.1.0")
+LOGGER = logging.getLogger("socio_ai.api")
+if not LOGGER.handlers:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 _origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
 
@@ -50,3 +58,50 @@ app.include_router(workflow.router)
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.middleware("http")
+async def request_observability(request: Request, call_next) -> Response:
+    start = time.perf_counter()
+    request_id = str(uuid4())
+    response: Response
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        LOGGER.exception(
+            "api.request.failed method=%s path=%s request_id=%s duration_ms=%s",
+            request.method,
+            request.url.path,
+            request_id,
+            duration_ms,
+        )
+        raise
+
+    duration_ms = int((time.perf_counter() - start) * 1000)
+    path = request.url.path
+    if any(
+        path.startswith(prefix)
+        for prefix in [
+            "/auth/",
+            "/clientes",
+            "/perfil/",
+            "/dashboard/",
+            "/risk-engine/",
+            "/chat/",
+            "/papeles-trabajo/",
+            "/workflow/",
+            "/reportes/",
+        ]
+    ):
+        LOGGER.info(
+            "api.request method=%s path=%s status=%s duration_ms=%s request_id=%s",
+            request.method,
+            path,
+            response.status_code,
+            duration_ms,
+            request_id,
+        )
+    if not _is_prod:
+        response.headers["X-Request-ID"] = request_id
+    return response

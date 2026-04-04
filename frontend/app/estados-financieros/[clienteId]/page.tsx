@@ -64,6 +64,10 @@ export default function EstadosFinancierosPage() {
       : dashboard?.materialidad_origen === "motor"
         ? "Estimacion automatica del motor"
         : "Pendiente de definicion";
+  const materialidadDetalle = dashboard?.materialidad_detalle;
+  const materialidadFormula = materialidadDetalle?.base_usada
+    ? `${materialidadDetalle.porcentaje_rango_min.toFixed(1)}% - ${materialidadDetalle.porcentaje_rango_max.toFixed(1)}% de ${materialidadDetalle.base_usada}`
+    : "Sin formula tecnica disponible";
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -105,6 +109,7 @@ export default function EstadosFinancierosPage() {
           <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Materialidad de Planeacion</p>
           <h3 className="font-headline text-3xl text-[#041627] mt-3">{formatMoney(dashboard.materialidad_global)}</h3>
           <p className="text-xs text-slate-500 mt-2">{materialidadOrigenLabel}</p>
+          <p className="text-xs text-slate-500 mt-1">{materialidadFormula}</p>
         </article>
 
         <article className="sovereign-card border-l-4 border-[#89d3d4]">

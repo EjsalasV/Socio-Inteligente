@@ -20,6 +20,7 @@ export type ChatResponse = {
   confidence?: number;
   prompt_id?: string;
   prompt_version?: string;
+  mode_used?: string;
 };
 
 export type MetodoResponse = {

@@ -419,6 +419,7 @@ def _risk_answer(cliente_id: str, query: str = "") -> dict[str, Any]:
         "provider": "deterministic",
         "model": "risk_snapshot_v1",
         "prompt_meta": {"prompt_id": "risk_snapshot", "prompt_version": "v1"},
+        "mode_used": "risk_snapshot",
     }
 
 
@@ -481,6 +482,7 @@ def _next_steps_answer(cliente_id: str) -> dict[str, Any]:
         "provider": "deterministic",
         "model": "next_steps_v1",
         "prompt_meta": {"prompt_id": "next_steps", "prompt_version": "v1"},
+        "mode_used": "next_steps",
     }
 
 
@@ -560,6 +562,7 @@ def _inventory_answer(cliente_id: str) -> dict[str, Any]:
         "provider": "inventory",
         "model": "deterministic",
         "prompt_meta": {"prompt_id": "inventory", "prompt_version": "v1"},
+        "mode_used": "inventory",
     }
 
 
@@ -679,6 +682,7 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
         "context_sources": sources,
         "confidence": confidence,
         "prompt_meta": {"prompt_id": "fallback", "prompt_version": "v1"},
+        "mode_used": f"{mode}_fallback",
     }
 
 
@@ -788,6 +792,7 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat",
         "provider": provider,
         "model": model,
         "prompt_meta": prompt_meta,
+        "mode_used": mode,
     }
 
 
@@ -795,19 +800,23 @@ def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
     # Respuestas de alto valor y baja latencia, siempre contextuales.
     if _is_data_inventory_question(query):
         return _inventory_answer(cliente_id)
-    if _is_risk_question(query):
-        return _risk_answer(cliente_id, query)
     if _is_next_steps_question(query):
         return _next_steps_answer(cliente_id)
 
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
     if not _has_llm_credentials():
+        if _is_risk_question(query):
+            return _risk_answer(cliente_id, query)
         return _fallback_answer(query, cliente_id, chunks, mode="chat")
 
     try:
+        if _is_risk_question(query):
+            return _llm_answer(query, chunks, mode="judgement_risk", cliente_id=cliente_id)
         # En chat general intentamos LLM aun sin chunks para mantener experiencia conversacional.
         return _llm_answer(query, chunks, mode="chat", cliente_id=cliente_id)
     except Exception:
+        if _is_risk_question(query):
+            return _risk_answer(cliente_id, query)
         return _fallback_answer(query, cliente_id, chunks, mode="chat")
 
 

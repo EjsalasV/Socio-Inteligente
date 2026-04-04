@@ -8,6 +8,7 @@ from backend.auth import authorize_cliente_access, get_current_user
 from backend.schemas import (
     AreaRiesgo,
     BalanceKPIs,
+    DashboardMaterialidadDetalle,
     DashboardResponse,
     DashboardWorkflowGate,
     ProgresoEncargo,
@@ -51,6 +52,34 @@ def _materialidad_from_perfil(perfil: dict) -> tuple[float, float, float]:
         trivial = _to_float(preliminar.get("error_trivial", 0.0))
 
     return mp, me, trivial
+
+
+def _materialidad_detail_from_motor(materialidad: dict[str, object]) -> DashboardMaterialidadDetalle:
+    max_pct = _to_float(materialidad.get("porcentaje_maximo", 0.0))
+    min_pct = _to_float(materialidad.get("porcentaje_minimo", 0.0))
+    return DashboardMaterialidadDetalle(
+        nia_base="NIA 320",
+        base_usada=_to_str(materialidad.get("base_utilizada", "")),
+        base_valor=_to_float(materialidad.get("valor_base", 0.0)),
+        porcentaje_aplicado=max_pct,
+        porcentaje_rango_min=min_pct,
+        porcentaje_rango_max=max_pct,
+        criterio_seleccion_pct=(
+            "3% alto riesgo, 5% medio, 10% bajo (ajustado por regla de entidad/sector y umbral minimo)"
+        ),
+        origen_regla=_to_str(materialidad.get("origen_regla", "")),
+        minimum_threshold_aplicado=_to_float(materialidad.get("minimum_threshold_aplicado", 0.0)),
+        minimum_threshold_origen=_to_str(materialidad.get("minimum_threshold_origen", "")),
+    )
+
+
+def _selected_pct_by_risk(risk_level: str) -> float:
+    raw = (risk_level or "").strip().lower()
+    if raw in {"alto", "critico"}:
+        return 3.0
+    if raw in {"medio", "moderado"}:
+        return 5.0
+    return 10.0
 
 
 def _progreso_from_fase(fase_actual: str) -> int | None:
@@ -227,6 +256,28 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
         me = me_perfil if me_perfil > 0 else me_calc
         trivial = trivial_perfil if trivial_perfil > 0 else trivial_calc
         materialidad_origen = "perfil" if mp_perfil > 0 else ("motor" if mp_calc > 0 else "sin_definir")
+        materialidad_detalle = _materialidad_detail_from_motor(materialidad)
+        base_valor = materialidad_detalle.base_valor
+        riesgo_global_nivel = _extract_riesgo_global_nivel(perfil)
+        pct_riesgo = _selected_pct_by_risk(riesgo_global_nivel)
+        pct_aplicado = (mp / base_valor * 100.0) if base_valor > 0 and mp > 0 else pct_riesgo
+        materialidad_detalle.porcentaje_aplicado = round(pct_aplicado, 2)
+        if not materialidad_detalle.criterio_seleccion_pct:
+            materialidad_detalle.criterio_seleccion_pct = (
+                "3% alto riesgo, 5% medio, 10% bajo (NIA 320, juicio profesional)"
+            )
+
+        stage = "build.balance_status"
+        accounting_delta = balance.activo - (balance.pasivo + balance.patrimonio)
+        resultado_periodo = balance.ingresos - balance.gastos
+        delta_abs = abs(accounting_delta)
+        delta_vs_resultado = abs(accounting_delta - resultado_periodo)
+        if delta_abs < 1.0:
+            balance_status = "cuadrado"
+        elif delta_vs_resultado < 1.0:
+            balance_status = "resultado_periodo"
+        else:
+            balance_status = "descuadrado"
 
         stage = "build.payload"
         industria = perfil.get("industria_inteligente", {}) if isinstance(perfil.get("industria_inteligente"), dict) else {}
@@ -239,7 +290,7 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
             nombre_cliente=_to_str(cliente_info.get("nombre_legal", cliente_id), cliente_id),
             periodo=_to_str(encargo.get("anio_activo", "")),
             sector=sector,
-            riesgo_global=_extract_riesgo_global_nivel(perfil),
+            riesgo_global=riesgo_global_nivel,
             balance=balance,
             progreso=ProgresoEncargo(
                 pct_completado=pct_completado,
@@ -257,6 +308,10 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
             fase_actual=fase_actual,
             workflow_phase=workflow_phase,
             workflow_gates=workflow_gates,
+            balance_status=balance_status,
+            resultado_periodo=resultado_periodo,
+            balance_delta=delta_abs,
+            materialidad_detalle=materialidad_detalle,
         )
 
         return payload

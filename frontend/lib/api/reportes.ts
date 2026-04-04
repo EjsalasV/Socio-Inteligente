@@ -42,8 +42,22 @@ export interface ReportHistoryPayload {
   items: ReportHistoryItem[];
 }
 
-export async function generateExecutivePdf(clienteId: string): Promise<ExecutivePdfMeta> {
-  const response = await authFetchJson<ApiEnvelope<unknown>>(`/reportes/${clienteId}/executive-pdf`);
+export interface ReportStatusPayload {
+  cliente_id: string;
+  gates: Array<{ code: string; title: string; status: "ok" | "blocked"; detail: string }>;
+  missing_sections: string[];
+  can_emit_draft: boolean;
+  can_emit_final: boolean;
+  coverage_summary: {
+    total_assertions: number;
+    covered_assertions: number;
+    coverage_pct: number;
+    missing_by_area: Record<string, string[]>;
+  };
+}
+
+export async function generateExecutivePdf(clienteId: string, mode: "draft" | "final" = "draft"): Promise<ExecutivePdfMeta> {
+  const response = await authFetchJson<ApiEnvelope<unknown>>(`/reportes/${clienteId}/executive-pdf?mode=${mode}`);
   const raw = typeof response?.data === "object" && response.data !== null ? (response.data as Record<string, unknown>) : {};
   return {
     cliente_id: typeof raw.cliente_id === "string" ? raw.cliente_id : clienteId,
@@ -173,5 +187,38 @@ export async function getReportHistory(clienteId: string): Promise<ReportHistory
         origin: typeof row.origin === "string" ? row.origin : "unknown",
       };
     }),
+  };
+}
+
+export async function getReportStatus(clienteId: string): Promise<ReportStatusPayload> {
+  const response = await authFetchJson<ApiEnvelope<unknown>>(`/reportes/${clienteId}/status`);
+  const raw = typeof response?.data === "object" && response.data !== null ? (response.data as Record<string, unknown>) : {};
+  const gatesRaw = Array.isArray(raw.gates) ? raw.gates : [];
+  const coverageRaw = typeof raw.coverage_summary === "object" && raw.coverage_summary !== null
+    ? (raw.coverage_summary as Record<string, unknown>)
+    : {};
+  const missing = Array.isArray(raw.missing_sections) ? raw.missing_sections.map((x) => String(x)) : [];
+  return {
+    cliente_id: typeof raw.cliente_id === "string" ? raw.cliente_id : clienteId,
+    missing_sections: missing,
+    can_emit_draft: Boolean(raw.can_emit_draft),
+    can_emit_final: Boolean(raw.can_emit_final),
+    gates: gatesRaw.map((g) => {
+      const row = typeof g === "object" && g !== null ? (g as Record<string, unknown>) : {};
+      return {
+        code: typeof row.code === "string" ? row.code : "",
+        title: typeof row.title === "string" ? row.title : "",
+        status: (typeof row.status === "string" ? row.status : "blocked") as "ok" | "blocked",
+        detail: typeof row.detail === "string" ? row.detail : "",
+      };
+    }),
+    coverage_summary: {
+      total_assertions: typeof coverageRaw.total_assertions === "number" ? coverageRaw.total_assertions : 0,
+      covered_assertions: typeof coverageRaw.covered_assertions === "number" ? coverageRaw.covered_assertions : 0,
+      coverage_pct: typeof coverageRaw.coverage_pct === "number" ? coverageRaw.coverage_pct : 0,
+      missing_by_area: typeof coverageRaw.missing_by_area === "object" && coverageRaw.missing_by_area !== null
+        ? (coverageRaw.missing_by_area as Record<string, string[]>)
+        : {},
+    },
   };
 }

@@ -43,12 +43,11 @@ export default function TrialBalancePage() {
     () => (areaData?.aseveraciones ?? []).filter((a) => a.riesgo_tipico.toLowerCase().includes("alto")).length,
     [areaData],
   );
-  const accountingDelta = (dashboard?.activo ?? 0) - ((dashboard?.pasivo ?? 0) + (dashboard?.patrimonio ?? 0));
-  const resultadoPeriodo = (dashboard?.ingresos ?? 0) - (dashboard?.gastos ?? 0);
-  const balanceDelta = Math.abs(accountingDelta);
-  const deltaVsResultado = Math.abs(accountingDelta - resultadoPeriodo);
-  const balanceOk = balanceDelta < 1;
-  const isResultadoPeriodo = !balanceOk && deltaVsResultado < 1;
+  const balanceStatus = (dashboard?.balance_status || "cuadrado").toLowerCase();
+  const balanceDelta = Math.abs(dashboard?.balance_delta ?? 0);
+  const resultadoPeriodo = dashboard?.resultado_periodo ?? 0;
+  const balanceOk = balanceStatus === "cuadrado";
+  const isResultadoPeriodo = balanceStatus === "resultado_periodo";
   const tbStage = (dashboard?.tb_stage || "sin_saldos").toLowerCase();
   const tbStageLabel =
     tbStage === "final"
@@ -109,7 +108,7 @@ export default function TrialBalancePage() {
             {balanceOk
               ? "Activo = Pasivo + Patrimonio"
               : isResultadoPeriodo
-                ? `Resultado del periodo reflejado en patrimonio: ${formatMoney(resultadoPeriodo)}`
+                ? `Resultado del periodo: ${formatMoney(resultadoPeriodo)}`
                 : `Diferencia real: ${formatMoney(balanceDelta)}`}
           </p>
         </article>

@@ -90,6 +90,19 @@ class DashboardWorkflowGate(BaseModel):
     detail: str
 
 
+class DashboardMaterialidadDetalle(BaseModel):
+    nia_base: str = "NIA 320"
+    base_usada: str = ""
+    base_valor: float = 0.0
+    porcentaje_aplicado: float = 0.0
+    porcentaje_rango_min: float = 0.0
+    porcentaje_rango_max: float = 0.0
+    criterio_seleccion_pct: str = ""
+    origen_regla: str = ""
+    minimum_threshold_aplicado: float = 0.0
+    minimum_threshold_origen: str = ""
+
+
 class DashboardResponse(BaseModel):
     cliente_id: str
     nombre_cliente: str
@@ -107,6 +120,10 @@ class DashboardResponse(BaseModel):
     fase_actual: str = ""
     workflow_phase: str = "planificacion"
     workflow_gates: list[DashboardWorkflowGate] = Field(default_factory=list)
+    balance_status: Literal["cuadrado", "resultado_periodo", "descuadrado"] = "cuadrado"
+    resultado_periodo: float = 0.0
+    balance_delta: float = 0.0
+    materialidad_detalle: DashboardMaterialidadDetalle = Field(default_factory=DashboardMaterialidadDetalle)
 
 
 class RiskItem(BaseModel):
@@ -148,6 +165,7 @@ class RiskStrategyTest(BaseModel):
     description: str
     where_to_execute: Literal["workpapers"] = "workpapers"
     priority: Literal["alta", "media", "baja"] = "media"
+    workpaper_linkable: bool = True
 
 
 class RiskStrategyResponse(BaseModel):
@@ -166,6 +184,7 @@ class RiskEngineResponse(BaseModel):
     quadrants: list[list[RiskMatrixCell]]
     areas_criticas: list[RiskCriticalArea]
     strategy: RiskStrategyResponse
+    recommended_tests: list[RiskStrategyTest] = Field(default_factory=list)
 
 
 class AreaResponse(BaseModel):
@@ -264,6 +283,7 @@ class ChatResponse(BaseModel):
     confidence: float = 0.0
     prompt_id: str = ""
     prompt_version: str = ""
+    mode_used: str = "chat"
 
 
 class MetodoRequest(BaseModel):
@@ -295,6 +315,15 @@ class ReportMemoResponse(BaseModel):
     memo: str
     generated_at: datetime
     source: str = "motor"
+
+
+class ReportStatusResponse(BaseModel):
+    cliente_id: str
+    gates: list["QualityGateItem"] = Field(default_factory=list)
+    missing_sections: list[str] = Field(default_factory=list)
+    can_emit_draft: bool = True
+    can_emit_final: bool = False
+    coverage_summary: "CoverageSummary" = Field(default_factory=lambda: CoverageSummary())
 
 
 class ClienteDocumento(BaseModel):
