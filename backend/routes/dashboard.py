@@ -109,14 +109,20 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
         from analysis.lector_tb import leer_tb, obtener_resumen_tb
         from analysis.ranking_areas import calcular_ranking_areas
         from backend.routes.workpapers import _generate_tasks, _merge_saved_tasks, _quality_gates
-        from domain.services.leer_perfil import leer_perfil
+        from backend.repositories.file_repository import read_perfil as read_perfil_repo
+        from domain.services.leer_perfil import leer_perfil as read_perfil_legacy
         from domain.services.materialidad_service import calcular_materialidad
 
         stage = "load.perfil"
         try:
-            perfil = leer_perfil(cliente_id) or {}
+            perfil = read_perfil_repo(cliente_id) or {}
         except Exception:
             perfil = {}
+        if not perfil:
+            try:
+                perfil = read_perfil_legacy(cliente_id) or {}
+            except Exception:
+                perfil = {}
         stage = "load.resumen_tb"
         try:
             resumen_tb = obtener_resumen_tb(cliente_id) or {}
