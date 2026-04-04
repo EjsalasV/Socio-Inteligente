@@ -1,0 +1,41 @@
+{
+  "documents": {
+    "carta_control_interno": {
+      "document_type": "carta_control_interno",
+      "versions": [
+        {
+          "document_version": 6,
+          "is_current": true,
+          "state": "reviewed",
+          "artifacts": [
+            {
+              "artifact_type": "docx"
+            }
+          ],
+          "generation_metadata": {
+            "source": "fallback",
+            "template_mode": "default",
+            "template_version": "v1",
+            "document_type": "carta_control_interno",
+            "requested_by": "u_senior",
+            "generated_at": "2026-04-04T07:06:08.508628+00:00",
+            "required_sections": [
+              "intro",
+              "responsibility",
+              "limitations",
+              "findings",
+              "closing"
+            ]
+          },
+          "document_snapshot": {
+            "intro": "ok",
+            "responsibility": "ok",
+            "limitations": "ok",
+            "findings": [],
+            "closing": "ok"
+          }
+        }
+      ]
+    }
+  }
+}
