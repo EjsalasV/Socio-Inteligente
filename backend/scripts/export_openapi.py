@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+
+# Permite exportar esquema en CI sin requerir secreto real de JWT.
+os.environ["EXPORT_OPENAPI"] = "1"
 
 from backend.main import app
 

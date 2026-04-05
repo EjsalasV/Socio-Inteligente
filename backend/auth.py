@@ -13,9 +13,12 @@ from backend.schemas import UserContext
 
 _SECRET = (os.getenv("JWT_SECRET_KEY") or os.getenv("SOCIO_JWT_SECRET") or "").strip()
 if not _SECRET:
-    raise RuntimeError(
-        "JWT_SECRET_KEY no esta configurado. Define la variable de entorno antes de iniciar el backend."
-    )
+    if os.getenv("CI") or os.getenv("EXPORT_OPENAPI"):
+        _SECRET = "DUMMY_SECRET_FOR_CI"
+    else:
+        raise RuntimeError(
+            "JWT_SECRET_KEY no esta configurado. Define la variable de entorno antes de iniciar el backend."
+        )
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(

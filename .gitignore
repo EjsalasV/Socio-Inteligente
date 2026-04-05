@@ -48,6 +48,13 @@ data/clientes/bustamante_fabara_ip_2025/tb.xlsx
 !data/criterio_experto/
 !data/criterio_experto/**
 
+# Runtime artifacts per client (generated in-app, not source-controlled)
+data/clientes/**/reportes/
+data/clientes/**/reportes/*
+data/clientes/**/reportes_historial.json
+data/clientes/**/documentos_registro.json
+data/clientes/**/document_section_links.json
+
 # IDE / OS
 .vscode/
 .idea/
