@@ -266,7 +266,7 @@ def test_transition_gerente_can_approve_from_reviewed() -> None:
                             "required_sections": ["cover", "contenido", "letter_intro", "major_interest_findings", "internal_control_findings", "closing"],
                         },
                         "document_snapshot": {
-                            "cover": "ok",
+                            "cover": {"period_end": "2025-12-31", "ruc": "1234567890001"},
                             "contenido": "ok",
                             "letter_intro": "ok",
                             "major_interest_findings": [],
@@ -292,7 +292,7 @@ def test_transition_gerente_can_approve_from_reviewed() -> None:
         cliente_id,
         "carta_control_interno",
         "hallazgo:OBS-01",
-        payload={"source_type": "workpaper", "source_id": "wp_01", "reference": "WP-01", "label": "Cedula hallazgos"},
+        payload={"source_type": "supporting_document", "source_id": "wp_01", "reference": "WP-01", "label": "Cedula hallazgos"},
         user=_user(role="senior"),
     )
     updated = reportes._transition_document_state(
@@ -331,7 +331,7 @@ def test_transition_only_socio_can_issue() -> None:
                             "required_sections": ["cover", "contenido", "letter_intro", "major_interest_findings", "internal_control_findings", "closing"],
                         },
                         "document_snapshot": {
-                            "cover": "ok",
+                            "cover": {"period_end": "2025-12-31", "ruc": "1234567890001"},
                             "contenido": "ok",
                             "letter_intro": "ok",
                             "major_interest_findings": [],
@@ -357,7 +357,7 @@ def test_transition_only_socio_can_issue() -> None:
         cliente_id,
         "carta_control_interno",
         "hallazgo:OBS-02",
-        payload={"source_type": "workpaper", "source_id": "wp_issued", "reference": "WP-02", "label": "Soporte emisión"},
+        payload={"source_type": "supporting_document", "source_id": "wp_issued", "reference": "WP-02", "label": "Soporte emisión"},
         user=_user(role="senior"),
     )
     with pytest.raises(HTTPException) as exc:
@@ -394,7 +394,7 @@ def test_quality_check_has_score_and_semaphore() -> None:
             "required_sections": ["cover", "contenido", "letter_intro", "major_interest_findings", "internal_control_findings", "closing"],
         },
         "document_snapshot": {
-            "cover": "ok",
+            "cover": {"period_end": "2025-12-31", "ruc": "1234567890001"},
             "contenido": "ok",
             "letter_intro": "ok",
             "major_interest_findings": [],
@@ -552,7 +552,7 @@ def test_transition_blocks_approve_without_critical_support() -> None:
                             "required_sections": ["cover", "contenido", "letter_intro", "major_interest_findings", "internal_control_findings", "closing"],
                         },
                         "document_snapshot": {
-                            "cover": "ok",
+                            "cover": {"period_end": "2025-12-31", "ruc": "1234567890001"},
                             "contenido": "ok",
                             "letter_intro": "ok",
                             "major_interest_findings": [],
@@ -584,3 +584,103 @@ def test_transition_blocks_approve_without_critical_support() -> None:
         )
     assert exc.value.status_code == 422
     assert "No se puede aprobar" in str(exc.value.detail)
+
+
+def test_issue_blocks_when_ruc_missing_for_internal_control() -> None:
+    cliente_id = "cliente_demo"
+    registry = {
+        "documents": {
+            "carta_control_interno": {
+                "document_type": "carta_control_interno",
+                "versions": [
+                    {
+                        "document_version": 7,
+                        "is_current": True,
+                        "state": "approved",
+                        "artifacts": [{"artifact_type": "docx"}],
+                        "generation_metadata": {
+                            "source": "fallback",
+                            "template_mode": "default",
+                            "template_version": "v1",
+                            "document_type": "carta_control_interno",
+                            "requested_by": "u_senior",
+                            "generated_at": datetime.now(timezone.utc).isoformat(),
+                            "required_sections": ["cover", "contenido", "letter_intro", "major_interest_findings", "internal_control_findings", "closing"],
+                        },
+                        "document_snapshot": {
+                            "cover": {"period_end": "2025-12-31", "ruc": "[[PENDIENTE]]"},
+                            "contenido": "ok",
+                            "letter_intro": "ok",
+                            "major_interest_findings": [],
+                            "internal_control_findings": [],
+                            "findings": [{"id": "OBS-07", "titulo": "Hallazgo"}],
+                            "closing": "ok",
+                        },
+                    }
+                ],
+            }
+        }
+    }
+    reportes._write_registry(cliente_id, registry)
+    reportes._initialize_section_links_for_version(
+        cliente_id=cliente_id,
+        document_type="carta_control_interno",
+        document_version=7,
+        sections=[
+            {"section_id": "hallazgo:OBS-07", "section_title": "Hallazgo", "is_required": True, "status": "pending", "sources": []},
+        ],
+    )
+    reportes.post_document_section_evidence(
+        cliente_id,
+        "carta_control_interno",
+        "hallazgo:OBS-07",
+        payload={"source_type": "supporting_document", "source_id": "wp_issued", "reference": "WP-07", "label": "Soporte emisión"},
+        user=_user(role="senior"),
+    )
+    with pytest.raises(HTTPException) as exc:
+        reportes._transition_document_state(
+            cliente_id=cliente_id,
+            document_type="carta_control_interno",
+            target_state="issued",
+            changed_by="u_socio",
+            changed_role="socio",
+        )
+    assert exc.value.status_code == 422
+    assert "RUC" in str(exc.value.detail)
+
+
+def test_link_evidence_validates_workpaper_exists() -> None:
+    cliente_id = "cliente_demo"
+    registry = {
+        "documents": {
+            "carta_control_interno": {
+                "document_type": "carta_control_interno",
+                "versions": [
+                    {
+                        "document_version": 8,
+                        "is_current": True,
+                        "state": "draft",
+                        "document_snapshot": {"findings": [{"id": "OBS-08", "titulo": "Hallazgo"}]},
+                        "artifacts": [],
+                        "generation_metadata": {"required_sections": ["cover"]},
+                    }
+                ],
+            }
+        }
+    }
+    reportes._write_registry(cliente_id, registry)
+    reportes._initialize_section_links_for_version(
+        cliente_id=cliente_id,
+        document_type="carta_control_interno",
+        document_version=8,
+        sections=[{"section_id": "hallazgo:OBS-08", "section_title": "Hallazgo", "is_required": True, "status": "pending", "sources": []}],
+    )
+    with pytest.raises(HTTPException) as exc:
+        reportes.post_document_section_evidence(
+            cliente_id,
+            "carta_control_interno",
+            "hallazgo:OBS-08",
+            payload={"source_type": "workpaper", "source_id": "NO_EXISTE", "reference": "X", "label": "inválido"},
+            user=_user(role="staff"),
+        )
+    assert exc.value.status_code == 422

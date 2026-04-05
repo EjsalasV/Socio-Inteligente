@@ -1,0 +1,11 @@
+base:
+  locale: "es-EC"
+  timezone: "America/Bogota"
+
+firmas:
+  default:
+    branding:
+      city: "Quito"
+      firma_nombre: "Firma Auditora"
+    defaults:
+      destinatario: "Junta General de Accionistas"

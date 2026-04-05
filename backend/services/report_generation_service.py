@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CLIENTES_ROOT = ROOT / "data" / "clientes"
 DOCX_TEMPLATES_DIR = ROOT / "backend" / "templates" / "docx"
 TEMPLATE_CONTRACTS_PATH = DOCX_TEMPLATES_DIR / "template_contracts.yaml"
+TEMPLATE_PROFILES_PATH = DOCX_TEMPLATES_DIR / "template_profiles.yaml"
 
 
 def _safe_text(value: Any) -> str:
@@ -41,7 +42,41 @@ def _default_contract(document_type: str) -> dict[str, Any]:
     }
 
 
-def _load_template_contract(document_type: str) -> dict[str, Any]:
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    out = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(out.get(key), dict):
+            out[key] = _deep_merge(out.get(key) or {}, value)
+        else:
+            out[key] = value
+    return out
+
+
+def _load_template_profile(cliente_id: str, document_type: str) -> dict[str, Any]:
+    base: dict[str, Any] = {"document_type": document_type}
+    if TEMPLATE_PROFILES_PATH.exists():
+        try:
+            profiles = yaml.safe_load(TEMPLATE_PROFILES_PATH.read_text(encoding="utf-8")) or {}
+        except Exception:
+            profiles = {}
+        if isinstance(profiles, dict):
+            base = _deep_merge(base, profiles.get("base", {}) if isinstance(profiles.get("base"), dict) else {})
+            firma = profiles.get("firmas", {}) if isinstance(profiles.get("firmas"), dict) else {}
+            # v1: firma por defecto; en v2 se puede enrutar por org/tenant.
+            base = _deep_merge(base, firma.get("default", {}) if isinstance(firma.get("default"), dict) else {})
+
+    cliente_override_path = CLIENTES_ROOT / cliente_id / "template_overrides.yaml"
+    if cliente_override_path.exists():
+        try:
+            raw = yaml.safe_load(cliente_override_path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            raw = {}
+        if isinstance(raw, dict):
+            base = _deep_merge(base, raw.get(document_type, {}) if isinstance(raw.get(document_type), dict) else {})
+    return base
+
+
+def _load_template_contract(document_type: str, *, cliente_id: str | None = None) -> dict[str, Any]:
     if not TEMPLATE_CONTRACTS_PATH.exists():
         return _default_contract(document_type)
     try:
@@ -60,6 +95,9 @@ def _load_template_contract(document_type: str) -> dict[str, Any]:
         value = raw.get(key)
         if isinstance(value, list):
             contract[key] = [str(x).strip() for x in value if str(x).strip()]
+    if cliente_id:
+        profile = _load_template_profile(cliente_id, document_type)
+        contract = _deep_merge(contract, profile)
     return contract
 
 
@@ -273,6 +311,7 @@ def build_internal_control_letter(
             "company_name": full_company,
             "report_title": "Informe de Control Interno",
             "period_end": period_end,
+            "ruc": "[[PENDIENTE]]",
         },
         "contenido": {
             "major_interest_titles": [f.get("titulo") for f in major_findings],
@@ -704,7 +743,7 @@ def generate_internal_control_letter(
     requested_by: str = "",
 ) -> dict[str, Any]:
     document_type = "carta_control_interno"
-    contract = _load_template_contract(document_type)
+    contract = _load_template_contract(document_type, cliente_id=cliente_id)
     generated_at = datetime.now(timezone.utc)
     normalized_recipient = _normalize_recipient(recipient)
     perfil = read_perfil(cliente_id) or {}
@@ -712,6 +751,7 @@ def generate_internal_control_letter(
     encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
     company_name = _safe_text(cliente.get("nombre_legal")) or cliente_id
     period_end = _safe_text(encargo.get("periodo_fin")) or f"{encargo.get('anio_activo', '')}-12-31"
+    ruc = _safe_text(cliente.get("ruc")) or _safe_text(cliente.get("identificacion")) or "[[PENDIENTE]]"
     findings = collect_findings(cliente_id, max_findings=max_findings)
 
     document = build_internal_control_letter(
@@ -721,6 +761,9 @@ def generate_internal_control_letter(
         findings=findings,
         include_management_response=include_management_response,
     )
+    cover = document.get("cover") if isinstance(document.get("cover"), dict) else {}
+    if isinstance(cover, dict):
+        cover["ruc"] = ruc
     content = render_internal_control_letter_markdown(document)
     input_payload = {
         "recipient": normalized_recipient,
@@ -814,7 +857,7 @@ def generate_niif_pymes_draft(
     requested_by: str = "",
 ) -> dict[str, Any]:
     document_type = "niif_pymes_borrador"
-    contract = _load_template_contract(document_type)
+    contract = _load_template_contract(document_type, cliente_id=cliente_id)
     generated_at = datetime.now(timezone.utc)
     payload = _build_niif_notes_payload(
         cliente_id,

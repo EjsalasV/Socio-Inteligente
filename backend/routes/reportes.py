@@ -12,7 +12,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 
 from backend.auth import authorize_cliente_access, get_current_user
-from backend.repositories.file_repository import append_hallazgo, read_hallazgos, read_memo, write_memo
+from backend.repositories.file_repository import (
+    append_hallazgo,
+    read_hallazgos,
+    read_memo,
+    read_perfil,
+    read_workpapers,
+    write_memo,
+)
 from backend.routes.dashboard import get_dashboard
 from backend.routes.workpapers import _generate_tasks, _merge_saved_tasks, _quality_gates
 from backend.schemas import ApiResponse, PdfSummaryResponse, ReportMemoResponse, UserContext
@@ -203,6 +210,59 @@ def _section_matches_critical(section_id: str, critical_section: str) -> bool:
     if crit == "hallazgo" and (sid.startswith("hallazgo:") or sid.startswith("finding:")):
         return True
     return False
+
+
+def _is_pending_marker(value: Any) -> bool:
+    text = _safe_text(value).lower()
+    return not text or "[[pendiente]]" in text
+
+
+def _critical_hallazgo_ids(document_snapshot: dict[str, Any]) -> set[str]:
+    out: set[str] = set()
+    if not isinstance(document_snapshot, dict):
+        return out
+    findings = document_snapshot.get("findings")
+    if not isinstance(findings, list):
+        major = (
+            document_snapshot.get("major_interest_findings")
+            if isinstance(document_snapshot.get("major_interest_findings"), list)
+            else []
+        )
+        control = (
+            document_snapshot.get("internal_control_findings")
+            if isinstance(document_snapshot.get("internal_control_findings"), list)
+            else []
+        )
+        findings = [*major, *control]
+    for idx, finding in enumerate(findings, start=1):
+        if not isinstance(finding, dict):
+            continue
+        fid = _safe_text(finding.get("id")) or str(idx)
+        prioridad = _safe_text(finding.get("prioridad")).lower()
+        categoria = _safe_text(finding.get("categoria")).lower()
+        if prioridad in {"alta", "critica", "crítica"} or categoria == "mayor_interes":
+            out.add(fid)
+    return out
+
+
+def _coherence_issues_for_document(*, cliente_id: str, version: dict[str, Any], for_issue: bool) -> list[str]:
+    issues: list[str] = []
+    snapshot = version.get("document_snapshot") if isinstance(version.get("document_snapshot"), dict) else {}
+    if not isinstance(snapshot, dict):
+        return issues
+    perfil = read_perfil(cliente_id) or {}
+    encargo = perfil.get("encargo") if isinstance(perfil.get("encargo"), dict) else {}
+    expected_period = _safe_text(encargo.get("periodo_fin"))
+    cover = snapshot.get("cover") if isinstance(snapshot.get("cover"), dict) else {}
+    header = snapshot.get("header") if isinstance(snapshot.get("header"), dict) else {}
+    doc_period = _safe_text((cover or {}).get("period_end")) or _safe_text((header or {}).get("period_end"))
+    if expected_period and doc_period and expected_period != doc_period:
+        issues.append(f"Periodo inconsistente: documento '{doc_period}' != perfil '{expected_period}'.")
+    if _safe_text(version.get("document_type")) == "carta_control_interno" and for_issue:
+        ruc = _safe_text((cover or {}).get("ruc"))
+        if _is_pending_marker(ruc):
+            issues.append("RUC vacío o pendiente en carta a emitir.")
+    return issues
 
 
 def _section_hashes(document: dict[str, Any]) -> dict[str, str]:
@@ -451,8 +511,10 @@ def _transition_document_state(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="No se puede emitir si no esta en estado approved.",
         )
+    current["cliente_id"] = cliente_id
+    current["document_type"] = document_type
     if target_state == "approved":
-        qc = _quality_check_version(current)
+        qc = _quality_check_version(current, cliente_id=cliente_id)
         failing = [c for c in qc.get("checks", []) if isinstance(c, dict) and c.get("status") != "ok"]
         if failing:
             failed_labels = ", ".join([_safe_text(c.get("code")) for c in failing])
@@ -464,7 +526,15 @@ def _transition_document_state(
         if bool(policy.get("enforce_evidence_gate_on_approved", False)):
             ver = int(current.get("document_version") or 0)
             sections = _get_section_links_for_current(cliente_id, document_type, ver)
-            gate = _compute_evidence_gate(sections=sections, policy=policy, quality_check=qc)
+            critical_ids = _critical_hallazgo_ids(
+                current.get("document_snapshot") if isinstance(current.get("document_snapshot"), dict) else {}
+            )
+            gate = _compute_evidence_gate(
+                sections=sections,
+                policy=policy,
+                quality_check=qc,
+                critical_hallazgo_ids=critical_ids,
+            )
             if not bool(gate.get("can_approve")):
                 reasons = gate.get("approve_blocking_reasons") if isinstance(gate.get("approve_blocking_reasons"), list) else []
                 message = "; ".join([_safe_text(x) for x in reasons if _safe_text(x)])
@@ -478,12 +548,26 @@ def _transition_document_state(
                     detail += f" Secciones críticas sin evidencia: {', '.join(blocked_ids)}."
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=detail)
     if target_state == "issued":
+        coherence = _coherence_issues_for_document(cliente_id=cliente_id, version=current, for_issue=True)
+        if coherence:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"No se puede emitir: {'; '.join(coherence)}",
+            )
         policy = _document_evidence_policy(document_type)
         if bool(policy.get("enforce_evidence_gate_on_issued", False)):
             ver = int(current.get("document_version") or 0)
             sections = _get_section_links_for_current(cliente_id, document_type, ver)
-            qc = _quality_check_version(current)
-            gate = _compute_evidence_gate(sections=sections, policy=policy, quality_check=qc)
+            qc = _quality_check_version(current, cliente_id=cliente_id)
+            critical_ids = _critical_hallazgo_ids(
+                current.get("document_snapshot") if isinstance(current.get("document_snapshot"), dict) else {}
+            )
+            gate = _compute_evidence_gate(
+                sections=sections,
+                policy=policy,
+                quality_check=qc,
+                critical_hallazgo_ids=critical_ids,
+            )
             if not bool(gate.get("can_issue")):
                 reasons = gate.get("issue_blocking_reasons") if isinstance(gate.get("issue_blocking_reasons"), list) else []
                 message = "; ".join([_safe_text(x) for x in reasons if _safe_text(x)])
@@ -646,7 +730,7 @@ def _initialize_section_links_for_version(
     _write_links(cliente_id, links)
 
 
-def _quality_check_version(version: dict[str, Any]) -> dict[str, Any]:
+def _quality_check_version(version: dict[str, Any], *, cliente_id: str = "") -> dict[str, Any]:
     artifacts = version.get("artifacts") if isinstance(version.get("artifacts"), list) else []
     generation_metadata = (
         version.get("generation_metadata") if isinstance(version.get("generation_metadata"), dict) else {}
@@ -694,6 +778,19 @@ def _quality_check_version(version: dict[str, Any]) -> dict[str, Any]:
             "detail": "OK" if not has_empty_placeholder else "Se detectaron placeholders '{{...}}' sin resolver.",
         },
     ]
+    coherence_issues = _coherence_issues_for_document(
+        cliente_id=cliente_id or _safe_text(version.get("cliente_id")),
+        version=version,
+        for_issue=False,
+    )
+    checks.append(
+        {
+            "code": "PERIOD_COHERENCE",
+            "label": "Periodo de documento coherente con perfil",
+            "status": "ok" if not coherence_issues else "blocked",
+            "detail": "OK" if not coherence_issues else "; ".join(coherence_issues),
+        }
+    )
     can_approve = all(c.get("status") == "ok" for c in checks)
     total = len(checks)
     ok_count = len([c for c in checks if c.get("status") == "ok"])
@@ -1346,11 +1443,48 @@ def _refresh_section_status(section: dict[str, Any]) -> dict[str, Any]:
     return section
 
 
+def _validate_link_source_exists(
+    *,
+    cliente_id: str,
+    source_type: str,
+    source_id: str,
+    document_snapshot: dict[str, Any],
+) -> tuple[bool, str]:
+    if source_type in {"workpaper", "cedula"}:
+        tasks = read_workpapers(cliente_id)
+        task_ids = {_safe_text(t.get("id")) for t in tasks if isinstance(t, dict)}
+        if source_id not in task_ids:
+            return False, f"{source_type} '{source_id}' no existe en papeles_trabajo."
+        return True, ""
+    if source_type in {"trial_balance", "balance"}:
+        cdir = REPORTS_META_DIR / cliente_id
+        if not (cdir / "tb.xlsx").exists():
+            return False, "No existe TB cargado para validar source_id de balance."
+        return True, ""
+    if source_type == "hallazgo":
+        hallazgos_md = read_hallazgos(cliente_id)
+        if source_id not in hallazgos_md:
+            return False, f"hallazgo '{source_id}' no existe en hallazgos.md."
+        return True, ""
+    if source_type == "management_response":
+        findings = document_snapshot.get("findings") if isinstance(document_snapshot.get("findings"), list) else []
+        for f in findings:
+            if not isinstance(f, dict):
+                continue
+            fid = _safe_text(f.get("id"))
+            response = _safe_text(f.get("comentarios_administracion")) or _safe_text(f.get("respuesta_gerencia"))
+            if fid == source_id and not _is_pending_marker(response):
+                return True, ""
+        return False, "management_response no encontrada o pendiente."
+    return True, ""
+
+
 def _compute_evidence_gate(
     *,
     sections: list[dict[str, Any]],
     policy: dict[str, Any],
     quality_check: dict[str, Any] | None = None,
+    critical_hallazgo_ids: set[str] | None = None,
 ) -> dict[str, Any]:
     critical_sections = [
         _safe_text(x) for x in (policy.get("critical_sections") if isinstance(policy.get("critical_sections"), list) else []) if _safe_text(x)
@@ -1358,6 +1492,7 @@ def _compute_evidence_gate(
     minimum_required = float(policy.get("minimum_coverage_percent") or 0.0)
     normalized: list[dict[str, Any]] = []
     blocking_sections: list[dict[str, Any]] = []
+    blocking_keys: set[str] = set()
     supported = 0
 
     for raw in sections:
@@ -1372,13 +1507,30 @@ def _compute_evidence_gate(
         blocking_reason = ""
         if is_critical and status in {"missing_required_support", "pending"}:
             blocking_reason = "missing_required_support"
-            blocking_sections.append(
-                {
-                    "section_id": section_id,
-                    "section_title": _safe_text(section.get("section_title")),
-                    "reason": blocking_reason,
-                }
-            )
+            key = f"{section_id}:{blocking_reason}"
+            if key not in blocking_keys:
+                blocking_keys.add(key)
+                blocking_sections.append(
+                    {
+                        "section_id": section_id,
+                        "section_title": _safe_text(section.get("section_title")),
+                        "reason": blocking_reason,
+                    }
+                )
+        if section_id.startswith("hallazgo:") and critical_hallazgo_ids:
+            fid = section_id.split(":", 1)[1]
+            if fid in critical_hallazgo_ids and status != "supported":
+                blocking_reason = "critical_finding_without_evidence"
+                key = f"{section_id}:{blocking_reason}"
+                if key not in blocking_keys:
+                    blocking_keys.add(key)
+                    blocking_sections.append(
+                        {
+                            "section_id": section_id,
+                            "section_title": _safe_text(section.get("section_title")),
+                            "reason": blocking_reason,
+                        }
+                    )
         if status == "supported":
             supported += 1
         section["is_critical"] = is_critical
@@ -1430,8 +1582,14 @@ def _evidence_gate_for_current_version(cliente_id: str, document_type: str) -> d
     document_version = int(current.get("document_version") or 0)
     sections = _get_section_links_for_current(cliente_id, document_type, document_version)
     policy = _document_evidence_policy(document_type)
-    qc = _quality_check_version(current)
-    gate = _compute_evidence_gate(sections=sections, policy=policy, quality_check=qc)
+    qc = _quality_check_version(current, cliente_id=cliente_id)
+    critical_ids = _critical_hallazgo_ids(current.get("document_snapshot") if isinstance(current.get("document_snapshot"), dict) else {})
+    gate = _compute_evidence_gate(
+        sections=sections,
+        policy=policy,
+        quality_check=qc,
+        critical_hallazgo_ids=critical_ids,
+    )
     gate.update(
         {
             "cliente_id": cliente_id,
@@ -1456,7 +1614,13 @@ def get_document_sections(
     ver = int(current.get("document_version") or 0)
     sections = _get_section_links_for_current(cliente_id, document_type, ver)
     policy = _document_evidence_policy(document_type)
-    gate = _compute_evidence_gate(sections=sections, policy=policy, quality_check=_quality_check_version(current))
+    critical_ids = _critical_hallazgo_ids(current.get("document_snapshot") if isinstance(current.get("document_snapshot"), dict) else {})
+    gate = _compute_evidence_gate(
+        sections=sections,
+        policy=policy,
+        quality_check=_quality_check_version(current, cliente_id=cliente_id),
+        critical_hallazgo_ids=critical_ids,
+    )
     normalized = gate.get("sections") if isinstance(gate.get("sections"), list) else []
     missing_required = len([s for s in normalized if s.get("status") == "missing_required_support"])
     return ApiResponse(
@@ -1484,6 +1648,7 @@ def get_document_section_evidence(
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
     current = _get_current_version_record(cliente_id, document_type)
+    snapshot = current.get("document_snapshot") if isinstance(current.get("document_snapshot"), dict) else {}
     ver = int(current.get("document_version") or 0)
     sections = _get_section_links_for_current(cliente_id, document_type, ver)
     section = next((s for s in sections if _safe_text(s.get("section_id")) == section_id), None)
@@ -1491,7 +1656,13 @@ def get_document_section_evidence(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada.")
     snapshot = current.get("document_snapshot") if isinstance(current.get("document_snapshot"), dict) else {}
     policy = _document_evidence_policy(document_type)
-    gate = _compute_evidence_gate(sections=sections, policy=policy, quality_check=_quality_check_version(current))
+    critical_ids = _critical_hallazgo_ids(snapshot if isinstance(snapshot, dict) else {})
+    gate = _compute_evidence_gate(
+        sections=sections,
+        policy=policy,
+        quality_check=_quality_check_version(current, cliente_id=cliente_id),
+        critical_hallazgo_ids=critical_ids,
+    )
     gate_sections = gate.get("sections") if isinstance(gate.get("sections"), list) else []
     enriched = next(
         (s for s in gate_sections if isinstance(s, dict) and _safe_text(s.get("section_id")) == section_id),
@@ -1546,6 +1717,7 @@ def post_document_section_evidence(
         )
 
     current = _get_current_version_record(cliente_id, document_type)
+    snapshot = current.get("document_snapshot") if isinstance(current.get("document_snapshot"), dict) else {}
     ver = int(current.get("document_version") or 0)
     links = _read_links(cliente_id)
     docs = links.get("documents") if isinstance(links.get("documents"), dict) else {}
@@ -1556,6 +1728,14 @@ def post_document_section_evidence(
     target = next((s for s in sections if isinstance(s, dict) and _safe_text(s.get("section_id")) == section_id), None)
     if not isinstance(target, dict):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada para vincular evidencia.")
+    source_ok, source_err = _validate_link_source_exists(
+        cliente_id=cliente_id,
+        source_type=source_type,
+        source_id=source_id,
+        document_snapshot=snapshot if isinstance(snapshot, dict) else {},
+    )
+    if not source_ok:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=source_err)
 
     sources = target.get("sources")
     if not isinstance(sources, list):
@@ -1577,6 +1757,7 @@ def post_document_section_evidence(
         "linked_by": user.sub,
         "linked_at": datetime.now(timezone.utc).isoformat(),
         "mode": "manual",
+        "validated": source_ok,
     }
     if isinstance(existing, dict):
         existing.update(source_payload)
@@ -1655,7 +1836,7 @@ def get_document_quality_check(
     current = next((v for v in versions if isinstance(v, dict) and bool(v.get("is_current"))), None)
     if not isinstance(current, dict):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No hay version vigente para validar.")
-    qc = _quality_check_version(current)
+    qc = _quality_check_version(current, cliente_id=cliente_id)
     return ApiResponse(
         data={
             "cliente_id": cliente_id,
