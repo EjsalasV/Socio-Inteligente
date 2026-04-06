@@ -814,14 +814,14 @@ def _build_html_from_docx(docx_path: Path) -> str:
         from docx import Document
     except Exception as exc:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No se pudo leer DOCX para emisión final (python-docx no disponible).",
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="No se pudo emitir PDF: dependencia python-docx no disponible.",
         ) from exc
     try:
         doc = Document(str(docx_path))
     except Exception as exc:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="No se pudo abrir el DOCX seleccionado para emisión final.",
         ) from exc
     blocks: list[str] = []

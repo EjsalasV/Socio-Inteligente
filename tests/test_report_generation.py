@@ -684,3 +684,135 @@ def test_link_evidence_validates_workpaper_exists() -> None:
             user=_user(role="staff"),
         )
     assert exc.value.status_code == 422
+
+
+def test_smoke_document_workflow_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Smoke test del flujo documental completo: draft -> reviewed -> approved -> issued."""
+    cliente_id = "cliente_demo"
+    monkeypatch.setattr(reportes, "authorize_cliente_access", lambda cliente_id, user: None)
+    docx_path = tmp_path / "carta.docx"
+    docx_path.write_bytes(b"fake-docx")
+
+    def _fake_generate(*args, **kwargs):
+        now = datetime.now(timezone.utc).isoformat()
+        document = {
+            "cover": {"company_name": "ACME S.A.", "period_end": "2025-12-31", "ruc": "1234567890001"},
+            "contenido": {"major_interest_titles": ["Hallazgo crítico"], "control_titles": []},
+            "letter_intro": {"city_and_date": "Quito, 5 de abril del 2026"},
+            "major_interest_findings": [
+                {
+                    "id": "H1",
+                    "titulo": "Hallazgo crítico",
+                    "prioridad": "alta",
+                    "categoria": "mayor_interes",
+                    "observacion": "Observación de prueba",
+                    "recomendacion": "Recomendación de prueba",
+                    "comentarios_administracion": "Respuesta de prueba",
+                }
+            ],
+            "internal_control_findings": [],
+            "findings": [
+                {
+                    "id": "H1",
+                    "titulo": "Hallazgo crítico",
+                    "prioridad": "alta",
+                    "categoria": "mayor_interes",
+                    "observacion": "Observación de prueba",
+                    "recomendacion": "Recomendación de prueba",
+                    "comentarios_administracion": "Respuesta de prueba",
+                }
+            ],
+            "closing": "Cierre de prueba",
+        }
+        return {
+            "content": "Informe de prueba",
+            "document": document,
+            "path": str(docx_path),
+            "findings_count": 1,
+            "recipient": "Junta General de Accionistas",
+            "generation_metadata": {
+                "source": "fallback",
+                "provider": "fallback",
+                "model": "",
+                "prompt_id": "test",
+                "prompt_version": "v1",
+                "document_type": "carta_control_interno",
+                "template_mode": "default",
+                "template_version": "v1",
+                "placeholders_supported": [],
+                "required_sections": [
+                    "cover",
+                    "contenido",
+                    "letter_intro",
+                    "major_interest_findings",
+                    "internal_control_findings",
+                    "closing",
+                ],
+                "optional_sections": ["findings"],
+                "generated_at": now,
+                "requested_by": "tester",
+                "input_payload": {"recipient": "Junta General de Accionistas"},
+            },
+            "artifacts": [
+                {"artifact_type": "markdown", "artifact_path": str(tmp_path / "carta.md"), "artifact_hash": "x1", "template_version": "v1", "size_bytes": 10},
+                {"artifact_type": "docx", "artifact_path": str(docx_path), "artifact_hash": "x2", "template_version": "v1", "size_bytes": 20},
+            ],
+        }
+
+    monkeypatch.setattr(reportes, "generate_internal_control_letter", _fake_generate)
+    monkeypatch.setattr(reportes, "_emit_pdf_from_docx", lambda **kwargs: b"%PDF-1.4 fake")
+
+    generated = reportes.post_internal_control_letter(
+        cliente_id,
+        payload=InternalControlLetterRequest(recipient="Junta General de Accionistas", include_management_response=True, max_findings=5),
+        user=_user(role="staff"),
+    )
+    assert generated.data["state"] == "draft"
+
+    sections_before = reportes.get_document_sections(cliente_id, "carta_control_interno", user=_user(role="staff"))
+    assert sections_before.data["coverage"]["missing_required"] >= 1
+
+    sections = sections_before.data.get("sections") or []
+    for idx, sec in enumerate(sections, start=1):
+        if not isinstance(sec, dict):
+            continue
+        section_id = str(sec.get("section_id") or "").strip()
+        if not section_id:
+            continue
+        reportes.post_document_section_evidence(
+            cliente_id,
+            "carta_control_interno",
+            section_id,
+            payload={
+                "source_type": "supporting_document",
+                "source_id": f"doc-{idx}",
+                "reference": f"REF-{idx}",
+                "label": f"Soporte {idx}",
+            },
+            user=_user(role="staff"),
+        )
+
+    reviewed = reportes.post_document_state_transition(
+        cliente_id,
+        "carta_control_interno",
+        payload={"target_state": "reviewed", "reason": "Smoke test reviewed"},
+        user=_user(role="senior"),
+    )
+    assert reviewed.data["updated_version"]["state"] == "reviewed"
+
+    approved = reportes.post_document_state_transition(
+        cliente_id,
+        "carta_control_interno",
+        payload={"target_state": "approved", "reason": "Smoke test approved"},
+        user=_user(role="gerente"),
+    )
+    assert approved.data["updated_version"]["state"] == "approved"
+
+    issued = reportes.post_document_issue(
+        cliente_id,
+        "carta_control_interno",
+        payload={"reason": "Smoke test issued"},
+        user=_user(role="socio"),
+    )
+    assert issued.data["state"] == "issued"
+    assert issued.data["pdf_artifact_hash"]
