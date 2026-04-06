@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import re
@@ -381,6 +381,40 @@ class FileRepository:
         p = cdir / "chat_history.json"
         p.write_text(json.dumps(history[-200:], ensure_ascii=False, indent=2), encoding="utf-8")
 
+    def append_briefing_time_log(
+        self,
+        *,
+        cliente_id: str,
+        area_codigo: str,
+        area_nombre: str,
+        tiempo_manual_min: float,
+        tiempo_ai_min: float,
+        notas: str = "",
+        user_id: str = "",
+    ) -> dict[str, Any]:
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
+        cdir.mkdir(parents=True, exist_ok=True)
+        path = cdir / "metricas_briefing.jsonl"
+        manual = float(tiempo_manual_min or 0.0)
+        ai = float(tiempo_ai_min or 0.0)
+        delta = manual - ai
+        ahorro_pct = (delta / manual * 100.0) if manual > 0 else 0.0
+        payload = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "user_id": str(user_id or ""),
+            "cliente_id": cliente_id,
+            "area_codigo": area_codigo,
+            "area_nombre": area_nombre,
+            "tiempo_manual_min": manual,
+            "tiempo_ai_min": ai,
+            "delta_min": round(delta, 2),
+            "ahorro_pct": round(max(0.0, ahorro_pct), 2),
+            "notas": str(notas or "").strip(),
+        }
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+        return {"saved": True, "delta_min": payload["delta_min"], "ahorro_pct": payload["ahorro_pct"]}
+
     def list_documentos(self, cliente_id: str) -> list[dict[str, Any]]:
         cdir = self._resolve_cliente_dir(cliente_id)
         docs_dir = cdir / "documentos"
@@ -644,7 +678,49 @@ class FileRepository:
             or "Sin asignar"
         )
         estatus = str(area_data.get("estado_area") or "pendiente")
-        nombre_area = get_area_name(area_code, str(area_data.get("nombre") or f"Área {area_code}"))
+        nombre_area = get_area_name(area_code, str(area_data.get("nombre") or f"Area {area_code}"))
+        area_riesgo = str(area_data.get("riesgo") or "medio").strip().lower()
+
+        marco_raw = str(perfil.get("encargo", {}).get("marco_referencial") or "niif_pymes").strip().lower()
+        if "pyme" in marco_raw:
+            marco = "niif_pymes"
+        elif "completa" in marco_raw:
+            marco = "niif_completas"
+        else:
+            marco = "ambos"
+
+        mat = (
+            perfil.get("materialidad", {}).get("final", {}).get("materialidad_planeacion")
+            if isinstance(perfil.get("materialidad"), dict)
+            else None
+        )
+        try:
+            materialidad_area = float(area_data.get("materialidad_area") or mat or 0.0)
+        except Exception:
+            materialidad_area = 0.0
+
+        afirmaciones_criticas = area_data.get("afirmaciones_criticas")
+        if not isinstance(afirmaciones_criticas, list) or not afirmaciones_criticas:
+            afirmaciones_criticas = [str(a.get("nombre") or "").strip().lower() for a in self._find_aseveraciones(area_code)]
+            afirmaciones_criticas = [a for a in afirmaciones_criticas if a]
+
+        patrones_historicos = area_data.get("patrones_historicos")
+        if not isinstance(patrones_historicos, list):
+            patrones_historicos = []
+
+        hallazgos_previos_raw = area_data.get("hallazgos_previos")
+        hallazgos_previos: list[str] = []
+        if isinstance(hallazgos_previos_raw, list):
+            for row in hallazgos_previos_raw:
+                txt = str((row.get("descripcion") if isinstance(row, dict) else row) or "").strip()
+                if txt:
+                    hallazgos_previos.append(txt)
+        if not hallazgos_previos and isinstance(area_data.get("hallazgos_abiertos"), list):
+            for row in area_data.get("hallazgos_abiertos") or []:
+                if isinstance(row, dict):
+                    txt = str(row.get("descripcion") or "").strip()
+                    if txt:
+                        hallazgos_previos.append(txt)
 
         return {
             "encabezado": {
@@ -657,8 +733,19 @@ class FileRepository:
             },
             "cuentas": cuentas,
             "aseveraciones": self._find_aseveraciones(area_code),
+            "briefing_context": {
+                "cliente_id": cliente_id,
+                "area_codigo": area_code,
+                "area_nombre": nombre_area,
+                "marco": marco,
+                "riesgo": area_riesgo,
+                "afirmaciones_criticas": afirmaciones_criticas[:4],
+                "materialidad": materialidad_area,
+                "patrones_historicos": [str(x).strip() for x in patrones_historicos if str(x).strip()][:5],
+                "hallazgos_previos": hallazgos_previos[:5],
+                "etapa": str(perfil.get("encargo", {}).get("fase_actual") or "ejecucion").strip().lower(),
+            },
         }
-
     def set_area_account_check(self, cliente_id: str, area_code: str, cuenta_codigo: str, checked: bool) -> dict[str, Any]:
         area_data = self.read_area_yaml(cliente_id, area_code)
         checks = area_data.get("revision_checks")
@@ -725,7 +812,7 @@ class FileRepository:
             riesgos.append(
                 {
                     "nivel": risk_level,
-                    "titulo": "Riesgo de variación material",
+                    "titulo": "Riesgo de variaciÃ³n material",
                     "descripcion": "Analizar coherencia de movimientos del periodo y soportes de cierre.",
                 }
             )
@@ -733,7 +820,7 @@ class FileRepository:
         return {
             "cliente_id": cliente_id,
             "area_ls": area_ls,
-            "area_name": str(area_data.get("nombre") or f"Área {area_ls}"),
+            "area_name": str(area_data.get("nombre") or f"Ãrea {area_ls}"),
             "saldos": {
                 "actual_year": current_year,
                 "previous_year": previous_year,
@@ -880,3 +967,25 @@ def append_audit_log(*, user_id: str, cliente_id: str, endpoint: str, extra: dic
     }
     with log_path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+
+
+def append_briefing_time_log(
+    *,
+    cliente_id: str,
+    area_codigo: str,
+    area_nombre: str,
+    tiempo_manual_min: float,
+    tiempo_ai_min: float,
+    notas: str = "",
+    user_id: str = "",
+) -> dict[str, Any]:
+    return repo.append_briefing_time_log(
+        cliente_id=cliente_id,
+        area_codigo=area_codigo,
+        area_nombre=area_nombre,
+        tiempo_manual_min=tiempo_manual_min,
+        tiempo_ai_min=tiempo_ai_min,
+        notas=notas,
+        user_id=user_id,
+    )
+

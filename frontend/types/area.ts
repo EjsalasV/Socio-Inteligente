@@ -31,4 +31,16 @@ export interface AreaDetailData {
   encabezado: AreaEncabezado;
   cuentas: AreaCuenta[];
   aseveraciones: AreaAseveracion[];
+  briefing_context: {
+    cliente_id: string;
+    area_codigo: string;
+    area_nombre: string;
+    marco: string;
+    riesgo: string;
+    afirmaciones_criticas: string[];
+    materialidad: number;
+    patrones_historicos: string[];
+    hallazgos_previos: string[];
+    etapa: string;
+  };
 }

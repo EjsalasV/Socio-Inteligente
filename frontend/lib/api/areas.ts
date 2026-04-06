@@ -50,19 +50,39 @@ function normalizeAseveracion(value: unknown): AreaAseveracion | null {
   };
 }
 
+function normalizeBriefingContext(value: unknown, clienteId: string, areaCode: string, areaNombre: string) {
+  const row = typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+  const asStringList = (v: unknown): string[] =>
+    Array.isArray(v) ? v.map((x) => asString(x)).filter((x) => x.length > 0) : [];
+  return {
+    cliente_id: asString(row.cliente_id, clienteId),
+    area_codigo: asString(row.area_codigo, areaCode),
+    area_nombre: asString(row.area_nombre, areaNombre),
+    marco: asString(row.marco, "niif_pymes"),
+    riesgo: asString(row.riesgo, "medio"),
+    afirmaciones_criticas: asStringList(row.afirmaciones_criticas),
+    materialidad: asNumber(row.materialidad, 0),
+    patrones_historicos: asStringList(row.patrones_historicos),
+    hallazgos_previos: asStringList(row.hallazgos_previos),
+    etapa: asString(row.etapa, "ejecucion"),
+  };
+}
+
 export async function getAreaDetail(clienteId: string, areaCode: string): Promise<AreaDetailData> {
   try {
     const response = await authFetchJson<ApiEnvelope<unknown>>(`/areas/${clienteId}/${areaCode}`);
     const raw = typeof response?.data === "object" && response?.data !== null ? (response.data as Record<string, unknown>) : {};
 
+    const encabezado = normalizeEncabezado(raw.encabezado, areaCode);
     return {
-      encabezado: normalizeEncabezado(raw.encabezado, areaCode),
+      encabezado,
       cuentas: (Array.isArray(raw.cuentas) ? raw.cuentas : [])
         .map(normalizeCuenta)
         .filter((x): x is AreaCuenta => x !== null),
       aseveraciones: (Array.isArray(raw.aseveraciones) ? raw.aseveraciones : [])
         .map(normalizeAseveracion)
         .filter((x): x is AreaAseveracion => x !== null),
+      briefing_context: normalizeBriefingContext(raw.briefing_context, clienteId, areaCode, encabezado.nombre),
     };
   } catch (error) {
     if (error instanceof TokenExpiredError) {

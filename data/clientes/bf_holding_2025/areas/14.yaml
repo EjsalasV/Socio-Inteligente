@@ -33,3 +33,19 @@ pendientes_clave:
 - Registro contable del resultado por participación.
 revision_checks:
   1.02.07.04.001: true
+schema_version: v1
+riesgo: medio
+afirmaciones_criticas:
+- existencia
+- valuacion
+- derechos
+- presentacion
+afirmaciones_coverage: []
+conclusion: ''
+materialidad_area: 5090.0
+marco: niif_pymes
+etapa: planificacion
+patrones_historicos: []
+hallazgos_previos:
+- La holding aún no cuenta con estados financieros finales de las subsidiarias para
+  determinar el VPP.

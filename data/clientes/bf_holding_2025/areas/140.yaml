@@ -1,3 +1,20 @@
 codigo: '140'
 nombre: Efectivo y Equivalentes
 estado_area: pendiente
+schema_version: v1
+riesgo: medio
+afirmaciones_criticas:
+- existencia
+- integridad
+- derechos
+- presentacion
+afirmaciones_coverage: []
+procedimientos: []
+hallazgos_abiertos: []
+conclusion: ''
+revision_checks: {}
+materialidad_area: 5090.0
+marco: niif_pymes
+etapa: planificacion
+patrones_historicos: []
+hallazgos_previos: []

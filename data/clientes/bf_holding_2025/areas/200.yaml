@@ -1,59 +1,65 @@
-codigo: "200"
-nombre: "Patrimonio"
-estado_area: "en_ejecucion"
-
+codigo: '200'
+nombre: Patrimonio
+estado_area: en_ejecucion
 contexto_area:
-  tipo_entidad: "holding"
-  accionista: "fideicomiso"
+  tipo_entidad: holding
+  accionista: fideicomiso
   numero_subsidiarias: 13
   ingresos_operativos: false
-  principal_fuente_resultado: "participacion en subsidiarias (VPP)"
-
+  principal_fuente_resultado: participacion en subsidiarias (VPP)
 procedimientos:
-
-  - id: "revision_movimientos_patrimonio"
-    descripcion: "Revisión de movimientos del patrimonio durante el período"
-    estado: "ejecutado"
-
-  - id: "validacion_utilidades_retenidas"
-    descripcion: "Validación de utilidades retenidas provenientes de ejercicios anteriores"
-    estado: "ejecutado"
-
-  - id: "verificacion_accionistas"
-    descripcion: "Verificación de la estructura accionaria y confirmación de que no existieron cambios en el período"
-    estado: "ejecutado"
-
-  - id: "revision_resultado_ejercicio"
-    descripcion: "Revisión del resultado preliminar del ejercicio antes del reconocimiento del VPP"
-    estado: "en_proceso"
-
-  - id: "reconocimiento_resultado_vpp"
-    descripcion: "Verificación del reconocimiento del resultado por participación en subsidiarias (VPP)"
-    estado: "pendiente"
-
-  - id: "reclasificacion_resultado_patrimonio"
-    descripcion: "Validación del cierre contable del resultado contra utilidades retenidas"
-    estado: "pendiente"
-
-  - id: "revision_revelaciones_patrimonio"
-    descripcion: "Revisión de las revelaciones del patrimonio en los estados financieros consolidados"
-    estado: "planificado"
-
+- id: revision_movimientos_patrimonio
+  descripcion: Revisión de movimientos del patrimonio durante el período
+  estado: ejecutado
+- id: validacion_utilidades_retenidas
+  descripcion: Validación de utilidades retenidas provenientes de ejercicios anteriores
+  estado: ejecutado
+- id: verificacion_accionistas
+  descripcion: Verificación de la estructura accionaria y confirmación de que no existieron
+    cambios en el período
+  estado: ejecutado
+- id: revision_resultado_ejercicio
+  descripcion: Revisión del resultado preliminar del ejercicio antes del reconocimiento
+    del VPP
+  estado: en_proceso
+- id: reconocimiento_resultado_vpp
+  descripcion: Verificación del reconocimiento del resultado por participación en
+    subsidiarias (VPP)
+  estado: pendiente
+- id: reclasificacion_resultado_patrimonio
+  descripcion: Validación del cierre contable del resultado contra utilidades retenidas
+  estado: pendiente
+- id: revision_revelaciones_patrimonio
+  descripcion: Revisión de las revelaciones del patrimonio en los estados financieros
+    consolidados
+  estado: planificado
 hallazgos_abiertos:
-
-  - id: "PAT-01"
-    descripcion: "El resultado del ejercicio aún no incluye el reconocimiento del VPP de las subsidiarias."
-    aseveracion_afectada: "valuacion"
-    estado: "abierto"
-
+- id: PAT-01
+  descripcion: El resultado del ejercicio aún no incluye el reconocimiento del VPP
+    de las subsidiarias.
+  aseveracion_afectada: valuacion
+  estado: abierto
 dependencias_criticas:
-
-  - area: "14"
-    descripcion: "El reconocimiento del VPP depende de la recepción de estados financieros finales de las subsidiarias."
-
+- area: '14'
+  descripcion: El reconocimiento del VPP depende de la recepción de estados financieros
+    finales de las subsidiarias.
 pendientes_clave:
-
-  - "Recepción de estados financieros finales de las subsidiarias."
-  - "Cálculo del valor patrimonial proporcional (VPP)."
-  - "Registro contable del resultado por participación."
-  - "Cierre contable del resultado del ejercicio contra utilidades retenidas."
+- Recepción de estados financieros finales de las subsidiarias.
+- Cálculo del valor patrimonial proporcional (VPP).
+- Registro contable del resultado por participación.
+- Cierre contable del resultado del ejercicio contra utilidades retenidas.
+schema_version: v1
+riesgo: medio
+afirmaciones_criticas:
+- integridad
+- presentacion
+- derechos
+afirmaciones_coverage: []
+conclusion: ''
+revision_checks: {}
+materialidad_area: 5090.0
+marco: niif_pymes
+etapa: planificacion
+patrones_historicos: []
+hallazgos_previos:
+- El resultado del ejercicio aún no incluye el reconocimiento del VPP de las subsidiarias.

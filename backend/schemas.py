@@ -261,6 +261,7 @@ class AreaWorkspaceResponse(BaseModel):
     encabezado: AreaEncabezado
     cuentas: list[AreaCuentaItem]
     aseveraciones: list[AreaAseveracion]
+    briefing_context: dict[str, Any] = Field(default_factory=dict)
 
 
 class AreaConclusionRequest(BaseModel):
@@ -273,6 +274,73 @@ class AreaCheckRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
+
+
+class BriefingAreaRequest(BaseModel):
+    cliente_id: str
+    area_codigo: str
+    area_nombre: str
+    marco: str
+    riesgo: str
+    afirmaciones_criticas: list[str] = Field(default_factory=list)
+    materialidad: float = 0.0
+    patrones_historicos: list[str] = Field(default_factory=list)
+    hallazgos_previos: list[str] = Field(default_factory=list)
+    etapa: str = "ejecucion"
+
+
+class BriefingChunkUsed(BaseModel):
+    norma: str
+    fuente: str
+    excerpt: str
+
+
+class BriefingAreaResponse(BaseModel):
+    area_codigo: str
+    area_nombre: str
+    briefing: str
+    normas_activadas: list[str] = Field(default_factory=list)
+    chunks_usados: list[BriefingChunkUsed] = Field(default_factory=list)
+    generado_en: str
+
+
+class HallazgoEstructurarRequest(BaseModel):
+    cliente_id: str
+    area_codigo: str
+    area_nombre: str
+    marco: str
+    riesgo: str
+    afirmaciones_criticas: list[str] = Field(default_factory=list)
+    etapa: str = "ejecucion"
+    condicion_detectada: str
+    monto_estimado: float | None = None
+    causa_preliminar: str = ""
+    efecto_preliminar: str = ""
+    guardar_en_hallazgos: bool = False
+
+
+class HallazgoEstructurarResponse(BaseModel):
+    area_codigo: str
+    area_nombre: str
+    hallazgo: str
+    normas_activadas: list[str] = Field(default_factory=list)
+    chunks_usados: list[BriefingChunkUsed] = Field(default_factory=list)
+    generado_en: str
+
+
+class BriefingTiempoLogRequest(BaseModel):
+    cliente_id: str
+    area_codigo: str
+    area_nombre: str
+    tiempo_manual_min: float = 0.0
+    tiempo_ai_min: float = 0.0
+    notas: str = ""
+
+
+class BriefingTiempoLogResponse(BaseModel):
+    saved: bool = True
+    delta_min: float = 0.0
+    ahorro_pct: float = 0.0
 
 
 class ChatResponse(BaseModel):
