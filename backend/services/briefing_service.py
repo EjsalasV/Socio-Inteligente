@@ -19,15 +19,23 @@ def get_llm_client() -> openai.OpenAI:
 
 
 def llamar_llm(prompt: str) -> str:
-    client = get_llm_client()
-    response = client.chat.completions.create(
-        model="deepseek-chat",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=800,
-        temperature=0.3,
-    )
-    content = response.choices[0].message.content if response.choices else ""
-    return str(content or "").strip()
+    try:
+        client = get_llm_client()
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=800,
+            temperature=0.3,
+        )
+        content = response.choices[0].message.content if response.choices else ""
+        text = str(content or "").strip()
+        if not text:
+            raise RuntimeError("LLM devolvio respuesta vacia")
+        return text
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(f"Error al generar briefing con DeepSeek: {exc}") from exc
 
 
 def _normalize_text_list(values: list[str] | None, *, fallback: str = "N/D") -> list[str]:
