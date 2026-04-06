@@ -688,6 +688,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/briefing/area": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Briefing Area */
+        post: operations["post_briefing_area_api_briefing_area_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hallazgos/estructurar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Estructurar Hallazgo */
+        post: operations["post_estructurar_hallazgo_api_hallazgos_estructurar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hallazgos/tiempo-briefing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Tiempo Briefing */
+        post: operations["post_tiempo_briefing_api_hallazgos_tiempo_briefing_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -796,6 +847,59 @@ export interface components {
         Body_upload_cliente_file_clientes__cliente_id__upload__kind__post: {
             /** File */
             file: string;
+        };
+        /** BriefingAreaRequest */
+        BriefingAreaRequest: {
+            /** Cliente Id */
+            cliente_id: string;
+            /** Area Codigo */
+            area_codigo: string;
+            /** Area Nombre */
+            area_nombre: string;
+            /** Marco */
+            marco: string;
+            /** Riesgo */
+            riesgo: string;
+            /** Afirmaciones Criticas */
+            afirmaciones_criticas?: string[];
+            /**
+             * Materialidad
+             * @default 0
+             */
+            materialidad: number;
+            /** Patrones Historicos */
+            patrones_historicos?: string[];
+            /** Hallazgos Previos */
+            hallazgos_previos?: string[];
+            /**
+             * Etapa
+             * @default ejecucion
+             */
+            etapa: string;
+        };
+        /** BriefingTiempoLogRequest */
+        BriefingTiempoLogRequest: {
+            /** Cliente Id */
+            cliente_id: string;
+            /** Area Codigo */
+            area_codigo: string;
+            /** Area Nombre */
+            area_nombre: string;
+            /**
+             * Tiempo Manual Min
+             * @default 0
+             */
+            tiempo_manual_min: number;
+            /**
+             * Tiempo Ai Min
+             * @default 0
+             */
+            tiempo_ai_min: number;
+            /**
+             * Notas
+             * @default
+             */
+            notas: string;
         };
         /** ChatExportRequest */
         ChatExportRequest: {
@@ -960,6 +1064,45 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HallazgoEstructurarRequest */
+        HallazgoEstructurarRequest: {
+            /** Cliente Id */
+            cliente_id: string;
+            /** Area Codigo */
+            area_codigo: string;
+            /** Area Nombre */
+            area_nombre: string;
+            /** Marco */
+            marco: string;
+            /** Riesgo */
+            riesgo: string;
+            /** Afirmaciones Criticas */
+            afirmaciones_criticas?: string[];
+            /**
+             * Etapa
+             * @default ejecucion
+             */
+            etapa: string;
+            /** Condicion Detectada */
+            condicion_detectada: string;
+            /** Monto Estimado */
+            monto_estimado?: number | null;
+            /**
+             * Causa Preliminar
+             * @default
+             */
+            causa_preliminar: string;
+            /**
+             * Efecto Preliminar
+             * @default
+             */
+            efecto_preliminar: string;
+            /**
+             * Guardar En Hallazgos
+             * @default false
+             */
+            guardar_en_hallazgos: boolean;
         };
         /** InternalControlLetterRequest */
         InternalControlLetterRequest: {
@@ -2541,6 +2684,105 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["WorkflowAdvanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_briefing_area_api_briefing_area_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BriefingAreaRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_estructurar_hallazgo_api_hallazgos_estructurar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HallazgoEstructurarRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_tiempo_briefing_api_hallazgos_tiempo_briefing_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BriefingTiempoLogRequest"];
             };
         };
         responses: {

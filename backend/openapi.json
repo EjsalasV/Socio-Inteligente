@@ -2403,6 +2403,144 @@
         }
       }
     },
+    "/api/briefing/area": {
+      "post": {
+        "tags": [
+          "briefing"
+        ],
+        "summary": "Post Briefing Area",
+        "operationId": "post_briefing_area_api_briefing_area_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BriefingAreaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/hallazgos/estructurar": {
+      "post": {
+        "tags": [
+          "hallazgos"
+        ],
+        "summary": "Post Estructurar Hallazgo",
+        "operationId": "post_estructurar_hallazgo_api_hallazgos_estructurar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HallazgoEstructurarRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/hallazgos/tiempo-briefing": {
+      "post": {
+        "tags": [
+          "hallazgos"
+        ],
+        "summary": "Post Tiempo Briefing",
+        "operationId": "post_tiempo_briefing_api_hallazgos_tiempo_briefing_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BriefingTiempoLogRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -2590,6 +2728,108 @@
           "file"
         ],
         "title": "Body_upload_cliente_file_clientes__cliente_id__upload__kind__post"
+      },
+      "BriefingAreaRequest": {
+        "properties": {
+          "cliente_id": {
+            "type": "string",
+            "title": "Cliente Id"
+          },
+          "area_codigo": {
+            "type": "string",
+            "title": "Area Codigo"
+          },
+          "area_nombre": {
+            "type": "string",
+            "title": "Area Nombre"
+          },
+          "marco": {
+            "type": "string",
+            "title": "Marco"
+          },
+          "riesgo": {
+            "type": "string",
+            "title": "Riesgo"
+          },
+          "afirmaciones_criticas": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Afirmaciones Criticas"
+          },
+          "materialidad": {
+            "type": "number",
+            "title": "Materialidad",
+            "default": 0.0
+          },
+          "patrones_historicos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Patrones Historicos"
+          },
+          "hallazgos_previos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Hallazgos Previos"
+          },
+          "etapa": {
+            "type": "string",
+            "title": "Etapa",
+            "default": "ejecucion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cliente_id",
+          "area_codigo",
+          "area_nombre",
+          "marco",
+          "riesgo"
+        ],
+        "title": "BriefingAreaRequest"
+      },
+      "BriefingTiempoLogRequest": {
+        "properties": {
+          "cliente_id": {
+            "type": "string",
+            "title": "Cliente Id"
+          },
+          "area_codigo": {
+            "type": "string",
+            "title": "Area Codigo"
+          },
+          "area_nombre": {
+            "type": "string",
+            "title": "Area Nombre"
+          },
+          "tiempo_manual_min": {
+            "type": "number",
+            "title": "Tiempo Manual Min",
+            "default": 0.0
+          },
+          "tiempo_ai_min": {
+            "type": "number",
+            "title": "Tiempo Ai Min",
+            "default": 0.0
+          },
+          "notas": {
+            "type": "string",
+            "title": "Notas",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "cliente_id",
+          "area_codigo",
+          "area_nombre"
+        ],
+        "title": "BriefingTiempoLogRequest"
       },
       "ChatExportRequest": {
         "properties": {
@@ -2877,6 +3117,82 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HallazgoEstructurarRequest": {
+        "properties": {
+          "cliente_id": {
+            "type": "string",
+            "title": "Cliente Id"
+          },
+          "area_codigo": {
+            "type": "string",
+            "title": "Area Codigo"
+          },
+          "area_nombre": {
+            "type": "string",
+            "title": "Area Nombre"
+          },
+          "marco": {
+            "type": "string",
+            "title": "Marco"
+          },
+          "riesgo": {
+            "type": "string",
+            "title": "Riesgo"
+          },
+          "afirmaciones_criticas": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Afirmaciones Criticas"
+          },
+          "etapa": {
+            "type": "string",
+            "title": "Etapa",
+            "default": "ejecucion"
+          },
+          "condicion_detectada": {
+            "type": "string",
+            "title": "Condicion Detectada"
+          },
+          "monto_estimado": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monto Estimado"
+          },
+          "causa_preliminar": {
+            "type": "string",
+            "title": "Causa Preliminar",
+            "default": ""
+          },
+          "efecto_preliminar": {
+            "type": "string",
+            "title": "Efecto Preliminar",
+            "default": ""
+          },
+          "guardar_en_hallazgos": {
+            "type": "boolean",
+            "title": "Guardar En Hallazgos",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "cliente_id",
+          "area_codigo",
+          "area_nombre",
+          "marco",
+          "riesgo",
+          "condicion_detectada"
+        ],
+        "title": "HallazgoEstructurarRequest"
       },
       "InternalControlLetterRequest": {
         "properties": {
