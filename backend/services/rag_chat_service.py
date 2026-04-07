@@ -2,33 +2,84 @@ from __future__ import annotations
 
 import os
 import re
+import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from pathlib import Path
 from typing import Any
 
 import yaml
 from backend.repositories.file_repository import list_documentos, read_hallazgos, read_perfil, read_workflow
+from backend.services.normativa_monitor_service import get_pending_normative_changes
 from backend.services.prompt_service import render_prompt, validate_minimum_output
 
 ROOT = Path(__file__).resolve().parents[2]
 KNOWLEDGE_ROOT = ROOT / "data" / "conocimiento_normativo"
 CLIENTES_ROOT = ROOT / "data" / "clientes"
+RAG_INDEX_PATH = ROOT / "data" / "rag" / "normativo_index.json"
+METADATA_FILTER_KEYS = {
+    "norma",
+    "tipo",
+    "activo",
+    "marco",
+    "areas_aplicables",
+    "afirmaciones_relacionadas",
+    "etapas",
+    "temas",
+    "ultima_actualizacion",
+}
 
 
 @dataclass
 class RetrievedChunk:
     source: str
     excerpt: str
-    score: int
-    metadata: dict[str, str]
+    score: float
+    metadata: dict[str, Any]
 
 
 def _tokenize(text: str) -> list[str]:
-    return [t for t in re.split(r"[^a-zA-Z0-9_]+", text.lower()) if len(t) > 2]
+    return [t for t in re.split(r"[^\w]+", text.lower(), flags=re.UNICODE) if len(t) > 2]
 
 
-def _parse_frontmatter(markdown: str) -> tuple[dict[str, str], str]:
+def _expand_query_tokens(query: str, tokens: set[str]) -> set[str]:
+    q = str(query or "").lower()
+    expanded = set(tokens)
+    if "cuentas por cobrar" in q or "cxc" in q:
+        expanded.update(
+            {
+                "cartera",
+                "incobrables",
+                "deterioro",
+                "deudor",
+                "deudores",
+                "instrumentos",
+                "financieros",
+                "basicos",
+                "amortizado",
+            }
+        )
+    if "impuesto diferido" in q:
+        expanded.update({"temporarias", "diferencias", "deducibles", "imponibles"})
+    return expanded
+
+
+def _semantic_similarity(query_tokens: set[str], chunk_tokens: set[str], *, query: str, chunk_text: str) -> float:
+    if not query_tokens:
+        return 0.0
+    intersect = query_tokens.intersection(chunk_tokens)
+    base = min(1.0, len(intersect) / max(len(query_tokens), 1))
+    q = str(query or "").lower()
+    c = str(chunk_text or "").lower()
+    phrase_boost = 0.0
+    if "cuentas por cobrar" in q and "cuentas por cobrar" in c:
+        phrase_boost += 0.35
+    if "valuacion" in q and ("deterioro" in c or "incobrable" in c):
+        phrase_boost += 0.20
+    return min(1.0, base + phrase_boost)
+
+
+def _parse_frontmatter(markdown: str) -> tuple[dict[str, Any], str]:
     text = markdown.strip()
     if not text.startswith("---"):
         return {}, markdown
@@ -40,62 +91,102 @@ def _parse_frontmatter(markdown: str) -> tuple[dict[str, str], str]:
     try:
         loaded = yaml.safe_load(raw_meta) or {}
         if isinstance(loaded, dict):
-            meta = {str(k): str(v) for k, v in loaded.items() if v is not None}
-            return meta, body
+            return loaded, body
     except Exception:
         pass
     return {}, markdown
 
 
-def _default_metadata(relative_source: str, file_path: Path) -> dict[str, str]:
-    lower = relative_source.lower()
+def _as_str_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        out = []
+        for item in value:
+            txt = str(item).strip()
+            if txt:
+                out.append(txt)
+        return out
+    if isinstance(value, tuple):
+        return _as_str_list(list(value))
+    txt = str(value or "").strip()
+    return [txt] if txt else []
+
+
+def _as_bool(value: Any, default: bool = True) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    txt = str(value).strip().lower()
+    if txt in {"true", "1", "si", "sí", "yes", "y"}:
+        return True
+    if txt in {"false", "0", "no", "n"}:
+        return False
+    return default
+
+
+def _default_metadata(relative_source: str, file_path: Path) -> dict[str, Any]:
+    lower = relative_source.lower().replace("\\", "/")
     if "/nias/" in lower:
-        norma = "NIA"
-        jurisdiccion = "Internacional"
+        norma = Path(relative_source).stem.upper()
+        tipo = "NIA"
+        marco = "ambos"
     elif "/niif_pymes/" in lower:
-        norma = "NIIF PYMES"
-        jurisdiccion = "Internacional"
+        norma = Path(relative_source).stem.upper()
+        tipo = "NIIF_PYMES"
+        marco = "niif_pymes"
     elif "/niif_completas/" in lower:
-        norma = "NIIF"
-        jurisdiccion = "Internacional"
-    elif "/tributario_ec/" in lower:
-        norma = "Tributario"
-        jurisdiccion = "Ecuador"
-    elif "/supercias/" in lower:
-        norma = "SUPERCIAS"
-        jurisdiccion = "Ecuador"
+        norma = Path(relative_source).stem.upper()
+        tipo = "NIIF_COMPLETA"
+        marco = "niif_completas"
     else:
-        norma = "Metodologia"
-        jurisdiccion = "Interna"
+        norma = Path(relative_source).stem
+        tipo = "OTRO"
+        marco = "ambos"
 
     updated = datetime.fromtimestamp(file_path.stat().st_mtime, tz=timezone.utc).date().isoformat()
     return {
         "norma": norma,
-        "version": "v1",
-        "vigente_desde": "",
         "ultima_actualizacion": updated,
-        "reemplaza_a": "",
-        "jurisdiccion": jurisdiccion,
+        "tipo": tipo,
+        "activo": True,
+        "marco": marco,
+        "areas_aplicables": [],
+        "afirmaciones_relacionadas": [],
+        "etapas": [],
+        "temas": [],
     }
 
 
-def _normalize_metadata(relative_source: str, file_path: Path, raw_meta: dict[str, str]) -> dict[str, str]:
+def _normalize_metadata(relative_source: str, file_path: Path, raw_meta: dict[str, Any]) -> dict[str, Any]:
     meta = _default_metadata(relative_source, file_path)
-    for key in ["norma", "version", "vigente_desde", "ultima_actualizacion", "reemplaza_a", "jurisdiccion"]:
-        value = str(raw_meta.get(key, "")).strip() if isinstance(raw_meta, dict) else ""
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
+
+    for key in ["norma", "tipo", "marco", "ultima_actualizacion"]:
+        value = str(raw_meta.get(key, "")).strip()
         if value:
             meta[key] = value
+
+    meta["activo"] = _as_bool(raw_meta.get("activo"), default=True)
+    for list_key in ["areas_aplicables", "afirmaciones_relacionadas", "etapas", "temas"]:
+        meta[list_key] = _as_str_list(raw_meta.get(list_key))
+
+    source_name = Path(relative_source).name
+    meta["fuente"] = f"{source_name} | {meta.get('norma', source_name)}"
     return meta
 
 
-def _load_markdown_sources() -> list[tuple[str, str, dict[str, str]]]:
-    out: list[tuple[str, str, dict[str, str]]] = []
+def _load_markdown_sources() -> list[tuple[str, str, dict[str, Any], bool]]:
+    out: list[tuple[str, str, dict[str, Any], bool]] = []
     if not KNOWLEDGE_ROOT.exists():
         return out
     for path in KNOWLEDGE_ROOT.rglob("*.md"):
+        if "_backup" in str(path):
+            continue
         try:
             raw_text = path.read_text(encoding="utf-8")
         except Exception:
+            print(f"[WARN] No se pudo leer {path}")
             continue
         raw_meta, text = _parse_frontmatter(raw_text)
         text = text.strip()
@@ -103,23 +194,29 @@ def _load_markdown_sources() -> list[tuple[str, str, dict[str, str]]]:
             continue
         rel = str(path.relative_to(ROOT))
         metadata = _normalize_metadata(rel, path, raw_meta)
-        out.append((rel, text, metadata))
+        has_valid_frontmatter = bool(raw_meta)
+        if not has_valid_frontmatter:
+            print(f"[WARN] Frontmatter inválido o ausente: {rel}. Se indexará sin filtros avanzados.")
+        out.append((rel, text, metadata, has_valid_frontmatter))
     return out
 
 
-def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, str]]]:
-    out: list[tuple[str, str, dict[str, str]]] = []
+def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, Any]]]:
+    out: list[tuple[str, str, dict[str, Any]]] = []
     perfil_path = CLIENTES_ROOT / cliente_id / "perfil.yaml"
     hallazgos_path = CLIENTES_ROOT / cliente_id / "hallazgos.md"
     docs_text_dir = CLIENTES_ROOT / cliente_id / "documentos_text"
 
-    base_meta = {
+    base_meta: dict[str, Any] = {
         "norma": "Contexto cliente",
-        "version": "v1",
-        "vigente_desde": "",
         "ultima_actualizacion": "",
-        "reemplaza_a": "",
-        "jurisdiccion": "Interna",
+        "tipo": "CLIENTE",
+        "activo": True,
+        "marco": "ambos",
+        "areas_aplicables": [],
+        "afirmaciones_relacionadas": [],
+        "etapas": [],
+        "temas": [],
     }
 
     if perfil_path.exists():
@@ -128,6 +225,7 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, str]
             rel = str(perfil_path.relative_to(ROOT))
             meta = dict(base_meta)
             meta["ultima_actualizacion"] = datetime.fromtimestamp(perfil_path.stat().st_mtime, tz=timezone.utc).date().isoformat()
+            meta["fuente"] = f"{perfil_path.name} | Contexto cliente"
             out.append((rel, yaml.safe_dump(data, allow_unicode=True, sort_keys=False), meta))
         except Exception:
             pass
@@ -138,6 +236,7 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, str]
                 rel = str(hallazgos_path.relative_to(ROOT))
                 meta = dict(base_meta)
                 meta["ultima_actualizacion"] = datetime.fromtimestamp(hallazgos_path.stat().st_mtime, tz=timezone.utc).date().isoformat()
+                meta["fuente"] = f"{hallazgos_path.name} | Contexto cliente"
                 out.append((rel, text, meta))
         except Exception:
             pass
@@ -153,12 +252,13 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, str]
             meta = dict(base_meta)
             meta["norma"] = "Documentacion cliente"
             meta["ultima_actualizacion"] = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).date().isoformat()
+            meta["fuente"] = f"{path.name} | Documentacion cliente"
             out.append((rel, text, meta))
     return out
 
 
-def _split_chunks(source: str, text: str, metadata: dict[str, str]) -> list[tuple[str, str, dict[str, str]]]:
-    chunks: list[tuple[str, str, dict[str, str]]] = []
+def _split_chunks(source: str, text: str, metadata: dict[str, Any]) -> list[tuple[str, str, dict[str, Any]]]:
+    chunks: list[tuple[str, str, dict[str, Any]]] = []
     parts = re.split(r"\n\s*\n", text)
     for part in parts:
         cleaned = part.strip()
@@ -170,26 +270,229 @@ def _split_chunks(source: str, text: str, metadata: dict[str, str]) -> list[tupl
     return chunks
 
 
-def _retrieve_chunks(cliente_id: str, query: str, *, top_k: int = 5) -> list[RetrievedChunk]:
+def _build_normative_index(*, force: bool = False) -> dict[str, Any]:
+    if RAG_INDEX_PATH.exists() and not force:
+        try:
+            return json.loads(RAG_INDEX_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    indexed_files = 0
+    skipped_files = 0
+    warnings = 0
+    chunks: list[dict[str, Any]] = []
+
+    for source, text, metadata, has_valid_frontmatter in _load_markdown_sources():
+        if not has_valid_frontmatter:
+            warnings += 1
+        if not _as_bool(metadata.get("activo"), default=True):
+            skipped_files += 1
+            print(f"[SKIP] {source} (activo=false)")
+            continue
+        indexed_files += 1
+        print(f"[INDEX] {source}")
+        for chunk_source, chunk, chunk_meta in _split_chunks(source, text, metadata):
+            chunks.append(
+                {
+                    "source": chunk_source,
+                    "excerpt": chunk,
+                    "metadata": chunk_meta,
+                    "tokens": _tokenize(chunk),
+                }
+            )
+
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "index_version": "v2_metadata_filters",
+        "indexed_files": indexed_files,
+        "skipped_files": skipped_files,
+        "warnings": warnings,
+        "chunks": chunks,
+    }
+    RAG_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
+    RAG_INDEX_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(
+        f"[OK] Índice normativo generado en {RAG_INDEX_PATH} | "
+        f"files indexados={indexed_files}, saltados={skipped_files}, warnings={warnings}, chunks={len(chunks)}"
+    )
+    return payload
+
+
+def rebuild_rag_index(*, force: bool = True) -> dict[str, Any]:
+    return _build_normative_index(force=force)
+
+
+def _load_normative_chunks() -> list[dict[str, Any]]:
+    payload = _build_normative_index(force=False)
+    chunks = payload.get("chunks")
+    if isinstance(chunks, list):
+        return [c for c in chunks if isinstance(c, dict)]
+    return []
+
+
+def _meta_contains(value: Any, expected: str) -> bool:
+    exp = str(expected or "").strip().lower()
+    if not exp:
+        return False
+    if isinstance(value, list):
+        return any(str(v).strip().lower() == exp for v in value)
+    return str(value or "").strip().lower() == exp
+
+
+def _calculate_filter_match(
+    metadata: dict[str, Any],
+    *,
+    marco: str | None = None,
+    etapa: str | None = None,
+    afirmacion: str | None = None,
+    tipo: str | None = None,
+    temas: str | list[str] | None = None,
+) -> tuple[int, float]:
+    strict_hits = 0
+    soft_boost = 0.0
+    marco_filter = str(marco or "").strip().lower()
+    if marco_filter:
+        chunk_marco = str(metadata.get("marco") or "").strip().lower()
+        if marco_filter == "ambos":
+            strict_hits += 1
+            soft_boost += 0.5
+        elif chunk_marco == marco_filter:
+            strict_hits += 1
+            soft_boost += 1.0
+        elif chunk_marco == "ambos":
+            soft_boost += 0.5
+    if tipo and _meta_contains(metadata.get("tipo"), tipo):
+        strict_hits += 1
+    if etapa and _meta_contains(metadata.get("etapas"), etapa):
+        strict_hits += 1
+    if afirmacion and _meta_contains(metadata.get("afirmaciones_relacionadas"), afirmacion):
+        strict_hits += 1
+    if temas:
+        temas_filters = [temas] if isinstance(temas, str) else list(temas)
+        topic_hits = 0
+        for item in temas_filters:
+            if _meta_contains(metadata.get("temas"), str(item)):
+                topic_hits += 1
+        if topic_hits > 0:
+            strict_hits += 1
+            soft_boost += topic_hits * 0.4
+    return strict_hits, soft_boost
+
+
+def _retrieve_chunks(
+    cliente_id: str,
+    query: str,
+    *,
+    top_k: int = 5,
+    marco: str | None = None,
+    etapa: str | None = None,
+    afirmacion: str | None = None,
+    tipo: str | None = None,
+    temas: str | list[str] | None = None,
+) -> list[RetrievedChunk]:
     query_tokens = set(_tokenize(query))
+    query_tokens = _expand_query_tokens(query, query_tokens)
     if not query_tokens:
         return []
 
-    raw_docs = _load_markdown_sources() + _load_client_context(cliente_id)
+    normative_chunks = _load_normative_chunks()
+    raw_docs = _load_client_context(cliente_id)
     candidates: list[RetrievedChunk] = []
+    required_filter_count = len([x for x in [marco, etapa, afirmacion, tipo, temas] if x])
+
+    for item in normative_chunks:
+        source = str(item.get("source") or "")
+        excerpt = str(item.get("excerpt") or "")
+        metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+        tokens_raw = item.get("tokens")
+        tokens = set(tokens_raw) if isinstance(tokens_raw, list) else set(_tokenize(excerpt))
+        semantic_similarity = _semantic_similarity(query_tokens, tokens, query=query, chunk_text=excerpt)
+        if semantic_similarity <= 0:
+            continue
+        strict_hits, soft_boost = _calculate_filter_match(
+            metadata,
+            marco=marco,
+            etapa=etapa,
+            afirmacion=afirmacion,
+            tipo=tipo,
+            temas=temas,
+        )
+        metadata_match_ratio = 0.0
+        if required_filter_count > 0:
+            metadata_match_ratio = min(1.0, (strict_hits + soft_boost) / required_filter_count)
+        # Regla pedida: score final = (similitud_semantica * 10) + (match_metadatos * 5)
+        weighted_score = (semantic_similarity * 10.0) + (metadata_match_ratio * 5.0)
+        candidates.append(RetrievedChunk(source=source, excerpt=excerpt, score=weighted_score, metadata=metadata))
+
+    # Contexto de cliente se mantiene como complemento (sin filtros normativos duros).
     for source, text, metadata in raw_docs:
         for chunk_source, chunk, chunk_meta in _split_chunks(source, text, metadata):
             tokens = set(_tokenize(chunk))
-            score = len(query_tokens.intersection(tokens))
-            if score <= 0:
+            semantic_similarity = _semantic_similarity(query_tokens, tokens, query=query, chunk_text=chunk)
+            if semantic_similarity <= 0:
                 continue
-            candidates.append(RetrievedChunk(source=chunk_source, excerpt=chunk, score=score, metadata=chunk_meta))
+            candidates.append(
+                RetrievedChunk(source=chunk_source, excerpt=chunk, score=semantic_similarity * 10.0, metadata=chunk_meta)
+            )
+
     candidates.sort(key=lambda x: x.score, reverse=True)
-    return candidates[:top_k]
+    if required_filter_count <= 0:
+        return candidates[:top_k]
+
+    strict_candidates = [
+        c
+        for c in candidates
+        if _calculate_filter_match(
+            c.metadata,
+            marco=marco,
+            etapa=etapa,
+            afirmacion=afirmacion,
+            tipo=tipo,
+            temas=temas,
+        )[0]
+        >= max(1, required_filter_count - 1)
+    ]
+    if len(strict_candidates) >= max(2, top_k // 2):
+        return strict_candidates[:top_k]
+
+    partial_candidates = [
+        c
+        for c in candidates
+        if _calculate_filter_match(
+            c.metadata,
+            marco=marco,
+            etapa=etapa,
+            afirmacion=afirmacion,
+            tipo=tipo,
+            temas=temas,
+        )[0]
+        > 0
+    ]
+    mixed = partial_candidates + [c for c in candidates if c not in partial_candidates]
+    return mixed[:top_k]
 
 
-def retrieve_context_chunks(cliente_id: str, query: str, *, top_k: int = 6) -> list[dict[str, Any]]:
-    chunks = _retrieve_chunks(cliente_id, query, top_k=top_k)
+def retrieve_context_chunks(
+    cliente_id: str,
+    query: str,
+    *,
+    top_k: int = 6,
+    marco: str | None = None,
+    etapa: str | None = None,
+    afirmacion: str | None = None,
+    tipo: str | None = None,
+    temas: str | list[str] | None = None,
+) -> list[dict[str, Any]]:
+    chunks = _retrieve_chunks(
+        cliente_id,
+        query,
+        top_k=top_k,
+        marco=marco,
+        etapa=etapa,
+        afirmacion=afirmacion,
+        tipo=tipo,
+        temas=temas,
+    )
     out: list[dict[str, Any]] = []
     for c in chunks:
         out.append(
@@ -618,6 +921,90 @@ def _risk_snapshot(cliente_id: str) -> str:
     return "\n".join(lines)
 
 
+def _parse_iso_date(raw_value: str) -> date | None:
+    value = str(raw_value or "").strip()
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value).date()
+    except Exception:
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except Exception:
+            print(f"[WARN] Formato de fecha invalido en ultima_actualizacion: {value}")
+            return None
+
+
+def _build_staleness_warning(chunks: list[RetrievedChunk]) -> str:
+    if not chunks:
+        return ""
+    today = datetime.now(timezone.utc).date()
+    warnings: list[str] = []
+    seen: set[str] = set()
+    for chunk in chunks:
+        metadata = chunk.metadata or {}
+        norma = str(metadata.get("norma") or "Norma sin identificar").strip()
+        last_update_raw = str(metadata.get("ultima_actualizacion") or "").strip()
+        if not last_update_raw:
+            continue
+        last_update = _parse_iso_date(last_update_raw)
+        if not last_update:
+            continue
+        if (today - last_update).days <= 365:
+            continue
+        key = f"{norma}|{last_update.isoformat()}"
+        if key in seen:
+            continue
+        seen.add(key)
+        warnings.append(
+            f"⚠️ Verificar vigencia: {norma} fue indexada el {last_update.isoformat()}.\n"
+            "   Confirma que no hay actualizaciones normativas recientes."
+        )
+    return "\n".join(warnings)
+
+
+def _build_pending_review_warning(chunks: list[RetrievedChunk]) -> str:
+    if not chunks:
+        return ""
+    pending = get_pending_normative_changes()
+    if not pending:
+        return ""
+
+    def _norm_key(text: str) -> str:
+        return "".join(ch for ch in str(text or "").upper() if ch.isalnum())
+
+    chunk_norms = {_norm_key(str((c.metadata or {}).get("norma") or "")) for c in chunks}
+    chunk_norms = {x for x in chunk_norms if x}
+    if not chunk_norms:
+        return ""
+
+    lines: list[str] = []
+    seen: set[str] = set()
+    for row in pending:
+        norma = str(row.get("norma") or "").strip()
+        key = _norm_key(norma)
+        if not key:
+            continue
+        if not any(key in cn or cn in key for cn in chunk_norms):
+            continue
+        if norma in seen:
+            continue
+        seen.add(norma)
+        lines.append(
+            f"⚠️ Verificar vigencia: {norma} tiene cambio detectado pendiente de revision."
+        )
+    return "\n".join(lines)
+
+
+def _append_staleness_warning(answer: str, chunks: list[RetrievedChunk]) -> str:
+    warning = _build_staleness_warning(chunks)
+    pending_warning = _build_pending_review_warning(chunks)
+    all_warnings = "\n".join([w for w in [warning, pending_warning] if w.strip()]).strip()
+    if not all_warnings:
+        return answer
+    return f"{answer.rstrip()}\n\n{all_warnings}"
+
+
 def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], *, mode: str = "chat") -> dict[str, Any]:
     sources = [c.source for c in chunks]
     first_context = chunks[0].excerpt[:240] if chunks else "Sin contexto recuperado."
@@ -677,7 +1064,7 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
         confidence = 0.30 if chunks else 0.15
 
     return {
-        "answer": answer,
+        "answer": _append_staleness_warning(answer, chunks),
         "citations": citations,
         "context_sources": sources,
         "confidence": confidence,
@@ -785,7 +1172,7 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat",
         )
 
     return {
-        "answer": text.strip(),
+        "answer": _append_staleness_warning(text.strip(), chunks),
         "citations": citations,
         "context_sources": [c.source for c in chunks],
         "confidence": 0.72 if chunks else 0.35,

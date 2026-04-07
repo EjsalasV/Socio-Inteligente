@@ -50,17 +50,29 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     let detail = "";
+    let actionHint = "";
     try {
       const errJson = (await res.json()) as { detail?: unknown };
       if (typeof errJson?.detail === "string") {
         detail = errJson.detail;
+      } else if (errJson?.detail && typeof errJson.detail === "object") {
+        const d = errJson.detail as { message?: unknown; action_hint?: unknown; code?: unknown };
+        if (typeof d.message === "string" && d.message.trim()) {
+          detail = d.message.trim();
+        } else {
+          detail = JSON.stringify(errJson.detail);
+        }
+        if (typeof d.action_hint === "string" && d.action_hint.trim()) {
+          actionHint = d.action_hint.trim();
+        }
       } else if (errJson?.detail) {
         detail = JSON.stringify(errJson.detail);
       }
     } catch {
       detail = "";
     }
-    throw new Error(detail ? `API error ${res.status}: ${detail}` : `API error ${res.status}`);
+    const suffix = actionHint ? ` | ${actionHint}` : "";
+    throw new Error(detail ? `API error ${res.status}: ${detail}${suffix}` : `API error ${res.status}`);
   }
 
   return (await res.json()) as T;

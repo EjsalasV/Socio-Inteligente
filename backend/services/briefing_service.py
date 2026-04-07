@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import os
+import hashlib
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -8,6 +9,7 @@ from typing import Any
 
 import openai
 
+from backend.services.normativa_monitor_service import get_pending_normative_changes
 from backend.services.rag_chat_service import retrieve_context_chunks
 
 
@@ -19,23 +21,78 @@ def get_llm_client() -> openai.OpenAI:
 
 
 def llamar_llm(prompt: str) -> str:
-    try:
-        client = get_llm_client()
-        response = client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=800,
-            temperature=0.3,
+    last_exc: Exception | None = None
+    for _attempt in range(2):
+        try:
+            client = get_llm_client()
+            response = client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=800,
+                temperature=0.3,
+                timeout=25,
+            )
+            content = response.choices[0].message.content if response.choices else ""
+            text = str(content or "").strip()
+            if not text:
+                raise RuntimeError("LLM devolvio respuesta vacia")
+            return text
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            last_exc = exc
+            time.sleep(0.4)
+    raise RuntimeError(f"Error al generar briefing con DeepSeek: {last_exc}")
+
+
+def _norma_key(text: str) -> str:
+    return "".join(ch for ch in str(text or "").upper() if ch.isalnum())
+
+
+def _pending_warning(normas: list[str]) -> str:
+    if not normas:
+        return ""
+    norm_keys = {_norma_key(n): n for n in normas}
+    pending = get_pending_normative_changes()
+    seen: set[str] = set()
+    lines: list[str] = []
+    for row in pending:
+        norma = str(row.get("norma") or "").strip()
+        k = _norma_key(norma)
+        if not k:
+            continue
+        if not any(k in nk or nk in k for nk in norm_keys):
+            continue
+        if norma in seen:
+            continue
+        seen.add(norma)
+        lines.append(
+            f"⚠️ Verificar vigencia: {norma} tiene cambio detectado pendiente de revision."
         )
-        content = response.choices[0].message.content if response.choices else ""
-        text = str(content or "").strip()
-        if not text:
-            raise RuntimeError("LLM devolvio respuesta vacia")
-        return text
-    except RuntimeError:
-        raise
-    except Exception as exc:
-        raise RuntimeError(f"Error al generar briefing con DeepSeek: {exc}") from exc
+    return "\n".join(lines)
+
+
+def _build_traceability(area_codigo: str, chunks: list[dict[str, Any]]) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    now = datetime.now(timezone.utc).isoformat()
+    for ch in chunks:
+        norma = str(ch.get("norma") or "").strip()
+        fuente = str(ch.get("fuente") or ch.get("source") or "").strip()
+        excerpt = str(ch.get("excerpt") or "").strip()
+        if not norma and not fuente:
+            continue
+        chunk_hash = hashlib.sha1(f"{norma}|{fuente}|{excerpt}".encode("utf-8")).hexdigest()[:16]
+        out.append(
+            {
+                "norma": norma or "N/D",
+                "fuente_chunk": fuente or "N/D",
+                "chunk_id": chunk_hash,
+                "area_codigo": str(area_codigo or ""),
+                "paper_id": "",
+                "timestamp": now,
+            }
+        )
+    return out
 
 
 def _normalize_text_list(values: list[str] | None, *, fallback: str = "N/D") -> list[str]:
@@ -235,6 +292,10 @@ def generate_area_briefing(payload: dict[str, Any]) -> dict[str, Any]:
     normas = _extract_normas(all_chunks)
     if not normas:
         briefing = f"{briefing}\n\n⚠️ Sin normativa especifica recuperada para esta area"
+    else:
+        pending_warning = _pending_warning(normas)
+        if pending_warning:
+            briefing = f"{briefing}\n\n{pending_warning}"
 
     return {
         "area_codigo": area_codigo,
@@ -242,6 +303,7 @@ def generate_area_briefing(payload: dict[str, Any]) -> dict[str, Any]:
         "briefing": briefing.strip(),
         "normas_activadas": normas,
         "chunks_usados": _extract_chunks_for_response(all_chunks),
+        "trazabilidad": _build_traceability(area_codigo, all_chunks),
         "generado_en": datetime.now(timezone.utc).isoformat(),
         "meta": {
             "provider": "deepseek",

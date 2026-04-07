@@ -20,6 +20,8 @@ class ApiError(BaseModel):
     status: Literal["error"] = "error"
     code: str
     message: str
+    action_hint: str = ""
+    retryable: bool = False
     details: dict[str, Any] | None = None
 
 
@@ -295,12 +297,22 @@ class BriefingChunkUsed(BaseModel):
     excerpt: str
 
 
+class TraceabilityItem(BaseModel):
+    norma: str
+    fuente_chunk: str
+    chunk_id: str
+    area_codigo: str
+    paper_id: str | None = None
+    timestamp: str
+
+
 class BriefingAreaResponse(BaseModel):
     area_codigo: str
     area_nombre: str
     briefing: str
     normas_activadas: list[str] = Field(default_factory=list)
     chunks_usados: list[BriefingChunkUsed] = Field(default_factory=list)
+    trazabilidad: list[TraceabilityItem] = Field(default_factory=list)
     generado_en: str
 
 
@@ -325,6 +337,7 @@ class HallazgoEstructurarResponse(BaseModel):
     hallazgo: str
     normas_activadas: list[str] = Field(default_factory=list)
     chunks_usados: list[BriefingChunkUsed] = Field(default_factory=list)
+    trazabilidad: list[TraceabilityItem] = Field(default_factory=list)
     generado_en: str
 
 
@@ -486,6 +499,13 @@ class WorkflowStateResponse(BaseModel):
     current_phase: str
     changed: bool
     gates: list["QualityGateItem"]
+
+
+class WorkflowFieldHistoryRequest(BaseModel):
+    phase: str
+    field: str
+    old_value: Any = None
+    new_value: Any = None
 
 
 class WorkpaperTask(BaseModel):

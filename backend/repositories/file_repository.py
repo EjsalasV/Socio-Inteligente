@@ -415,6 +415,18 @@ class FileRepository:
             f.write(json.dumps(payload, ensure_ascii=False) + "\n")
         return {"saved": True, "delta_min": payload["delta_min"], "ahorro_pct": payload["ahorro_pct"]}
 
+    def append_traceability_event(self, cliente_id: str, payload: dict[str, Any]) -> None:
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
+        cdir.mkdir(parents=True, exist_ok=True)
+        path = cdir / "trazabilidad.jsonl"
+        row = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "cliente_id": cliente_id,
+            **(payload or {}),
+        }
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
     def list_documentos(self, cliente_id: str) -> list[dict[str, Any]]:
         cdir = self._resolve_cliente_dir(cliente_id)
         docs_dir = cdir / "documentos"
@@ -988,4 +1000,8 @@ def append_briefing_time_log(
         notas=notas,
         user_id=user_id,
     )
+
+
+def append_traceability_event(cliente_id: str, payload: dict[str, Any]) -> None:
+    repo.append_traceability_event(cliente_id, payload)
 

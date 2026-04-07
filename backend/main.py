@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import logging
 
-from backend.routes import areas, auth, briefing, chat, clientes, dashboard, hallazgos, metodologia, perfil, reportes, risk_engine, workpapers, workflow
+from backend.routes import areas, auth, briefing, chat, clientes, dashboard, hallazgos, metodologia, normativa, perfil, quality, reportes, risk_engine, workpapers, workflow
 
 app = FastAPI(title="Socio AI Backend", version="0.1.0")
 LOGGER = logging.getLogger("socio_ai.api")
@@ -55,6 +55,8 @@ app.include_router(workpapers.router)
 app.include_router(workflow.router)
 app.include_router(briefing.router)
 app.include_router(hallazgos.router)
+app.include_router(quality.router)
+app.include_router(normativa.router)
 
 
 @app.get("/health")
@@ -96,6 +98,8 @@ async def request_observability(request: Request, call_next) -> Response:
             "/reportes/",
             "/api/briefing/",
             "/api/hallazgos/",
+            "/api/quality/",
+            "/api/normativa/",
         ]
     ):
         LOGGER.info(

@@ -7,7 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from backend.auth import authorize_cliente_access, get_current_user
 from backend.repositories.file_repository import read_perfil, read_workflow, write_perfil, write_workflow
 from backend.routes.workpapers import _generate_tasks, _merge_saved_tasks, _quality_gates
-from backend.schemas import ApiResponse, UserContext, WorkflowAdvanceRequest, WorkflowStateResponse
+from backend.schemas import ApiResponse, UserContext, WorkflowAdvanceRequest, WorkflowFieldHistoryRequest, WorkflowStateResponse
+from backend.services.phase_template_service import build_phase_template, record_field_history
+from backend.utils.api_errors import raise_api_error
 from backend.validation import normalize_workflow_doc_v1, validate_workflow_doc_v1
 
 router = APIRouter(prefix="/workflow", tags=["workflow"])
@@ -86,6 +88,44 @@ def get_workflow_state(cliente_id: str, user: UserContext = Depends(get_current_
     return ApiResponse(data=state.model_dump())
 
 
+@router.get("/{cliente_id}/phase-template", response_model=ApiResponse)
+def get_phase_template(
+    cliente_id: str,
+    phase: str | None = None,
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    try:
+        data = build_phase_template(cliente_id, phase=phase)
+    except Exception:
+        raise_api_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="PHASE_TEMPLATE_FAILED",
+            message="No se pudo construir la plantilla de fase.",
+            action_hint="Revisa perfil.yaml, workflow.yaml y areas/*.yaml del cliente.",
+            retryable=True,
+        )
+    return ApiResponse(data=data)
+
+
+@router.post("/{cliente_id}/field-history", response_model=ApiResponse)
+def post_field_history(
+    cliente_id: str,
+    payload: WorkflowFieldHistoryRequest,
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    record_field_history(
+        cliente_id,
+        phase=payload.phase,
+        field=payload.field,
+        old_value=payload.old_value,
+        new_value=payload.new_value,
+        user_id=user.sub,
+    )
+    return ApiResponse(data={"saved": True})
+
+
 @router.post("/{cliente_id}/advance", response_model=ApiResponse)
 def advance_workflow(
     cliente_id: str,
@@ -105,6 +145,22 @@ def advance_workflow(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"No se permite retroceder de {previous_phase} a {target_phase}.",
+        )
+
+    phase_template = build_phase_template(cliente_id, phase=previous_phase)
+    missing_required = (
+        phase_template.get("checklist", {}).get("missing_required")
+        if isinstance(phase_template.get("checklist"), dict)
+        else []
+    )
+    if isinstance(missing_required, list) and missing_required:
+        raise_api_error(
+            status_code=status.HTTP_409_CONFLICT,
+            code="PHASE_REQUIRED_FIELDS_MISSING",
+            message="No se puede avanzar de fase: faltan campos criticos obligatorios.",
+            action_hint="Completa los faltantes en la plantilla de fase y vuelve a intentar.",
+            retryable=False,
+            details={"missing_required": missing_required, "phase": previous_phase},
         )
 
     gates_map = _gates_by_code(cliente_id)

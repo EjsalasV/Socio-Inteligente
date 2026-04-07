@@ -22,6 +22,14 @@ export type HallazgoEstructurarResponse = {
   hallazgo: string;
   normas_activadas: string[];
   chunks_usados: Array<{ norma: string; fuente: string; excerpt: string }>;
+  trazabilidad?: Array<{
+    norma: string;
+    fuente_chunk: string;
+    chunk_id: string;
+    area_codigo: string;
+    paper_id?: string | null;
+    timestamp: string;
+  }>;
   generado_en: string;
 };
 
