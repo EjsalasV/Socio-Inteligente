@@ -111,6 +111,15 @@ export default function Sidebar() {
                   key={item.id}
                   href={item.href}
                   prefetch
+                  data-tour={
+                    item.key === "clientes"
+                      ? "sidebar-clientes"
+                      : item.key === "risk-engine"
+                        ? "sidebar-risk-engine"
+                        : item.key === "areas"
+                          ? "sidebar-areas"
+                          : undefined
+                  }
                   className={`flex items-center gap-3 rounded-editorial px-4 py-3 transition-colors ${itemClass(active)}`}
                   onClick={() => setOpenMobile(false)}
                 >

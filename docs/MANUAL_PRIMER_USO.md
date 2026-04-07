@@ -1,232 +1,177 @@
-# Manual de Primer Uso - Socio AI
+# Manual de Uso del Sistema (Primer Dia)
 
-Este manual explica, paso a paso, como usar el sistema por primera vez.
-Esta pensado para un auditor que entra por primera vez al flujo completo:
-cliente -> datos -> analisis -> briefing -> hallazgos -> control de calidad -> reporte.
+Este manual es para alguien que **ya entra al sistema** y necesita saber que hacer, en que orden, y como cerrar una auditoria sin perder trazabilidad.
 
-## 1. Objetivo del sistema
+## 1. Objetivo de trabajo
 
-Socio AI te ayuda a:
+Al terminar una jornada deberias lograr:
 
-1. Priorizar areas de riesgo con base en datos (TB y mayor).
-2. Generar briefings por area con soporte normativo.
+1. Priorizar areas de riesgo.
+2. Generar briefing por area con soporte normativo.
 3. Estructurar hallazgos con criterio tecnico.
-4. Controlar calidad antes de emitir.
-5. Mantener trazabilidad entre respuesta, evidencia y norma.
+4. Validar calidad antes de pasar de fase o emitir.
 
-## 2. Requisitos minimos
+## 2. Flujo recomendado de uso (orden real)
 
-Antes de iniciar, confirma:
+## Paso 1 - Entrar y seleccionar cliente
 
-1. Python y dependencias instaladas (`requirements.txt` o `requirements.api.txt`).
-2. Node.js instalado para frontend.
-3. Archivo `.env` configurado en raiz del proyecto.
-4. Clave de LLM configurada:
-   - `DEEPSEEK_API_KEY` (recomendado en esta version), o
-   - `OPENAI_API_KEY`.
-5. Variable `ALLOWED_CLIENTES` configurada.
-   - Si esta vacia, el login funciona pero no tendras acceso a clientes.
+1. Inicia sesion.
+2. Ve a la pantalla de clientes.
+3. Abre el cliente activo del encargo.
 
-## 3. Levantar el sistema en local
+Resultado esperado: cliente y periodo activo confirmados.
 
-En una terminal (backend):
+## Paso 2 - Revisar contexto general del encargo
 
-```bash
-uvicorn backend.main:app --reload --port 8000
-```
-
-En otra terminal (frontend):
-
-```bash
-npm --prefix frontend run dev
-```
-
-Frontend por defecto:
-
-```text
-http://localhost:3000
-```
-
-Backend por defecto:
-
-```text
-http://localhost:8000
-```
-
-## 4. Primer ingreso
-
-1. Abre la pantalla de login.
-2. Ingresa usuario y clave.
-   - Por defecto de desarrollo (si no se cambio en `.env`):
-     - usuario: `joaosalas123@gmail.com`
-     - clave: `1234`
-3. Inicia sesion.
-4. Selecciona cliente en la vista de clientes.
-5. Si no existe, crea un cliente nuevo y entra a onboarding.
-
-## 5. Configuracion inicial de un cliente (onboarding)
-
-En onboarding completa al menos:
-
-1. Datos de cliente.
-2. Marco contable (`niif_pymes` o `niif_completas`).
-3. Periodo de trabajo.
-4. Parametros de materialidad base.
-5. Estado inicial de workflow.
-
-Recomendacion: no avances de fase sin completar obligatorios de la fase actual.
-
-## 6. Carga de datos base (obligatorio para analisis util)
-
-Carga, como minimo:
-
-1. `tb.xlsx` (trial balance).
-2. `mayor.xlsx` (si aplica en tu flujo).
-
-Sin TB no tendras ranking de riesgo confiable, y el briefing sera mas generico.
-
-## 7. Flujo recomendado de trabajo diario
-
-### Paso 1: Revisar dashboard y riesgo
-
-1. Abre `dashboard`.
-2. Abre `risk-engine`.
-3. Confirma top de areas con mayor riesgo.
-
-### Paso 2: Entrar a un area activa
-
-1. Abre `areas/{cliente}/{area}`.
-2. Revisa cuentas y aseveraciones vinculadas.
-3. Marca checks de revision en cuentas clave.
-
-### Paso 3: Generar briefing por area
-
-1. Clic en `Generar Briefing`.
+1. Entra a `Dashboard`.
 2. Revisa:
-   - por que importa el area,
+   - riesgo global,
+   - materialidad,
+   - fase actual del workflow,
+   - alertas pendientes.
+
+Resultado esperado: sabes en que etapa estas y que tan sensible es el encargo.
+
+## Paso 3 - Priorizar areas por riesgo
+
+1. Entra a `Risk Engine`.
+2. Identifica top areas por score.
+3. Selecciona la primera area de trabajo (normalmente alto riesgo).
+
+Resultado esperado: orden de trabajo definido por riesgo, no por intuicion.
+
+## Paso 4 - Abrir area activa
+
+1. Ve a `Areas` y abre el codigo L/S correspondiente (ej. 130 CxC, 150 Inventarios, 300 Ingresos).
+2. Revisa:
+   - cuentas del lead schedule,
+   - aseveraciones asociadas,
+   - checks pendientes.
+
+Resultado esperado: area lista para ejecutar procedimientos.
+
+## Paso 5 - Generar briefing de area
+
+1. Haz clic en `Generar Briefing`.
+2. Verifica que el briefing incluya:
+   - por que importa esa area,
+   - aseveraciones expuestas,
    - procedimientos sugeridos,
-   - normativa activada,
-   - chunks usados.
-3. Usa `normas activadas` para validar soporte rapido.
+   - normativa activada.
+3. Revisa `chunks usados` y `normas activadas` para validar soporte.
 
-### Paso 4: Estructurar hallazgos
+Resultado esperado: plan operativo concreto para ejecutar esa area.
 
-1. Escribe la condicion detectada.
-2. Clic en `Estructurar Hallazgo`.
-3. Revisa condicion, criterio, causa, efecto y recomendacion.
-4. Ajusta texto final antes de guardar en papeles/reportes.
+## Paso 6 - Ejecutar y documentar evidencia
 
-### Paso 5: Registrar ahorro de tiempo (opcional pero recomendado)
+Durante la ejecucion del area:
 
-1. Ingresa `Manual (min)` y `Con AI (min)`.
-2. Clic en `Guardar Medicion`.
-3. Esto alimenta metricas operativas de productividad.
+1. Marca checks por cuenta/procedimiento.
+2. Registra evidencia clave en papeles de trabajo.
+3. Si aparece desviacion, prepara condicion para hallazgo.
 
-## 8. Control de calidad antes de emitir
+Resultado esperado: avance tecnico con evidencia trazable.
 
-Usa el pre-check de calidad (revisor mixto):
+## Paso 7 - Estructurar hallazgo
 
-1. Endpoint: `POST /api/quality/pre-emit-check`.
-2. Resultado:
-   - `status: blocked` -> no emitir todavia.
-   - `status: ok` -> puede continuar con warnings si existen.
+1. En `Estructurador de Hallazgo`, escribe la condicion detectada.
+2. Genera hallazgo.
+3. Revisa y ajusta:
+   - condicion,
+   - criterio,
+   - causa,
+   - efecto,
+   - recomendacion.
 
-Reglas bloqueantes tipicas:
+Resultado esperado: hallazgo util para carta de control o cierre.
 
-1. Afirmaciones criticas sin cobertura.
+## Paso 8 - Registrar tiempo (opcional recomendado)
+
+En la misma vista de area:
+
+1. Ingresa minutos manuales.
+2. Ingresa minutos con AI.
+3. Guarda medicion.
+
+Resultado esperado: metrica real de ahorro para seguimiento operativo.
+
+## Paso 9 - Control de calidad antes de avanzar
+
+Usa el pre-check de calidad:
+
+- `POST /api/quality/pre-emit-check`
+
+Interpreta resultado:
+
+1. `status=blocked`: no avances, corrige bloqueantes.
+2. `status=ok` con warnings: puedes avanzar, pero revisa observaciones.
+
+Bloqueantes tipicos:
+
+1. Aseveraciones criticas sin cobertura.
 2. Hallazgos criticos abiertos sin plan/respuesta.
-3. Conclusion tecnica insuficiente en riesgo alto.
-4. Inconsistencia material con materialidad documentada.
+3. Conclusiones tecnicas debiles en areas de riesgo alto.
+4. Inconsistencias con materialidad.
 
-## 9. Plantillas por fase y progresion
+Resultado esperado: control tecnico antes de cambiar fase o emitir.
 
-Antes de avanzar de fase:
+## Paso 10 - Usar plantilla de fase para no reescribir trabajo
 
-1. Consulta plantilla:
-   - `GET /workflow/{cliente_id}/phase-template`
-2. Revisa `missing_required`.
-3. Si falta algo critico, completa y registra cambios.
-4. Avanza solo cuando `can_advance=true`.
+Consulta plantilla de fase:
 
-Registro de cambios por campo:
+- `GET /workflow/{cliente_id}/phase-template`
+
+Que revisar:
+
+1. `missing_required`.
+2. `can_advance`.
+3. campos prellenados.
+
+Si haces ajuste manual de un campo relevante, registra historial:
 
 - `POST /workflow/{cliente_id}/field-history`
 
-## 10. Trazabilidad y soporte
+Resultado esperado: continuidad entre planificacion, ejecucion y cierre sin duplicar trabajo.
 
-Cada briefing/hallazgo guarda trazabilidad:
+## 3. Como leer la trazabilidad (muy importante)
 
-1. Norma usada.
-2. Fuente/chunk.
-3. Hash de chunk.
-4. Area.
-5. Timestamp.
+Cada briefing/hallazgo guarda:
 
-Esto permite explicar de donde salio cada recomendacion.
+1. norma,
+2. fuente_chunk,
+3. chunk_id,
+4. area_codigo,
+5. timestamp.
 
-## 11. Vigencia normativa mensual
+Uso practico:
 
-La deteccion de cambios normativos se ejecuta de forma mensual (no por consulta).
+1. Si alguien pregunta "de donde salio esto", abres trazabilidad y respondes con evidencia.
+2. Si hay discrepancia, vuelves al chunk exacto y corriges criterio.
 
-Ejecucion manual:
+## 4. Alertas de vigencia normativa
 
-```bash
-python -m backend.jobs.monthly_normativa_refresh
-```
+Si ves advertencia tipo:
 
-Endpoint interno equivalente:
+`Verificar vigencia... cambio detectado pendiente de revision`
 
-```text
-POST /api/normativa/refresh-monthly
-```
+significa:
 
-Si una norma citada tiene cambio pendiente, veras warning de vigencia.
-No bloquea respuesta, pero baja confianza hasta revision del equipo.
+1. Se detecto posible cambio normativo mensual (tributario/regulatorio).
+2. No bloquea el trabajo, pero debes validar antes de emitir criterio final.
 
-## 12. Errores comunes y como resolverlos
+## 5. Checklist rapido de uso diario
 
-### Error 401 / token expirado
-
-Accion:
-
-1. Cierra sesion.
-2. Inicia sesion otra vez.
-
-### "LLM no configurado"
-
-Accion:
-
-1. Configura `DEEPSEEK_API_KEY` en `.env`.
-2. Reinicia backend.
-
-### "Sin acceso a clientes" aunque login correcto
-
-Accion:
-
-1. Configura `ALLOWED_CLIENTES` en `.env`.
-2. Usa `*` en desarrollo si necesitas acceso total.
-
-### Briefing muy generico
-
-Accion:
-
-1. Verifica TB cargado.
-2. Verifica marco y afirmaciones criticas en el area.
-3. Revisa que RAG este indexado y con base normativa limpia.
-
-## 13. Checklist rapido de primer dia
-
-1. Login correcto.
-2. Cliente seleccionado.
-3. TB cargado.
-4. Riesgo revisado.
-5. Briefing generado en al menos 1 area.
-6. 1 hallazgo estructurado.
+1. Cliente correcto abierto.
+2. Riesgo y fase revisados.
+3. Area priorizada por score.
+4. Briefing generado y revisado.
+5. Evidencia cargada.
+6. Hallazgo estructurado (si aplica).
 7. Pre-check de calidad ejecutado.
-8. Pendientes criticos identificados antes de emitir.
+8. Bloqueantes resueltos antes de avanzar.
 
 ---
 
 Version: V1.2  
-Uso recomendado: auditor semisenior/senior en ejecucion y cierre.
+Enfoque: uso operativo del sistema en auditoria (no instalacion).
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { getClientes, type ClienteOption } from "../../lib/api/clientes";
 import { useAuditContext } from "../../lib/hooks/useAuditContext";
 import { useWorkflow } from "../../lib/hooks/useWorkflow";
+import { useTour } from "../tour/TourProvider";
 import ClientSwitcher from "./ClientSwitcher";
 
 function resolveClienteName(clienteId: string, clientes: ClienteOption[]): string {
@@ -18,6 +19,7 @@ export default function Header() {
   const { clienteId, moduleLabel } = useAuditContext();
   const [clientes, setClientes] = useState<ClienteOption[]>([]);
   const { data: workflow } = useWorkflow(clienteId);
+  const { activeModule, startTour, resetTours } = useTour();
 
   useEffect(() => {
     let active = true;
@@ -64,7 +66,25 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-3 md:gap-4">
-          <ClientSwitcher clienteId={clienteId} />
+          <div data-tour="header-client-switcher">
+            <ClientSwitcher clienteId={clienteId} />
+          </div>
+          <button
+            type="button"
+            onClick={() => startTour()}
+            disabled={!activeModule}
+            data-tour="btn-ver-tutorial"
+            className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627] disabled:opacity-55 disabled:cursor-not-allowed"
+          >
+            Ver tutorial
+          </button>
+          <button
+            type="button"
+            onClick={resetTours}
+            className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
+          >
+            Reiniciar tutoriales
+          </button>
           <div className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500">
             Ctrl + K
           </div>

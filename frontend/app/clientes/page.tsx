@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useTour } from "../../components/tour/TourProvider";
 import { createCliente, deleteCliente, getClientes, type ClienteOption } from "../../lib/api/clientes";
 import { SECTOR_OPTIONS } from "../../lib/sectorCatalog";
 
@@ -18,6 +19,7 @@ function slugify(input: string): string {
 
 export default function ClientesPage() {
   const router = useRouter();
+  const { activeModule, startTour, resetTours } = useTour();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -130,22 +132,40 @@ export default function ClientesPage() {
           <h1 className="font-headline text-3xl text-[#041627]">Socio AI</h1>
           <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Sovereign Intelligence</p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            localStorage.removeItem("socio_token");
-            router.push("/");
-          }}
-          className="sovereign-card !p-2 !px-3 text-[11px] uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
-        >
-          Cerrar sesion
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => startTour("clientes")}
+            disabled={!activeModule}
+            data-tour="btn-ver-tutorial"
+            className="sovereign-card !p-2 !px-3 text-[11px] uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627] disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Ver tutorial
+          </button>
+          <button
+            type="button"
+            onClick={resetTours}
+            className="sovereign-card !p-2 !px-3 text-[11px] uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
+          >
+            Reiniciar tutoriales
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem("socio_token");
+              router.push("/");
+            }}
+            className="sovereign-card !p-2 !px-3 text-[11px] uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
+          >
+            Cerrar sesion
+          </button>
+        </div>
       </nav>
 
       <main className="pt-28 px-6 md:px-10 pb-12 max-w-[1440px] mx-auto">
         <header className="mb-10">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Cartera de clientes</p>
-          <h2 className="font-headline text-5xl text-[#041627] mt-2">Selecciona un cliente o crea uno nuevo</h2>
+          <h2 data-tour="clientes-title" className="font-headline text-5xl text-[#041627] mt-2">Selecciona un cliente o crea uno nuevo</h2>
           <p className="text-slate-600 mt-3 max-w-3xl">
             Flujo recomendado: 1) crear/seleccionar cliente, 2) responder onboarding, 3) cargar Trial Balance y Mayor, 4) arrancar auditoria.
           </p>
@@ -161,6 +181,7 @@ export default function ClientesPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nombre, sector o id"
+                data-tour="clientes-search"
                 className="ghost-input w-full md:w-80"
               />
             </div>
@@ -190,10 +211,10 @@ export default function ClientesPage() {
                       >
                         {deletingId === cliente.cliente_id ? "Borrando..." : "Borrar"}
                       </button>
-                      <Link href={`/onboarding/${cliente.cliente_id}`} className="px-4 py-2 rounded-xl text-sm bg-white border border-black/10 text-slate-700 hover:bg-slate-50">
+                      <Link data-tour="clientes-onboarding-link" href={`/onboarding/${cliente.cliente_id}`} className="px-4 py-2 rounded-xl text-sm bg-white border border-black/10 text-slate-700 hover:bg-slate-50">
                         Onboarding
                       </Link>
-                      <Link href={`/dashboard/${cliente.cliente_id}`} className="px-4 py-2 rounded-xl text-sm text-white" style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}>
+                      <Link data-tour="clientes-open-dashboard-link" href={`/dashboard/${cliente.cliente_id}`} className="px-4 py-2 rounded-xl text-sm text-white" style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}>
                         Abrir dashboard
                       </Link>
                     </div>
@@ -204,7 +225,7 @@ export default function ClientesPage() {
             )}
           </article>
 
-          <article className="xl:col-span-5 sovereign-card">
+          <article data-tour="clientes-form" className="xl:col-span-5 sovereign-card">
             <h3 className="font-headline text-3xl text-[#041627]">Nuevo cliente</h3>
             <p className="text-sm text-slate-600 mt-2 mb-6">
               Al crear el cliente te llevo directo al onboarding para configurar preguntas clave y cargar archivos.

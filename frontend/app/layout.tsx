@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import PageTransition from "../components/navigation/PageTransition";
 import SovereignCommand from "../components/navigation/SovereignCommand";
+import TourProvider from "../components/tour/TourProvider";
 
 export const metadata: Metadata = {
   title: "Socio AI Sovereign",
@@ -24,8 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <PageTransition>{children}</PageTransition>
-        <SovereignCommand />
+        <TourProvider>
+          <PageTransition>{children}</PageTransition>
+          <SovereignCommand />
+        </TourProvider>
       </body>
     </html>
   );

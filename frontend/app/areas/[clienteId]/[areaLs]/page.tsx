@@ -207,7 +207,7 @@ export default function AreaWorkspacePage() {
           </div>
           <div>
             <p className="font-body text-xs uppercase tracking-[0.16em] text-slate-500">Workspace de Área</p>
-            <h2 className="font-headline text-5xl text-[#041627] mt-1 tracking-tight">
+            <h2 data-tour="area-title" className="font-headline text-5xl text-[#041627] mt-1 tracking-tight">
               {data.encabezado.area_code} - {data.encabezado.nombre}
             </h2>
             <p className="text-slate-500 mt-3 font-body text-sm">
@@ -288,7 +288,7 @@ export default function AreaWorkspacePage() {
       </section>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-        <section className="xl:col-span-8 space-y-8">
+        <section data-tour="area-lead-schedule" className="xl:col-span-8 space-y-8">
           <LeadSchedule
             cuentas={cuentas}
             currentYear={data.encabezado.actual_year}
@@ -339,6 +339,7 @@ export default function AreaWorkspacePage() {
                 type="button"
                 onClick={handleGenerateBriefing}
                 disabled={briefingLoading}
+                data-tour="btn-generar-briefing"
                 className="px-3 py-2 rounded-lg bg-[#041627] text-white text-xs font-bold tracking-[0.08em] uppercase disabled:opacity-60"
               >
                 {briefingLoading ? "Generando..." : "Generar Briefing"}
@@ -393,7 +394,7 @@ export default function AreaWorkspacePage() {
             )}
           </article>
 
-          <article className="sovereign-card space-y-3">
+          <article data-tour="hallazgo-block" className="sovereign-card space-y-3">
             <h4 className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Estructurador de Hallazgo</h4>
             <textarea
               value={condicionHallazgo}
@@ -417,7 +418,7 @@ export default function AreaWorkspacePage() {
             ) : null}
           </article>
 
-          <article className="sovereign-card space-y-3">
+          <article data-tour="tiempo-block" className="sovereign-card space-y-3">
             <h4 className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Medicion de Tiempo (Real)</h4>
             <div className="grid grid-cols-2 gap-3">
               <input
