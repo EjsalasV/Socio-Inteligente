@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ACTIONS, EVENTS, Joyride, STATUS, type EventData, type Step } from "react-joyride";
 
-import { TOUR_STEPS, TOUR_STORAGE_KEYS, type TourModule } from "../../lib/tour/config";
+import { TOUR_MODULES, TOUR_STEPS, TOUR_STORAGE_KEYS, type TourModule } from "../../lib/tour/config";
 
 type TourContextValue = {
   activeModule: TourModule | null;
@@ -16,9 +16,21 @@ const TourContext = createContext<TourContextValue | null>(null);
 
 function resolveTourModule(pathname: string): TourModule | null {
   if (pathname.startsWith("/clientes")) return "clientes";
+  if (/^\/perfil\/[^/]+/.test(pathname)) return "perfil";
+  if (/^\/dashboard\/[^/]+/.test(pathname)) return "dashboard";
   if (/^\/risk-engine\/[^/]+/.test(pathname)) return "risk-engine";
+  if (/^\/trial-balance\/[^/]+/.test(pathname)) return "trial-balance";
+  if (/^\/estados-financieros\/[^/]+/.test(pathname)) return "estados-financieros";
   if (/^\/areas\/[^/]+\/[^/]+/.test(pathname)) return "areas";
+  if (/^\/papeles-trabajo\/[^/]+/.test(pathname)) return "papeles-trabajo";
+  if (/^\/reportes\/[^/]+/.test(pathname)) return "reportes";
+  if (/^\/socio-chat\/[^/]+/.test(pathname)) return "socio-chat";
+  if (/^\/client-memory\/[^/]+/.test(pathname)) return "client-memory";
   return null;
+}
+
+function isTourModule(value: string): value is TourModule {
+  return (TOUR_MODULES as readonly string[]).includes(value);
 }
 
 function readStringArrayStorage(key: string, session = false): string[] {
@@ -54,13 +66,11 @@ export default function TourProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     setCompletedModules(
-      readStringArrayStorage(TOUR_STORAGE_KEYS.completedModules).filter((x): x is TourModule =>
-        x === "clientes" || x === "risk-engine" || x === "areas",
-      ),
+      readStringArrayStorage(TOUR_STORAGE_KEYS.completedModules).filter((x): x is TourModule => isTourModule(x)),
     );
     setDismissedInSession(
       readStringArrayStorage(TOUR_STORAGE_KEYS.dismissedInSession, true).filter((x): x is TourModule =>
-        x === "clientes" || x === "risk-engine" || x === "areas",
+        isTourModule(x),
       ),
     );
   }, []);
@@ -178,7 +188,7 @@ export default function TourProvider({ children }: { children: React.ReactNode }
           overlayColor: "#00000066",
         }}
         locale={{
-          back: "Atrás",
+          back: "Atras",
           close: "Cerrar",
           last: "Finalizar",
           next: "Siguiente",

@@ -46,7 +46,7 @@ export default function DashboardContent({ data }: Props) {
     <div className="space-y-8 pb-8">
       <section className="rounded-editorial p-7 shadow-editorial text-white border border-[#041627]/20 bg-gradient-to-br from-[#041627] to-[#1a2b3c]">
         <p className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-body">Centro de Mando de Auditoria - Socio AI</p>
-        <h2 className="font-headline text-5xl text-white mt-2">Dashboard Ejecutivo</h2>
+        <h2 data-tour="dashboard-title" className="font-headline text-5xl text-white mt-2">Dashboard Ejecutivo</h2>
         <p className="font-body text-slate-200 mt-3 leading-relaxed text-base">
           Cliente: <span className="font-semibold text-white">{data.nombre_cliente}</span> ·
           Periodo: <span className="font-semibold text-white"> {data.periodo || "Actual"}</span> ·
@@ -55,11 +55,13 @@ export default function DashboardContent({ data }: Props) {
         </p>
       </section>
 
-      <DashboardGrid data={data} />
+      <div data-tour="dashboard-kpis">
+        <DashboardGrid data={data} />
+      </div>
 
       <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         <div className="xl:col-span-8 space-y-6">
-          <article className="sovereign-card">
+          <article data-tour="dashboard-risk-ranking" className="sovereign-card">
             <div className="flex items-center justify-between gap-3 mb-5">
               <h3 className="font-headline text-3xl text-navy-900">Ranking de Riesgos por Area</h3>
               <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Top Areas</span>

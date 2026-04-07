@@ -66,7 +66,7 @@ export default function TrialBalancePage() {
     <div className="pt-4 pb-8 space-y-8 max-w-screen-2xl">
       <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
-          <h1 className="font-headline text-4xl text-[#041627]">Balance de Comprobacion - Revision Analitica</h1>
+          <h1 data-tour="trial-title" className="font-headline text-4xl text-[#041627]">Balance de Comprobacion - Revision Analitica</h1>
           <p className="font-body text-sm text-slate-500 mt-2">
             Ejercicio {dashboard.periodo || "Actual"} · Cliente {dashboard.nombre_cliente}
           </p>
@@ -80,6 +80,7 @@ export default function TrialBalancePage() {
         <div className="min-w-[320px]">
           <label className="block text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold mb-2">Area</label>
           <select
+            data-tour="trial-area-select"
             value={selectedArea}
             onChange={(e) => setSelectedArea(e.target.value)}
             className="ghost-input w-full"
@@ -138,7 +139,7 @@ export default function TrialBalancePage() {
       </section>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-        <section className="xl:col-span-8 sovereign-card !p-0 overflow-hidden">
+        <section data-tour="trial-table" className="xl:col-span-8 sovereign-card !p-0 overflow-hidden">
           <div className="p-6 border-b border-black/5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <h2 className="font-headline text-2xl text-[#041627]">
@@ -194,7 +195,7 @@ export default function TrialBalancePage() {
         </section>
 
         <aside className="xl:col-span-4">
-          <div className="rounded-editorial bg-[#041627] text-white p-6 shadow-editorial sticky top-24">
+          <div data-tour="trial-ai-guide" className="rounded-editorial bg-[#041627] text-white p-6 shadow-editorial sticky top-24">
             <div className="flex items-center gap-3 mb-6">
               <span className="material-symbols-outlined text-[#89d3d4]" style={{ fontVariationSettings: "'FILL' 1" }}>
                 smart_toy

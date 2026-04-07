@@ -193,7 +193,7 @@ export default function PerfilClientePage() {
     <main className="px-4 md:px-12 py-8 max-w-[1500px] space-y-8">
       <section className="rounded-editorial bg-white/85 backdrop-blur-sm shadow-editorial px-6 md:px-8 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight text-[#041627]">Configuracion del Perfil</h1>
+          <h1 data-tour="perfil-title" className="font-headline text-4xl md:text-5xl font-bold tracking-tight text-[#041627]">Configuracion del Perfil</h1>
           <p className="text-slate-600 mt-2 max-w-3xl leading-relaxed">
             Define los parametros del encargo para que Socio AI construya la estrategia inicial de auditoria sin perder trazabilidad.
           </p>
@@ -203,6 +203,7 @@ export default function PerfilClientePage() {
             type="button"
             onClick={handleSave}
             disabled={saving}
+            data-tour="perfil-save"
             className="px-5 py-2.5 rounded-xl border border-[rgba(196,198,205,0.6)] text-sm font-semibold text-slate-600 hover:text-[#041627] hover:bg-[#f8fafc] transition disabled:opacity-60"
           >
             {saving ? "Guardando..." : "Guardar progreso"}
@@ -223,7 +224,7 @@ export default function PerfilClientePage() {
 
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-10">
-          <article className="sovereign-card">
+          <article data-tour="perfil-marco" className="sovereign-card">
             <div className="flex items-center gap-2 mb-6">
               <span className="h-px w-8 bg-[#041627]/20" />
               <h2 className="font-headline text-2xl font-semibold text-[#041627]">Detalles de la firma y auditor</h2>

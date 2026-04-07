@@ -114,11 +114,27 @@ export default function Sidebar() {
                   data-tour={
                     item.key === "clientes"
                       ? "sidebar-clientes"
-                      : item.key === "risk-engine"
-                        ? "sidebar-risk-engine"
-                        : item.key === "areas"
-                          ? "sidebar-areas"
-                          : undefined
+                      : item.key === "perfil"
+                        ? "sidebar-perfil"
+                        : item.key === "dashboard"
+                          ? "sidebar-dashboard"
+                          : item.key === "risk-engine"
+                            ? "sidebar-risk-engine"
+                            : item.key === "trial-balance"
+                              ? "sidebar-trial-balance"
+                              : item.key === "estados-financieros"
+                                ? "sidebar-estados-financieros"
+                                : item.key === "areas"
+                                  ? "sidebar-areas"
+                                  : item.key === "papeles-trabajo"
+                                    ? "sidebar-papeles-trabajo"
+                                    : item.key === "reportes"
+                                      ? "sidebar-reportes"
+                                      : item.key === "socio-chat"
+                                        ? "sidebar-socio-chat"
+                                        : item.key === "client-memory"
+                                          ? "sidebar-client-memory"
+                                          : undefined
                   }
                   className={`flex items-center gap-3 rounded-editorial px-4 py-3 transition-colors ${itemClass(active)}`}
                   onClick={() => setOpenMobile(false)}

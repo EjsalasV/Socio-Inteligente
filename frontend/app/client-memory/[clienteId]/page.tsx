@@ -105,7 +105,7 @@ export default function ClientMemoryPage() {
     <div className="pt-4 pb-10 space-y-8 max-w-[1500px]">
       <section className="space-y-2">
         <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Archivo permanente / Socio AI</p>
-        <h1 className="font-headline text-5xl text-[#041627]">Memoria del Cliente</h1>
+        <h1 data-tour="memory-title" className="font-headline text-5xl text-[#041627]">Memoria del Cliente</h1>
         <p className="font-headline italic text-xl text-slate-500">
           Expediente maestro de auditoria - <span className="text-[#041627] not-italic font-semibold">{perfilName || dashboard.nombre_cliente}</span>
         </p>
@@ -113,7 +113,7 @@ export default function ClientMemoryPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         <div className="xl:col-span-7 space-y-8">
-          <article className="sovereign-card">
+          <article data-tour="memory-perfil" className="sovereign-card">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-headline text-3xl text-[#041627]">Perfil del Cliente</h3>
               <span className="px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-[10px] font-bold uppercase tracking-[0.12em]">Activo</span>
@@ -141,7 +141,7 @@ export default function ClientMemoryPage() {
             </div>
           </article>
 
-          <article className="sovereign-card !p-0 overflow-hidden">
+          <article data-tour="memory-documentos" className="sovereign-card !p-0 overflow-hidden">
             <div className="p-6 border-b border-black/5 flex items-center justify-between">
               <h3 className="font-headline text-3xl text-[#041627]">Repositorio de Documentos</h3>
               <button
@@ -229,7 +229,7 @@ export default function ClientMemoryPage() {
             <div className="absolute -right-12 -bottom-12 w-44 h-44 rounded-full bg-[#89d3d4]/10 blur-3xl" />
           </article>
 
-          <article className="sovereign-card">
+          <article data-tour="memory-hallazgos" className="sovereign-card">
             <h3 className="font-headline text-3xl text-[#041627] mb-6">Historial de Hallazgos</h3>
             <div className="space-y-5">
               {hallazgos.map((f) => (

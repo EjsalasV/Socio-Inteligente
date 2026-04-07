@@ -54,14 +54,14 @@ export default function PapelesTrabajoPage() {
     <div className="pt-4 pb-10 space-y-8 max-w-[1500px]">
       <section className="rounded-editorial p-7 text-white border border-[#041627]/20 bg-gradient-to-br from-[#041627] to-[#1a2b3c]">
         <p className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-body">Control de Calidad</p>
-        <h1 className="font-headline text-5xl text-white mt-2">Papeles de Trabajo y Quality Gates</h1>
+        <h1 data-tour="papeles-title" className="font-headline text-5xl text-white mt-2">Papeles de Trabajo y Quality Gates</h1>
         <p className="font-body text-slate-200 mt-3 leading-relaxed text-base">
           Cliente: <span className="font-semibold text-white">{data.cliente_id}</span> ·
           Avance requerido: <span className="font-semibold text-white"> {data.completion_pct.toFixed(1)}%</span>
         </p>
       </section>
 
-      <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <section data-tour="papeles-gates" className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {data.gates.map((gate) => (
           <article key={gate.code} className={`sovereign-card border ${gateColor(gate.status)}`}>
             <div className="flex items-center justify-between">
@@ -81,7 +81,7 @@ export default function PapelesTrabajoPage() {
         ))}
       </section>
 
-      <section className="sovereign-card">
+      <section data-tour="papeles-avance" className="sovereign-card">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <p className="text-[10px] uppercase tracking-[0.15em] text-slate-500 font-bold">Avance de Ejecucion</p>
@@ -127,7 +127,7 @@ export default function PapelesTrabajoPage() {
         {workflowMsg ? <p className="mt-3 text-xs text-slate-600">{workflowMsg}</p> : null}
       </section>
 
-      <section className="space-y-6">
+      <section data-tour="papeles-tareas" className="space-y-6">
         {groupedTasks.map((group) => (
           <article key={`${group.areaCode}-${group.areaName}`} className="sovereign-card">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">

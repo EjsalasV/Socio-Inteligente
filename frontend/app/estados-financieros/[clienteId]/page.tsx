@@ -77,7 +77,7 @@ export default function EstadosFinancierosPage() {
     <div className="pt-4 pb-10 space-y-8 max-w-screen-2xl">
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h1 className="font-headline text-4xl text-[#041627]">Estados Financieros - Analisis Comparativo</h1>
+          <h1 data-tour="estados-title" className="font-headline text-4xl text-[#041627]">Estados Financieros - Analisis Comparativo</h1>
           <p className="font-body text-sm text-slate-500 mt-2">
             Cliente {dashboard.nombre_cliente} · Periodo {dashboard.periodo || "Actual"}
           </p>
@@ -105,7 +105,7 @@ export default function EstadosFinancierosPage() {
       </header>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <article className="sovereign-card border-l-4 border-[#041627]">
+        <article data-tour="estados-materialidad" className="sovereign-card border-l-4 border-[#041627]">
           <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Materialidad de Planeacion</p>
           <h3 className="font-headline text-3xl text-[#041627] mt-3">{formatMoney(dashboard.materialidad_global)}</h3>
           <p className="text-xs text-slate-500 mt-2">{materialidadOrigenLabel}</p>
@@ -125,7 +125,7 @@ export default function EstadosFinancierosPage() {
         </article>
       </section>
 
-      <section className="bg-[#f1f4f6] rounded-editorial p-1">
+      <section data-tour="estados-table" className="bg-[#f1f4f6] rounded-editorial p-1">
         <div className="bg-white rounded-editorial overflow-hidden">
           <div className="px-8 py-6 border-b border-black/5 flex items-center justify-between gap-3">
             <h2 className="font-headline text-2xl text-[#041627]">
@@ -192,7 +192,7 @@ export default function EstadosFinancierosPage() {
           </div>
         </article>
 
-        <article className="lg:col-span-2 rounded-editorial bg-[#1a2b3c] text-white p-8 shadow-editorial">
+        <article data-tour="estados-alertas" className="lg:col-span-2 rounded-editorial bg-[#1a2b3c] text-white p-8 shadow-editorial">
           <h3 className="font-headline text-2xl">Alertas de Integridad</h3>
           <div className="space-y-4 mt-6">
             {(areaData?.aseveraciones ?? []).slice(0, 3).map((a, idx) => (

@@ -231,7 +231,7 @@ export default function SocioChatPage() {
   return (
     <div className="pt-4 pb-8 h-[calc(100vh-7rem)]">
       <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr_320px] gap-6 h-full">
-        <aside className="sovereign-card !p-4 flex flex-col overflow-hidden">
+        <aside data-tour="sociochat-conversaciones" className="sovereign-card !p-4 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-2 mb-4">
             <h3 className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Conversaciones</h3>
             <span className="material-symbols-outlined text-slate-400">edit_square</span>
@@ -254,7 +254,7 @@ export default function SocioChatPage() {
           </div>
         </aside>
 
-        <section className="sovereign-card !p-0 overflow-hidden flex flex-col">
+        <section data-tour="sociochat-chat" className="sovereign-card !p-0 overflow-hidden flex flex-col">
           <div className="px-6 py-4 bg-[#f1f4f6]/60 border-b border-black/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
@@ -317,7 +317,7 @@ export default function SocioChatPage() {
             ))}
           </div>
 
-          <div className="p-5 bg-[#f1f4f6]/35 border-t border-black/5">
+          <div data-tour="sociochat-input" className="p-5 bg-[#f1f4f6]/35 border-t border-black/5">
             {actionMsg ? <p className="text-xs text-slate-600 mb-3">{actionMsg}</p> : null}
             <div className="flex gap-2 mb-3 overflow-x-auto">
               {QUICK_PROMPTS.map((q) => (
@@ -365,7 +365,7 @@ export default function SocioChatPage() {
             </div>
           </article>
 
-          <article className="sovereign-card">
+          <article data-tour="sociochat-referencias" className="sovereign-card">
             <h4 className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-bold mb-4">Alertas de riesgo</h4>
             <div className="space-y-3">
               {openRisks.map((risk) => (

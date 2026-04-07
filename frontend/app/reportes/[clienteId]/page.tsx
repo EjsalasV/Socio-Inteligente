@@ -335,7 +335,7 @@ export default function ReportesPage() {
     <div className="pt-4 pb-10 space-y-8 max-w-[1500px]">
       <section className="rounded-editorial p-7 shadow-editorial text-white border border-[#041627]/20 bg-gradient-to-br from-[#041627] to-[#1a2b3c]">
         <p className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-body">Centro Operativo de Reportes</p>
-        <h1 className="font-headline text-5xl text-white mt-2">Emision y Trazabilidad</h1>
+        <h1 data-tour="reportes-title" className="font-headline text-5xl text-white mt-2">Emision y Trazabilidad</h1>
         <p className="font-body text-slate-200 mt-3 leading-relaxed text-base">
           Cliente: <span className="font-semibold text-white">{data.nombre_cliente}</span> ·
           Periodo: <span className="font-semibold text-white"> {data.periodo || "Actual"}</span>
@@ -343,7 +343,7 @@ export default function ReportesPage() {
         </p>
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <section data-tour="reportes-gates" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <article className="sovereign-card lg:col-span-2">
           <h3 className="font-headline text-2xl text-[#041627] mb-4">Quality Gates de Emision</h3>
           {historyLoading ? <p className="text-sm text-slate-500">Cargando estado de gates...</p> : null}
@@ -391,7 +391,7 @@ export default function ReportesPage() {
         </article>
       </section>
 
-      <section className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+      <section data-tour="reportes-actions" className="grid grid-cols-1 xl:grid-cols-4 gap-4">
         <button
           type="button"
           onClick={() => void handleGeneratePdf(false)}
@@ -435,7 +435,7 @@ export default function ReportesPage() {
         </section>
       ) : null}
 
-      <section className="sovereign-card">
+      <section data-tour="reportes-history" className="sovereign-card">
         <h2 className="font-headline text-3xl text-[#041627] mb-4">Gobierno Documental</h2>
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           {DOCUMENT_TYPES.map((documentType) => {
