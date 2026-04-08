@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuditContext } from "../../lib/hooks/useAuditContext";
+import { useTour } from "../tour/TourProvider";
 
 type NavItem = {
   id: string;
@@ -34,6 +35,7 @@ function itemClass(active: boolean): string {
 
 export default function Sidebar() {
   const router = useRouter();
+  const { stopTour } = useTour();
   const { clienteId, moduleKey, pathname } = useAuditContext();
   const [openMobile, setOpenMobile] = useState<boolean>(false);
 
@@ -137,7 +139,10 @@ export default function Sidebar() {
                                           : undefined
                   }
                   className={`flex items-center gap-3 rounded-editorial px-4 py-3 transition-colors ${itemClass(active)}`}
-                  onClick={() => setOpenMobile(false)}
+                  onClick={() => {
+                    stopTour();
+                    setOpenMobile(false);
+                  }}
                 >
                   <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
                   <span className="font-body text-sm">{item.label}</span>

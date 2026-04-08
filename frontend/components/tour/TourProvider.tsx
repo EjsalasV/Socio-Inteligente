@@ -9,10 +9,12 @@ import { TOUR_MODULES, TOUR_STEPS, TOUR_STORAGE_KEYS, type TourModule } from "..
 type TourContextValue = {
   activeModule: TourModule | null;
   startTour: (module?: TourModule) => void;
+  stopTour: () => void;
   resetTours: () => void;
 };
 
 const TourContext = createContext<TourContextValue | null>(null);
+const ONBOARDING_WELCOME_KEY = "onboarding:v1:welcome_seen";
 
 function resolveTourModule(pathname: string): TourModule | null {
   if (pathname.startsWith("/clientes")) return "clientes";
@@ -83,10 +85,18 @@ export default function TourProvider({ children }: { children: React.ReactNode }
       const moduleSteps = TOUR_STEPS[resolved] ?? [];
       if (!moduleSteps.length) return;
 
-      const availableSteps = moduleSteps.filter((step) => {
-        const target = typeof step.target === "string" ? step.target : "";
-        return !!target && !!document.querySelector(target);
-      });
+      const availableSteps = moduleSteps
+        .filter((step) => {
+          const target = typeof step.target === "string" ? step.target : "";
+          return !!target && !!document.querySelector(target);
+        })
+        .map((step) => ({
+          ...step,
+          hideOverlay: true,
+          disableFocusTrap: true,
+          blockTargetInteraction: false,
+          overlayClickAction: "close" as const,
+        }));
       if (!availableSteps.length) return;
 
       setCurrentModule(resolved);
@@ -106,10 +116,21 @@ export default function TourProvider({ children }: { children: React.ReactNode }
     setDismissedInSession([]);
   }, []);
 
+  const stopTour = useCallback(() => {
+    setRun(false);
+    setStepIndex(0);
+    setCurrentModule(null);
+  }, []);
+
   useEffect(() => {
     if (!activeModule || run) return;
     if (completedModules.includes(activeModule)) return;
     if (dismissedInSession.includes(activeModule)) return;
+    if (typeof window !== "undefined") {
+      // Evita que el tour tape el modal de bienvenida de onboarding.
+      const onboardingReady = window.localStorage.getItem(ONBOARDING_WELCOME_KEY) === "true";
+      if (activeModule !== "clientes" && !onboardingReady) return;
+    }
 
     const launchKey = `${pathname}:${activeModule}`;
     if (lastAutoLaunchRef.current === launchKey) return;
@@ -127,7 +148,14 @@ export default function TourProvider({ children }: { children: React.ReactNode }
       const { action, index, status, type } = data;
 
       if (type === EVENTS.TARGET_NOT_FOUND) {
-        setStepIndex((prev) => prev + 1);
+        setStepIndex((prev) => {
+          const next = prev + 1;
+          if (next >= steps.length) {
+            stopTour();
+            return 0;
+          }
+          return next;
+        });
         return;
       }
 
@@ -142,8 +170,7 @@ export default function TourProvider({ children }: { children: React.ReactNode }
           setCompletedModules(nextCompleted);
           writeStringArrayStorage(TOUR_STORAGE_KEYS.completedModules, nextCompleted);
         }
-        setRun(false);
-        setStepIndex(0);
+        stopTour();
         return;
       }
 
@@ -153,20 +180,28 @@ export default function TourProvider({ children }: { children: React.ReactNode }
           setDismissedInSession(nextDismissed);
           writeStringArrayStorage(TOUR_STORAGE_KEYS.dismissedInSession, nextDismissed, true);
         }
-        setRun(false);
-        setStepIndex(0);
+        stopTour();
       }
     },
-    [completedModules, currentModule, dismissedInSession],
+    [completedModules, currentModule, dismissedInSession, steps.length, stopTour],
   );
+
+  useEffect(() => {
+    // Si el usuario cambia de modulo mientras el tour corre, cerramos para no bloquear la UI.
+    if (!run || !currentModule || !activeModule) return;
+    if (currentModule !== activeModule) {
+      stopTour();
+    }
+  }, [activeModule, currentModule, run, stopTour]);
 
   const value = useMemo<TourContextValue>(
     () => ({
       activeModule,
       startTour,
+      stopTour,
       resetTours,
     }),
-    [activeModule, resetTours, startTour],
+    [activeModule, resetTours, startTour, stopTour],
   );
 
   return (
@@ -182,6 +217,10 @@ export default function TourProvider({ children }: { children: React.ReactNode }
         options={{
           buttons: ["back", "close", "primary", "skip"],
           skipScroll: false,
+          hideOverlay: true,
+          disableFocusTrap: true,
+          blockTargetInteraction: false,
+          overlayClickAction: "close",
           primaryColor: "#041627",
           textColor: "#0f172a",
           zIndex: 999999,
@@ -217,6 +256,7 @@ export function useTour(): TourContextValue {
     return {
       activeModule: null,
       startTour: () => undefined,
+      stopTour: () => undefined,
       resetTours: () => undefined,
     };
   }
