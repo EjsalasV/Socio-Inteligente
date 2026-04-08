@@ -192,7 +192,7 @@ export default function PerfilClientePage() {
 
   return (
     <main className="px-4 md:px-12 py-8 max-w-[1500px] space-y-8">
-      <section className="rounded-editorial bg-white/85 backdrop-blur-sm shadow-editorial px-6 md:px-8 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <section className="rounded-editorial bg-white shadow-editorial px-6 md:px-8 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 data-tour="perfil-title" className="font-headline text-4xl md:text-5xl font-bold tracking-tight text-[#041627]">Configuracion del Perfil</h1>
           <p className="text-slate-600 mt-2 max-w-3xl leading-relaxed">

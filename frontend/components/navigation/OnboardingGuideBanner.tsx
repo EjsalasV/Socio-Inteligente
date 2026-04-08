@@ -25,7 +25,7 @@ export default function OnboardingGuideBanner() {
   return (
     <>
       {showWelcome ? (
-        <div className="fixed inset-0 z-[100000] bg-black/45 backdrop-blur-[1px] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[1000001] bg-black/45 backdrop-blur-[1px] flex items-center justify-center p-4">
           <div className="w-full max-w-2xl rounded-2xl border border-[#041627]/20 bg-white shadow-2xl p-6 md:p-8">
             <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 font-bold">Primer ingreso</p>
             <h2 className="font-headline text-3xl text-[#041627] mt-2">Bienvenido a Socio AI</h2>
@@ -72,7 +72,7 @@ export default function OnboardingGuideBanner() {
       ) : null}
 
       {!guide.dismissed ? (
-        <div className="mx-4 md:mx-8 mt-4 rounded-xl border border-[#041627]/10 bg-white/90 backdrop-blur-sm p-4">
+        <div className="mx-4 md:mx-8 mt-4 rounded-xl border border-[#041627]/10 bg-white p-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             <div>
               <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold">Guia del sistema</p>
@@ -146,4 +146,3 @@ export default function OnboardingGuideBanner() {
     </>
   );
 }
-

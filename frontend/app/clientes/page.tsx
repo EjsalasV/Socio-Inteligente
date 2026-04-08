@@ -192,7 +192,7 @@ export default function ClientesPage() {
         </div>
       ) : null}
 
-      <nav className="fixed top-0 w-full z-40 bg-white/85 backdrop-blur-xl border-b border-black/5 px-6 md:px-10 py-4 flex items-center justify-between">
+      <nav className="fixed top-0 w-full z-40 bg-white border-b border-black/5 px-6 md:px-10 py-4 flex items-center justify-between">
         <div>
           <h1 className="font-headline text-3xl text-[#041627]">Socio AI</h1>
           <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Sovereign Intelligence</p>

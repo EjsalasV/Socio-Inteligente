@@ -77,7 +77,7 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-20 bg-white/92 backdrop-blur-sm px-4 md:px-8 py-4 border-b border-[#041627]/10">
+    <header className="sticky top-0 z-20 bg-white px-4 md:px-8 py-4 border-b border-[#041627]/10">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="font-body text-xs uppercase tracking-[0.16em] text-slate-500">Ruta</p>

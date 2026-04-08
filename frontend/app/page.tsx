@@ -107,7 +107,7 @@ export default function LoginPage() {
         />
       </div>
 
-      <header className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl flex justify-between items-center px-8 py-4 shadow-sm shadow-slate-200/50">
+      <header className="fixed top-0 w-full z-50 bg-white flex justify-between items-center px-8 py-4 shadow-sm shadow-slate-200/50">
         <div className="text-xl font-semibold tracking-tight text-slate-900 font-headline">
           Socio AI
         </div>
@@ -136,7 +136,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="rounded-xl p-8 md:p-12 shadow-[0_20px_40px_rgba(24,28,30,0.06)] bg-white/70 backdrop-blur-[20px] border border-white/60">
+          <div className="rounded-xl p-8 md:p-12 shadow-[0_20px_40px_rgba(24,28,30,0.06)] bg-white border border-white/60">
             <form className="space-y-8" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <label className="text-[11px] uppercase tracking-widest font-semibold text-slate-500 block ml-1" htmlFor="username">
@@ -221,7 +221,7 @@ export default function LoginPage() {
         </div>
       </main>
 
-      <footer className="relative z-20 w-full py-8 border-t border-slate-200/20 bg-slate-50/80 backdrop-blur-sm">
+      <footer className="relative z-20 w-full py-8 border-t border-slate-200/20 bg-slate-50">
         <div className="flex flex-col md:flex-row justify-between items-center px-8 md:px-12 max-w-7xl mx-auto space-y-4 md:space-y-0">
           <div className="text-[11px] uppercase tracking-widest font-medium text-slate-400">
             © 2026 Socio AI. Todos los derechos reservados.
