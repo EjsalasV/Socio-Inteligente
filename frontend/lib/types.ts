@@ -630,7 +630,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Workpaper Task */
+        delete: operations["delete_workpaper_task_papeles_trabajo__cliente_id__tasks__task_id__delete"];
         options?: never;
         head?: never;
         /** Patch Workpaper Task */
@@ -2641,6 +2642,38 @@ export interface operations {
             header?: never;
             path: {
                 cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_workpaper_task_papeles_trabajo__cliente_id__tasks__task_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+                task_id: string;
             };
             cookie?: never;
         };
