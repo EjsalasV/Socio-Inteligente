@@ -40,14 +40,15 @@ def login(payload: LoginRequest) -> ApiResponse:
 
     if isinstance(user, dict):
         user_id = str(user.get("user_id") or "").strip()
+        role = str(user.get("role") or "auditor").strip().lower()
         allowed = identity_store.get_user_clientes(user_id)
-        if not allowed:
+        if not allowed and role in {"admin", "socio"}:
             allowed = _allowed_clientes()
         token, ttl = create_access_token(
             sub=str(user.get("username") or payload.username),
             org_id=os.getenv("SOCIO_ORG_ID", "socio-default-org"),
             allowed_clientes=allowed,
-            role=str(user.get("role") or "auditor"),
+            role=role,
             user_id=user_id,
             display_name=str(user.get("display_name") or user.get("username") or ""),
         )

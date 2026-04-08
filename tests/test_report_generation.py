@@ -472,7 +472,7 @@ def test_section_links_create_and_read() -> None:
         cliente_id,
         "niif_pymes_borrador",
         "nota_1",
-        payload={"source_type": "trial_balance", "source_id": "tb_2025_v3", "reference": "AR-110101", "label": "Saldo CxC"},
+        payload={"source_type": "supporting_document", "source_id": "wp_niif_01", "reference": "AR-110101", "label": "Saldo CxC"},
         user=_user(role="staff"),
     )
     assert out.data["section"]["status"] in {"supported", "pending", "missing_required_support"}

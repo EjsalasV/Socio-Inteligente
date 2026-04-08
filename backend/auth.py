@@ -104,8 +104,8 @@ def get_current_user(
         live_role = str(live_user.get("role") or payload.get("role") or "auditor").strip()
         live_display_name = str(live_user.get("display_name") or payload.get("display_name") or sub).strip()
         dynamic_allowed = identity_store.get_user_clientes(live_uid) if live_uid else []
-        if dynamic_allowed:
-            allowed_clientes = dynamic_allowed
+        # For real users in identity store, assignments are the source of truth (even if empty).
+        allowed_clientes = dynamic_allowed
 
     try:
         return UserContext(
@@ -132,6 +132,13 @@ def authorize_cliente_access(cliente_id: str, user: UserContext | None = None) -
             return
         if cliente_id in allowed:
             return
+        # Identity users use strict assignment checks (no env wildcard fallback).
+        if user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Acceso denegado al cliente: {cliente_id}",
+            )
+        # Legacy tokens keep previous environment fallback behavior.
         if allowed_env is None:
             return
         if cliente_id in set(allowed_env):
