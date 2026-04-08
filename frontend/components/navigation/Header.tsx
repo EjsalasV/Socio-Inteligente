@@ -7,6 +7,7 @@ import { getClientes, type ClienteOption } from "../../lib/api/clientes";
 import { useAuditContext } from "../../lib/hooks/useAuditContext";
 import { useLearningRole, type LearningRole } from "../../lib/hooks/useLearningRole";
 import { useWorkflow } from "../../lib/hooks/useWorkflow";
+import { useUserPreferences } from "../providers/UserPreferencesProvider";
 import { useTour } from "../tour/TourProvider";
 import ClientSwitcher from "./ClientSwitcher";
 
@@ -22,6 +23,7 @@ export default function Header() {
   const { data: workflow } = useWorkflow(clienteId);
   const { activeModule, startTour, resetTours } = useTour();
   const { role, setRole } = useLearningRole();
+  const { session } = useUserPreferences();
 
   useEffect(() => {
     let active = true;
@@ -44,6 +46,10 @@ export default function Header() {
   const clienteName = useMemo(() => resolveClienteName(clienteId, clientes), [clienteId, clientes]);
   const phase = workflow?.current_phase ?? "planificacion";
   const phaseIndex = phase === "informe" ? 3 : phase === "ejecucion" ? 2 : 1;
+  const canManageUsers = useMemo(() => {
+    const profileRole = String(session?.role || "").toLowerCase();
+    return profileRole === "admin" || profileRole === "socio";
+  }, [session?.role]);
   const moduleHint = useMemo(() => {
     const hints: Record<string, string> = {
       perfil: "Completa marco, materialidad y responsable para habilitar un flujo consistente.",
@@ -66,6 +72,7 @@ export default function Header() {
 
   function handleLogout(): void {
     localStorage.removeItem("socio_token");
+    window.dispatchEvent(new Event("socio-auth-changed"));
     router.push("/");
   }
 
@@ -120,6 +127,15 @@ export default function Header() {
           >
             Reiniciar tutoriales
           </button>
+          {canManageUsers ? (
+            <button
+              type="button"
+              onClick={() => router.push("/admin")}
+              className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
+            >
+              Admin
+            </button>
+          ) : null}
           <div className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500">
             Ctrl + K
           </div>

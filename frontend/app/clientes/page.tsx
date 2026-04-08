@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { useTour } from "../../components/tour/TourProvider";
 import { createCliente, deleteCliente, getClientes, type ClienteOption } from "../../lib/api/clientes";
+import { useUserPreferences } from "../../components/providers/UserPreferencesProvider";
 import { SECTOR_OPTIONS } from "../../lib/sectorCatalog";
 
 function slugify(input: string): string {
@@ -20,6 +21,7 @@ function slugify(input: string): string {
 export default function ClientesPage() {
   const router = useRouter();
   const { activeModule, startTour, resetTours } = useTour();
+  const { loading: prefsLoading, preferences, patchPreferences, session } = useUserPreferences();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,6 +33,7 @@ export default function ClientesPage() {
   const [nombre, setNombre] = useState("");
   const [sector, setSector] = useState("Holding");
   const [clienteIdManual, setClienteIdManual] = useState("");
+  const showWelcomeClientes = !prefsLoading && !preferences.onboarding_ui.welcome_seen;
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("socio_token") : null;
@@ -69,6 +72,10 @@ export default function ClientesPage() {
     });
   }, [clientes, search]);
   const firstClient = useMemo(() => clientes[0] ?? null, [clientes]);
+  const canManageUsers = useMemo(() => {
+    const role = String(session?.role || "").toLowerCase();
+    return role === "admin" || role === "socio";
+  }, [session?.role]);
 
   async function handleCreateClient(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -128,6 +135,63 @@ export default function ClientesPage() {
 
   return (
     <div className="min-h-screen bg-[#f7fafc]">
+      {showWelcomeClientes ? (
+        <div className="fixed inset-0 z-[1000001] bg-black/45 backdrop-blur-[1px] flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-[#041627]/20 bg-white shadow-2xl p-6 md:p-8">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 font-bold">Bienvenida</p>
+            <h2 className="font-headline text-3xl text-[#041627] mt-2">Centro de Clientes</h2>
+            <p className="text-sm text-slate-600 mt-3 leading-relaxed">
+              Aqui empieza todo el flujo. Puedes tomar un mini tutorial o ir directo a crear tu primer cliente.
+            </p>
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  void patchPreferences({
+                    onboarding_ui: {
+                      welcome_seen: true,
+                      dismissed: false,
+                    },
+                  });
+                  startTour("clientes");
+                }}
+                className="px-4 py-3 rounded-xl bg-[#041627] text-white text-sm font-semibold"
+              >
+                Iniciar tutorial
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void patchPreferences({
+                    onboarding_ui: {
+                      welcome_seen: true,
+                      dismissed: false,
+                    },
+                  });
+                  document.querySelector('[data-tour="clientes-form"]')?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+                className="px-4 py-3 rounded-xl border border-[#041627]/15 text-[#041627] text-sm font-semibold bg-white"
+              >
+                Crear cliente
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void patchPreferences({
+                    onboarding_ui: {
+                      welcome_seen: true,
+                    },
+                  });
+                }}
+                className="px-4 py-3 rounded-xl border border-slate-300 text-slate-600 text-sm font-semibold bg-white"
+              >
+                Omitir por ahora
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <nav className="fixed top-0 w-full z-40 bg-white/85 backdrop-blur-xl border-b border-black/5 px-6 md:px-10 py-4 flex items-center justify-between">
         <div>
           <h1 className="font-headline text-3xl text-[#041627]">Socio AI</h1>
@@ -150,10 +214,20 @@ export default function ClientesPage() {
           >
             Reiniciar tutoriales
           </button>
+          {canManageUsers ? (
+            <button
+              type="button"
+              onClick={() => router.push("/admin")}
+              className="sovereign-card !p-2 !px-3 text-[11px] uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
+            >
+              Admin
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => {
               localStorage.removeItem("socio_token");
+              window.dispatchEvent(new Event("socio-auth-changed"));
               router.push("/");
             }}
             className="sovereign-card !p-2 !px-3 text-[11px] uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"

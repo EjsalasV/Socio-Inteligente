@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+
+import { useUserPreferences } from "../../components/providers/UserPreferencesProvider";
 
 type GuideModule =
   | "perfil"
@@ -29,12 +31,6 @@ type OnboardingGuideState = {
   showGuide: () => void;
   markWelcomeSeen: () => void;
 };
-
-const STORAGE_KEYS = {
-  visitedModules: "onboarding:v1:visited_modules",
-  dismissed: "onboarding:v1:dismissed",
-  welcomeSeen: "onboarding:v1:welcome_seen",
-} as const;
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   {
@@ -75,58 +71,37 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
 ];
 
-function readVisitedModules(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEYS.visitedModules);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((x) => String(x));
-  } catch {
-    return [];
-  }
-}
-
-function writeVisitedModules(modules: string[]): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEYS.visitedModules, JSON.stringify(Array.from(new Set(modules))));
-}
-
-function readBoolean(key: string): boolean {
-  if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(key) === "true";
-}
-
-function writeBoolean(key: string, value: boolean): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, value ? "true" : "false");
-}
-
 function isGuideModule(value: string): value is GuideModule {
   return ONBOARDING_STEPS.some((step) => step.module === value);
 }
 
 export function useOnboardingGuide(moduleKey: string): OnboardingGuideState {
-  const [visitedModules, setVisitedModules] = useState<string[]>([]);
-  const [dismissed, setDismissed] = useState<boolean>(false);
-  const [welcomeSeen, setWelcomeSeen] = useState<boolean>(false);
+  const { preferences, patchPreferences, loading } = useUserPreferences();
+  const visitedModules = useMemo(() => {
+    const raw = preferences.onboarding_ui?.visited_modules_ui;
+    if (!Array.isArray(raw)) return [];
+    const unique = new Set<string>();
+    for (const value of raw) {
+      const clean = String(value || "").trim();
+      if (!clean) continue;
+      unique.add(clean);
+    }
+    return Array.from(unique);
+  }, [preferences.onboarding_ui?.visited_modules_ui]);
+  const dismissed = Boolean(preferences.onboarding_ui?.dismissed);
+  const welcomeSeen = Boolean(preferences.onboarding_ui?.welcome_seen);
 
   useEffect(() => {
-    setVisitedModules(readVisitedModules());
-    setDismissed(readBoolean(STORAGE_KEYS.dismissed));
-    setWelcomeSeen(readBoolean(STORAGE_KEYS.welcomeSeen));
-  }, []);
-
-  useEffect(() => {
+    if (loading) return;
     if (!isGuideModule(moduleKey)) return;
-    setVisitedModules((prev) => {
-      if (prev.includes(moduleKey)) return prev;
-      const next = [...prev, moduleKey];
-      writeVisitedModules(next);
-      return next;
+    if (visitedModules.includes(moduleKey)) return;
+    const nextVisited = [...visitedModules, moduleKey];
+    void patchPreferences({
+      onboarding_ui: {
+        visited_modules_ui: nextVisited,
+      },
     });
-  }, [moduleKey]);
+  }, [loading, moduleKey, patchPreferences, visitedModules]);
 
   const steps = useMemo(
     () =>
@@ -142,19 +117,28 @@ export function useOnboardingGuide(moduleKey: string): OnboardingGuideState {
   const nextStep = steps.find((step) => !step.done) ?? null;
 
   const dismissGuide = useCallback(() => {
-    setDismissed(true);
-    writeBoolean(STORAGE_KEYS.dismissed, true);
-  }, []);
+    void patchPreferences({
+      onboarding_ui: {
+        dismissed: true,
+      },
+    });
+  }, [patchPreferences]);
 
   const showGuide = useCallback(() => {
-    setDismissed(false);
-    writeBoolean(STORAGE_KEYS.dismissed, false);
-  }, []);
+    void patchPreferences({
+      onboarding_ui: {
+        dismissed: false,
+      },
+    });
+  }, [patchPreferences]);
 
   const markWelcomeSeen = useCallback(() => {
-    setWelcomeSeen(true);
-    writeBoolean(STORAGE_KEYS.welcomeSeen, true);
-  }, []);
+    void patchPreferences({
+      onboarding_ui: {
+        welcome_seen: true,
+      },
+    });
+  }, [patchPreferences]);
 
   return {
     steps,
@@ -169,4 +153,3 @@ export function useOnboardingGuide(moduleKey: string): OnboardingGuideState {
     markWelcomeSeen,
   };
 }
-

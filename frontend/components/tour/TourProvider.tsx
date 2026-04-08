@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ACTIONS, EVENTS, Joyride, STATUS, type EventData, type Step } from "react-joyride";
 
 import { TOUR_MODULES, TOUR_STEPS, TOUR_STORAGE_KEYS, type TourModule } from "../../lib/tour/config";
+import { useUserPreferences } from "../providers/UserPreferencesProvider";
 
 type TourContextValue = {
   activeModule: TourModule | null;
@@ -14,7 +15,6 @@ type TourContextValue = {
 };
 
 const TourContext = createContext<TourContextValue | null>(null);
-const ONBOARDING_WELCOME_KEY = "onboarding:v1:welcome_seen";
 
 function resolveTourModule(pathname: string): TourModule | null {
   if (pathname.startsWith("/clientes")) return "clientes";
@@ -57,19 +57,24 @@ function writeStringArrayStorage(key: string, values: string[], session = false)
 export default function TourProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const activeModule = useMemo(() => resolveTourModule(pathname), [pathname]);
+  const { loading: preferencesLoading, preferences, patchPreferences } = useUserPreferences();
 
   const [run, setRun] = useState(false);
   const [steps, setSteps] = useState<Step[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [currentModule, setCurrentModule] = useState<TourModule | null>(null);
-  const [completedModules, setCompletedModules] = useState<TourModule[]>([]);
   const [dismissedInSession, setDismissedInSession] = useState<TourModule[]>([]);
   const lastAutoLaunchRef = useRef<string>("");
+  const completedModules = useMemo(
+    () =>
+      (Array.isArray(preferences.tour_completed_modules) ? preferences.tour_completed_modules : [])
+        .filter((x): x is TourModule => isTourModule(String(x)))
+        .map((x) => x as TourModule),
+    [preferences.tour_completed_modules],
+  );
+  const onboardingWelcomeSeen = Boolean(preferences.onboarding_ui?.welcome_seen);
 
   useEffect(() => {
-    setCompletedModules(
-      readStringArrayStorage(TOUR_STORAGE_KEYS.completedModules).filter((x): x is TourModule => isTourModule(x)),
-    );
     setDismissedInSession(
       readStringArrayStorage(TOUR_STORAGE_KEYS.dismissedInSession, true).filter((x): x is TourModule =>
         isTourModule(x),
@@ -103,18 +108,26 @@ export default function TourProvider({ children }: { children: React.ReactNode }
       setSteps(availableSteps);
       setStepIndex(0);
       setRun(true);
+      if (!preferences.tour_welcome_seen) {
+        void patchPreferences({ tour_welcome_seen: true });
+      }
     },
-    [activeModule],
+    [activeModule, patchPreferences, preferences.tour_welcome_seen],
   );
 
   const resetTours = useCallback(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.removeItem(TOUR_STORAGE_KEYS.completedModules);
-    window.localStorage.removeItem(TOUR_STORAGE_KEYS.welcomeSeen);
     window.sessionStorage.removeItem(TOUR_STORAGE_KEYS.dismissedInSession);
-    setCompletedModules([]);
     setDismissedInSession([]);
-  }, []);
+    void patchPreferences({
+      tour_completed_modules: [],
+      tour_welcome_seen: false,
+      onboarding_ui: {
+        welcome_seen: false,
+        dismissed: false,
+      },
+    });
+  }, [patchPreferences]);
 
   const stopTour = useCallback(() => {
     setRun(false);
@@ -123,25 +136,34 @@ export default function TourProvider({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
+    if (preferencesLoading) return;
     if (!activeModule || run) return;
     if (completedModules.includes(activeModule)) return;
     if (dismissedInSession.includes(activeModule)) return;
-    if (typeof window !== "undefined") {
-      // Evita que el tour tape el modal de bienvenida de onboarding.
-      const onboardingReady = window.localStorage.getItem(ONBOARDING_WELCOME_KEY) === "true";
-      if (activeModule !== "clientes" && !onboardingReady) return;
-    }
+    // Evita que el tour tape el modal de bienvenida de onboarding.
+    if (activeModule !== "clientes" && !onboardingWelcomeSeen) return;
 
     const launchKey = `${pathname}:${activeModule}`;
     if (lastAutoLaunchRef.current === launchKey) return;
     lastAutoLaunchRef.current = launchKey;
 
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(TOUR_STORAGE_KEYS.welcomeSeen, "true");
+    if (!preferences.tour_welcome_seen) {
+      void patchPreferences({ tour_welcome_seen: true });
     }
     const timer = window.setTimeout(() => startTour(activeModule), 350);
     return () => window.clearTimeout(timer);
-  }, [activeModule, completedModules, dismissedInSession, pathname, run, startTour]);
+  }, [
+    activeModule,
+    completedModules,
+    dismissedInSession,
+    onboardingWelcomeSeen,
+    pathname,
+    patchPreferences,
+    preferences.tour_welcome_seen,
+    preferencesLoading,
+    run,
+    startTour,
+  ]);
 
   const handleJoyrideCallback = useCallback(
     (data: EventData) => {
@@ -167,8 +189,7 @@ export default function TourProvider({ children }: { children: React.ReactNode }
       if (status === STATUS.FINISHED) {
         if (currentModule) {
           const nextCompleted = Array.from(new Set([...completedModules, currentModule])) as TourModule[];
-          setCompletedModules(nextCompleted);
-          writeStringArrayStorage(TOUR_STORAGE_KEYS.completedModules, nextCompleted);
+          void patchPreferences({ tour_completed_modules: nextCompleted });
         }
         stopTour();
         return;
@@ -183,7 +204,7 @@ export default function TourProvider({ children }: { children: React.ReactNode }
         stopTour();
       }
     },
-    [completedModules, currentModule, dismissedInSession, steps.length, stopTour],
+    [completedModules, currentModule, dismissedInSession, patchPreferences, steps.length, stopTour],
   );
 
   useEffect(() => {

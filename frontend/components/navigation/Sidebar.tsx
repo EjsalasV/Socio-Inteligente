@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuditContext } from "../../lib/hooks/useAuditContext";
+import { useUserPreferences } from "../providers/UserPreferencesProvider";
 import { useTour } from "../tour/TourProvider";
 
 type NavItem = {
@@ -19,6 +20,7 @@ type NavItem = {
     | "perfil"
     | "reportes"
     | "clientes"
+    | "admin"
     | "socio-chat"
     | "client-memory";
   label: string;
@@ -37,7 +39,12 @@ export default function Sidebar() {
   const router = useRouter();
   const { stopTour } = useTour();
   const { clienteId, moduleKey, pathname } = useAuditContext();
+  const { session } = useUserPreferences();
   const [openMobile, setOpenMobile] = useState<boolean>(false);
+  const canManageUsers = useMemo(() => {
+    const role = String(session?.role || "").toLowerCase();
+    return role === "admin" || role === "socio";
+  }, [session?.role]);
 
   const baseCliente = clienteId || "";
   const withCliente = (route: string): string => (baseCliente ? `/${route}/${baseCliente}` : "/clientes");
@@ -46,6 +53,9 @@ export default function Sidebar() {
     () => [
       { id: "perfil", key: "perfil", label: "Perfil Cliente", icon: "business_center", href: withCliente("perfil") },
       { id: "clientes", key: "clientes", label: "Clientes", icon: "groups", href: "/clientes" },
+      ...(canManageUsers
+        ? [{ id: "admin", key: "admin", label: "Admin", icon: "admin_panel_settings", href: "/admin" } as NavItem]
+        : []),
       { id: "dashboard", key: "dashboard", label: "Dashboard", icon: "dashboard", href: withCliente("dashboard") },
       { id: "risk-engine", key: "risk-engine", label: "Risk Engine", icon: "security", href: withCliente("risk-engine") },
       { id: "trial-balance", key: "trial-balance", label: "Trial Balance", icon: "account_balance_wallet", href: withCliente("trial-balance") },
@@ -68,7 +78,7 @@ export default function Sidebar() {
       { id: "client-memory", key: "client-memory", label: "Client Memory", icon: "folder_shared", href: withCliente("client-memory") },
       { id: "reportes", key: "reportes", label: "Reportes", icon: "description", href: withCliente("reportes") },
     ],
-    [baseCliente],
+    [baseCliente, canManageUsers],
   );
 
   return (
@@ -100,6 +110,8 @@ export default function Sidebar() {
                   ? pathname.startsWith(`/areas/${baseCliente}`)
                   : item.key === "reportes"
                     ? pathname.startsWith(`/reportes/${baseCliente}`)
+                    : item.key === "admin"
+                      ? pathname.startsWith("/admin")
                     : item.key === "socio-chat"
                       ? pathname.startsWith(`/socio-chat/${baseCliente}`)
                       : item.key === "client-memory"
@@ -128,6 +140,8 @@ export default function Sidebar() {
                                 ? "sidebar-estados-financieros"
                                 : item.key === "areas"
                                   ? "sidebar-areas"
+                                  : item.key === "admin"
+                                    ? "sidebar-admin"
                                   : item.key === "papeles-trabajo"
                                     ? "sidebar-papeles-trabajo"
                                     : item.key === "reportes"
@@ -156,6 +170,7 @@ export default function Sidebar() {
               type="button"
               onClick={() => {
                 localStorage.removeItem("socio_token");
+                window.dispatchEvent(new Event("socio-auth-changed"));
                 router.push("/");
               }}
             className="w-full flex items-center gap-3 rounded-editorial px-4 py-3 text-slate-600 hover:bg-white/75 transition-colors"

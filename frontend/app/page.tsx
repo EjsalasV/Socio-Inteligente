@@ -79,6 +79,7 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("socio_token", token);
+      window.dispatchEvent(new Event("socio-auth-changed"));
 
       try {
         await getClientes();

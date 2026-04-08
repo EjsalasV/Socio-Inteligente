@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import PageTransition from "../components/navigation/PageTransition";
 import SovereignCommand from "../components/navigation/SovereignCommand";
+import UserPreferencesProvider from "../components/providers/UserPreferencesProvider";
 import TourProvider from "../components/tour/TourProvider";
 
 export const metadata: Metadata = {
@@ -25,10 +26,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <TourProvider>
-          <PageTransition>{children}</PageTransition>
-          <SovereignCommand />
-        </TourProvider>
+        <UserPreferencesProvider>
+          <TourProvider>
+            <PageTransition>{children}</PageTransition>
+            <SovereignCommand />
+          </TourProvider>
+        </UserPreferencesProvider>
       </body>
     </html>
   );

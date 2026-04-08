@@ -41,6 +41,17 @@ class UserContext(BaseModel):
     org_id: str
     allowed_clientes: list[str]
     role: str
+    user_id: str = ""
+    display_name: str = ""
+
+
+class AuthMeResponse(BaseModel):
+    sub: str
+    user_id: str = ""
+    display_name: str = ""
+    role: str
+    org_id: str
+    allowed_clientes: list[str] = Field(default_factory=list)
 
 
 class ClienteSummary(BaseModel):
@@ -354,6 +365,53 @@ class BriefingTiempoLogResponse(BaseModel):
     saved: bool = True
     delta_min: float = 0.0
     ahorro_pct: float = 0.0
+
+
+class UserPreferencesResponse(BaseModel):
+    learning_role: str = "semi"
+    tour_completed_modules: list[str] = Field(default_factory=list)
+    tour_welcome_seen: bool = False
+    onboarding_ui: dict[str, Any] = Field(default_factory=dict)
+    preferences_version: str = "v1.2.1"
+
+
+class UserPreferencesPatchRequest(BaseModel):
+    learning_role: str | None = None
+    tour_completed_modules: list[str] | None = None
+    tour_welcome_seen: bool | None = None
+    onboarding_ui: dict[str, Any] | None = None
+    preferences_version: str | None = None
+
+
+class AdminUserSummary(BaseModel):
+    user_id: str
+    username: str
+    display_name: str
+    role: str
+    active: bool = True
+    cliente_ids: list[str] = Field(default_factory=list)
+    created_at: str = ""
+    updated_at: str = ""
+
+
+class AdminUserCreateRequest(BaseModel):
+    username: str
+    password: str
+    role: str = "auditor"
+    display_name: str = ""
+    active: bool = True
+    cliente_ids: list[str] = Field(default_factory=list)
+
+
+class AdminUserPatchRequest(BaseModel):
+    display_name: str | None = None
+    role: str | None = None
+    active: bool | None = None
+    password: str | None = None
+
+
+class AdminUserAssignClientesRequest(BaseModel):
+    cliente_ids: list[str] = Field(default_factory=list)
 
 
 class ChatResponse(BaseModel):

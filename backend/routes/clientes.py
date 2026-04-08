@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 
 from backend.auth import authorize_cliente_access, get_current_user
 from backend.repositories.file_repository import create_cliente, delete_cliente, list_clientes, list_documentos, read_hallazgos, read_perfil
+from backend.repositories.identity_repository import store as identity_store
 from backend.schemas import ApiResponse, ClienteCreateRequest, ClienteDocumento, ClienteSummary, UserContext
 from backend.services.document_ingest_service import ingest_document_for_rag
 
@@ -49,6 +50,16 @@ def post_cliente(payload: ClienteCreateRequest, user: UserContext = Depends(get_
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+    # Multiusuario: el creador obtiene acceso inmediato al cliente nuevo (si no usa wildcard).
+    if user.user_id and "*" not in user.allowed_clientes:
+        try:
+            assigned = identity_store.get_user_clientes(user.user_id)
+            if created.get("cliente_id") and created["cliente_id"] not in assigned:
+                identity_store.set_user_clientes(user.user_id, [*assigned, str(created["cliente_id"])])
+        except Exception:
+            # No bloqueamos la creación por fallos de asignación secundaria.
+            pass
 
     return ApiResponse(data=created)
 

@@ -8,6 +8,7 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from backend.repositories.identity_repository import store as identity_store
 from backend.schemas import UserContext
 
 
@@ -44,6 +45,8 @@ def create_access_token(
     org_id: str,
     allowed_clientes: list[str],
     role: str,
+    user_id: str = "",
+    display_name: str = "",
     expires_minutes: int | None = None,
 ) -> tuple[str, int]:
     minutes = expires_minutes or ACCESS_TOKEN_EXPIRE_MINUTES
@@ -55,6 +58,10 @@ def create_access_token(
         "role": role,
         "exp": exp,
     }
+    if user_id:
+        payload["uid"] = user_id
+    if display_name:
+        payload["display_name"] = display_name
     token = jwt.encode(payload, _SECRET, algorithm=ALGORITHM)
     return token, minutes * 60
 
@@ -83,12 +90,31 @@ def get_current_user(
     if not isinstance(allowed_clientes, list):
         allowed_clientes = _allowed_clientes_from_env() or ["*"]
 
+    sub = str(payload.get("sub") or "").strip()
+    live_user = identity_store.get_user_by_username(sub) if sub else None
+
+    # Dynamic authorization: if identity repository has user/assignments, prefer live values.
+    if isinstance(live_user, dict):
+        if not bool(live_user.get("active", True)):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Usuario desactivado",
+            )
+        live_uid = str(live_user.get("user_id") or payload.get("uid") or "").strip()
+        live_role = str(live_user.get("role") or payload.get("role") or "auditor").strip()
+        live_display_name = str(live_user.get("display_name") or payload.get("display_name") or sub).strip()
+        dynamic_allowed = identity_store.get_user_clientes(live_uid) if live_uid else []
+        if dynamic_allowed:
+            allowed_clientes = dynamic_allowed
+
     try:
         return UserContext(
-            sub=str(payload.get("sub") or ""),
+            sub=sub,
             org_id=str(payload.get("org_id") or "socio-default-org"),
             allowed_clientes=[str(c) for c in allowed_clientes],
-            role=str(payload.get("role") or "auditor"),
+            role=live_role if isinstance(live_user, dict) else str(payload.get("role") or "auditor"),
+            user_id=live_uid if isinstance(live_user, dict) else str(payload.get("uid") or ""),
+            display_name=live_display_name if isinstance(live_user, dict) else str(payload.get("display_name") or ""),
         )
     except Exception as exc:
         raise HTTPException(
