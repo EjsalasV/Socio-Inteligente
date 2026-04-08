@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
+import ContextualHelp from "../../../components/help/ContextualHelp";
 import { advanceWorkflow } from "../../../lib/api/workflow";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useWorkpapers } from "../../../lib/hooks/useWorkpapers";
@@ -60,6 +61,51 @@ export default function PapelesTrabajoPage() {
           Avance requerido: <span className="font-semibold text-white"> {data.completion_pct.toFixed(1)}%</span>
         </p>
       </section>
+
+      <ContextualHelp
+        title="Ayuda del modulo Papeles de Trabajo"
+        items={[
+          {
+            label: "Quality gates",
+            byRole: {
+              junior:
+                "Si un gate esta bloqueado, sigue el detalle paso a paso hasta dejarlo en OK.",
+              semi:
+                "Si un gate esta bloqueado, revisa su detalle para saber que falta exactamente.",
+              senior:
+                "Usa gates como control de calidad para decidir avance de fase y cierre tecnico.",
+              socio:
+                "Usa gates para decidir readiness de emision y nivel de riesgo residual aceptable.",
+            },
+          },
+          {
+            label: "Tareas por area",
+            byRole: {
+              junior:
+                "No marques una tarea sin evidencia escrita: que hiciste, que encontraste y conclusion.",
+              semi:
+                "Marca procedimientos completos y adjunta evidencia breve y concreta.",
+              senior:
+                "Verifica suficiencia de evidencia y consistencia entre tareas, hallazgos y conclusion.",
+              socio:
+                "Exige evidencia suficiente en areas materiales y evita documentacion irrelevante.",
+            },
+          },
+          {
+            label: "Cambio de fase",
+            byRole: {
+              junior:
+                "Avanza de fase solo cuando no haya pendientes criticos en tu area.",
+              semi:
+                "Solo avanza cuando cobertura y papeles requeridos esten suficientemente completos.",
+              senior:
+                "Autoriza cambio de fase unicamente con cobertura y calidad documental adecuadas.",
+              socio:
+                "Aprueba avance solo si el riesgo residual esta controlado para sostener la opinion.",
+            },
+          },
+        ]}
+      />
 
       <section data-tour="papeles-gates" className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {data.gates.map((gate) => (

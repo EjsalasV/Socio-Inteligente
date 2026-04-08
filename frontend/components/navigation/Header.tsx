@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { getClientes, type ClienteOption } from "../../lib/api/clientes";
 import { useAuditContext } from "../../lib/hooks/useAuditContext";
+import { useLearningRole, type LearningRole } from "../../lib/hooks/useLearningRole";
 import { useWorkflow } from "../../lib/hooks/useWorkflow";
 import { useTour } from "../tour/TourProvider";
 import ClientSwitcher from "./ClientSwitcher";
@@ -16,10 +17,11 @@ function resolveClienteName(clienteId: string, clientes: ClienteOption[]): strin
 
 export default function Header() {
   const router = useRouter();
-  const { clienteId, moduleLabel } = useAuditContext();
+  const { clienteId, moduleLabel, moduleKey } = useAuditContext();
   const [clientes, setClientes] = useState<ClienteOption[]>([]);
   const { data: workflow } = useWorkflow(clienteId);
   const { activeModule, startTour, resetTours } = useTour();
+  const { role, setRole } = useLearningRole();
 
   useEffect(() => {
     let active = true;
@@ -42,6 +44,25 @@ export default function Header() {
   const clienteName = useMemo(() => resolveClienteName(clienteId, clientes), [clienteId, clientes]);
   const phase = workflow?.current_phase ?? "planificacion";
   const phaseIndex = phase === "informe" ? 3 : phase === "ejecucion" ? 2 : 1;
+  const moduleHint = useMemo(() => {
+    const hints: Record<string, string> = {
+      perfil: "Completa marco, materialidad y responsable para habilitar un flujo consistente.",
+      dashboard: "Revisa KPIs y ranking para decidir donde iniciar trabajo de campo.",
+      "trial-balance": "Confirma variaciones relevantes y marca cuentas para pruebas.",
+      "risk-engine": "Prioriza areas altas y agrega procedimientos recomendados a papeles.",
+      areas: "Genera briefing, ejecuta pruebas y documenta hallazgos con evidencia.",
+      "papeles-trabajo": "Cierra tareas requeridas y valida gates antes de informe.",
+      reportes: "Emite borrador/final cuando PLAN y EXEC esten en estado OK.",
+      "socio-chat": "Haz preguntas tecnicas y exporta criterio a hallazgos o papeles.",
+      "client-memory": "Consolida documentos e historial para mantener contexto del cliente.",
+      "estados-financieros": "Analiza variaciones contra materialidad y alertas de integridad.",
+    };
+    const base = hints[moduleKey] ?? "Avanza por fases para mantener trazabilidad del encargo.";
+    if (role === "junior") return `${base} Si algo no cuadra, pide soporte y registra evidencia minima.`;
+    if (role === "socio") return `${base} Prioriza juicio de emision, riesgo material y comunicacion con gobierno corporativo.`;
+    if (role === "senior") return `${base} Prioriza decisiones de riesgo, materialidad y cierre ejecutivo.`;
+    return `${base} Documenta criterio y evidencia por area.`;
+  }, [moduleKey, role]);
 
   function handleLogout(): void {
     localStorage.removeItem("socio_token");
@@ -63,12 +84,26 @@ export default function Header() {
             <span>•</span>
             <span className={phaseIndex >= 3 ? "text-emerald-700 font-semibold" : ""}>Informe</span>
           </div>
+          <p className="mt-2 text-xs text-slate-600 max-w-2xl">{moduleHint}</p>
         </div>
 
         <div className="flex items-center gap-3 md:gap-4">
           <div data-tour="header-client-switcher">
             <ClientSwitcher clienteId={clienteId} />
           </div>
+          <label className="sovereign-card !p-1.5 !px-2 flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Nivel</span>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as LearningRole)}
+              className="bg-transparent text-[11px] text-slate-700 outline-none"
+            >
+              <option value="junior">Junior</option>
+              <option value="semi">Semi Senior</option>
+              <option value="senior">Senior</option>
+              <option value="socio">Socio</option>
+            </select>
+          </label>
           <button
             type="button"
             onClick={() => startTour()}

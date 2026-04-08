@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import LeadSchedule from "../../../../components/areas/LeadSchedule";
 import DashboardSkeleton from "../../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../../components/dashboard/ErrorMessage";
+import ContextualHelp from "../../../../components/help/ContextualHelp";
 import { patchAreaCheck } from "../../../../lib/api/areas";
 import { postAreaBriefing } from "../../../../lib/api/briefing";
 import { postBriefingTiempo, postEstructurarHallazgo } from "../../../../lib/api/hallazgos";
@@ -289,6 +290,50 @@ export default function AreaWorkspacePage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         <section data-tour="area-lead-schedule" className="xl:col-span-8 space-y-8">
+          <ContextualHelp
+            title="Ayuda del modulo Workspace Areas"
+            items={[
+              {
+                label: "Lead Schedule",
+                byRole: {
+                  junior:
+                    "Revisa cuenta por cuenta, marca checks solo cuando tengas evidencia y deja nota breve de soporte.",
+                  semi:
+                    "Valida saldos, variaciones y checkea cada cuenta con evidencia suficiente para conclusion del area.",
+                  senior:
+                    "Confirma que el lead schedule soporte la conclusion tecnica y que la evidencia sea trazable.",
+                  socio:
+                    "Verifica que el soporte del area sea suficiente para sostener conclusion y eventual opinion.",
+                },
+              },
+              {
+                label: "Briefing",
+                byRole: {
+                  junior:
+                    "Usalo como guia practica: te dice que procedimiento ejecutar primero y por que.",
+                  semi:
+                    "Genera recomendaciones concretas de procedimientos con normativa activada para la area.",
+                  senior:
+                    "Verifica que el briefing este alineado al riesgo y materialidad asignada.",
+                  socio:
+                    "Usa el briefing para validar si el equipo cubre riesgos de negocio y de reporte financiero.",
+                },
+              },
+              {
+                label: "Hallazgo y tiempo",
+                byRole: {
+                  junior:
+                    "Si encuentras desviacion, estructura el hallazgo y registra tiempo para medir mejora personal.",
+                  semi:
+                    "Estructura hallazgos con criterio y mide ahorro real manual vs AI.",
+                  senior:
+                    "Controla calidad del hallazgo (criterio-efecto-recomendacion) y productividad del equipo.",
+                  socio:
+                    "Evalua impacto material, respuesta de gerencia y efecto en comunicacion final.",
+                },
+              },
+            ]}
+          />
           <LeadSchedule
             cuentas={cuentas}
             currentYear={data.encabezado.actual_year}

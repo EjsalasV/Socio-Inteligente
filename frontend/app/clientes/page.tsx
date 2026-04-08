@@ -68,6 +68,7 @@ export default function ClientesPage() {
       return s.includes(q);
     });
   }, [clientes, search]);
+  const firstClient = useMemo(() => clientes[0] ?? null, [clientes]);
 
   async function handleCreateClient(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -170,6 +171,44 @@ export default function ClientesPage() {
             Flujo recomendado: 1) crear/seleccionar cliente, 2) responder onboarding, 3) cargar Trial Balance y Mayor, 4) arrancar auditoria.
           </p>
         </header>
+
+        <section className="mb-8 rounded-editorial border border-[#041627]/10 bg-white p-5">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold">Primeros pasos</p>
+              <h3 className="font-headline text-2xl text-[#041627] mt-1">Ruta recomendada para usuarios nuevos</h3>
+              <p className="text-sm text-slate-600 mt-2">
+                1) Crear/seleccionar cliente, 2) completar Perfil, 3) revisar Trial Balance, 4) priorizar en Risk Engine,
+                5) ejecutar en Workspace Areas.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => startTour("clientes")}
+                className="px-3 py-2 rounded-lg border border-[#041627]/20 text-slate-700 text-xs font-semibold uppercase tracking-[0.08em] bg-white"
+              >
+                Ver tour clientes
+              </button>
+              {firstClient ? (
+                <>
+                  <Link
+                    href={`/perfil/${firstClient.cliente_id}`}
+                    className="px-3 py-2 rounded-lg bg-[#041627] text-white text-xs font-semibold uppercase tracking-[0.08em]"
+                  >
+                    Empezar onboarding
+                  </Link>
+                  <Link
+                    href={`/dashboard/${firstClient.cliente_id}`}
+                    className="px-3 py-2 rounded-lg border border-[#041627]/20 text-slate-700 text-xs font-semibold uppercase tracking-[0.08em] bg-white"
+                  >
+                    Ir a dashboard
+                  </Link>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </section>
 
         {error ? <div className="mb-6 sovereign-card text-sm text-[#93000a] bg-[#ffdad6] border border-[#ba1a1a]/20">{error}</div> : null}
 

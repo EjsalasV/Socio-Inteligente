@@ -2,6 +2,7 @@
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
+import ContextualHelp from "../../../components/help/ContextualHelp";
 import CriticalRisks from "../../../components/risk/CriticalRisks";
 import RiskMatrix from "../../../components/risk/RiskMatrix";
 import RiskProcedureSuggestions from "../../../components/risk/RiskProcedureSuggestions";
@@ -27,6 +28,51 @@ export default function RiskEnginePage() {
           Motor de Riesgos - Mapa de Calor de Auditoría
         </h1>
       </header>
+
+      <ContextualHelp
+        title="Ayuda del modulo Risk Engine"
+        items={[
+          {
+            label: "Matriz de calor",
+            byRole: {
+              junior:
+                "Empieza por los cuadrantes altos: esas areas tienen mayor probabilidad de error material.",
+              semi:
+                "Cruza impacto y frecuencia para ubicar las areas de mayor exposicion.",
+              senior:
+                "Usa la matriz para validar alcance y reasignar recursos a riesgos altos.",
+              socio:
+                "Usa la matriz para confirmar foco de auditoria, riesgo de emision y necesidad de escalamiento.",
+            },
+          },
+          {
+            label: "Areas criticas",
+            byRole: {
+              junior:
+                "Toma la primera area del ranking y pasa a Workspace Areas para ejecutar pruebas.",
+              semi:
+                "Lista priorizada para decidir donde ejecutar pruebas primero.",
+              senior:
+                "Valida consistencia del ranking contra conocimiento del negocio y riesgos emergentes.",
+              socio:
+                "Confirma que las areas criticas soporten la estrategia global y la opinion esperada.",
+            },
+          },
+          {
+            label: "Sugerencias de procedimientos",
+            byRole: {
+              junior:
+                "Usa el boton + para convertir sugerencias en tareas concretas en Papeles de Trabajo.",
+              semi:
+                "Puedes agregar pruebas propuestas directamente a Papeles de Trabajo.",
+              senior:
+                "Revisa pertinencia y cobertura antes de aprobar la carga masiva de procedimientos.",
+              socio:
+                "Define solo pruebas de mayor retorno de aseguramiento y evita sobre-auditar areas no materiales.",
+            },
+          },
+        ]}
+      />
 
       <div className="grid grid-cols-12 gap-8">
         <div data-tour="risk-matrix" className="col-span-12 lg:col-span-7">

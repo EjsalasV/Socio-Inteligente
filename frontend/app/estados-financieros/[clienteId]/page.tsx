@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
+import ContextualHelp from "../../../components/help/ContextualHelp";
 import { formatMoney, moneyClass } from "../../../lib/formatters";
 import { useAreaDetail } from "../../../lib/hooks/useAreaDetail";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
@@ -103,6 +104,27 @@ export default function EstadosFinancierosPage() {
           <p className="text-[11px] text-slate-500 mt-2">{getLsName(selectedArea)}</p>
         </div>
       </header>
+
+      <ContextualHelp
+        title="Ayuda del modulo Estados Financieros"
+        items={[
+          {
+            label: "Materialidad",
+            description:
+              "Usa MP, ME y umbral trivial como referencia para evaluar desviaciones.",
+          },
+          {
+            label: "Analisis comparativo",
+            description:
+              "Compara ano actual vs anterior para identificar rubros con mayor impacto.",
+          },
+          {
+            label: "Alertas de integridad",
+            description:
+              "Resume focos de riesgo para ajustar alcance de pruebas y revelaciones.",
+          },
+        ]}
+      />
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <article data-tour="estados-materialidad" className="sovereign-card border-l-4 border-[#041627]">

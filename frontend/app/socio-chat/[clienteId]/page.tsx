@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
+import ContextualHelp from "../../../components/help/ContextualHelp";
 import { exportChatCriterion, getChatHistory, postChat } from "../../../lib/api";
 import { createWorkpaperTask } from "../../../lib/api/workpapers";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
@@ -230,6 +231,27 @@ export default function SocioChatPage() {
 
   return (
     <div className="pt-4 pb-8 h-[calc(100vh-7rem)]">
+      <ContextualHelp
+        title="Ayuda del modulo Socio Chat"
+        compact
+        items={[
+          {
+            label: "Consulta tecnica",
+            description:
+              "Pregunta normativa o de procedimiento y revisa fuentes antes de aplicar criterio.",
+          },
+          {
+            label: "Exportar criterio",
+            description:
+              "Guarda la respuesta util en hallazgos para mantener evidencia del razonamiento.",
+          },
+          {
+            label: "Vincular a papel",
+            description:
+              "Convierte una recomendacion en tarea ejecutable dentro de Papeles de Trabajo.",
+          },
+        ]}
+      />
       <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr_320px] gap-6 h-full">
         <aside data-tour="sociochat-conversaciones" className="sovereign-card !p-4 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-2 mb-4">

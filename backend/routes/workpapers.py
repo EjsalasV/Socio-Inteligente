@@ -658,3 +658,23 @@ def post_workpaper_task(
     tasks.append(new_task)
     write_workpapers(cliente_id, tasks)
     return ApiResponse(data={"created": True, "task": WorkpaperTask(**new_task).model_dump()})
+
+
+@router.delete("/{cliente_id}/tasks/{task_id}", response_model=ApiResponse)
+def delete_workpaper_task(
+    cliente_id: str,
+    task_id: str,
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    tasks = read_workpapers(cliente_id)
+    if not tasks:
+        raise HTTPException(status_code=404, detail="No hay papeles de trabajo para este cliente.")
+
+    initial_len = len(tasks)
+    filtered = [task for task in tasks if str(task.get("id") or "") != task_id]
+    if len(filtered) == initial_len:
+        raise HTTPException(status_code=404, detail=f"Tarea no encontrada: {task_id}")
+
+    write_workpapers(cliente_id, filtered)
+    return ApiResponse(data={"task_id": task_id, "deleted": True})

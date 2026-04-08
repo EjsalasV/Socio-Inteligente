@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
+import ContextualHelp from "../../../components/help/ContextualHelp";
 import { formatMoney, moneyClass } from "../../../lib/formatters";
 import { useAreaDetail } from "../../../lib/hooks/useAreaDetail";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
@@ -94,6 +95,27 @@ export default function TrialBalancePage() {
           <p className="text-[11px] text-slate-500 mt-2">{getLsName(selectedArea)}</p>
         </div>
       </header>
+
+      <ContextualHelp
+        title="Ayuda del modulo Trial Balance"
+        items={[
+          {
+            label: "Selector de area",
+            description:
+              "Cambia rapidamente entre areas para revisar variaciones por cuenta.",
+          },
+          {
+            label: "Tabla comparativa",
+            description:
+              "Marca cuentas con cambios relevantes y define cuales requieren procedimientos.",
+          },
+          {
+            label: "Guia de aseveraciones",
+            description:
+              "Panel derecho con riesgos tipicos para orientar pruebas en la area activa.",
+          },
+        ]}
+      />
 
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <article className="sovereign-card border-l-4 border-[#041627]">

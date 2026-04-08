@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import ContextualHelp from "../../../components/help/ContextualHelp";
 import { getPerfil, savePerfil } from "../../../lib/api/perfil";
 import { SECTOR_OPTIONS } from "../../../lib/sectorCatalog";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
@@ -221,6 +222,27 @@ export default function PerfilClientePage() {
 
       {error ? <div className="sovereign-card text-sm text-[#93000a] bg-[#ffdad6] border border-[#ba1a1a]/20">{error}</div> : null}
       {success ? <div className="sovereign-card text-sm text-[#065f46] bg-[#ecfdf5] border border-[#047857]/20">{success}</div> : null}
+
+      <ContextualHelp
+        title="Ayuda del modulo Perfil"
+        items={[
+          {
+            label: "Datos del encargo",
+            description:
+              "Completa firma, auditor y ano fiscal para trazabilidad del trabajo.",
+          },
+          {
+            label: "Marco regulatorio",
+            description:
+              "Selecciona marco contable y norma de auditoria; impacta sugerencias y validaciones.",
+          },
+          {
+            label: "Materialidad preliminar",
+            description:
+              "Define base inicial para evaluar desviaciones y priorizar procedimientos.",
+          },
+        ]}
+      />
 
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-10">

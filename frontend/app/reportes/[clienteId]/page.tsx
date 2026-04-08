@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
+import ContextualHelp from "../../../components/help/ContextualHelp";
 import {
   downloadExecutivePdfByPath,
   getDocumentAllowedActions,
@@ -342,6 +343,27 @@ export default function ReportesPage() {
           {" "}· TB: <span className="font-semibold text-white">{tbStageLabel}</span>
         </p>
       </section>
+
+      <ContextualHelp
+        title="Ayuda del modulo Reportes"
+        items={[
+          {
+            label: "Gates de emision",
+            description:
+              "Verifica PLAN, EXEC y REPORT antes de emitir informe final.",
+          },
+          {
+            label: "Acciones principales",
+            description:
+              "Genera borrador interno primero; emite final solo cuando los bloqueos esten resueltos.",
+          },
+          {
+            label: "Gobierno documental",
+            description:
+              "Controla versiones, cambios y artefactos para trazabilidad de calidad.",
+          },
+        ]}
+      />
 
       <section data-tour="reportes-gates" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <article className="sovereign-card lg:col-span-2">

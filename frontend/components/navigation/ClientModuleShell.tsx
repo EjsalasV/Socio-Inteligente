@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import Header from "./Header";
+import OnboardingGuideBanner from "./OnboardingGuideBanner";
 import Sidebar from "./Sidebar";
 
 export default function ClientModuleShell({ children }: { children: React.ReactNode }) {
@@ -37,6 +38,7 @@ export default function ClientModuleShell({ children }: { children: React.ReactN
       <Sidebar />
       <div className="lg:ml-72">
         <Header />
+        <OnboardingGuideBanner />
         <div className="px-4 md:px-8 pb-8">{children}</div>
       </div>
     </div>

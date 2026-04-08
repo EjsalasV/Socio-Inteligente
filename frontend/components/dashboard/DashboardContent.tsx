@@ -1,4 +1,5 @@
 ﻿import DashboardGrid from "./DashboardGrid";
+import ContextualHelp from "../help/ContextualHelp";
 import type { DashboardData } from "../../types/dashboard";
 
 type Props = {
@@ -54,6 +55,27 @@ export default function DashboardContent({ data }: Props) {
           TB: <span className="font-semibold text-white"> {tbStageLabel}</span>
         </p>
       </section>
+
+      <ContextualHelp
+        title="Ayuda del modulo Dashboard"
+        items={[
+          {
+            label: "KPIs",
+            description:
+              "Muestran estado general del cliente: riesgo global, materialidad, avance y consistencia de balance.",
+          },
+          {
+            label: "Ranking de riesgos",
+            description:
+              "Te indica en que areas conviene empezar primero. Las de mayor score deben priorizarse en ejecucion.",
+          },
+          {
+            label: "Ciclo de vida",
+            description:
+              "Resume fase actual (planificacion, ejecucion o informe) y te ayuda a no saltar pasos criticos.",
+          },
+        ]}
+      />
 
       <div data-tour="dashboard-kpis">
         <DashboardGrid data={data} />
@@ -180,4 +202,5 @@ export default function DashboardContent({ data }: Props) {
     </div>
   );
 }
+
 

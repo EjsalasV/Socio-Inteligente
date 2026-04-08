@@ -132,3 +132,12 @@ export async function createWorkpaperTask(
     },
   };
 }
+
+export async function deleteWorkpaperTask(clienteId: string, taskId: string): Promise<void> {
+  await authFetchJson<ApiEnvelope<unknown>>(
+    `/papeles-trabajo/${clienteId}/tasks/${encodeURIComponent(taskId)}`,
+    {
+      method: "DELETE",
+    },
+  );
+}

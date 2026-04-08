@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
+import ContextualHelp from "../../../components/help/ContextualHelp";
 import {
   getClienteDocumentos,
   getClienteHallazgos,
@@ -110,6 +111,27 @@ export default function ClientMemoryPage() {
           Expediente maestro de auditoria - <span className="text-[#041627] not-italic font-semibold">{perfilName || dashboard.nombre_cliente}</span>
         </p>
       </section>
+
+      <ContextualHelp
+        title="Ayuda del modulo Client Memory"
+        items={[
+          {
+            label: "Perfil del cliente",
+            description:
+              "Conserva los datos base para reutilizarlos en briefing, hallazgos y cierre.",
+          },
+          {
+            label: "Repositorio de documentos",
+            description:
+              "Carga soportes clave para que el equipo tenga contexto centralizado.",
+          },
+          {
+            label: "Historial de hallazgos",
+            description:
+              "Consulta problemas recurrentes para anticipar riesgos en auditorias futuras.",
+          },
+        ]}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         <div className="xl:col-span-7 space-y-8">
