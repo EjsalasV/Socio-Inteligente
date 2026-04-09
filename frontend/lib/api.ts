@@ -14,9 +14,14 @@ function getToken(): string | null {
 }
 
 function getRequestTimeoutMs(): number {
-  const raw = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 15000);
-  if (!Number.isFinite(raw) || raw <= 0) return 15000;
-  return Math.min(raw, 60000);
+  const raw = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 45000);
+  if (!Number.isFinite(raw) || raw <= 0) return 45000;
+  return Math.min(raw, 120000);
+}
+
+function isIdempotentMethod(method?: string): boolean {
+  const normalized = String(method || "GET").trim().toUpperCase();
+  return normalized === "GET" || normalized === "HEAD";
 }
 
 function requireToken(): string {
@@ -38,26 +43,47 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  let res: Response;
-  const controller = new AbortController();
-  const timeoutId = globalThis.setTimeout(() => controller.abort(), getRequestTimeoutMs());
-  try {
-    res = await fetch(buildApiUrl(path), {
-      ...init,
-      headers,
-      signal: controller.signal,
-    });
-  } catch (error) {
-    if ((error as { name?: string })?.name === "AbortError") {
+  const method = String(init?.method || "GET").toUpperCase();
+  const attempts = isIdempotentMethod(method) ? 2 : 1;
+  let res: Response | null = null;
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutMs = getRequestTimeoutMs() * attempt;
+    const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      res = await fetch(buildApiUrl(path), {
+        ...init,
+        headers,
+        signal: controller.signal,
+      });
+      lastError = null;
+      break;
+    } catch (error) {
+      lastError = error;
+      const isAbort = (error as { name?: string })?.name === "AbortError";
+      const canRetry = attempt < attempts;
+      if (isAbort && canRetry) continue;
+      if (isAbort) {
+        throw new Error(
+          `Tiempo de espera agotado al conectar con el backend (${getApiBase()}) tras ${timeoutMs / 1000}s.`,
+        );
+      }
+      if (canRetry) continue;
       throw new Error(
-        `Tiempo de espera agotado al conectar con el backend (${getApiBase()}).`,
+        `No se pudo conectar con el backend (${getApiBase()}). Origin actual: ${getBrowserOrigin()}.`,
       );
+    } finally {
+      globalThis.clearTimeout(timeoutId);
     }
-    throw new Error(
-      `No se pudo conectar con el backend (${getApiBase()}). Origin actual: ${getBrowserOrigin()}.`,
-    );
-  } finally {
-    globalThis.clearTimeout(timeoutId);
+  }
+
+  if (!res) {
+    if ((lastError as { name?: string })?.name === "AbortError") {
+      throw new Error(`Tiempo de espera agotado al conectar con el backend (${getApiBase()}).`);
+    }
+    throw new Error(`No se pudo conectar con el backend (${getApiBase()}).`);
   }
 
   if (res.status === 401) {
