@@ -13,6 +13,12 @@ function getToken(): string | null {
   return localStorage.getItem("socio_token");
 }
 
+function getRequestTimeoutMs(): number {
+  const raw = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 15000);
+  if (!Number.isFinite(raw) || raw <= 0) return 15000;
+  return Math.min(raw, 60000);
+}
+
 function requireToken(): string {
   const token = getToken();
   if (!token) {
@@ -33,15 +39,25 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   let res: Response;
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => controller.abort(), getRequestTimeoutMs());
   try {
     res = await fetch(buildApiUrl(path), {
       ...init,
       headers,
+      signal: controller.signal,
     });
-  } catch {
+  } catch (error) {
+    if ((error as { name?: string })?.name === "AbortError") {
+      throw new Error(
+        `Tiempo de espera agotado al conectar con el backend (${getApiBase()}).`,
+      );
+    }
     throw new Error(
       `No se pudo conectar con el backend (${getApiBase()}). Origin actual: ${getBrowserOrigin()}.`,
     );
+  } finally {
+    globalThis.clearTimeout(timeoutId);
   }
 
   if (res.status === 401) {

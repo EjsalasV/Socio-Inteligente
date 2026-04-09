@@ -48,6 +48,7 @@ export default function ClienteRealtimeProvider({ children }: { children: React.
   const reconnectAttemptRef = useRef<number>(0);
   const reconnectTimerRef = useRef<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const shouldReconnectRef = useRef<boolean>(true);
 
   useEffect(() => {
     if (!clienteId) {
@@ -56,6 +57,7 @@ export default function ClienteRealtimeProvider({ children }: { children: React.
       setOnlineCount(0);
       setParticipants([]);
       setLastEvent(null);
+      shouldReconnectRef.current = false;
       return;
     }
 
@@ -63,10 +65,12 @@ export default function ClienteRealtimeProvider({ children }: { children: React.
     if (!wsUrl) {
       setConnected(false);
       setReconnecting(false);
+      shouldReconnectRef.current = false;
       return;
     }
 
     let disposed = false;
+    shouldReconnectRef.current = true;
 
     const clearReconnectTimer = () => {
       if (reconnectTimerRef.current !== null) {
@@ -76,7 +80,7 @@ export default function ClienteRealtimeProvider({ children }: { children: React.
     };
 
     const scheduleReconnect = () => {
-      if (disposed) return;
+      if (disposed || !shouldReconnectRef.current) return;
       clearReconnectTimer();
       const attempt = reconnectAttemptRef.current + 1;
       reconnectAttemptRef.current = attempt;
@@ -146,15 +150,21 @@ export default function ClienteRealtimeProvider({ children }: { children: React.
           }
         };
 
-        ws.onclose = () => {
-          if (disposed) return;
-          setConnected(false);
-          scheduleReconnect();
-        };
-
         ws.onerror = () => {
           if (disposed) return;
           setConnected(false);
+        };
+
+        ws.onclose = (event) => {
+          if (disposed) return;
+          setConnected(false);
+          const closeCode = Number(event.code || 0);
+          if (closeCode === 4401 || closeCode === 4403 || closeCode === 1008) {
+            shouldReconnectRef.current = false;
+            setReconnecting(false);
+            return;
+          }
+          scheduleReconnect();
         };
       } catch {
         setConnected(false);
@@ -166,6 +176,7 @@ export default function ClienteRealtimeProvider({ children }: { children: React.
 
     return () => {
       disposed = true;
+      shouldReconnectRef.current = false;
       clearReconnectTimer();
       const ws = wsRef.current;
       wsRef.current = null;
@@ -196,4 +207,3 @@ export default function ClienteRealtimeProvider({ children }: { children: React.
 export function useClienteRealtime(): ClienteRealtimeContextValue {
   return useContext(ClienteRealtimeContext);
 }
-
