@@ -116,7 +116,7 @@ export default function ClientesPage() {
 
   async function handleDeleteClient(cliente: ClienteOption): Promise<void> {
     const confirmed = window.confirm(
-      `Vas a borrar el cliente "${cliente.nombre}" (${cliente.cliente_id}). Esta accion no se puede deshacer. Continuar?`,
+      `Vas a borrar el cliente "${cliente.nombre}" (${cliente.cliente_id}). Esta acción no se puede deshacer. ¿Continuar?`,
     );
     if (!confirmed) return;
 
@@ -141,7 +141,7 @@ export default function ClientesPage() {
             <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 font-bold">Bienvenida</p>
             <h2 className="font-headline text-3xl text-[#041627] mt-2">Centro de Clientes</h2>
             <p className="text-sm text-slate-600 mt-3 leading-relaxed">
-              Aqui empieza todo el flujo. Puedes tomar un mini tutorial o ir directo a crear tu primer cliente.
+              Aquí empieza todo el flujo. Puedes tomar un mini tutorial o ir directo a crear tu primer cliente.
             </p>
             <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
               <button
@@ -232,7 +232,7 @@ export default function ClientesPage() {
             }}
             className="sovereign-card !p-2 !px-3 text-[11px] uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
           >
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </div>
       </nav>
@@ -242,7 +242,7 @@ export default function ClientesPage() {
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Cartera de clientes</p>
           <h2 data-tour="clientes-title" className="font-headline text-5xl text-[#041627] mt-2">Selecciona un cliente o crea uno nuevo</h2>
           <p className="text-slate-600 mt-3 max-w-3xl">
-            Flujo recomendado: 1) crear/seleccionar cliente, 2) responder onboarding, 3) cargar Trial Balance y Mayor, 4) arrancar auditoria.
+            Flujo recomendado: 1) crear/seleccionar cliente, 2) responder onboarding, 3) cargar Trial Balance y Mayor, 4) arrancar auditoría.
           </p>
         </header>
 

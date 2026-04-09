@@ -1,4 +1,4 @@
-﻿import DashboardGrid from "./DashboardGrid";
+import DashboardGrid from "./DashboardGrid";
 import ContextualHelp from "../help/ContextualHelp";
 import type { DashboardData } from "../../types/dashboard";
 
@@ -29,9 +29,9 @@ export default function DashboardContent({ data }: Props) {
     fase.includes("inform") || fase.includes("cierre")
       ? "Informe"
       : fase.includes("ejec") || fase.includes("visita")
-        ? "Ejecucion"
+        ? "Ejecución"
         : fase.includes("plan")
-          ? "Planificacion"
+          ? "Planificación"
           : "Sin definir";
   const tbStage = (data.tb_stage || "sin_saldos").toLowerCase();
   const tbStageLabel =
@@ -46,18 +46,18 @@ export default function DashboardContent({ data }: Props) {
   return (
     <div className="space-y-8 pb-8">
       <section className="rounded-editorial p-7 shadow-editorial text-white border border-[#041627]/20 bg-gradient-to-br from-[#041627] to-[#1a2b3c]">
-        <p className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-body">Centro de Mando de Auditoria - Socio AI</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-body">Centro de Mando de Auditoría - Socio AI</p>
         <h2 data-tour="dashboard-title" className="font-headline text-5xl text-white mt-2">Dashboard Ejecutivo</h2>
         <p className="font-body text-slate-200 mt-3 leading-relaxed text-base">
           Cliente: <span className="font-semibold text-white">{data.nombre_cliente}</span> ·
-          Periodo: <span className="font-semibold text-white"> {data.periodo || "Actual"}</span> ·
+          Período: <span className="font-semibold text-white"> {data.periodo || "Actual"}</span> ·
           Sector: <span className="font-semibold text-white"> {data.sector || "N/D"}</span> ·
           TB: <span className="font-semibold text-white"> {tbStageLabel}</span>
         </p>
       </section>
 
       <ContextualHelp
-        title="Ayuda del modulo Dashboard"
+        title="Ayuda del módulo Dashboard"
         items={[
           {
             label: "KPIs",
@@ -67,12 +67,12 @@ export default function DashboardContent({ data }: Props) {
           {
             label: "Ranking de riesgos",
             description:
-              "Te indica en que areas conviene empezar primero. Las de mayor score deben priorizarse en ejecucion.",
+              "Te indica en qué áreas conviene empezar primero. Las de mayor score deben priorizarse en ejecución.",
           },
           {
             label: "Ciclo de vida",
             description:
-              "Resume fase actual (planificacion, ejecucion o informe) y te ayuda a no saltar pasos criticos.",
+              "Resume fase actual (planificación, ejecución o informe) y te ayuda a no saltar pasos críticos.",
           },
         ]}
       />
@@ -85,8 +85,8 @@ export default function DashboardContent({ data }: Props) {
         <div className="xl:col-span-8 space-y-6">
           <article data-tour="dashboard-risk-ranking" className="sovereign-card">
             <div className="flex items-center justify-between gap-3 mb-5">
-              <h3 className="font-headline text-3xl text-navy-900">Ranking de Riesgos por Area</h3>
-              <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Top Areas</span>
+              <h3 className="font-headline text-3xl text-navy-900">Ranking de Riesgos por Área</h3>
+              <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Top Áreas</span>
             </div>
 
             <div className="space-y-4">
@@ -112,7 +112,7 @@ export default function DashboardContent({ data }: Props) {
                 );
               })}
               {orderedAreas.length === 0 ? (
-                <p className="text-sm text-slate-500">Aun no hay areas con saldo relevante para ranking.</p>
+                <p className="text-sm text-slate-500">Aún no hay áreas con saldo relevante para ranking.</p>
               ) : null}
             </div>
           </article>
@@ -125,22 +125,22 @@ export default function DashboardContent({ data }: Props) {
               >
                 !
               </span>
-              <h4 className="font-headline text-2xl text-[#93000a]">Anomalias y alertas de cumplimiento</h4>
+              <h4 className="font-headline text-2xl text-[#93000a]">Anomalías y alertas de cumplimiento</h4>
             </div>
             <p className="text-sm text-[#93000a] leading-relaxed">
-              Se observan variaciones relevantes en areas de mayor riesgo. Priorizar pruebas sustantivas en
-              cuentas con mayor exposicion y revisar soportes de cierre para evitar desviaciones materiales.
+              Se observan variaciones relevantes en áreas de mayor riesgo. Priorizar pruebas sustantivas en
+              cuentas con mayor exposición y revisar soportes de cierre para evitar desviaciones materiales.
             </p>
           </article>
         </div>
 
         <div className="xl:col-span-4 space-y-6">
           <article className="sovereign-card">
-            <h4 className="font-headline text-2xl text-navy-900 mb-4">Ciclo de Vida de Auditoria</h4>
+            <h4 className="font-headline text-2xl text-navy-900 mb-4">Ciclo de Vida de Auditoría</h4>
             <div className="space-y-4">
               {[
-                { label: "Planificacion", done: etapa === "Planificacion" || etapa === "Ejecucion" || etapa === "Informe" },
-                { label: "Ejecucion", done: etapa === "Ejecucion" || etapa === "Informe" },
+                { label: "Planificación", done: etapa === "Planificación" || etapa === "Ejecución" || etapa === "Informe" },
+                { label: "Ejecución", done: etapa === "Ejecución" || etapa === "Informe" },
                 { label: "Informe", done: etapa === "Informe" },
               ].map((step) => (
                 <div key={step.label} className="flex items-center gap-3">
@@ -190,7 +190,7 @@ export default function DashboardContent({ data }: Props) {
             <div className="text-xs uppercase tracking-[0.2em] font-body font-bold opacity-90">Perspectiva del Auditor</div>
             <p className="font-headline italic text-lg mt-2 leading-relaxed text-white">
               Riesgo global <span className={riesgoTone}>{data.riesgo_global}</span> con avance de <b>{progreso.toFixed(1)}%</b>.
-              Se recomienda cerrar areas criticas antes del informe final.
+              Se recomienda cerrar áreas críticas antes del informe final.
             </p>
             <p className="text-xs text-slate-200 mt-3">
               NIA 320 · Base: <b>{data.materialidad_detalle.base_usada || "N/D"}</b> ·

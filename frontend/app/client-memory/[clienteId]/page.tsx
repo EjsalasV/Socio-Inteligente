@@ -78,7 +78,7 @@ export default function ClientMemoryPage() {
   }, [clienteId]);
 
   const topRisks = useMemo(() => dashboard?.top_areas?.slice(0, 3) ?? [], [dashboard]);
-  const fileHelpText = "PDF/TXT se abren en nueva pestana. XLSX/CSV normalmente se descargan para revision.";
+  const fileHelpText = "PDF/TXT se abren en nueva pestaña. XLSX/CSV normalmente se descargan para revisión.";
 
   async function handleUploadDocument(file: File): Promise<void> {
     setUploadingDoc(true);
@@ -108,7 +108,7 @@ export default function ClientMemoryPage() {
         <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Archivo permanente / Socio AI</p>
         <h1 data-tour="memory-title" className="font-headline text-5xl text-[#041627]">Memoria del Cliente</h1>
         <p className="font-headline italic text-xl text-slate-500">
-          Expediente maestro de auditoria - <span className="text-[#041627] not-italic font-semibold">{perfilName || dashboard.nombre_cliente}</span>
+          Expediente maestro de auditoría - <span className="text-[#041627] not-italic font-semibold">{perfilName || dashboard.nombre_cliente}</span>
         </p>
       </section>
 
@@ -128,7 +128,7 @@ export default function ClientMemoryPage() {
           {
             label: "Historial de hallazgos",
             description:
-              "Consulta problemas recurrentes para anticipar riesgos en auditorias futuras.",
+              "Consulta problemas recurrentes para anticipar riesgos en auditorías futuras.",
           },
         ]}
       />
@@ -239,9 +239,9 @@ export default function ClientMemoryPage() {
                 <span className="material-symbols-outlined text-[#89d3d4]" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
                 <h3 className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-bold">Resumen Ejecutivo (AI + criterio auditor)</h3>
               </div>
-              <h4 className="font-headline text-3xl">Memoria estrategica del cliente</h4>
+              <h4 className="font-headline text-3xl">Memoria estratégica del cliente</h4>
               <p className="font-headline italic text-lg text-slate-200 mt-4 leading-relaxed whitespace-pre-wrap">
-                {memoText || "Aun no hay resumen ejecutivo generado. Puedes crearlo desde la pestana Reportes con el boton 'Generar memo ejecutivo'."}
+                {memoText || "Aún no hay resumen ejecutivo generado. Puedes crearlo desde la pestaña Reportes con el botón 'Generar memo ejecutivo'."}
               </p>
               <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between text-[10px] uppercase tracking-[0.12em] text-slate-300">
                 <span>Socio AI</span>
@@ -268,7 +268,7 @@ export default function ClientMemoryPage() {
                   </div>
                 </div>
               ))}
-              {hallazgos.length === 0 ? <p className="text-sm text-slate-500">No hay hallazgos registrados aun.</p> : null}
+              {hallazgos.length === 0 ? <p className="text-sm text-slate-500">No hay hallazgos registrados aún.</p> : null}
             </div>
           </article>
 

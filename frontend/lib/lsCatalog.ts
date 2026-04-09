@@ -16,14 +16,14 @@ export const LS_CATALOG: LsItem[] = [
   { codigo: "1", nombre: "Propiedad planta y equipo" },
   { codigo: "10", nombre: "Activos intangibles y fondo de comercio" },
   { codigo: "11", nombre: "Activo por derecho de uso" },
-  { codigo: "5", nombre: "Propiedades para inversion" },
-  { codigo: "12", nombre: "Activos biologicos" },
+  { codigo: "5", nombre: "Propiedades para inversión" },
+  { codigo: "12", nombre: "Activos biológicos" },
   { codigo: "14", nombre: "Inversiones no corrientes" },
   { codigo: "15", nombre: "Activos por impuestos diferidos" },
   { codigo: "16", nombre: "Otros activos financieros no corrientes" },
   { codigo: "425", nombre: "Cuentas por pagar" },
-  { codigo: "300.1", nombre: "Prestamos corrientes" },
-  { codigo: "300.2", nombre: "Prestamos no corrientes" },
+  { codigo: "300.1", nombre: "Préstamos corrientes" },
+  { codigo: "300.2", nombre: "Préstamos no corrientes" },
   { codigo: "324", nombre: "Pasivos por impuestos corrientes" },
   { codigo: "410", nombre: "Obligaciones por beneficios a empleados" },
   { codigo: "420", nombre: "Provisiones" },
@@ -45,7 +45,7 @@ export function normalizeLsCode(raw: string): string {
 export function getLsName(code: string): string {
   const normalized = normalizeLsCode(code);
   const found = LS_CATALOG.find((x) => normalizeLsCode(x.codigo) === normalized);
-  return found?.nombre ?? `Area ${normalized || code}`;
+  return found?.nombre ?? `Área ${normalized || code}`;
 }
 
 export function getLsShortName(code: string): string {
@@ -67,6 +67,9 @@ export function getLsShortName(code: string): string {
   return raw;
 }
 
-export function getLsOptions(limit: number = 12): LsItem[] {
-  return LS_CATALOG.slice(0, limit);
+export function getLsOptions(limit?: number): LsItem[] {
+  if (typeof limit === "number" && limit > 0) {
+    return LS_CATALOG.slice(0, limit);
+  }
+  return LS_CATALOG;
 }

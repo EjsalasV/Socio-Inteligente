@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
@@ -11,7 +12,7 @@ import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
 import { getLsName, getLsOptions, getLsShortName, normalizeLsCode } from "../../../lib/lsCatalog";
 
-const BASE_OPTIONS = getLsOptions(10).map((x) => normalizeLsCode(x.codigo));
+const BASE_OPTIONS = getLsOptions().map((x) => normalizeLsCode(x.codigo));
 
 function variationPct(actual: number, previous: number): number {
   if (previous === 0) return actual === 0 ? 0 : 100;
@@ -20,7 +21,9 @@ function variationPct(actual: number, previous: number): number {
 
 export default function TrialBalancePage() {
   const { clienteId } = useAuditContext();
+  const searchParams = useSearchParams();
   const { data: dashboard, isLoading, error } = useDashboard(clienteId);
+  const requiredTb = searchParams?.get("required_tb") === "1";
 
   const areaChoices = useMemo(() => {
     const dynamic = (dashboard?.top_areas ?? []).map((x) => normalizeLsCode(x.codigo)).filter(Boolean);
@@ -67,7 +70,7 @@ export default function TrialBalancePage() {
     <div className="pt-4 pb-8 space-y-8 max-w-screen-2xl">
       <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
-          <h1 data-tour="trial-title" className="font-headline text-4xl text-[#041627]">Balance de Comprobacion - Revision Analitica</h1>
+          <h1 data-tour="trial-title" className="font-headline text-4xl text-[#041627]">Balance de Comprobación - Revisión Analítica</h1>
           <p className="font-body text-sm text-slate-500 mt-2">
             Ejercicio {dashboard.periodo || "Actual"} · Cliente {dashboard.nombre_cliente}
           </p>
@@ -79,7 +82,7 @@ export default function TrialBalancePage() {
         </div>
 
         <div className="min-w-[320px]">
-          <label className="block text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold mb-2">Area</label>
+          <label className="block text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold mb-2">Área</label>
           <select
             data-tour="trial-area-select"
             value={selectedArea}
@@ -96,23 +99,30 @@ export default function TrialBalancePage() {
         </div>
       </header>
 
+      {requiredTb ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Para continuar con el flujo de auditoría debes cargar y validar el Trial Balance. Sin TB no se habilitan
+          los módulos de ejecución.
+        </div>
+      ) : null}
+
       <ContextualHelp
-        title="Ayuda del modulo Trial Balance"
+        title="Ayuda del módulo Trial Balance"
         items={[
           {
-            label: "Selector de area",
+            label: "Selector de área",
             description:
-              "Cambia rapidamente entre areas para revisar variaciones por cuenta.",
+              "Cambia rápidamente entre áreas para revisar variaciones por cuenta.",
           },
           {
             label: "Tabla comparativa",
             description:
-              "Marca cuentas con cambios relevantes y define cuales requieren procedimientos.",
+              "Marca cuentas con cambios relevantes y define cuáles requieren procedimientos.",
           },
           {
-            label: "Guia de aseveraciones",
+            label: "Guía de aseveraciones",
             description:
-              "Panel derecho con riesgos tipicos para orientar pruebas en la area activa.",
+              "Panel derecho con riesgos típicos para orientar pruebas en el área activa.",
           },
         ]}
       />
@@ -121,7 +131,7 @@ export default function TrialBalancePage() {
         <article className="sovereign-card border-l-4 border-[#041627]">
           <p className="text-[10px] font-body font-bold uppercase tracking-[0.14em] text-slate-500">Balance A/L</p>
           <h3 className="font-headline text-2xl text-[#041627] mt-3">
-            {balanceOk ? "Cuadrado" : isResultadoPeriodo ? "Cuadrado (con resultado del periodo)" : "Descuadrado"}
+            {balanceOk ? "Cuadrado" : isResultadoPeriodo ? "Cuadrado (con resultado del período)" : "Revisar resultado acumulado"}
           </h3>
           <p
             className={`text-xs mt-2 ${
@@ -131,8 +141,8 @@ export default function TrialBalancePage() {
             {balanceOk
               ? "Activo = Pasivo + Patrimonio"
               : isResultadoPeriodo
-                ? `Resultado del periodo: ${formatMoney(resultadoPeriodo)}`
-                : `Diferencia real: ${formatMoney(balanceDelta)}`}
+                ? `Resultado del período: ${formatMoney(resultadoPeriodo)}`
+                : `Monto pendiente de cierre: ${formatMoney(balanceDelta)}`}
           </p>
         </article>
 
@@ -143,8 +153,8 @@ export default function TrialBalancePage() {
             {dashboard.materialidad_origen === "perfil"
               ? "Tomada del perfil"
               : dashboard.materialidad_origen === "motor"
-                ? "Estimacion automatica"
-                : "Pendiente de definicion"}
+                ? "Estimación automática"
+                : "Pendiente de definición"}
           </p>
         </article>
 
@@ -156,7 +166,7 @@ export default function TrialBalancePage() {
         <article className="rounded-editorial p-6 bg-[#002f30] text-white shadow-editorial">
           <p className="text-[10px] font-body font-bold uppercase tracking-[0.14em] text-[#a5eff0]">Alertas IA</p>
           <h3 className="font-headline text-4xl mt-3">{aiFlags.toString().padStart(2, "0")}</h3>
-          <p className="text-xs text-[#89d3d4] mt-2">Riesgos altos en aseveraciones del area</p>
+          <p className="text-xs text-[#89d3d4] mt-2">Riesgos altos en aseveraciones del área</p>
         </article>
       </section>
 
@@ -177,11 +187,11 @@ export default function TrialBalancePage() {
             <table className="w-full border-collapse text-sm">
               <thead className="bg-[#f1f4f6]/70">
                 <tr>
-                  <th className="px-6 py-4 text-left text-[10px] uppercase tracking-[0.16em] text-slate-500">Codigo</th>
+                  <th className="px-6 py-4 text-left text-[10px] uppercase tracking-[0.16em] text-slate-500">Código</th>
                   <th className="px-6 py-4 text-left text-[10px] uppercase tracking-[0.16em] text-slate-500">Cuenta</th>
                   <th className="px-6 py-4 text-right text-[10px] uppercase tracking-[0.16em] text-slate-500">Actual</th>
                   <th className="px-6 py-4 text-right text-[10px] uppercase tracking-[0.16em] text-slate-500">Anterior</th>
-                  <th className="px-6 py-4 text-right text-[10px] uppercase tracking-[0.16em] text-slate-500">Variacion</th>
+                  <th className="px-6 py-4 text-right text-[10px] uppercase tracking-[0.16em] text-slate-500">Variación</th>
                   <th className="px-6 py-4 text-center text-[10px] uppercase tracking-[0.16em] text-slate-500">%</th>
                   <th className="px-6 py-4 text-center text-[10px] uppercase tracking-[0.16em] text-slate-500">Estado</th>
                 </tr>
@@ -222,9 +232,9 @@ export default function TrialBalancePage() {
               <span className="material-symbols-outlined text-[#89d3d4]" style={{ fontVariationSettings: "'FILL' 1" }}>
                 smart_toy
               </span>
-              <h3 className="font-headline text-2xl text-[#a5eff0]">Socio AI - Guia de Aseveraciones</h3>
+              <h3 className="font-headline text-2xl text-[#a5eff0]">Socio AI - Guía de Aseveraciones</h3>
             </div>
-            <p className="text-[11px] text-[#89d3d4] mb-4">Base deterministica del motor (catalogo tecnico), no respuesta generativa.</p>
+            <p className="text-[11px] text-[#89d3d4] mb-4">Base determinística del motor (catálogo técnico), no respuesta generativa.</p>
 
             <div className="space-y-4">
               {(areaData?.aseveraciones ?? []).slice(0, 3).map((a, idx) => (
@@ -234,7 +244,7 @@ export default function TrialBalancePage() {
                 </article>
               ))}
               {(areaData?.aseveraciones ?? []).length === 0 ? (
-                <p className="text-sm text-slate-300">Sin hallazgos automaticos para esta area.</p>
+                <p className="text-sm text-slate-300">Sin hallazgos automáticos para esta área.</p>
               ) : null}
             </div>
           </div>

@@ -25,6 +25,7 @@ from backend.schemas import (
     WorkpaperTaskUpdateRequest,
 )
 from backend.services.judgement_service import recommend_workpaper_tasks_from_strategy
+from backend.services.realtime_collab_service import hub
 
 router = APIRouter(prefix="/papeles-trabajo", tags=["papeles-trabajo"])
 RUNTIME_CFG = get_runtime_config()
@@ -597,6 +598,12 @@ def patch_workpaper_task(
         raise HTTPException(status_code=404, detail=f"Tarea no encontrada: {task_id}")
 
     write_workpapers(cliente_id, tasks)
+    hub.publish_event_sync(
+        cliente_id=cliente_id,
+        event_name="workpaper_task_updated",
+        actor=user.display_name or user.sub,
+        payload={"task_id": task_id, "done": bool(payload.done)},
+    )
     return ApiResponse(data={"task_id": task_id, "done": payload.done, "saved": True})
 
 
@@ -657,6 +664,12 @@ def post_workpaper_task(
     }
     tasks.append(new_task)
     write_workpapers(cliente_id, tasks)
+    hub.publish_event_sync(
+        cliente_id=cliente_id,
+        event_name="workpaper_task_created",
+        actor=user.display_name or user.sub,
+        payload={"task_id": task_id, "area_code": area_code},
+    )
     return ApiResponse(data={"created": True, "task": WorkpaperTask(**new_task).model_dump()})
 
 
@@ -677,4 +690,10 @@ def delete_workpaper_task(
         raise HTTPException(status_code=404, detail=f"Tarea no encontrada: {task_id}")
 
     write_workpapers(cliente_id, filtered)
+    hub.publish_event_sync(
+        cliente_id=cliente_id,
+        event_name="workpaper_task_deleted",
+        actor=user.display_name or user.sub,
+        payload={"task_id": task_id},
+    )
     return ApiResponse(data={"task_id": task_id, "deleted": True})

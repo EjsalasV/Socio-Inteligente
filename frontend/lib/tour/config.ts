@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { Step } from "react-joyride";
 
@@ -28,18 +28,18 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
   clientes: [
     {
       target: '[data-tour="clientes-title"]',
-      content: "Aqui gestionas la cartera de clientes. Desde esta pantalla arranca cada encargo.",
+      content: "Aquí gestionas la cartera de clientes. Desde esta pantalla arranca cada encargo.",
       skipBeacon: true,
       placement: "bottom",
     },
     {
       target: '[data-tour="clientes-search"]',
-      content: "Usa este buscador para encontrar rapido un cliente por nombre, sector o ID.",
+      content: "Usa este buscador para encontrar rápido un cliente por nombre, sector o ID.",
       placement: "bottom",
     },
     {
       target: '[data-tour="clientes-open-dashboard-link"]',
-      content: "Desde aqui abres el dashboard del cliente para iniciar analisis y priorizacion.",
+      content: "Desde aquí abres el dashboard del cliente para iniciar análisis y priorización.",
       placement: "left",
     },
     {
@@ -56,18 +56,18 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
   perfil: [
     {
       target: '[data-tour="sidebar-perfil"]',
-      content: "Perfil Cliente concentra datos base del encargo y parametros del trabajo.",
+      content: "Perfil Cliente concentra datos base del encargo y parámetros del trabajo.",
       skipBeacon: true,
       placement: "right",
     },
     {
       target: '[data-tour="perfil-title"]',
-      content: "Aqui validas identidad del cliente, marco contable y responsables.",
+      content: "Aquí validas identidad del cliente, marco contable y responsables.",
       placement: "bottom",
     },
     {
       target: '[data-tour="perfil-marco"]',
-      content: "Define marco contable y norma de auditoria para alinear todo el flujo.",
+      content: "Define marco contable y norma de auditoría para alinear todo el flujo.",
       placement: "bottom",
     },
     {
@@ -77,7 +77,7 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
     },
     {
       target: '[data-tour="sidebar-dashboard"]',
-      content: "Despues pasa a Dashboard para revisar riesgo global y prioridades.",
+      content: "Después pasa a Dashboard para revisar riesgo global y prioridades.",
       placement: "right",
     },
   ],
@@ -90,7 +90,7 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
     },
     {
       target: '[data-tour="dashboard-title"]',
-      content: "Aqui ves contexto general, periodo y estado del encargo.",
+      content: "Aquí ves contexto general, período y estado del encargo.",
       placement: "bottom",
     },
     {
@@ -100,40 +100,40 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
     },
     {
       target: '[data-tour="dashboard-risk-ranking"]',
-      content: "Usa este ranking para decidir en que areas empezar trabajo de campo.",
+      content: "Usa este ranking para decidir en qué áreas empezar trabajo de campo.",
       placement: "top",
     },
     {
       target: '[data-tour="sidebar-risk-engine"]',
-      content: "Abre Risk Engine para profundizar la priorizacion de riesgos.",
+      content: "Abre Risk Engine para profundizar la priorización de riesgos.",
       placement: "right",
     },
   ],
   "risk-engine": [
     {
       target: '[data-tour="sidebar-risk-engine"]',
-      content: "Este modulo prioriza riesgos para decidir donde empezar el trabajo.",
+      content: "Este módulo prioriza riesgos para decidir dónde empezar el trabajo.",
       skipBeacon: true,
       placement: "right",
     },
     {
       target: '[data-tour="risk-title"]',
-      content: "Este encabezado resume el objetivo: mapa de calor y exposicion de auditoria.",
+      content: "Este encabezado resume el objetivo: mapa de calor y exposición de auditoría.",
       placement: "bottom",
     },
     {
       target: '[data-tour="risk-matrix"]',
-      content: "La matriz cruza impacto y frecuencia para ubicar areas criticas.",
+      content: "La matriz cruza impacto y frecuencia para ubicar áreas críticas.",
       placement: "left",
     },
     {
       target: '[data-tour="risk-critical"]',
-      content: "Aqui revisas las areas criticas detectadas por score y nivel de riesgo.",
+      content: "Aquí revisas las áreas críticas detectadas por score y nivel de riesgo.",
       placement: "left",
     },
     {
       target: '[data-tour="sidebar-areas"]',
-      content: "Luego abre Workspace Areas para ejecutar procedimientos en las areas priorizadas.",
+      content: "Luego abre Workspace Areas para ejecutar procedimientos en las áreas priorizadas.",
       placement: "right",
     },
   ],
@@ -146,40 +146,40 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
     },
     {
       target: '[data-tour="trial-title"]',
-      content: "Empieza validando cliente, periodo y corte cargado.",
+      content: "Empieza validando cliente, período y corte cargado.",
       placement: "bottom",
     },
     {
       target: '[data-tour="trial-area-select"]',
-      content: "Cambia de area para revisar cuentas especificas rapidamente.",
+      content: "Cambia de área para revisar cuentas específicas rápidamente.",
       placement: "bottom",
     },
     {
       target: '[data-tour="trial-table"]',
-      content: "Aqui identificas variaciones relevantes y cuentas para pruebas.",
+      content: "Aquí identificas variaciones relevantes y cuentas para pruebas.",
       placement: "top",
     },
     {
       target: '[data-tour="trial-ai-guide"]',
-      content: "Este panel resume riesgos por aseveracion para la area activa.",
+      content: "Este panel resume riesgos por aseveración para el área activa.",
       placement: "left",
     },
   ],
   "estados-financieros": [
     {
       target: '[data-tour="sidebar-estados-financieros"]',
-      content: "Este modulo compara estados financieros y materialidad.",
+      content: "Este módulo compara estados financieros y materialidad.",
       skipBeacon: true,
       placement: "right",
     },
     {
       target: '[data-tour="estados-title"]',
-      content: "Revisa el analisis comparativo del cliente y su periodo.",
+      content: "Revisa el análisis comparativo del cliente y su período.",
       placement: "bottom",
     },
     {
       target: '[data-tour="estados-materialidad"]',
-      content: "Aqui ves MP, ME y umbral trivial para evaluar desviaciones.",
+      content: "Aquí ves MP, ME y umbral trivial para evaluar desviaciones.",
       placement: "bottom",
     },
     {
@@ -189,35 +189,35 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
     },
     {
       target: '[data-tour="estados-alertas"]',
-      content: "Alertas IA para enfocar pruebas en integridad y valuacion.",
+      content: "Alertas IA para enfocar pruebas en integridad y valuación.",
       placement: "right",
     },
   ],
   areas: [
     {
       target: '[data-tour="sidebar-areas"]',
-      content: "Ya estas en Workspace Areas: aqui ejecutas y documentas trabajo tecnico.",
+      content: "Ya estás en Workspace Áreas: aquí ejecutas y documentas trabajo técnico.",
       skipBeacon: true,
       placement: "right",
     },
     {
       target: '[data-tour="area-title"]',
-      content: "Confirma codigo y nombre de area antes de iniciar pruebas.",
+      content: "Confirma código y nombre de área antes de iniciar pruebas.",
       placement: "bottom",
     },
     {
       target: '[data-tour="area-lead-schedule"]',
-      content: "En el lead schedule validas cuentas, saldos y checks de revision.",
+      content: "En el lead schedule validas cuentas, saldos y checks de revisión.",
       placement: "right",
     },
     {
       target: '[data-tour="btn-generar-briefing"]',
-      content: "Genera briefing para obtener procedimientos y normativa activada para esta area.",
+      content: "Genera briefing para obtener procedimientos y normativa activada para esta área.",
       placement: "left",
     },
     {
       target: '[data-tour="hallazgo-block"]',
-      content: "Si detectas desviaciones, estructura el hallazgo con criterio tecnico aqui.",
+      content: "Si detectas desviaciones, estructura el hallazgo con criterio técnico aquí.",
       placement: "left",
     },
     {
@@ -229,13 +229,13 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
   "papeles-trabajo": [
     {
       target: '[data-tour="sidebar-papeles-trabajo"]',
-      content: "Aqui controlas papeles de trabajo, calidad y avance por tarea.",
+      content: "Aquí controlas papeles de trabajo, calidad y avance por tarea.",
       skipBeacon: true,
       placement: "right",
     },
     {
       target: '[data-tour="papeles-title"]',
-      content: "Vista central de ejecucion con gates y control de cumplimiento.",
+      content: "Vista central de ejecución con gates y control de cumplimiento.",
       placement: "bottom",
     },
     {
@@ -250,7 +250,7 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
     },
     {
       target: '[data-tour="papeles-tareas"]',
-      content: "Aqui registras evidencia por tarea y estado de ejecucion.",
+      content: "Aquí registras evidencia por tarea y estado de ejecución.",
       placement: "top",
     },
   ],
@@ -263,7 +263,7 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
     },
     {
       target: '[data-tour="reportes-title"]',
-      content: "Desde aqui gestionas borradores y emision final.",
+      content: "Desde aquí gestionas borradores y emisión final.",
       placement: "bottom",
     },
     {
@@ -273,7 +273,7 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
     },
     {
       target: '[data-tour="reportes-actions"]',
-      content: "Acciones rapidas para generar PDF, memo y descargas.",
+      content: "Acciones rápidas para generar PDF, memo y descargas.",
       placement: "top",
     },
     {
@@ -285,7 +285,7 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
   "socio-chat": [
     {
       target: '[data-tour="sidebar-socio-chat"]',
-      content: "Socio Chat te asiste con criterio tecnico sobre el cliente activo.",
+      content: "Socio Chat te asiste con criterio técnico sobre el cliente activo.",
       skipBeacon: true,
       placement: "right",
     },
@@ -296,24 +296,24 @@ export const TOUR_STEPS: Record<TourModule, Step[]> = {
     },
     {
       target: '[data-tour="sociochat-chat"]',
-      content: "Aqui ves respuestas, fuentes y nivel de confianza.",
+      content: "Aquí ves respuestas, fuentes y nivel de confianza.",
       placement: "left",
     },
     {
       target: '[data-tour="sociochat-input"]',
-      content: "Escribe consultas tecnicas y usa prompts rapidos cuando convenga.",
+      content: "Escribe consultas técnicas y usa prompts rápidos cuando convenga.",
       placement: "top",
     },
     {
       target: '[data-tour="sociochat-referencias"]',
-      content: "Referencias tecnicas usadas por la ultima respuesta.",
+      content: "Referencias técnicas usadas por la última respuesta.",
       placement: "left",
     },
   ],
   "client-memory": [
     {
       target: '[data-tour="sidebar-client-memory"]',
-      content: "Client Memory guarda contexto historico del cliente.",
+      content: "Client Memory guarda contexto histórico del cliente.",
       skipBeacon: true,
       placement: "right",
     },

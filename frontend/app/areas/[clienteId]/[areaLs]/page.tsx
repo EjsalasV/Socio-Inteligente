@@ -59,7 +59,7 @@ export default function AreaWorkspacePage() {
   const [tiempoAI, setTiempoAI] = useState<string>("");
   const [logTiempoMsg, setLogTiempoMsg] = useState<string>("");
   const areaNavOptions = useMemo(
-    () => Array.from(new Set(getLsOptions(10).map((x) => normalizeLsCode(x.codigo)))),
+    () => Array.from(new Set(getLsOptions().map((x) => normalizeLsCode(x.codigo)))),
     [],
   );
 
@@ -230,6 +230,47 @@ export default function AreaWorkspacePage() {
         </div>
       </section>
 
+      <section className="sovereign-card border border-[#041627]/10" aria-label="Navegación principal del área">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-bold">Navegación rápida</p>
+            <h3 className="font-headline text-2xl text-[#041627] mt-1">Cambiar de área y módulo sin salir del flujo</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => router.push(`/risk-engine/${clienteId}`)}
+              className="px-3 py-2 rounded-lg border border-[#041627]/20 text-slate-700 text-xs font-semibold uppercase tracking-[0.08em] bg-white"
+            >
+              Risk Engine
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push(`/papeles-trabajo/${clienteId}`)}
+              className="px-3 py-2 rounded-lg border border-[#041627]/20 text-slate-700 text-xs font-semibold uppercase tracking-[0.08em] bg-white"
+            >
+              Papeles
+            </button>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center">
+          <select
+            value={areaCode}
+            onChange={(e) => router.push(`/areas/${clienteId}/${e.target.value}`)}
+            className="ghost-input w-full"
+          >
+            {areaNavOptions.map((code) => (
+              <option key={code} value={code}>
+                {getLsShortName(code)} · {code}
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-slate-600 md:text-right">
+            Área activa: <span className="font-semibold text-[#041627]">{getLsName(areaCode)}</span>
+          </p>
+        </div>
+      </section>
+
       <section className={`rounded-[2rem] p-1 shadow-editorial ${highRisk ? "bg-gradient-to-br from-[#ba1a1a] to-[#93000a]" : "bg-gradient-to-br from-[#041627] to-[#1a2b3c]"}`}>
         <div className={`rounded-[1.9rem] p-8 border ${highRisk ? "bg-[#ba1a1a] border-white/10" : "bg-[#1a2b3c] border-white/10"} text-white`}>
           <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
@@ -357,24 +398,6 @@ export default function AreaWorkspacePage() {
                 </article>
               ))}
             </div>
-          </article>
-
-          <article className="sovereign-card">
-            <h4 className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mb-4">Navegación rápida</h4>
-            <select
-              value={areaCode}
-              onChange={(e) => router.push(`/areas/${clienteId}/${e.target.value}`)}
-              className="ghost-input w-full"
-            >
-              {areaNavOptions.map((code) => (
-                <option key={code} value={code}>
-                  {getLsShortName(code)} · {code}
-                </option>
-              ))}
-            </select>
-            <p className="text-[11px] text-slate-500 mt-3">
-              {getLsName(areaCode)}
-            </p>
           </article>
 
           <article className="sovereign-card">

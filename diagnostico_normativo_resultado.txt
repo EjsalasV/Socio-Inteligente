@@ -1,0 +1,148 @@
+DIAGNOSTICO NORMATIVO - SOCIO AI
+========================================================================
+Ruta analizada: C:\Users\echoe\Desktop\Nuevo Socio AI\data\conocimiento_normativo
+Total archivos .md: 95
+
+ARCHIVOS ENCONTRADOS POR SUBCARPETA
+------------------------------------------------------------------------
+[metodologia] (4 archivos)
+  - metodologia/aseveraciones.md
+  - metodologia/hallazgos.md
+  - metodologia/materialidad.md
+  - metodologia/planificacion.md
+
+[nias] (34 archivos)
+  - nias/nia_200.md
+  - nias/nia_210.md
+  - nias/nia_220.md
+  - nias/nia_230.md
+  - nias/nia_240.md
+  - nias/nia_250.md
+  - nias/nia_260.md
+  - nias/nia_265.md
+  - nias/nia_300.md
+  - nias/nia_315.md
+  - nias/nia_320.md
+  - nias/nia_330.md
+  - nias/nia_402.md
+  - nias/nia_450.md
+  - nias/nia_500.md
+  - nias/nia_501.md
+  - nias/nia_505.md
+  - nias/nia_510.md
+  - nias/nia_520.md
+  - nias/nia_530.md
+  - nias/nia_540.md
+  - nias/nia_550.md
+  - nias/nia_560.md
+  - nias/nia_570.md
+  - nias/nia_580.md
+  - nias/nia_600.md
+  - nias/nia_610.md
+  - nias/nia_620.md
+  - nias/nia_700.md
+  - nias/nia_701.md
+  - nias/nia_705.md
+  - nias/nia_706.md
+  - nias/nia_710.md
+  - nias/nia_720.md
+
+[niif_completas] (26 archivos)
+  - niif_completas/nic_1.md
+  - niif_completas/nic_10.md
+  - niif_completas/nic_12.md
+  - niif_completas/nic_16.md
+  - niif_completas/nic_19.md
+  - niif_completas/nic_2.md
+  - niif_completas/nic_21.md
+  - niif_completas/nic_23.md
+  - niif_completas/nic_24.md
+  - niif_completas/nic_32.md
+  - niif_completas/nic_36.md
+  - niif_completas/nic_37.md
+  - niif_completas/nic_38.md
+  - niif_completas/nic_40.md
+  - niif_completas/nic_7.md
+  - niif_completas/nic_8.md
+  - niif_completas/niif_1.md
+  - niif_completas/niif_10.md
+  - niif_completas/niif_13.md
+  - niif_completas/niif_15.md
+  - niif_completas/niif_2.md
+  - niif_completas/niif_3.md
+  - niif_completas/niif_5.md
+  - niif_completas/niif_7.md
+  - niif_completas/niif_8.md
+  - niif_completas/niif_9.md
+
+[niif_pymes] (25 archivos)
+  - niif_pymes/niif_pymes_seccion_1.md
+  - niif_pymes/niif_pymes_seccion_10.md
+  - niif_pymes/niif_pymes_seccion_12.md
+  - niif_pymes/niif_pymes_seccion_18.md
+  - niif_pymes/niif_pymes_seccion_2.md
+  - niif_pymes/niif_pymes_seccion_20.md
+  - niif_pymes/niif_pymes_seccion_22.md
+  - niif_pymes/niif_pymes_seccion_25.md
+  - niif_pymes/niif_pymes_seccion_28.md
+  - niif_pymes/niif_pymes_seccion_3.md
+  - niif_pymes/niif_pymes_seccion_32.md
+  - niif_pymes/niif_pymes_seccion_33.md
+  - niif_pymes/niif_pymes_seccion_4.md
+  - niif_pymes/niif_pymes_seccion_5.md
+  - niif_pymes/niif_pymes_seccion_6.md
+  - niif_pymes/niif_pymes_seccion_7.md
+  - niif_pymes/niif_pymes_seccion_8.md
+  - niif_pymes/seccion_11.md
+  - niif_pymes/seccion_13.md
+  - niif_pymes/seccion_17.md
+  - niif_pymes/seccion_21.md
+  - niif_pymes/seccion_23.md
+  - niif_pymes/seccion_27.md
+  - niif_pymes/seccion_29.md
+  - niif_pymes/seccion_35.md
+
+[supercias] (1 archivos)
+  - supercias/supercias_general.md
+
+[tributario_ec] (5 archivos)
+  - tributario_ec/conciliacion_tributaria.md
+  - tributario_ec/gastos_no_deducibles.md
+  - tributario_ec/impuesto_diferido.md
+  - tributario_ec/iva.md
+  - tributario_ec/retenciones.md
+
+FALTANTES POR CATEGORIA
+------------------------------------------------------------------------
+NIAS (0 faltantes)
+  ✅ Sin faltantes
+
+NIIF_COMPLETAS (0 faltantes)
+  ✅ Sin faltantes
+
+NIIF_PYMES (0 faltantes)
+  ✅ Sin faltantes
+
+ARCHIVOS CON POSIBLE ENCODING ROTO
+------------------------------------------------------------------------
+  ✅ No se detectaron patrones rotos
+
+ARCHIVOS SIN FRONTMATTER YAML
+------------------------------------------------------------------------
+  ✅ Todos tienen frontmatter
+
+ARCHIVOS NO MAPEADOS A LISTA MAESTRA
+------------------------------------------------------------------------
+  ⚠️ metodologia/hallazgos.md
+  ⚠️ metodologia/planificacion.md
+  ⚠️ supercias/supercias_general.md
+  ⚠️ tributario_ec/conciliacion_tributaria.md
+  ⚠️ tributario_ec/gastos_no_deducibles.md
+  ⚠️ tributario_ec/iva.md
+  ⚠️ tributario_ec/retenciones.md
+
+RESUMEN DE COBERTURA
+------------------------------------------------------------------------
+NIAs: 34 de 34
+NIIF completas: 27 de 27
+NIIF PYMES: 25 de 25

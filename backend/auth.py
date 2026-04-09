@@ -76,16 +76,7 @@ def decode_token(token: str) -> dict[str, Any]:
         ) from exc
 
 
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-) -> UserContext:
-    if credentials is None or credentials.scheme.lower() != "bearer":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Falta token bearer",
-        )
-
-    payload = decode_token(credentials.credentials)
+def user_context_from_payload(payload: dict[str, Any]) -> UserContext:
     allowed_clientes = payload.get("allowed_clientes")
     if not isinstance(allowed_clientes, list):
         allowed_clientes = _allowed_clientes_from_env() or ["*"]
@@ -121,6 +112,23 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Payload de token invalido",
         ) from exc
+
+
+def get_user_from_token(token: str) -> UserContext:
+    payload = decode_token(token)
+    return user_context_from_payload(payload)
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> UserContext:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Falta token bearer",
+        )
+
+    return get_user_from_token(credentials.credentials)
 
 
 def authorize_cliente_access(cliente_id: str, user: UserContext | None = None) -> None:

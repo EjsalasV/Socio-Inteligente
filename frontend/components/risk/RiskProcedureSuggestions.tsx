@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createWorkpaperTask, deleteWorkpaperTask } from "../../lib/api/workpapers";
@@ -40,9 +40,9 @@ function buildProcedures(areas: RiskCriticalArea[]): Procedure[] {
   if (joined.includes("ingreso") || joined.includes("cobrar") || joined.includes("venta")) {
     list.push({
       nia: "NIA 505",
-      title: "Confirmacion Externa de Saldos",
+      title: "Confirmación Externa de Saldos",
       description:
-        "Solicitar confirmaciones directas de los principales saldos y validar diferencias con documentacion soporte.",
+        "Solicitar confirmaciones directas de los principales saldos y validar diferencias con documentación soporte.",
       vinculo: "Ingresos / Cuentas por Cobrar",
     });
   }
@@ -52,7 +52,7 @@ function buildProcedures(areas: RiskCriticalArea[]): Procedure[] {
       nia: "NIA 315",
       title: "Prueba de Recorrido (Walkthrough)",
       description:
-        "Documentar el flujo completo de compras e inventario para evaluar diseno e implementacion de controles clave.",
+        "Documentar el flujo completo de compras e inventario para evaluar diseño e implementación de controles clave.",
       vinculo: "Inventarios",
     });
   }
@@ -70,9 +70,9 @@ function buildProcedures(areas: RiskCriticalArea[]): Procedure[] {
   if (joined.includes("patrimonio") || joined.includes("inversion")) {
     list.push({
       nia: "NIA 540",
-      title: "Revision de Estimaciones y Valuaciones",
+      title: "Revisión de Estimaciones y Valuaciones",
       description:
-        "Evaluar supuestos de valuacion, deterioro y revelaciones en patrimonio e inversiones no corrientes.",
+        "Evaluar supuestos de valuación, deterioro y revelaciones en patrimonio e inversiones no corrientes.",
       vinculo: "Patrimonio / Inversiones",
     });
   }
@@ -81,8 +81,8 @@ function buildProcedures(areas: RiskCriticalArea[]): Procedure[] {
     nia: "NIA 520",
     title: "Procedimientos Analiticos Focalizados",
     description:
-      "Contrastar tendencias por periodo y desviaciones no esperadas para identificar riesgo de incorreccion material.",
-    vinculo: "Analisis transversal",
+      "Contrastar tendencias por período y desviaciones no esperadas para identificar riesgo de incorrección material.",
+    vinculo: "Análisis transversal",
   });
 
   const deduped: Procedure[] = [];
@@ -212,7 +212,7 @@ export default function RiskProcedureSuggestions({
       inferTargetArea(areas, procedure);
 
     if (!targetArea) {
-      throw new Error("No hay areas de riesgo para vincular este procedimiento.");
+      throw new Error("No hay áreas de riesgo para vincular este procedimiento.");
     }
 
     setSavingKey(key);
@@ -249,7 +249,7 @@ export default function RiskProcedureSuggestions({
       setFeedback(
         result.created
           ? `Procedimiento agregado en ${targetArea.area_nombre}.`
-          : `Ya existia en ${targetArea.area_nombre}.`,
+          : `Ya existía en ${targetArea.area_nombre}.`,
       );
       if (autoGoToWorkpapers) {
         router.push(`/papeles-trabajo/${clienteId}`);
@@ -306,7 +306,7 @@ export default function RiskProcedureSuggestions({
 
   async function handleUndo(log: ActionLog): Promise<void> {
     if (log.status !== "created" || !log.taskId) {
-      setFeedback("Solo se puede deshacer tareas creadas en esta sesion.");
+      setFeedback("Solo se puede deshacer tareas creadas en esta sesión.");
       return;
     }
     try {
@@ -315,7 +315,7 @@ export default function RiskProcedureSuggestions({
       setLogs((prev) => prev.filter((item) => !(item.key === log.key && item.at === log.at)));
       setFeedback(`Deshecho: ${log.title} removido de Papeles de Trabajo.`);
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "No se pudo deshacer la accion.");
+      setFeedback(error instanceof Error ? error.message : "No se pudo deshacer la acción.");
     }
   }
 
@@ -353,7 +353,7 @@ export default function RiskProcedureSuggestions({
           onChange={(e) => setAutoGoToWorkpapers(e.target.checked)}
           className="h-4 w-4 rounded border-slate-300"
         />
-        <label htmlFor="auto-go-workpapers">Ir a Papeles automaticamente al agregar</label>
+        <label htmlFor="auto-go-workpapers">Ir a Papeles automáticamente al agregar</label>
       </div>
 
       <div className="space-y-6">
@@ -399,7 +399,7 @@ export default function RiskProcedureSuggestions({
                   <span>Vinculado a: {procedure.vinculo}</span>
                 </div>
                 <label className="text-[10px] uppercase tracking-[0.1em] text-slate-500 font-bold">
-                  Area destino
+                  Área destino
                   <select
                     value={selectedAreaByKey[key] || ""}
                     onChange={(e) =>
@@ -467,7 +467,7 @@ export default function RiskProcedureSuggestions({
                     <span>Vinculado a: {procedure.vinculo}</span>
                   </div>
                   <label className="text-[10px] uppercase tracking-[0.1em] text-slate-500 font-bold">
-                    Area destino
+                    Área destino
                     <select
                       value={selectedAreaByKey[key] || ""}
                       onChange={(e) =>
@@ -507,12 +507,12 @@ export default function RiskProcedureSuggestions({
 
       {logs.length ? (
         <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-bold mb-2">Ultimos agregados</p>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-bold mb-2">Últimos agregados</p>
           <div className="space-y-1 text-xs text-slate-600">
             {logs.map((log) => (
               <div key={`${log.key}-${log.at}`} className="flex items-center justify-between gap-3">
                 <p>
-                  {log.at} - {log.title} - {log.areaName} ({log.status === "created" ? "creado" : "ya existia"})
+                  {log.at} - {log.title} - {log.areaName} ({log.status === "created" ? "creado" : "ya existía"})
                 </p>
                 {log.status === "created" && log.taskId ? (
                   <button

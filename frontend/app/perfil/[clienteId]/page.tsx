@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -17,9 +17,17 @@ function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
 
-function asNumber(value: unknown, fallback = 0): number {
+function toNumberInput(value: unknown): string {
   const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  if (!Number.isFinite(parsed) || parsed === 0) return "";
+  return String(parsed);
+}
+
+function parseInputNumber(value: string): number {
+  const normalized = String(value || "").trim().replace(",", ".");
+  if (!normalized) return 0;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function deepClone<T>(value: T): T {
@@ -46,6 +54,7 @@ function toFormData(perfil: PerfilPayload): PerfilFormData {
   const riesgoGlobal = asRecord(perfil.riesgo_global);
   const materialidad = asRecord(perfil.materialidad);
   const preliminar = asRecord(materialidad.preliminar);
+  const final = asRecord(materialidad.final);
 
   return {
     firma_auditoria: asString(encargo.firma_auditora, "Socio AI"),
@@ -57,7 +66,11 @@ function toFormData(perfil: PerfilPayload): PerfilFormData {
     marco_contable: asString(encargo.marco_referencial, "NIIF para PYMES"),
     norma_auditoria: asString(encargo.norma_auditoria, "NIAs"),
     riesgo_global: asString(riesgoGlobal.nivel, "MEDIO").toUpperCase(),
-    materialidad_preliminar: asNumber(preliminar.materialidad_global, 0),
+    materialidad_preliminar: toNumberInput(preliminar.materialidad_global),
+    materialidad_preliminar_proyectada: toNumberInput(preliminar.materialidad_desempeno),
+    materialidad_final_planeacion: toNumberInput(final.materialidad_planeacion),
+    materialidad_final_ejecucion: toNumberInput(final.materialidad_ejecucion),
+    umbral_trivialidad_final: toNumberInput(final.umbral_trivialidad),
     comentario_materialidad: asString(preliminar.comentario_base, "Calculado segun base de materialidad del encargo."),
   };
 }
@@ -76,7 +89,23 @@ function toPerfilPayload(base: PerfilPayload, form: PerfilFormData): PerfilPaylo
   setNested(next, ["encargo", "norma_auditoria"], form.norma_auditoria);
 
   setNested(next, ["riesgo_global", "nivel"], form.riesgo_global);
-  setNested(next, ["materialidad", "preliminar", "materialidad_global"], form.materialidad_preliminar);
+  const matPreliminar = parseInputNumber(form.materialidad_preliminar);
+  const matProyectada = parseInputNumber(form.materialidad_preliminar_proyectada);
+  const matFinalPlaneacion = parseInputNumber(form.materialidad_final_planeacion);
+  const matFinalEjecucion = parseInputNumber(form.materialidad_final_ejecucion);
+  const matFinalTrivial = parseInputNumber(form.umbral_trivialidad_final);
+
+  setNested(next, ["materialidad", "preliminar", "materialidad_global"], matPreliminar);
+  setNested(next, ["materialidad", "preliminar", "materialidad_desempeno"], matProyectada);
+  setNested(next, ["materialidad", "preliminar", "error_trivial"], matFinalTrivial);
+  setNested(next, ["materialidad", "final", "materialidad_planeacion"], matFinalPlaneacion);
+  setNested(next, ["materialidad", "final", "materialidad_ejecucion"], matFinalEjecucion);
+  setNested(next, ["materialidad", "final", "umbral_trivialidad"], matFinalTrivial);
+  setNested(
+    next,
+    ["materialidad", "estado_materialidad"],
+    matFinalPlaneacion > 0 && matFinalEjecucion > 0 && matFinalTrivial > 0 ? "final" : "preliminar",
+  );
   setNested(next, ["materialidad", "preliminar", "comentario_base"], form.comentario_materialidad);
 
   return next;
@@ -102,7 +131,7 @@ export default function PerfilClientePage() {
     async function load(): Promise<void> {
       if (!clienteId) {
         setLoading(false);
-        setError("No se detecto cliente en la ruta.");
+        setError("No se detectó cliente en la ruta.");
         return;
       }
 
@@ -182,9 +211,9 @@ export default function PerfilClientePage() {
 
   if (!form) {
     return (
-      <main className="px-4 md:px-12 py-8">
+        <main className="px-4 md:px-12 py-8">
         <div className="sovereign-card text-sm text-[#93000a] bg-[#ffdad6] border border-[#ba1a1a]/20">
-          {error || "No se pudo inicializar la configuracion del perfil."}
+          {error || "No se pudo inicializar la configuración del perfil."}
         </div>
       </main>
     );
@@ -194,9 +223,9 @@ export default function PerfilClientePage() {
     <main className="px-4 md:px-12 py-8 max-w-[1500px] space-y-8">
       <section className="rounded-editorial bg-white shadow-editorial px-6 md:px-8 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 data-tour="perfil-title" className="font-headline text-4xl md:text-5xl font-bold tracking-tight text-[#041627]">Configuracion del Perfil</h1>
+          <h1 data-tour="perfil-title" className="font-headline text-4xl md:text-5xl font-bold tracking-tight text-[#041627]">Configuración del Perfil</h1>
           <p className="text-slate-600 mt-2 max-w-3xl leading-relaxed">
-            Define los parametros del encargo para que Socio AI construya la estrategia inicial de auditoria sin perder trazabilidad.
+            Define los parámetros del encargo para que Socio AI construya la estrategia inicial de auditoría sin perder trazabilidad.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -215,7 +244,7 @@ export default function PerfilClientePage() {
             className="px-6 py-2.5 rounded-xl text-white text-sm font-semibold shadow-sm transition active:scale-95"
             style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}
           >
-            Iniciar auditoria
+            Iniciar auditoría
           </button>
         </div>
       </section>
@@ -224,17 +253,17 @@ export default function PerfilClientePage() {
       {success ? <div className="sovereign-card text-sm text-[#065f46] bg-[#ecfdf5] border border-[#047857]/20">{success}</div> : null}
 
       <ContextualHelp
-        title="Ayuda del modulo Perfil"
+        title="Ayuda del módulo Perfil"
         items={[
           {
             label: "Datos del encargo",
             description:
-              "Completa firma, auditor y ano fiscal para trazabilidad del trabajo.",
+              "Completa firma, auditor y año fiscal para trazabilidad del trabajo.",
           },
           {
             label: "Marco regulatorio",
             description:
-              "Selecciona marco contable y norma de auditoria; impacta sugerencias y validaciones.",
+              "Selecciona marco contable y norma de auditoría; impacta sugerencias y validaciones.",
           },
           {
             label: "Materialidad preliminar",
@@ -261,7 +290,7 @@ export default function PerfilClientePage() {
                 <input className="ghost-input w-full py-3" value={form.auditor_encargado} onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("auditor_encargado", e.target.value)} />
               </label>
               <label className="flex flex-col gap-2 md:col-span-2">
-                <span className="text-xs font-bold tracking-wider uppercase text-slate-500">Ano fiscal de auditoria</span>
+                <span className="text-xs font-bold tracking-wider uppercase text-slate-500">Año fiscal de auditoría</span>
                 <input className="ghost-input w-full py-3" value={form.fiscal_year} onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("fiscal_year", e.target.value)} />
               </label>
             </div>
@@ -286,7 +315,7 @@ export default function PerfilClientePage() {
                 <input className="ghost-input w-full py-3" value={form.nombre_legal} onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("nombre_legal", e.target.value)} />
               </label>
               <label className="flex flex-col gap-2 md:col-span-2">
-                <span className="text-xs font-bold tracking-wider uppercase text-slate-500">Pais de operacion principal</span>
+                <span className="text-xs font-bold tracking-wider uppercase text-slate-500">País de operación principal</span>
                 <input className="ghost-input w-full py-3" value={form.pais_operacion} onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("pais_operacion", e.target.value)} />
               </label>
             </div>
@@ -299,7 +328,7 @@ export default function PerfilClientePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
-                <p className="text-sm font-semibold text-[#041627]">Estandar de contabilidad</p>
+                <p className="text-sm font-semibold text-[#041627]">Estándar de contabilidad</p>
                 <select className="ghost-input w-full py-3" value={form.marco_contable} onChange={(e: ChangeEvent<HTMLSelectElement>) => updateField("marco_contable", e.target.value)}>
                   {MARCOS.map((marco) => (
                     <option key={marco} value={marco}>{marco}</option>
@@ -307,7 +336,7 @@ export default function PerfilClientePage() {
                 </select>
               </div>
               <div className="space-y-4">
-                <p className="text-sm font-semibold text-[#041627]">Norma de auditoria</p>
+                <p className="text-sm font-semibold text-[#041627]">Norma de auditoría</p>
                 <select className="ghost-input w-full py-3" value={form.norma_auditoria} onChange={(e: ChangeEvent<HTMLSelectElement>) => updateField("norma_auditoria", e.target.value)}>
                   {NORMAS.map((norma) => (
                     <option key={norma} value={norma}>{norma}</option>
@@ -341,7 +370,7 @@ export default function PerfilClientePage() {
           </article>
 
           <article className="sovereign-card">
-            <h3 className="font-headline text-xl font-semibold text-[#041627] mb-8 italic">Parametros criticos</h3>
+            <h3 className="font-headline text-xl font-semibold text-[#041627] mb-8 italic">Parámetros críticos</h3>
             <div className="space-y-10">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -363,10 +392,60 @@ export default function PerfilClientePage() {
                     type="number"
                     className="ghost-input w-full py-3 text-lg font-semibold text-[#041627]"
                     value={form.materialidad_preliminar}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_preliminar", Number(e.target.value || 0))}
+                    placeholder="0"
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_preliminar", e.target.value)}
                   />
                   <span className="text-sm font-medium text-slate-500 pb-1">USD</span>
                 </div>
+
+                <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Preliminar proyectada (desempeño)</label>
+                <div className="flex items-end gap-2">
+                  <input
+                    type="number"
+                    className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
+                    value={form.materialidad_preliminar_proyectada}
+                    placeholder="0"
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_preliminar_proyectada", e.target.value)}
+                  />
+                  <span className="text-sm font-medium text-slate-500 pb-1">USD</span>
+                </div>
+
+                <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Materialidad final (planeación)</label>
+                <div className="flex items-end gap-2">
+                  <input
+                    type="number"
+                    className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
+                    value={form.materialidad_final_planeacion}
+                    placeholder="0"
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_final_planeacion", e.target.value)}
+                  />
+                  <span className="text-sm font-medium text-slate-500 pb-1">USD</span>
+                </div>
+
+                <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Materialidad final (ejecución)</label>
+                <div className="flex items-end gap-2">
+                  <input
+                    type="number"
+                    className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
+                    value={form.materialidad_final_ejecucion}
+                    placeholder="0"
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_final_ejecucion", e.target.value)}
+                  />
+                  <span className="text-sm font-medium text-slate-500 pb-1">USD</span>
+                </div>
+
+                <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Umbral de trivialidad final</label>
+                <div className="flex items-end gap-2">
+                  <input
+                    type="number"
+                    className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
+                    value={form.umbral_trivialidad_final}
+                    placeholder="0"
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("umbral_trivialidad_final", e.target.value)}
+                  />
+                  <span className="text-sm font-medium text-slate-500 pb-1">USD</span>
+                </div>
+
                 <textarea
                   rows={3}
                   className="ghost-input w-full"
@@ -382,7 +461,7 @@ export default function PerfilClientePage() {
             <div>
               <p className="text-xs font-semibold text-[#041627] mb-1">Nota de cumplimiento</p>
               <p className="text-[11px] text-slate-600 leading-relaxed">
-                Verifica que la configuracion de NIAs y marco contable este alineada con el periodo activo del encargo.
+                Verifica que la configuración de NIAs y marco contable esté alineada con el período activo del encargo.
               </p>
             </div>
           </div>
@@ -391,9 +470,9 @@ export default function PerfilClientePage() {
 
       <footer className="pt-6 border-t border-slate-200 flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
         <div className="flex items-center gap-4 text-xs text-slate-500">
-          <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">lock</span> Conexion encriptada</span>
+          <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">lock</span> Conexión encriptada</span>
           <span className="w-1 h-1 bg-slate-300 rounded-full" />
-          <span>Ultimo guardado: {success ? "Ahora" : "Pendiente"}</span>
+          <span>Último guardado: {success ? "Ahora" : "Pendiente"}</span>
         </div>
         <div className="flex gap-3">
           <button
@@ -410,7 +489,7 @@ export default function PerfilClientePage() {
             className="px-8 py-3 rounded-xl text-white font-bold shadow-sm disabled:opacity-60"
             style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}
           >
-            {saving ? "Guardando..." : "Confirmar perfil de auditoria"}
+            {saving ? "Guardando..." : "Confirmar perfil de auditoría"}
           </button>
         </div>
       </footer>

@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-04-07T03:31:26.452977+00:00",
+  "sources": {
+    "sri_boletines": {
+      "id": "sri_boletines",
+      "norma": "SRI",
+      "tipo": "tributario",
+      "url": "https://www.sri.gob.ec/web/guest/home",
+      "ok": true,
+      "etag": "\"0\"",
+      "last_modified": "",
+      "checked_at": "2026-04-07T03:31:26.453015+00:00"
+    },
+    "supercias_normativa": {
+      "id": "supercias_normativa",
+      "norma": "SUPERCIAS",
+      "tipo": "regulatorio",
+      "url": "https://www.supercias.gob.ec/portalscvs/",
+      "ok": true,
+      "etag": "\"1a1b3-64e8560a67df7\"",
+      "last_modified": "Fri, 03 Apr 2026 02:50:19 GMT",
+      "checked_at": "2026-04-07T03:31:26.860484+00:00"
+    },
+    "tributario_interno": {
+      "id": "tributario_interno",
+      "norma": "TRIBUTARIO_INTERNO",
+      "tipo": "tributario",
+      "url": "file://data/conocimiento_normativo/tributario_ec",
+      "ok": true,
+      "etag": "",
+      "last_modified": "2026-04-06T05:58:12.062404+00:00",
+      "checked_at": "2026-04-07T03:31:27.033621+00:00"
+    }
+  }
+}

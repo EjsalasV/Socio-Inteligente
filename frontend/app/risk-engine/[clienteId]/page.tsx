@@ -36,26 +36,26 @@ export default function RiskEnginePage() {
             label: "Matriz de calor",
             byRole: {
               junior:
-                "Empieza por los cuadrantes altos: esas areas tienen mayor probabilidad de error material.",
+                "Empieza por los cuadrantes altos: esas áreas tienen mayor probabilidad de error material.",
               semi:
-                "Cruza impacto y frecuencia para ubicar las areas de mayor exposicion.",
+                "Cruza impacto y frecuencia para ubicar las áreas de mayor exposición.",
               senior:
                 "Usa la matriz para validar alcance y reasignar recursos a riesgos altos.",
               socio:
-                "Usa la matriz para confirmar foco de auditoria, riesgo de emision y necesidad de escalamiento.",
+                "Usa la matriz para confirmar foco de auditoría, riesgo de emisión y necesidad de escalamiento.",
             },
           },
           {
             label: "Areas criticas",
             byRole: {
               junior:
-                "Toma la primera area del ranking y pasa a Workspace Areas para ejecutar pruebas.",
+                "Toma la primera área del ranking y pasa a Workspace Areas para ejecutar pruebas.",
               semi:
-                "Lista priorizada para decidir donde ejecutar pruebas primero.",
+                "Lista priorizada para decidir dónde ejecutar pruebas primero.",
               senior:
                 "Valida consistencia del ranking contra conocimiento del negocio y riesgos emergentes.",
               socio:
-                "Confirma que las areas criticas soporten la estrategia global y la opinion esperada.",
+                "Confirma que las áreas críticas soporten la estrategia global y la opinión esperada.",
             },
           },
           {
@@ -68,7 +68,7 @@ export default function RiskEnginePage() {
               senior:
                 "Revisa pertinencia y cobertura antes de aprobar la carga masiva de procedimientos.",
               socio:
-                "Define solo pruebas de mayor retorno de aseguramiento y evita sobre-auditar areas no materiales.",
+                "Define solo pruebas de mayor retorno de aseguramiento y evita sobre-auditar áreas no materiales.",
             },
           },
         ]}

@@ -30,15 +30,15 @@ export default function ContextualHelp({ title, items, compact = false, defaultO
 
   function styleFallbackByRole(base: string): string {
     if (role === "junior") {
-      return `Aprendizaje: ${base} Ejecuta en orden, deja evidencia minima y escala dudas al revisor.`;
+      return `Aprendizaje: ${base} Ejecuta en orden, deja evidencia mínima y escala dudas al revisor.`;
     }
     if (role === "semi") {
-      return `Ejecucion: ${base} Documenta criterio tecnico, evidencia y conclusion breve por area.`;
+      return `Ejecución: ${base} Documenta criterio técnico, evidencia y conclusión breve por área.`;
     }
     if (role === "senior") {
-      return `Supervision: ${base} Valida materialidad, suficiencia de evidencia y consistencia del cierre tecnico.`;
+      return `Supervisión: ${base} Valida materialidad, suficiencia de evidencia y consistencia del cierre técnico.`;
     }
-    return `Decision socio: ${base} Evalua impacto en opinion, riesgo residual y comunicacion final con la gerencia.`;
+    return `Decisión socio: ${base} Evalúa impacto en opinión, riesgo residual y comunicación final con la gerencia.`;
   }
 
   function getDescription(item: HelpItem): string {

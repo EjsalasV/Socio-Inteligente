@@ -12,8 +12,8 @@ export default function DashboardGrid({ data }: Props) {
       <SovereignCard title="Activo" value={formatMoney(data.activo, "USD", 0)} subtext="Total maestro" />
       <SovereignCard title="Pasivo" value={formatMoney(data.pasivo, "USD", 0)} subtext="Total maestro" />
       <SovereignCard title="Patrimonio" value={formatMoney(data.patrimonio, "USD", 0)} subtext="Total maestro" />
-      <SovereignCard title="Ingresos" value={formatMoney(data.ingresos, "USD", 0)} subtext="Acumulado periodo" />
-      <SovereignCard title="Gastos" value={formatMoney(data.gastos, "USD", 0)} subtext="Acumulado periodo" />
+      <SovereignCard title="Ingresos" value={formatMoney(data.ingresos, "USD", 0)} subtext="Acumulado período" />
+      <SovereignCard title="Gastos" value={formatMoney(data.gastos, "USD", 0)} subtext="Acumulado período" />
     </section>
   );
 }

@@ -78,7 +78,7 @@ export async function getWorkpaperPlan(clienteId: string): Promise<WorkpaperPlan
     return normalizePlan(clienteId, raw);
   } catch (error) {
     if (error instanceof TokenExpiredError) {
-      throw new TokenExpiredError("La sesion expiro. Vuelve a iniciar sesion.");
+      throw new TokenExpiredError("La sesión expiró. Vuelve a iniciar sesión.");
     }
     throw error;
   }

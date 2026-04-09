@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -208,7 +208,7 @@ export default function TourProvider({ children }: { children: React.ReactNode }
   );
 
   useEffect(() => {
-    // Si el usuario cambia de modulo mientras el tour corre, cerramos para no bloquear la UI.
+    // Si el usuario cambia de módulo mientras el tour corre, cerramos para no bloquear la UI.
     if (!run || !currentModule || !activeModule) return;
     if (currentModule !== activeModule) {
       stopTour();

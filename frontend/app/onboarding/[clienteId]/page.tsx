@@ -139,6 +139,10 @@ export default function OnboardingClientePage() {
         libroMayorNombre = uploadedMayor.original_name || mayorSelectedFile.name;
       }
 
+      if (!trialBalanceNombre.trim()) {
+        throw new Error("Debes cargar el Trial Balance para continuar.");
+      }
+
       const payload: PerfilPayload = {
         cliente: {
           nombre_legal: nombreLegal,
@@ -222,7 +226,7 @@ export default function OnboardingClientePage() {
             }}
             className="sovereign-card !p-2 !px-3 text-[11px] uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
           >
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </div>
       </nav>
@@ -249,11 +253,11 @@ export default function OnboardingClientePage() {
                   </select>
                 </label>
                 <label className="flex flex-col gap-2">
-                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Pais</span>
+                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">País</span>
                   <input className="ghost-input" value={pais} onChange={(e) => setPais(e.target.value)} />
                 </label>
                 <label className="flex flex-col gap-2">
-                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Ano fiscal</span>
+                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Año fiscal</span>
                   <input className="ghost-input" value={fiscalYear} onChange={(e) => setFiscalYear(e.target.value)} />
                 </label>
                 <label className="flex flex-col gap-2">
@@ -265,7 +269,7 @@ export default function OnboardingClientePage() {
                   </select>
                 </label>
                 <label className="flex flex-col gap-2">
-                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Norma de auditoria</span>
+                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Norma de auditoría</span>
                   <select className="ghost-input" value={norma} onChange={(e) => setNorma(e.target.value)}>
                     <option>NIAs</option>
                     <option>Normas Locales</option>
@@ -276,18 +280,18 @@ export default function OnboardingClientePage() {
             </div>
 
             <div className="sovereign-card">
-              <h2 className="font-headline text-3xl text-[#041627] mb-6">2. Preguntas clave de auditoria</h2>
+              <h2 className="font-headline text-3xl text-[#041627] mb-6">2. Preguntas clave de auditoría</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label className="md:col-span-2 flex flex-col gap-2 mb-2">
-                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Fase actual de auditoria</span>
+                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Fase actual de auditoría</span>
                   <select className="ghost-input" value={faseAuditoria} onChange={(e) => setFaseAuditoria(e.target.value)}>
-                    <option value="planificacion">Planificacion</option>
-                    <option value="ejecucion">Ejecucion</option>
+                    <option value="planificacion">Planificación</option>
+                    <option value="ejecucion">Ejecución</option>
                     <option value="informe">Informe</option>
                   </select>
                 </label>
                 {[
-                  { key: "nomina", label: "Tiene nomina relevante" },
+                  { key: "nomina", label: "Tiene nómina relevante" },
                   { key: "inventarios", label: "Tiene inventarios materiales" },
                   { key: "ingresos_complejos", label: "Ingresos complejos / multiproducto" },
                   { key: "partes_relacionadas", label: "Hay partes relacionadas" },
@@ -351,7 +355,7 @@ export default function OnboardingClientePage() {
               <p className="text-xs uppercase tracking-[0.16em] text-[#89d3d4]">Socio AI</p>
               <h3 className="font-headline text-3xl mt-3">Motor listo para iniciar</h3>
               <p className="text-sm text-slate-200 mt-3 leading-relaxed">
-                Con este onboarding terminamos setup de cliente. Luego ya puedes navegar Dashboard, Risk Engine y Areas con contexto real.
+                Con este onboarding terminamos setup de cliente. Luego ya puedes navegar Dashboard, Risk Engine y Áreas con contexto real.
               </p>
             </div>
 

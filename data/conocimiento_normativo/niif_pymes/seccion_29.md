@@ -1,13 +1,33 @@
-ï»¿# SecciÃ3n 29 â€" Impuesto a las Ganancias (NIIF para PYMES)
+---
+norma: NIIF 16
+titulo: Ttulo pendiente de normalizar
+tipo: NIIF_COMPLETA
+version: vigente
+vigente_desde: 2023-01-01
+vigente_hasta: null
+activo: true
+ultima_actualizacion: 2024-01-01
+areas_aplicables: []
+afirmaciones_relacionadas: []
+marco: niif_completas
+temas: []
+referencias_cruzadas: []
+etapas:
+- planificacion
+- ejecucion
+- cierre
+---
+
+﻿# Secci3n 29 " Impuesto a las Ganancias (NIIF para PYMES)
 
 ## Objetivo
 Contabilizar el impuesto a las ganancias corriente y diferido,
-incluyendo el reconocimiento, mediciÃ3n y revelaciÃ3n.
+incluyendo el reconocimiento, medici3n y revelaci3n.
 
 ## Impuesto Corriente
 Importe por pagar (o recuperar) por el impuesto a las ganancias
-del período actual y de períodos anteriores.
-Impuesto corriente = Base imponible fiscal Ã- Tasa vigente
+del perodo actual y de perodos anteriores.
+Impuesto corriente = Base imponible fiscal - Tasa vigente
 
 **Tasa vigente Ecuador 2025**: 25% (sociedades en general)
 
@@ -27,41 +47,41 @@ diferencias temporarias, con excepciones limitadas.
 
 | Concepto | Tipo | Base Contable | Base Fiscal |
 |----------|------|--------------|------------|
-| ProvisiÃ3n jubilaciÃ3n patronal | Activo diferido | Reconocida contablemente | Solo deducible al pagar |
-| ProvisiÃ3n desahucio | Activo diferido | Reconocida contablemente | Solo deducible al pagar |
-| ProvisiÃ3n cartera > 1% | Activo diferido | ProvisiÃ3n NIIF | Límite 1% LRTI |
-| DepreciaciÃ3n diferente | Puede ser activo o pasivo | Vida Ãotil NIIF | Vida Ãotil fiscal |
+| Provisi3n jubilaci3n patronal | Activo diferido | Reconocida contablemente | Solo deducible al pagar |
+| Provisi3n desahucio | Activo diferido | Reconocida contablemente | Solo deducible al pagar |
+| Provisi3n cartera > 1% | Activo diferido | Provisi3n NIIF | Lmite 1% LRTI |
+| Depreciaci3n diferente | Puede ser activo o pasivo | Vida otil NIIF | Vida otil fiscal |
 | NIIF 16 arrendamientos | Diferencia mixta | Activo uso + pasivo | Gasto devengado |
 
 ### Reconocimiento de Activo por Impuesto Diferido
 Solo reconocer si es probable que existan ganancias fiscales futuras
 disponibles para compensar las diferencias deducibles.
 
-## PresentaciÃ3n
-- Impuesto corriente: pasivo corriente (o activo si hay crédito)
+## Presentaci3n
+- Impuesto corriente: pasivo corriente (o activo si hay crdito)
 - Impuesto diferido: partida no corriente
-- CompensaciÃ3n solo si existe derecho legal de compensar
+- Compensaci3n solo si existe derecho legal de compensar
 
 ## Revelaciones Requeridas
 - Componentes del gasto/ingreso por impuesto
-- ConciliaciÃ3n entre tasa efectiva y tasa nominal
+- Conciliaci3n entre tasa efectiva y tasa nominal
 - Importe de activos y pasivos por impuesto diferido
 - Naturaleza de las diferencias temporarias
 
-## ConciliaciÃ3n Tasa Efectiva
+## Conciliaci3n Tasa Efectiva
 Utilidad contable antes de impuestos         XXX
-Ã- Tasa nominal (25%)                         XXX
+- Tasa nominal (25%)                         XXX
 = Impuesto esperado                          XXX
 +/- Efecto de gastos no deducibles          XXX
 +/- Efecto de ingresos exentos              XXX
 +/- Otros ajustes                           XXX
 = Gasto total por impuesto                  XXX
-Ã· Utilidad contable = Tasa efectiva          X%
+÷ Utilidad contable = Tasa efectiva          X%
 
 ## Referencias Cruzadas
-- NIC 12: VersiÃ3n completa del impuesto a las ganancias
-- SecciÃ3n 11: Activos financieros (deterioro deducible)
-- Tributario Ecuador: ConciliaciÃ3n tributaria
+- NIC 12: Versi3n completa del impuesto a las ganancias
+- Secci3n 11: Activos financieros (deterioro deducible)
+- Tributario Ecuador: Conciliaci3n tributaria
 
 ---
-*Fuente: IASB â€" NIIF para las PYMES (2015/2019)*
+*Fuente: IASB " NIIF para las PYMES (2015/2019)*

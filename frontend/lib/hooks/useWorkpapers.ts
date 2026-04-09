@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { getWorkpaperPlan, patchWorkpaperTask } from "../api/workpapers";
+import { SOCIO_CLIENTE_UPDATED_EVENT, type ClienteRealtimeEventDetail } from "../realtime";
 import type { WorkpaperPlanData } from "../../types/workpapers";
 
 type UseWorkpapersResult = {
@@ -23,7 +24,7 @@ export function useWorkpapers(clienteId: string): UseWorkpapersResult {
   const refresh = useCallback(async () => {
     if (!clienteId) {
       setData(null);
-      setError("Cliente invalido.");
+      setError("Cliente inválido.");
       setIsLoading(false);
       return;
     }
@@ -45,6 +46,20 @@ export function useWorkpapers(clienteId: string): UseWorkpapersResult {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!clienteId) return;
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<ClienteRealtimeEventDetail>;
+      if (custom.detail?.clienteId !== clienteId) return;
+      const eventName = String(custom.detail?.eventName || "");
+      if (eventName.startsWith("workpaper_") || eventName.startsWith("workflow_")) {
+        void refresh();
+      }
+    };
+    window.addEventListener(SOCIO_CLIENTE_UPDATED_EVENT, handler as EventListener);
+    return () => window.removeEventListener(SOCIO_CLIENTE_UPDATED_EVENT, handler as EventListener);
+  }, [clienteId, refresh]);
 
   const updateTask = useCallback(
     async (taskId: string, done: boolean, evidenceNote: string) => {

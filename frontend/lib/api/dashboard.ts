@@ -113,7 +113,7 @@ export async function getDashboardData(clienteId: string): Promise<DashboardData
     return normalizeDashboardPayload(clienteId, payload);
   } catch (error) {
     if (error instanceof TokenExpiredError) {
-      throw new TokenExpiredError("La sesion expiro. Vuelve a iniciar sesion.");
+      throw new TokenExpiredError("La sesión expiró. Vuelve a iniciar sesión.");
     }
     throw error;
   }

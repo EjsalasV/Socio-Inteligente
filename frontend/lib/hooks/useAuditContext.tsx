@@ -3,7 +3,7 @@
 import { createContext, useContext, useMemo } from "react";
 import { usePathname } from "next/navigation";
 
-type AuditModule =
+export type AuditModule =
   | "dashboard"
   | "risk-engine"
   | "trial-balance"

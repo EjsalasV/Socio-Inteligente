@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -68,13 +68,13 @@ export default function LoginPage() {
       }
 
       if (!res.ok) {
-        setError(extractErrorMessage(payload, "No se pudo iniciar sesion."));
+        setError(extractErrorMessage(payload, "No se pudo iniciar sesión."));
         return;
       }
 
       const token = extractToken(payload);
       if (!token) {
-        setError("La respuesta de autenticacion no incluyo token.");
+        setError("La respuesta de autenticación no incluyó token.");
         return;
       }
 
@@ -89,7 +89,7 @@ export default function LoginPage() {
       }
     } catch {
       setError(
-        `No se pudo conectar con el backend de autenticacion (${getApiBase()}). Origin actual: ${getBrowserOrigin()}.`,
+        `No se pudo conectar con el backend de autenticación (${getApiBase()}). Origin actual: ${getBrowserOrigin()}.`,
       );
     } finally {
       setIsLoading(false);
@@ -103,7 +103,7 @@ export default function LoginPage() {
         <img
           className="w-full h-full object-cover opacity-20 grayscale"
           src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQmiNIqGU3a7SQsk-Qcs4zncgJoaZl-F0cRUV-WokgCOu9FtESa62hAhiVsLqXpSLHiYvMK3dMnyQJljfrPDgxk7oGJzWTRnjmGA8cGDn7RNbsuMrTTqeCflkfrEU8jvlDC5O_nkKESTwm99rVx-urEwHOomaxAMFxI6ys4Cc3O235owyHv1vwkM6lI5O3QRZ0tIhkqXdGx5QiP5ik9SI-Vc82GBTBDYl9ZbQyKXPvM7xzKliszLJ1Mn2pJWhRmHcbYYUBSgzBbOQ"
-          alt="Fondo editorial de auditoria"
+          alt="Fondo editorial de auditoría"
         />
       </div>
 
@@ -129,10 +129,10 @@ export default function LoginPage() {
               </span>
             </div>
             <h1 className="font-headline text-4xl md:text-5xl text-[#041627] mb-4 leading-tight">
-              Acceso al Entorno de Auditoria
+              Acceso al Entorno de Auditoría
             </h1>
             <p className="text-slate-600 text-lg">
-              Bienvenido de nuevo, Auditor. Su entorno seguro esta listo.
+              Bienvenido de nuevo, Auditor. Su entorno seguro está listo.
             </p>
           </div>
 
@@ -140,7 +140,7 @@ export default function LoginPage() {
             <form className="space-y-8" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <label className="text-[11px] uppercase tracking-widest font-semibold text-slate-500 block ml-1" htmlFor="username">
-                  Correo electronico profesional
+                  Correo electrónico profesional
                 </label>
                 <input
                   id="username"
@@ -157,7 +157,7 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
                   <label className="text-[11px] uppercase tracking-widest font-semibold text-slate-500 block ml-1" htmlFor="password">
-                    Contrasena
+                    Contraseña
                   </label>
                   <button
                     type="button"
@@ -182,7 +182,7 @@ export default function LoginPage() {
               <div className="flex items-start gap-3 p-4 bg-[#002f30]/5 rounded-xl border border-[#89d3d4]/25">
                 <span className="material-symbols-outlined text-[#529c9d] text-xl">verified_user</span>
                 <p className="text-[13px] text-[#004f50] font-medium">
-                  Autenticacion de dos factores (2FA) requerida para este entorno.
+                  Autenticación de dos factores (2FA) requerida para este entorno.
                 </p>
               </div>
 
@@ -205,14 +205,14 @@ export default function LoginPage() {
                 className="w-full text-white py-5 rounded-full font-label font-semibold tracking-wide shadow-lg shadow-[#041627]/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}
               >
-                {isLoading ? "Validando credenciales..." : "Iniciar Sesion en Socio AI"}
+                {isLoading ? "Validando credenciales..." : "Iniciar Sesión en Socio AI"}
               </button>
             </form>
           </div>
 
           <div className="mt-8 text-center">
             <p className="text-[11px] uppercase tracking-widest font-medium text-slate-500">
-              Problemas de acceso?{" "}
+              ¿Problemas de acceso?{" "}
               <a className="text-[#041627] hover:underline underline-offset-4 decoration-2" href="mailto:soporte@socioai.app">
                 Contactar Soporte
               </a>

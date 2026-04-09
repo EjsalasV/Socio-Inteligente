@@ -824,7 +824,7 @@ class FileRepository:
             riesgos.append(
                 {
                     "nivel": risk_level,
-                    "titulo": "Riesgo de variaciÃ³n material",
+                    "titulo": "Riesgo de variación material",
                     "descripcion": "Analizar coherencia de movimientos del periodo y soportes de cierre.",
                 }
             )
@@ -832,7 +832,7 @@ class FileRepository:
         return {
             "cliente_id": cliente_id,
             "area_ls": area_ls,
-            "area_name": str(area_data.get("nombre") or f"Ãrea {area_ls}"),
+            "area_name": str(area_data.get("nombre") or f"Área {area_ls}"),
             "saldos": {
                 "actual_year": current_year,
                 "previous_year": previous_year,
@@ -852,6 +852,27 @@ class FileRepository:
 repo = FileRepository()
 
 
+def _publish_realtime_event(
+    *,
+    cliente_id: str,
+    event_name: str,
+    payload: dict[str, Any] | None = None,
+    actor: str = "system",
+) -> None:
+    try:
+        from backend.services.realtime_collab_service import hub
+
+        hub.publish_event_sync(
+            cliente_id=cliente_id,
+            event_name=event_name,
+            payload=payload or {},
+            actor=actor,
+        )
+    except Exception:
+        # Notifier is best-effort and must never block the data path.
+        return
+
+
 def list_clientes() -> list[str]:
     return repo.list_clientes()
 
@@ -862,6 +883,11 @@ def read_perfil(cliente_id: str) -> dict[str, Any]:
 
 def write_perfil(cliente_id: str, data: dict[str, Any]) -> None:
     repo.write_perfil(cliente_id, data)
+    _publish_realtime_event(
+        cliente_id=cliente_id,
+        event_name="perfil_updated",
+        payload={"updated_fields": sorted(list((data or {}).keys()))[:12]},
+    )
     # Mantiene sincronizado el cache de perfil usado por servicios de dominio.
     try:
         from domain.services.leer_perfil import set_perfil_cache
@@ -877,6 +903,11 @@ def read_hallazgos(cliente_id: str) -> str:
 
 def append_hallazgo(cliente_id: str, content: str) -> None:
     repo.append_hallazgo(cliente_id, content)
+    _publish_realtime_event(
+        cliente_id=cliente_id,
+        event_name="hallazgos_updated",
+        payload={"preview": str(content or "")[:140]},
+    )
 
 
 def read_catalog_file(path: Path) -> str:

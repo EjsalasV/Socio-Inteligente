@@ -10,6 +10,7 @@ from backend.repositories.file_repository import append_audit_log, append_tracea
 from backend.repositories.metrics_repository import record_metric_event
 from backend.schemas import ApiResponse, BriefingAreaRequest, BriefingAreaResponse, TraceabilityItem, UserContext
 from backend.services.briefing_service import generate_area_briefing
+from backend.services.realtime_collab_service import hub
 from backend.utils.api_errors import raise_api_error
 
 router = APIRouter(prefix="/api/briefing", tags=["briefing"])
@@ -124,6 +125,15 @@ def post_briefing_area(payload: BriefingAreaRequest, user: UserContext = Depends
             "area_nombre": payload.area_nombre,
             "normas_activadas": response.normas_activadas,
             "elapsed_ms": elapsed_ms,
+        },
+    )
+    hub.publish_event_sync(
+        cliente_id=payload.cliente_id,
+        event_name="briefing_generated",
+        actor=user.display_name or user.sub,
+        payload={
+            "area_codigo": payload.area_codigo,
+            "normas_count": len(response.normas_activadas),
         },
     )
     return ApiResponse(data=response.model_dump())

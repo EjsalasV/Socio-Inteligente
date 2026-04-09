@@ -20,7 +20,7 @@ export default function EstadosFinancierosPage() {
   const { clienteId } = useAuditContext();
   const { data: dashboard, isLoading, error } = useDashboard(clienteId);
 
-  const baseOptions = useMemo(() => getLsOptions(8).map((x) => normalizeLsCode(x.codigo)), []);
+  const baseOptions = useMemo(() => getLsOptions().map((x) => normalizeLsCode(x.codigo)), []);
   const dynamicOptions = useMemo(
     () =>
       (dashboard?.top_areas ?? [])
@@ -63,8 +63,8 @@ export default function EstadosFinancierosPage() {
     dashboard?.materialidad_origen === "perfil"
       ? "Definida en perfil del cliente"
       : dashboard?.materialidad_origen === "motor"
-        ? "Estimacion automatica del motor"
-        : "Pendiente de definicion";
+        ? "Estimación automática del motor"
+        : "Pendiente de definición";
   const materialidadDetalle = dashboard?.materialidad_detalle;
   const materialidadFormula = materialidadDetalle?.base_usada
     ? `${materialidadDetalle.porcentaje_rango_min.toFixed(1)}% - ${materialidadDetalle.porcentaje_rango_max.toFixed(1)}% de ${materialidadDetalle.base_usada}`
@@ -78,7 +78,7 @@ export default function EstadosFinancierosPage() {
     <div className="pt-4 pb-10 space-y-8 max-w-screen-2xl">
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h1 data-tour="estados-title" className="font-headline text-4xl text-[#041627]">Estados Financieros - Analisis Comparativo</h1>
+          <h1 data-tour="estados-title" className="font-headline text-4xl text-[#041627]">Estados Financieros - Análisis Comparativo</h1>
           <p className="font-body text-sm text-slate-500 mt-2">
             Cliente {dashboard.nombre_cliente} · Periodo {dashboard.periodo || "Actual"}
           </p>
@@ -114,9 +114,9 @@ export default function EstadosFinancierosPage() {
               "Usa MP, ME y umbral trivial como referencia para evaluar desviaciones.",
           },
           {
-            label: "Analisis comparativo",
+            label: "Análisis comparativo",
             description:
-              "Compara ano actual vs anterior para identificar rubros con mayor impacto.",
+              "Compara año actual vs anterior para identificar rubros con mayor impacto.",
           },
           {
             label: "Alertas de integridad",
@@ -128,14 +128,14 @@ export default function EstadosFinancierosPage() {
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <article data-tour="estados-materialidad" className="sovereign-card border-l-4 border-[#041627]">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Materialidad de Planeacion</p>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Materialidad de Planeación</p>
           <h3 className="font-headline text-3xl text-[#041627] mt-3">{formatMoney(dashboard.materialidad_global)}</h3>
           <p className="text-xs text-slate-500 mt-2">{materialidadOrigenLabel}</p>
           <p className="text-xs text-slate-500 mt-1">{materialidadFormula}</p>
         </article>
 
         <article className="sovereign-card border-l-4 border-[#89d3d4]">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Materialidad de Ejecucion</p>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Materialidad de Ejecución</p>
           <h3 className="font-headline text-3xl text-[#041627] mt-3">{formatMoney(me)}</h3>
           <p className="text-xs text-slate-500 mt-2">75% de MP</p>
         </article>
@@ -159,10 +159,10 @@ export default function EstadosFinancierosPage() {
               <thead>
                 <tr className="bg-[#f1f4f6]">
                   <th className="px-8 py-4 text-left text-[11px] uppercase tracking-[0.14em] text-slate-500">Cuenta</th>
-                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Ano actual</th>
-                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Ano anterior</th>
-                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Variacion $</th>
-                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Variacion %</th>
+                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Año actual</th>
+                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Año anterior</th>
+                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Variación $</th>
+                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Variación %</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/5">
@@ -195,13 +195,13 @@ export default function EstadosFinancierosPage() {
         <article className="lg:col-span-3 sovereign-card">
           <div className="flex items-center gap-3 mb-6">
             <span className="material-symbols-outlined text-[#89d3d4] bg-[#002f30] p-2 rounded-lg">psychology</span>
-            <h3 className="font-headline text-2xl text-[#041627]">Criterio del Socio IA</h3>
+            <h3 className="font-headline text-2xl text-[#041627]">Criterio del Socio AI</h3>
           </div>
           <div className="space-y-4">
             <div className="bg-[#f1f4f6] rounded-editorial p-5 border-l-4 border-[#89d3d4]">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-bold mb-2">Analisis principal</p>
+              <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-bold mb-2">Análisis principal</p>
               <p className="text-sm text-slate-700 leading-relaxed">
-                El riesgo global se mantiene en <b>{dashboard.riesgo_global}</b>. Se recomienda priorizar revision de variaciones
+                El riesgo global se mantiene en <b>{dashboard.riesgo_global}</b>. Se recomienda priorizar revisión de variaciones
                 superiores a ME y validar su soporte documental antes del cierre.
               </p>
             </div>
@@ -227,7 +227,7 @@ export default function EstadosFinancierosPage() {
               </div>
             ))}
             {(areaData?.aseveraciones ?? []).length === 0 ? (
-              <p className="text-sm text-slate-300">Sin alertas automaticas para esta area.</p>
+              <p className="text-sm text-slate-300">Sin alertas automáticas para esta área.</p>
             ) : null}
           </div>
         </article>

@@ -18,6 +18,7 @@ from backend.schemas import (
     UserContext,
 )
 from backend.services.hallazgo_service import generate_hallazgo_estructurado
+from backend.services.realtime_collab_service import hub
 from backend.utils.api_errors import raise_api_error
 
 router = APIRouter(prefix="/api/hallazgos", tags=["hallazgos"])
@@ -144,6 +145,16 @@ def post_estructurar_hallazgo(
             "guardado": bool(payload.guardar_en_hallazgos),
         },
     )
+    hub.publish_event_sync(
+        cliente_id=payload.cliente_id,
+        event_name="hallazgo_generated",
+        actor=user.display_name or user.sub,
+        payload={
+            "area_codigo": payload.area_codigo,
+            "normas_count": len(response.normas_activadas),
+            "guardado": bool(payload.guardar_en_hallazgos),
+        },
+    )
 
     return ApiResponse(data=response.model_dump())
 
@@ -183,6 +194,16 @@ def post_tiempo_briefing(
         payload={
             "tiempo_manual_min": payload.tiempo_manual_min,
             "tiempo_ai_min": payload.tiempo_ai_min,
+            "delta_min": saved.get("delta_min"),
+            "ahorro_pct": saved.get("ahorro_pct"),
+        },
+    )
+    hub.publish_event_sync(
+        cliente_id=payload.cliente_id,
+        event_name="briefing_time_logged",
+        actor=user.display_name or user.sub,
+        payload={
+            "area_codigo": payload.area_codigo,
             "delta_min": saved.get("delta_min"),
             "ahorro_pct": saved.get("ahorro_pct"),
         },

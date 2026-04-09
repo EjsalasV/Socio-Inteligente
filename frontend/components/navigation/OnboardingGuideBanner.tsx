@@ -30,7 +30,7 @@ export default function OnboardingGuideBanner() {
             <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 font-bold">Primer ingreso</p>
             <h2 className="font-headline text-3xl text-[#041627] mt-2">Bienvenido a Socio AI</h2>
             <p className="text-sm text-slate-600 mt-3 leading-relaxed">
-              Sigue la guia de 6 pasos para completar una auditoria de punta a punta sin perderte.
+              Sigue la guía de 6 pasos para completar una auditoría de punta a punta sin perderte.
             </p>
 
             <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -75,13 +75,13 @@ export default function OnboardingGuideBanner() {
         <div className="mx-4 md:mx-8 mt-4 rounded-xl border border-[#041627]/10 bg-white p-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold">Guia del sistema</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold">Guía del sistema</p>
               <h3 className="font-headline text-xl text-[#041627]">
                 Progreso onboarding: {guide.completedCount}/{guide.totalCount} ({guide.progressPct}%)
               </h3>
               <p className="text-sm text-slate-600 mt-1">
                 {guide.nextStep
-                  ? `Siguiente accion: ${guide.nextStep.label}. ${guide.nextStep.description}`
+                  ? `Siguiente acción: ${guide.nextStep.label}. ${guide.nextStep.description}`
                   : "Checklist completado. Ya puedes operar el flujo completo."}
               </p>
             </div>
@@ -100,7 +100,7 @@ export default function OnboardingGuideBanner() {
                 onClick={() => startTour()}
                 className="px-3 py-2 rounded-lg border border-[#041627]/20 text-slate-700 text-xs font-semibold uppercase tracking-[0.08em]"
               >
-                Ver tutorial modulo
+                Ver tutorial módulo
               </button>
               <button
                 type="button"
@@ -139,7 +139,7 @@ export default function OnboardingGuideBanner() {
             onClick={guide.showGuide}
             className="px-3 py-2 rounded-lg border border-[#041627]/20 bg-white text-slate-700 text-xs font-semibold uppercase tracking-[0.08em]"
           >
-            Mostrar guia de onboarding
+            Mostrar guía de onboarding
           </button>
         </div>
       )}

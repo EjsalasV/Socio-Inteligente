@@ -1,4 +1,25 @@
-﻿---
+---
+norma: NIIF_PYMES_SECCION_13
+titulo: Ttulo pendiente de normalizar
+tipo: NIIF_PYMES
+seccion: 13
+version: 2015
+vigente_desde: 2017-01-01
+vigente_hasta: null
+activo: true
+ultima_actualizacion: 2024-01-01
+areas_aplicables: []
+afirmaciones_relacionadas: []
+marco: niif_pymes
+temas: []
+referencias_cruzadas: []
+etapas:
+- planificacion
+- ejecucion
+- cierre
+---
+
+---
 norma: NIIF PYMES
 version: v1
 vigente_desde: 2020-01-01
@@ -7,25 +28,25 @@ reemplaza_a: ''
 jurisdiccion: Internacional
 ---
 
-Ã¯Â»Â¿# SecciÃƒ3n 13 Ã¢â‚¬" Inventarios (NIIF para PYMES)
+﻿# Secci3n 13 " Inventarios (NIIF para PYMES)
 
 ## Alcance
 Aplica a todos los inventarios excepto:
-- Obra en proceso de contratos de construcciÃƒ3n (SecciÃƒ3n 23)
-- Instrumentos financieros (SecciÃƒ3n 11/12)
-- Activos biolÃƒ3gicos (SecciÃƒ3n 34)
+- Obra en proceso de contratos de construcci3n (Secci3n 23)
+- Instrumentos financieros (Secci3n 11/12)
+- Activos biol3gicos (Secci3n 34)
 
-## MediciÃƒ3n de los Inventarios
-Los inventarios se medirÃ¡n al **menor de**:
+## Medici3n de los Inventarios
+Los inventarios se medirn al **menor de**:
 - Costo
 - Valor neto realizable (VNR)
 
 ## Costo de los Inventarios
 
 ### Componentes del Costo
-- Costos de adquisiciÃƒ3n (precio de compra + aranceles + transporte)
-- Costos de transformaciÃƒ3n (mano de obra directa + costos indirectos)
-- Otros costos incurridos para darles su condiciÃƒ3n actual
+- Costos de adquisici3n (precio de compra + aranceles + transporte)
+- Costos de transformaci3n (mano de obra directa + costos indirectos)
+- Otros costos incurridos para darles su condici3n actual
 
 ### Costos Excluidos del Inventario
 - Desperdicios anormales
@@ -33,47 +54,47 @@ Los inventarios se medirÃ¡n al **menor de**:
 - Costos administrativos indirectos
 - Costos de venta
 
-### FÃƒ3rmulas de Costo Permitidas
+### F3rmulas de Costo Permitidas
 
-| MÃ©todo | DescripciÃƒ3n | AplicaciÃƒ3n |
+| Mtodo | Descripci3n | Aplicaci3n |
 |--------|-------------|------------|
-| FIFO (PEPS) | Primeras entradas, primeras salidas | MÃ¡s comÃƒon |
+| FIFO (PEPS) | Primeras entradas, primeras salidas | Ms comon |
 | Costo promedio ponderado | Promedio de todos los costos | Alternativa |
-| IdentificaciÃƒ3n especÃ­fica | Para inventarios no intercambiables | ArtÃ­culos Ãƒonicos |
+| Identificaci3n especfica | Para inventarios no intercambiables | Artculos onicos |
 
-*Nota: NIIF PYMES NO permite el mÃ©todo LIFO (UEPS).*
+*Nota: NIIF PYMES NO permite el mtodo LIFO (UEPS).*
 
 ## Valor Neto Realizable
 VNR = Precio estimado de venta
-- Costos estimados de terminaciÃƒ3n
+- Costos estimados de terminaci3n
 - Costos estimados de venta
 
 ## Reconocimiento como Gasto
 Los inventarios se reconocen como gasto cuando se venden:
 - El importe en libros se reconoce como costo de ventas
-- Cualquier deterioro se reconoce en el perÃ­odo en que ocurre
-- Las reversiones de deterioro se reconocen como reducciÃƒ3n del gasto
+- Cualquier deterioro se reconoce en el perodo en que ocurre
+- Las reversiones de deterioro se reconocen como reducci3n del gasto
 
 ## Deterioro de Inventarios
 Reconocer cuando el VNR < Costo. Causas comunes:
-- MercancÃ­a daÃ±ada
+- Mercanca daada
 - Total o parcialmente obsoleta
 - Precios de venta disminuidos
-- Costos de terminaciÃƒ3n o venta aumentados
+- Costos de terminaci3n o venta aumentados
 
 ## Revelaciones Requeridas
-- PolÃ­ticas contables adoptadas para medir inventarios
-- Importe en libros por clasificaciÃƒ3n
+- Polticas contables adoptadas para medir inventarios
+- Importe en libros por clasificaci3n
 - Importe reconocido como gasto
 - Importe de deterioros reconocidos
 
-## Alertas de AuditorÃ­a
-- Verificar uso de mÃ©todo FIFO o promedio (no LIFO)
+## Alertas de Auditora
+- Verificar uso de mtodo FIFO o promedio (no LIFO)
 - Revisar que el VNR se calcule correctamente
-- Identificar inventarios obsoletos o de baja rotaciÃƒ3n
+- Identificar inventarios obsoletos o de baja rotaci3n
 - Confirmar que los costos indirectos fijos se asignan correctamente
-- Evaluar corte de inventarios en el conteo fÃ­sico
+- Evaluar corte de inventarios en el conteo fsico
 
 ---
-*Fuente: IASB Ã¢â‚¬" NIIF para las PYMES (2015/2019)*
+*Fuente: IASB " NIIF para las PYMES (2015/2019)*
 

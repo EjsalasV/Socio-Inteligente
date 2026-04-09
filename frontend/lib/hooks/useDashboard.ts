@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { getDashboardData } from "../api/dashboard";
+import { SOCIO_CLIENTE_UPDATED_EVENT, type ClienteRealtimeEventDetail } from "../realtime";
 import type { DashboardData } from "../../types/dashboard";
 
 type UseDashboardResult = {
@@ -28,40 +29,52 @@ export function useDashboard(clienteId: string): UseDashboardResult {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  useEffect(() => {
-    let active = true;
-
-    async function load(): Promise<void> {
-      if (!clienteId) {
-        setData(null);
-        setError("Cliente inválido.");
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setError("");
+  const refresh = useCallback(async () => {
+    if (!clienteId) {
       setData(null);
-
-      try {
-        await wait(parseDelayMs());
-        const response = await getDashboardData(clienteId);
-        if (!active) return;
-        setData(response);
-      } catch (err: unknown) {
-        if (!active) return;
-        const message = err instanceof Error ? err.message : "No se pudo cargar el dashboard.";
-        setError(message);
-      } finally {
-        if (active) setIsLoading(false);
-      }
+      setError("Cliente inválido.");
+      setIsLoading(false);
+      return;
     }
 
-    void load();
-    return () => {
-      active = false;
-    };
+    setIsLoading(true);
+    setError("");
+
+    try {
+      await wait(parseDelayMs());
+      const response = await getDashboardData(clienteId);
+      setData(response);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "No se pudo cargar el dashboard.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
   }, [clienteId]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!clienteId) return;
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<ClienteRealtimeEventDetail>;
+      if (custom.detail?.clienteId !== clienteId) return;
+      const eventName = String(custom.detail?.eventName || "");
+      if (
+        eventName.startsWith("workflow_") ||
+        eventName.startsWith("workpaper_") ||
+        eventName.startsWith("area_") ||
+        eventName === "perfil_updated"
+      ) {
+        void refresh();
+      }
+    };
+    window.addEventListener(SOCIO_CLIENTE_UPDATED_EVENT, handler as EventListener);
+    return () => window.removeEventListener(SOCIO_CLIENTE_UPDATED_EVENT, handler as EventListener);
+  }, [clienteId, refresh]);
 
   return { data, isLoading, error };
 }
+

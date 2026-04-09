@@ -1,4 +1,4 @@
-﻿import { authFetchJson, TokenExpiredError } from "../api";
+import { authFetchJson, TokenExpiredError } from "../api";
 import type { ApiEnvelope } from "../contracts";
 import type { ClienteProfileData, PerfilPayload } from "../../types/perfil";
 
@@ -23,7 +23,7 @@ export async function getPerfil(clienteId: string): Promise<ClienteProfileData> 
     return normalizePerfilResponse(clienteId, response?.data);
   } catch (error) {
     if (error instanceof TokenExpiredError) {
-      throw new TokenExpiredError("La sesion expiro. Vuelve a iniciar sesion.");
+      throw new TokenExpiredError("La sesión expiró. Vuelve a iniciar sesión.");
     }
     throw error;
   }
@@ -38,7 +38,7 @@ export async function savePerfil(clienteId: string, perfil: PerfilPayload): Prom
     return normalizePerfilResponse(clienteId, response?.data);
   } catch (error) {
     if (error instanceof TokenExpiredError) {
-      throw new TokenExpiredError("La sesion expiro. Vuelve a iniciar sesion.");
+      throw new TokenExpiredError("La sesión expiró. Vuelve a iniciar sesión.");
     }
     throw error;
   }

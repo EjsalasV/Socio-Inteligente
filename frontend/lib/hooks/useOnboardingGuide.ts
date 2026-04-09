@@ -48,12 +48,12 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     module: "risk-engine",
     label: "Priorizar en Risk Engine",
-    description: "Ordena areas por riesgo y define foco de pruebas.",
+    description: "Ordena áreas por riesgo y define foco de pruebas.",
     href: (clienteId) => `/risk-engine/${clienteId}`,
   },
   {
     module: "areas",
-    label: "Ejecutar en Workspace Areas",
+    label: "Ejecutar en Workspace Áreas",
     description: "Genera briefing, consulta y estructura hallazgos.",
     href: (clienteId) => `/areas/${clienteId}`,
   },

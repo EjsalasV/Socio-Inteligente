@@ -27,6 +27,8 @@ export default function PapelesTrabajoPage() {
   const { data, isLoading, error, savingTaskId, updateTask } = useWorkpapers(clienteId);
   const [evidenceDrafts, setEvidenceDrafts] = useState<EvidenceDraftMap>({});
   const [workflowMsg, setWorkflowMsg] = useState<string>("");
+  const [areaFilter, setAreaFilter] = useState<string>("todas");
+  const [taskQuery, setTaskQuery] = useState<string>("");
 
   const groupedTasks = useMemo(() => {
     if (!data) return [];
@@ -46,6 +48,26 @@ export default function PapelesTrabajoPage() {
     }
     return Array.from(groups.values()).sort((a, b) => a.areaCode.localeCompare(b.areaCode));
   }, [data]);
+
+  const areaFilterOptions = useMemo(
+    () => groupedTasks.map((group) => ({ value: group.areaCode, label: `${group.areaCode} · ${group.areaName}` })),
+    [groupedTasks],
+  );
+
+  const filteredGroups = useMemo(() => {
+    const query = taskQuery.trim().toLowerCase();
+    return groupedTasks
+      .filter((group) => areaFilter === "todas" || group.areaCode === areaFilter)
+      .map((group) => {
+        if (!query) return group;
+        const tasks = group.tasks.filter((task) => {
+          const haystack = `${task.title} ${task.nia_ref} ${task.evidence_note || ""}`.toLowerCase();
+          return haystack.includes(query);
+        });
+        return { ...group, tasks };
+      })
+      .filter((group) => group.tasks.length > 0);
+  }, [areaFilter, groupedTasks, taskQuery]);
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -173,8 +195,38 @@ export default function PapelesTrabajoPage() {
         {workflowMsg ? <p className="mt-3 text-xs text-slate-600">{workflowMsg}</p> : null}
       </section>
 
+      <section className="sovereign-card">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <label className="flex flex-col gap-2">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold">Filtrar por área L/S</span>
+            <select
+              value={areaFilter}
+              onChange={(event) => setAreaFilter(event.target.value)}
+              className="ghost-input"
+            >
+              <option value="todas">Todas las áreas</option>
+              {areaFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-2 md:col-span-2">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold">Buscar tarea o NIA</span>
+            <input
+              value={taskQuery}
+              onChange={(event) => setTaskQuery(event.target.value)}
+              placeholder="Ej. circularización, NIA 505, provisión..."
+              className="ghost-input"
+            />
+          </label>
+        </div>
+      </section>
+
       <section data-tour="papeles-tareas" className="space-y-6">
-        {groupedTasks.map((group) => (
+        {filteredGroups.map((group) => (
           <article key={`${group.areaCode}-${group.areaName}`} className="sovereign-card">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <h3 className="font-headline text-3xl text-[#041627]">
@@ -237,6 +289,11 @@ export default function PapelesTrabajoPage() {
             </div>
           </article>
         ))}
+        {filteredGroups.length === 0 ? (
+          <article className="sovereign-card text-sm text-slate-600">
+            No hay tareas que coincidan con los filtros actuales.
+          </article>
+        ) : null}
       </section>
     </div>
   );

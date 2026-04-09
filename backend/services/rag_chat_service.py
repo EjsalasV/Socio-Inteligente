@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import json
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone, date
 from pathlib import Path
@@ -541,13 +542,67 @@ def _is_provider_question(query: str) -> bool:
     return any(h in q for h in hints)
 
 
+def _resolved_provider() -> tuple[str, str]:
+    explicit = (os.getenv("AI_PROVIDER") or "").strip().lower()
+    deepseek_key = (os.getenv("DEEPSEEK_API_KEY") or "").strip()
+    openai_key = (os.getenv("OPENAI_API_KEY") or "").strip()
+
+    if explicit == "deepseek" and deepseek_key:
+        return "deepseek", deepseek_key
+    if explicit == "openai" and openai_key:
+        return "openai", openai_key
+
+    if deepseek_key:
+        return "deepseek", deepseek_key
+    if openai_key:
+        return "openai", openai_key
+
+    return ("deepseek", "") if explicit == "deepseek" else ("openai", "")
+
+
 def _current_provider_label() -> str:
-    provider = (os.getenv("AI_PROVIDER") or "openai").strip().lower()
+    provider, key = _resolved_provider()
+    if not key:
+        return "No configurado (define DEEPSEEK_API_KEY u OPENAI_API_KEY)"
     if provider == "deepseek":
         model = (os.getenv("DEEPSEEK_CHAT_MODEL") or "deepseek-chat").strip() or "deepseek-chat"
         return f"DeepSeek ({model})"
     model = (os.getenv("OPENAI_CHAT_MODEL") or "gpt-4o-mini").strip() or "gpt-4o-mini"
     return f"OpenAI ({model})"
+
+
+def _query_normalized(text: str) -> str:
+    value = unicodedata.normalize("NFD", str(text or "").strip().lower())
+    return "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
+
+
+def _procedural_fallback_hint(query: str) -> str:
+    q = _query_normalized(query)
+    if "efectivo" in q or "banco" in q:
+        return (
+            "Pruebas sugeridas para efectivo:\n"
+            "1) Conciliar bancos al corte y recálculo de partidas en tránsito.\n"
+            "2) Confirmaciones bancarias directas para cuentas principales.\n"
+            "3) Prueba de corte: últimos y primeros 5 movimientos alrededor del cierre.\n"
+            "4) Revisar restricciones, gravámenes y cuentas no registradas."
+        )
+    if "cobrar" in q or "cxc" in q:
+        return (
+            "Pruebas sugeridas para cuentas por cobrar:\n"
+            "1) Confirmación externa positiva sobre saldos materiales.\n"
+            "2) Recobros posteriores para validar existencia y valuación.\n"
+            "3) Prueba de deterioro por antigüedad y análisis individual.\n"
+            "4) Corte de ventas y notas de crédito de cierre."
+        )
+    if "ingreso" in q or "venta" in q:
+        return (
+            "Pruebas sugeridas para ingresos:\n"
+            "1) Corte de ingresos cerca del cierre con soporte documental.\n"
+            "2) Revisión de devoluciones y notas de crédito posteriores.\n"
+            "3) Prueba de ocurrencia con muestra dirigida a mayor riesgo.\n"
+            "4) Analíticos por tendencia, margen y cliente significativo."
+        )
+    return ""
 
 
 def _is_data_inventory_question(query: str) -> bool:
@@ -1048,11 +1103,16 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
         else:
             snapshot = _client_snapshot(cliente_id)
             risk_snapshot = _risk_snapshot(cliente_id)
+            provider_label = _current_provider_label()
+            procedure_hint = _procedural_fallback_hint(query)
             answer = (
-                f"Entiendo tu consulta sobre `{query}` para `{cliente_id}`.\n\n"
-                f"Estado actual que tengo:\n{snapshot}\n\n"
-                f"{risk_snapshot if risk_snapshot else 'Aun no tengo ranking con saldo para priorizar areas.'}\n\n"
-                "Con esto te doy criterio inicial ya mismo, y luego lo afinamos con evidencia adicional si hace falta."
+                "Estoy respondiendo en modo de respaldo porque no hay LLM generativo activo.\n"
+                f"Proveedor detectado: `{provider_label}`.\n\n"
+                f"Consulta: `{query}`\n\n"
+                f"{procedure_hint + chr(10) + chr(10) if procedure_hint else ''}"
+                f"Contexto actual:\n{snapshot}\n\n"
+                f"{risk_snapshot if risk_snapshot else 'Aún no tengo ranking con saldo para priorizar áreas.'}\n\n"
+                "Si configuras la API key, paso a respuesta conversacional con razonamiento completo y normativa citada."
             )
             confidence = 0.68 if chunks else 0.55
     else:
@@ -1074,25 +1134,21 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
 
 
 def _has_llm_credentials() -> bool:
-    provider = (os.getenv("AI_PROVIDER") or "openai").strip().lower()
-    if provider == "deepseek":
-        return bool((os.getenv("DEEPSEEK_API_KEY") or "").strip())
-    return bool((os.getenv("OPENAI_API_KEY") or "").strip())
+    _provider, key = _resolved_provider()
+    return bool(key)
 
 
 def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat", cliente_id: str = "") -> dict[str, Any]:
-    provider = (os.getenv("AI_PROVIDER") or "openai").strip().lower()
+    provider, api_key = _resolved_provider()
     from openai import OpenAI
 
     if provider == "deepseek":
-        api_key = (os.getenv("DEEPSEEK_API_KEY") or "").strip()
         if not api_key:
             raise RuntimeError("DEEPSEEK_API_KEY no configurada")
         model = os.getenv("DEEPSEEK_CHAT_MODEL", "deepseek-chat").strip() or "deepseek-chat"
         base_url = (os.getenv("DEEPSEEK_BASE_URL") or "https://api.deepseek.com").strip()
         client = OpenAI(api_key=api_key, base_url=base_url)
     else:
-        api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
         if not api_key:
             raise RuntimeError("OPENAI_API_KEY no configurada")
         model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
@@ -1135,16 +1191,19 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat",
         )
     )
 
-    response = client.responses.create(
+    response = client.chat.completions.create(
         model=model,
-        input=[
+        messages=[
             {"role": "system", "content": instruction},
             {"role": "user", "content": user_content},
         ],
         temperature=0.35 if mode == "chat" else 0.2,
+        max_tokens=900,
     )
 
-    text = getattr(response, "output_text", "") or ""
+    text = ""
+    if response.choices and response.choices[0].message:
+        text = str(response.choices[0].message.content or "").strip()
     if not text.strip():
         text = "No se obtuvo respuesta del modelo."
 

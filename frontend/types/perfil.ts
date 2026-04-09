@@ -15,6 +15,10 @@ export interface PerfilFormData {
   marco_contable: string;
   norma_auditoria: string;
   riesgo_global: string;
-  materialidad_preliminar: number;
+  materialidad_preliminar: string;
+  materialidad_preliminar_proyectada: string;
+  materialidad_final_planeacion: string;
+  materialidad_final_ejecucion: string;
+  umbral_trivialidad_final: string;
   comentario_materialidad: string;
 }

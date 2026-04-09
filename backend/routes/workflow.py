@@ -8,6 +8,7 @@ from backend.auth import authorize_cliente_access, get_current_user
 from backend.repositories.file_repository import read_perfil, read_workflow, write_perfil, write_workflow
 from backend.routes.workpapers import _generate_tasks, _merge_saved_tasks, _quality_gates
 from backend.schemas import ApiResponse, UserContext, WorkflowAdvanceRequest, WorkflowFieldHistoryRequest, WorkflowStateResponse
+from backend.services.realtime_collab_service import hub
 from backend.services.phase_template_service import build_phase_template, record_field_history
 from backend.utils.api_errors import raise_api_error
 from backend.validation import normalize_workflow_doc_v1, validate_workflow_doc_v1
@@ -123,6 +124,12 @@ def post_field_history(
         new_value=payload.new_value,
         user_id=user.sub,
     )
+    hub.publish_event_sync(
+        cliente_id=cliente_id,
+        event_name="workflow_field_history_added",
+        actor=user.display_name or user.sub,
+        payload={"phase": payload.phase, "field": payload.field},
+    )
     return ApiResponse(data={"saved": True})
 
 
@@ -215,4 +222,11 @@ def advance_workflow(
             detail={"message": "Workflow invalido para schema v1.", "errors": errors, "schema_version": "v1"},
         )
     write_workflow(cliente_id, workflow_doc)
+    if changed:
+        hub.publish_event_sync(
+            cliente_id=cliente_id,
+            event_name="workflow_phase_advanced",
+            actor=user.display_name or user.sub,
+            payload={"from_phase": previous_phase, "to_phase": target_phase},
+        )
     return ApiResponse(data=state.model_dump())

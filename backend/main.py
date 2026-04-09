@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import logging
 
-from backend.routes import admin, areas, auth, briefing, chat, clientes, dashboard, hallazgos, metodologia, normativa, perfil, quality, reportes, risk_engine, user_preferences, workpapers, workflow
+from backend.routes import admin, areas, auth, briefing, chat, clientes, dashboard, hallazgos, metodologia, normativa, perfil, quality, realtime, reportes, risk_engine, user_preferences, workpapers, workflow
 
 app = FastAPI(title="Socio AI Backend", version="0.1.0")
 LOGGER = logging.getLogger("socio_ai.api")
@@ -59,6 +59,7 @@ app.include_router(quality.router)
 app.include_router(normativa.router)
 app.include_router(user_preferences.router)
 app.include_router(admin.router)
+app.include_router(realtime.router)
 
 
 @app.get("/health")

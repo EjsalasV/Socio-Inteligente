@@ -1,4 +1,4 @@
-﻿import type { RiskCriticalArea, RiskStrategy } from "../../types/risk";
+import type { RiskCriticalArea, RiskStrategy } from "../../types/risk";
 
 type Props = {
   areas: RiskCriticalArea[];
@@ -14,7 +14,7 @@ export default function RiskStrategyPanel({ areas, strategy }: Props) {
         <div className="relative z-10">
           <span className="text-[#a5eff0] text-[10px] font-bold tracking-widest uppercase">Estrategia Recomendada</span>
           <h3 className="font-headline text-3xl mt-2 mb-6">
-            Enfoque de Auditoria: <span className="text-[#89d3d4] italic">{strategy.approach}</span>
+            Enfoque de Auditoría: <span className="text-[#89d3d4] italic">{strategy.approach}</span>
           </h3>
 
           <div className="space-y-4">
@@ -44,8 +44,8 @@ export default function RiskStrategyPanel({ areas, strategy }: Props) {
             <h4 className="text-[#a5eff0] font-semibold text-lg">AI Insight</h4>
             <p className="text-[#89d3d4]/80 text-sm mt-1">
               {top
-                ? `La mayor exposicion actual esta en ${top.area_nombre} (score ${top.score.toFixed(2)}), por lo que conviene reforzar pruebas de corte y consistencia de soporte.`
-                : "No hay hallazgos criticos activos. Se recomienda monitoreo preventivo y revision analitica."}
+                ? `La mayor exposición actual está en ${top.area_nombre} (score ${top.score.toFixed(2)}), por lo que conviene reforzar pruebas de corte y consistencia de soporte.`
+                : "No hay hallazgos críticos activos. Se recomienda monitoreo preventivo y revisión analítica."}
             </p>
           </div>
         </div>

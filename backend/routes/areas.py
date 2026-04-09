@@ -11,6 +11,7 @@ from backend.schemas import (
     AreaWorkspaceResponse,
     UserContext,
 )
+from backend.services.realtime_collab_service import hub
 from backend.validation import normalize_area_doc_v1, validate_area_doc_v1
 
 router = APIRouter(prefix="/areas", tags=["areas"])
@@ -46,6 +47,16 @@ def patch_check(
         )
 
     repo.write_area_yaml(cliente_id, area_code, normalized)
+    hub.publish_event_sync(
+        cliente_id=cliente_id,
+        event_name="area_check_updated",
+        actor=user.display_name or user.sub,
+        payload={
+            "area_code": area_code,
+            "cuenta_codigo": str(cuenta_codigo),
+            "checked": bool(payload.checked),
+        },
+    )
     return ApiResponse(data={"saved": True, "cuenta_codigo": str(cuenta_codigo), "checked": bool(payload.checked)})
 
 
@@ -84,5 +95,11 @@ def put_conclusion(
         )
 
     repo.write_area_yaml(cliente_id, area_code, normalized)
+    hub.publish_event_sync(
+        cliente_id=cliente_id,
+        event_name="area_conclusion_updated",
+        actor=user.display_name or user.sub,
+        payload={"area_code": area_code},
+    )
     append_hallazgo(cliente_id, f"## Area {area_code}\n\n{payload.conclusion.strip()}")
     return ApiResponse(data={"saved": True, "cliente_id": cliente_id, "area_code": area_code})

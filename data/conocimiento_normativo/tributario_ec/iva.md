@@ -1,25 +1,35 @@
-ï»¿# IVA â€" Impuesto al Valor Agregado (Ecuador)
+---
+norma: NORMA_DESCONOCIDA
+titulo: Ttulo pendiente de normalizar
+tipo: DESCONOCIDO
+version: vigente
+activo: true
+ultima_actualizacion: 2024-01-01
+referencias_cruzadas: []
+---
+
+﻿# IVA " Impuesto al Valor Agregado (Ecuador)
 
 ## Marco Legal
-- LRTI Título Segundo: Del Impuesto al Valor Agregado
-- RLRTI: Reglamento de aplicaciÃ3n
+- LRTI Ttulo Segundo: Del Impuesto al Valor Agregado
+- RLRTI: Reglamento de aplicaci3n
 
 ## Tarifa del IVA
 
-| Tarifa | AplicaciÃ3n |
+| Tarifa | Aplicaci3n |
 |--------|------------|
 | 15% | Tarifa general (vigente 2024-2025) |
 | 0% | Bienes y servicios exentos |
-| 5% | Servicios de construcciÃ3n de vivienda (cuando aplica) |
+| 5% | Servicios de construcci3n de vivienda (cuando aplica) |
 
 *Verificar tarifa vigente al momento del encargo en www.sri.gob.ec*
 
 ## Bienes y Servicios con Tarifa 0%
 
 ### Bienes con 0%
-- Productos alimenticios de origen agrícola, avícola, pecuario
+- Productos alimenticios de origen agrcola, avcola, pecuario
 - Leches en estado natural, pasteurizada, homogeneizada o crema de leche
-- Pan, azÃocar, panela, sal, manteca, margarina, avena, maicena
+- Pan, azocar, panela, sal, manteca, margarina, avena, maicena
 - Medicamentos y drogas de uso humano
 - Papel y libros
 
@@ -27,38 +37,38 @@
 - Transporte de pasajeros y carga fluvial y terrestre
 - Servicios de salud
 - Servicios de arrendamiento de inmuebles destinados a vivienda
-- Servicios pÃoblicos de energía eléctrica, agua potable, alcantarillado
-- EducaciÃ3n
+- Servicios poblicos de energa elctrica, agua potable, alcantarillado
+- Educaci3n
 
-## DeclaraciÃ3n del IVA
-- DeclaraciÃ3n mensual: formulario 104
+## Declaraci3n del IVA
+- Declaraci3n mensual: formulario 104
 - Formulario 104A: personas naturales no obligadas a llevar contabilidad
-- Plazo: segÃon noveno dígito del RUC (entre el 10 y 28 de cada mes)
+- Plazo: segon noveno dgito del RUC (entre el 10 y 28 de cada mes)
 
-## Crédito Tributario del IVA
+## Crdito Tributario del IVA
 
-### Tipos de Crédito Tributario
+### Tipos de Crdito Tributario
 1. **Total**: cuando todas las ventas son gravadas con IVA (tarifa 15% o 5%)
 2. **Parcial**: cuando hay mezcla de ventas gravadas y con tarifa 0%
 3. **Ninguno**: cuando todas las ventas son con tarifa 0% o exentas
 
-### Factor de Proporcionalidad (Crédito Parcial)
+### Factor de Proporcionalidad (Crdito Parcial)
 Factor = Ventas gravadas / (Ventas gravadas + Ventas tarifa 0%)
-Crédito tributario = IVA pagado Ã- Factor
+Crdito tributario = IVA pagado - Factor
 
 ## IVA en Importaciones
-- IVA se paga en aduana al momento de la importaciÃ3n
-- Sirve como crédito tributario si el bien se usa en actividades gravadas
+- IVA se paga en aduana al momento de la importaci3n
+- Sirve como crdito tributario si el bien se usa en actividades gravadas
 
-## RetenciÃ3n del IVA
-Ver archivo retenciones.md para detalle de porcentajes de retenciÃ3n.
+## Retenci3n del IVA
+Ver archivo retenciones.md para detalle de porcentajes de retenci3n.
 
-## Alertas de Auditoría
+## Alertas de Auditora
 - Verificar tarifa correcta aplicada en facturas
 - Revisar factor de proporcionalidad si hay ventas mixtas
-- Confirmar crédito tributario de IVA en balance
-- Evaluar IVA de importaciones y su correcta contabilizaciÃ3n
+- Confirmar crdito tributario de IVA en balance
+- Evaluar IVA de importaciones y su correcta contabilizaci3n
 - Revisar declaraciones mensuales y su consistencia con los libros
 
 ---
-*Fuente: SRI Ecuador â€" www.sri.gob.ec*
+*Fuente: SRI Ecuador " www.sri.gob.ec*

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -103,7 +103,7 @@ export default function SovereignCommand() {
       {
         id: "cmd-profile",
         label: "Configurar Perfil",
-        subtitle: "Abrir ficha de configuracion del cliente",
+        subtitle: "Abrir ficha de configuración del cliente",
         kind: "command",
         action: () => router.push(currentClienteId ? `/perfil/${currentClienteId}` : "/"),
       },
@@ -117,14 +117,14 @@ export default function SovereignCommand() {
       {
         id: "cmd-trial-balance",
         label: "Ver Trial Balance",
-        subtitle: "Abrir balance de comprobacion",
+        subtitle: "Abrir balance de comprobación",
         kind: "command",
         action: () => router.push(currentClienteId ? `/trial-balance/${currentClienteId}` : "/"),
       },
       {
         id: "cmd-estados-financieros",
         label: "Ver Estados Financieros",
-        subtitle: "Abrir analisis comparativo",
+        subtitle: "Abrir análisis comparativo",
         kind: "command",
         action: () => router.push(currentClienteId ? `/estados-financieros/${currentClienteId}` : "/"),
       },

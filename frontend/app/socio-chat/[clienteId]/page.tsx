@@ -32,11 +32,11 @@ type ChatMessage = {
 const QUICK_PROMPTS = [
   "Pregunta sobre normativa NIIF...",
   "Analiza este hallazgo...",
-  "Redacta un parrafo para informe...",
+  "Redacta un párrafo para informe...",
 ];
 
 function normalizeRefPath(path: string): string {
-  if (!path) return "Fuente tecnica";
+  if (!path) return "Fuente técnica";
   return path.replace(/\\/g, "/");
 }
 
@@ -189,7 +189,7 @@ export default function SocioChatPage() {
     }
     const top = dashboard?.top_areas?.[0];
     if (!top) {
-      setActionMsg("No hay area priorizada para crear tarea.");
+      setActionMsg("No hay área priorizada para crear tarea.");
       return;
     }
     const title = `Criterio Socio Chat: ${lastAssistantMessage.text.slice(0, 60)}${lastAssistantMessage.text.length > 60 ? "..." : ""}`;
@@ -203,7 +203,7 @@ export default function SocioChatPage() {
         required: true,
         evidence_note: "",
       });
-      setActionMsg(result.created ? "Tarea creada en Papeles de Trabajo." : "La tarea ya existia en Papeles.");
+      setActionMsg(result.created ? "Tarea creada en Papeles de Trabajo." : "La tarea ya existía en Papeles.");
     } catch (err) {
       setActionMsg(err instanceof Error ? err.message : "No se pudo vincular a papeles.");
     }
@@ -232,23 +232,23 @@ export default function SocioChatPage() {
   return (
     <div className="pt-4 pb-8 h-[calc(100vh-7rem)]">
       <ContextualHelp
-        title="Ayuda del modulo Socio Chat"
+        title="Ayuda del módulo Socio Chat"
         compact
         items={[
           {
-            label: "Consulta tecnica",
+            label: "Consulta técnica",
             description:
               "Pregunta normativa o de procedimiento y revisa fuentes antes de aplicar criterio.",
           },
           {
             label: "Exportar criterio",
             description:
-              "Guarda la respuesta util en hallazgos para mantener evidencia del razonamiento.",
+              "Guarda la respuesta útil en hallazgos para mantener evidencia del razonamiento.",
           },
           {
             label: "Vincular a papel",
             description:
-              "Convierte una recomendacion en tarea ejecutable dentro de Papeles de Trabajo.",
+              "Convierte una recomendación en tarea ejecutable dentro de Papeles de Trabajo.",
           },
         ]}
       />
@@ -280,7 +280,7 @@ export default function SocioChatPage() {
           <div className="px-6 py-4 bg-[#f1f4f6]/60 border-b border-black/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-              <span className="text-xs uppercase tracking-[0.15em] text-slate-500 font-bold">Sesion activa</span>
+              <span className="text-xs uppercase tracking-[0.15em] text-slate-500 font-bold">Sesión activa</span>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -303,8 +303,8 @@ export default function SocioChatPage() {
           <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-white to-[#f8fbff]">
             {messages.length === 0 ? (
               <div className="rounded-2xl border border-[#041627]/10 bg-white p-5 text-sm text-slate-600">
-                Socio AI listo. Escribe una consulta tecnica (NIA/NIIF, procedimientos, hallazgos o conclusion) y te
-                respondere con criterio y fuentes.
+                Socio AI listo. Escribe una consulta técnica (NIA/NIIF, procedimientos, hallazgos o conclusión) y te
+                responderé con criterio y fuentes.
               </div>
             ) : null}
             {messages.map((msg) => (
@@ -314,6 +314,11 @@ export default function SocioChatPage() {
                     <p className="text-[10px] uppercase tracking-[0.16em] text-teal-700 font-bold mb-2">Criterio Socio AI</p>
                   ) : null}
                   <p className="text-sm leading-relaxed text-slate-800 whitespace-pre-wrap">{msg.text}</p>
+                  {msg.role === "assistant" && (msg.mode_used || "").includes("fallback") ? (
+                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+                      Modo respaldo activo. Para respuesta generativa completa, configura la API key del LLM.
+                    </div>
+                  ) : null}
                   {msg.role === "assistant" && msg.citations && msg.citations.length > 0 ? (
                     <div className="mt-3 space-y-1">
                       <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Fuentes</p>
@@ -358,7 +363,7 @@ export default function SocioChatPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 className="w-full min-h-[54px] max-h-32 resize-none border-none focus:ring-0 outline-none px-2 py-2 text-sm"
-                placeholder="Escribe tu consulta tecnica aqui..."
+                placeholder="Escribe tu consulta técnica aquí..."
               />
               <button
                 type="submit"
@@ -401,7 +406,7 @@ export default function SocioChatPage() {
           </article>
 
           <article className="sovereign-card">
-            <h4 className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-bold mb-4">Referencias tecnicas</h4>
+            <h4 className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-bold mb-4">Referencias técnicas</h4>
             <ul className="space-y-2">
               {references.map((ref) => (
                 <li key={ref.source} className="p-3 rounded-xl bg-white border border-black/10 text-xs text-slate-700">
@@ -411,7 +416,7 @@ export default function SocioChatPage() {
               ))}
               {references.length === 0 ? (
                 <li className="p-3 rounded-xl bg-white border border-black/10 text-xs text-slate-500">
-                  Sin referencias tecnicas en la ultima respuesta.
+                  Sin referencias técnicas en la última respuesta.
                 </li>
               ) : null}
             </ul>
