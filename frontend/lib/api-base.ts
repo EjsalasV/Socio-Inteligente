@@ -1,4 +1,8 @@
 const PUBLIC_API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+const DEFAULT_API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:8000"
+    : "https://socio-inteligente-production.up.railway.app";
 
 function stripTrailingSlash(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
