@@ -1,16 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 
+import { useAppState } from "../../components/providers/AppStateProvider";
+import type { DashboardData } from "../../types/dashboard";
 import { getDashboardData } from "../api/dashboard";
 import { SOCIO_CLIENTE_UPDATED_EVENT, type ClienteRealtimeEventDetail } from "../realtime";
-import type { DashboardData } from "../../types/dashboard";
 
 type UseDashboardResult = {
   data: DashboardData | null;
   isLoading: boolean;
   error: string;
 };
+
+const inFlightByKey = new Map<string, Promise<void>>();
 
 function parseDelayMs(): number {
   const raw = process.env.NEXT_PUBLIC_DASHBOARD_DELAY_MS;
@@ -19,38 +22,68 @@ function parseDelayMs(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+function parseAreasPageSize(): number {
+  const raw = process.env.NEXT_PUBLIC_DASHBOARD_AREAS_PAGE_SIZE;
+  if (!raw) return 8;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return 8;
+  return Math.max(4, Math.min(50, Math.round(parsed)));
+}
+
 function wait(ms: number): Promise<void> {
   if (ms <= 0) return Promise.resolve();
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function useDashboard(clienteId: string): UseDashboardResult {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const { getDashboardEntry, setDashboardEntry } = useAppState();
+  const entry = getDashboardEntry(clienteId);
 
   const refresh = useCallback(async () => {
     if (!clienteId) {
-      setData(null);
-      setError("Cliente inválido.");
-      setIsLoading(false);
+      setDashboardEntry(clienteId, {
+        data: null,
+        error: "Cliente invalido.",
+        isLoading: false,
+      });
       return;
     }
 
-    setIsLoading(true);
-    setError("");
-
-    try {
-      await wait(parseDelayMs());
-      const response = await getDashboardData(clienteId);
-      setData(response);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "No se pudo cargar el dashboard.";
-      setError(message);
-    } finally {
-      setIsLoading(false);
+    const areasPage = 1;
+    const areasPageSize = parseAreasPageSize();
+    const requestKey = `${clienteId}:${areasPage}:${areasPageSize}`;
+    const existing = inFlightByKey.get(requestKey);
+    if (existing) {
+      await existing;
+      return;
     }
-  }, [clienteId]);
+
+    const request = (async () => {
+      setDashboardEntry(clienteId, { isLoading: true, error: "" });
+      try {
+        await wait(parseDelayMs());
+        const response = await getDashboardData(clienteId, { areasPage, areasPageSize });
+        setDashboardEntry(clienteId, {
+          data: response,
+          error: "",
+          isLoading: false,
+          updatedAt: Date.now(),
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "No se pudo cargar el dashboard.";
+        setDashboardEntry(clienteId, {
+          data: null,
+          error: message,
+          isLoading: false,
+        });
+      } finally {
+        inFlightByKey.delete(requestKey);
+      }
+    })();
+
+    inFlightByKey.set(requestKey, request);
+    await request;
+  }, [clienteId, setDashboardEntry]);
 
   useEffect(() => {
     void refresh();
@@ -75,6 +108,9 @@ export function useDashboard(clienteId: string): UseDashboardResult {
     return () => window.removeEventListener(SOCIO_CLIENTE_UPDATED_EVENT, handler as EventListener);
   }, [clienteId, refresh]);
 
-  return { data, isLoading, error };
+  return {
+    data: entry.data,
+    isLoading: entry.isLoading,
+    error: entry.error,
+  };
 }
-

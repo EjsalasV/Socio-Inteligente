@@ -3,6 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, status
 
 from backend.auth import get_current_user
+from backend.constants.runtime_config import get_runtime_config
+from backend.middleware.rate_limit import get_rate_limit_metrics_snapshot, rate_limit_backend_name
 from backend.repositories.file_repository import append_audit_log
 from backend.repositories.identity_repository import store as identity_store
 from backend.schemas import (
@@ -13,9 +15,12 @@ from backend.schemas import (
     ApiResponse,
     UserContext,
 )
+from backend.services.observability_service import store as observability_store
+from backend.services.rate_limit_service import RateLimitExceeded, rate_limiter
 from backend.utils.api_errors import raise_api_error
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+RUNTIME_CFG = get_runtime_config()
 
 
 def _role_norm(user: UserContext) -> str:
@@ -32,6 +37,44 @@ def _ensure_admin_access(user: UserContext) -> None:
         action_hint="Solicita permisos al administrador del sistema.",
         retryable=False,
     )
+
+
+def _admin_write_limit_per_minute() -> int:
+    cfg = RUNTIME_CFG.get("rate_limit", {}) if isinstance(RUNTIME_CFG, dict) else {}
+    raw = cfg.get("admin_writes_per_minute", 20) if isinstance(cfg, dict) else 20
+    try:
+        value = int(raw)
+    except Exception:
+        value = 20
+    return max(1, min(value, 200))
+
+
+def _enforce_admin_write_rate_limit(user: UserContext, action: str) -> None:
+    subject = str(user.user_id or user.sub or "anonymous").strip().lower()
+    scope = f"admin:{action}"
+    limit = _admin_write_limit_per_minute()
+    try:
+        rate_limiter.enforce(
+            scope=scope,
+            subject=subject,
+            limit=limit,
+            window_seconds=60,
+        )
+    except RateLimitExceeded as exc:
+        raise_api_error(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            code="ADMIN_RATE_LIMIT_EXCEEDED",
+            message=(
+                f"Demasiadas solicitudes administrativas para {action}. "
+                f"Limite: {exc.limit} por {exc.window_seconds}s."
+            ),
+            action_hint=f"Espera {exc.retry_after_seconds}s antes de reintentar.",
+            retryable=True,
+            details={
+                "retry_after_seconds": exc.retry_after_seconds,
+                "scope": scope,
+            },
+        )
 
 
 def _user_summary(row: dict, cliente_ids: list[str]) -> dict:
@@ -63,6 +106,7 @@ def get_users(user: UserContext = Depends(get_current_user)) -> ApiResponse:
 @router.post("/users", response_model=ApiResponse)
 def post_user(payload: AdminUserCreateRequest, user: UserContext = Depends(get_current_user)) -> ApiResponse:
     _ensure_admin_access(user)
+    _enforce_admin_write_rate_limit(user, "create_user")
     try:
         created = identity_store.create_user(
             username=payload.username,
@@ -111,6 +155,7 @@ def patch_user(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     _ensure_admin_access(user)
+    _enforce_admin_write_rate_limit(user, "patch_user")
     patch = payload.model_dump(exclude_none=True)
     try:
         updated = identity_store.update_user(user_id, patch)
@@ -147,6 +192,7 @@ def put_user_clientes(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     _ensure_admin_access(user)
+    _enforce_admin_write_rate_limit(user, "assign_clientes")
     try:
         assigned = identity_store.set_user_clientes(user_id, payload.cliente_ids)
     except Exception:
@@ -175,3 +221,16 @@ def get_cliente_members(
     members = identity_store.list_members_by_cliente(cliente_id)
     return ApiResponse(data={"cliente_id": cliente_id, "miembros": members})
 
+
+@router.get("/rate-limit/metrics", response_model=ApiResponse)
+def get_rate_limit_metrics(user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    _ensure_admin_access(user)
+    snapshot = get_rate_limit_metrics_snapshot()
+    return ApiResponse(
+        data={
+            "backend_slowapi": rate_limit_backend_name(),
+            "backend_service": rate_limiter.backend,
+            "snapshot": snapshot,
+            "observability": observability_store.snapshot(),
+        }
+    )

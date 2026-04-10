@@ -1,7 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import PageTransition from "../components/navigation/PageTransition";
-import SovereignCommand from "../components/navigation/SovereignCommand";
+import SovereignCommandLazy from "../components/navigation/SovereignCommandLazy";
+import AppStateProvider from "../components/providers/AppStateProvider";
 import UserPreferencesProvider from "../components/providers/UserPreferencesProvider";
 import TourProvider from "../components/tour/TourProvider";
 
@@ -26,12 +27,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <UserPreferencesProvider>
-          <TourProvider>
-            <PageTransition>{children}</PageTransition>
-            <SovereignCommand />
-          </TourProvider>
-        </UserPreferencesProvider>
+        <AppStateProvider>
+          <UserPreferencesProvider>
+            <TourProvider>
+              <PageTransition>{children}</PageTransition>
+              <SovereignCommandLazy />
+            </TourProvider>
+          </UserPreferencesProvider>
+        </AppStateProvider>
       </body>
     </html>
   );

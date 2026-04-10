@@ -1,51 +1,85 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 
+import { useAppState } from "../../components/providers/AppStateProvider";
+import type { WorkpaperPlanData } from "../../types/workpapers";
 import { getWorkpaperPlan, patchWorkpaperTask } from "../api/workpapers";
 import { SOCIO_CLIENTE_UPDATED_EVENT, type ClienteRealtimeEventDetail } from "../realtime";
-import type { WorkpaperPlanData } from "../../types/workpapers";
 
 type UseWorkpapersResult = {
   data: WorkpaperPlanData | null;
   isLoading: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
   error: string;
   savingTaskId: string | null;
   refresh: () => Promise<void>;
+  loadMore: () => Promise<void>;
   updateTask: (taskId: string, done: boolean, evidenceNote: string) => Promise<void>;
 };
 
+const inFlightByKey = new Map<string, Promise<void>>();
+
+function parseWorkpapersPageSize(): number {
+  const raw = process.env.NEXT_PUBLIC_WORKPAPERS_PAGE_SIZE;
+  if (!raw) return 60;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return 60;
+  return Math.max(20, Math.min(200, Math.round(parsed)));
+}
+
 export function useWorkpapers(clienteId: string): UseWorkpapersResult {
-  const [data, setData] = useState<WorkpaperPlanData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-  const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
+  const { getWorkpapersEntry, setWorkpapersEntry } = useAppState();
+  const entry = getWorkpapersEntry(clienteId);
 
-  const refresh = useCallback(async () => {
-    if (!clienteId) {
-      setData(null);
-      setError("Cliente inválido.");
-      setIsLoading(false);
-      return;
-    }
+  const refresh = useCallback(
+    async (pageSizeOverride?: number) => {
+      if (!clienteId) return;
 
-    setIsLoading(true);
-    setError("");
-    try {
-      const response = await getWorkpaperPlan(clienteId);
-      setData(response);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "No se pudo cargar papeles de trabajo.";
-      setError(message);
-      setData(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [clienteId]);
+      const pageSize = pageSizeOverride ?? entry.requestedPageSize ?? parseWorkpapersPageSize();
+      const requestKey = `${clienteId}:${pageSize}`;
+      const existing = inFlightByKey.get(requestKey);
+      if (existing) {
+        await existing;
+        return;
+      }
+
+      const request = (async () => {
+        setWorkpapersEntry(clienteId, { isLoading: true, error: "" });
+        try {
+          const response = await getWorkpaperPlan(clienteId, { page: 1, pageSize });
+          setWorkpapersEntry(clienteId, {
+            data: response,
+            requestedPageSize: pageSize,
+            error: "",
+            isLoading: false,
+            updatedAt: Date.now(),
+          });
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : "No se pudo cargar papeles de trabajo.";
+          setWorkpapersEntry(clienteId, {
+            data: null,
+            error: message,
+            isLoading: false,
+          });
+        } finally {
+          inFlightByKey.delete(requestKey);
+        }
+      })();
+
+      inFlightByKey.set(requestKey, request);
+      await request;
+    },
+    [clienteId, entry.requestedPageSize, setWorkpapersEntry],
+  );
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!clienteId) return;
+    const basePageSize = parseWorkpapersPageSize();
+    setWorkpapersEntry(clienteId, { requestedPageSize: basePageSize });
+    void refresh(basePageSize);
+  }, [clienteId, refresh, setWorkpapersEntry]);
 
   useEffect(() => {
     if (!clienteId) return;
@@ -61,31 +95,55 @@ export function useWorkpapers(clienteId: string): UseWorkpapersResult {
     return () => window.removeEventListener(SOCIO_CLIENTE_UPDATED_EVENT, handler as EventListener);
   }, [clienteId, refresh]);
 
+  const loadMore = useCallback(async () => {
+    if (!clienteId) return;
+    if (!entry.data?.tasks_has_more) return;
+    if (entry.isLoadingMore) return;
+    setWorkpapersEntry(clienteId, { isLoadingMore: true });
+    try {
+      const nextPageSize = (entry.requestedPageSize || parseWorkpapersPageSize()) + parseWorkpapersPageSize();
+      await refresh(nextPageSize);
+    } finally {
+      setWorkpapersEntry(clienteId, { isLoadingMore: false });
+    }
+  }, [clienteId, entry.data?.tasks_has_more, entry.isLoadingMore, entry.requestedPageSize, refresh, setWorkpapersEntry]);
+
   const updateTask = useCallback(
     async (taskId: string, done: boolean, evidenceNote: string) => {
-      setSavingTaskId(taskId);
+      if (!clienteId) return;
+      setWorkpapersEntry(clienteId, { savingTaskId: taskId });
       try {
         await patchWorkpaperTask(clienteId, taskId, { done, evidence_note: evidenceNote });
-        setData((prev) => {
-          if (!prev) return prev;
-          const tasks = prev.tasks.map((task) =>
-            task.id === taskId ? { ...task, done, evidence_note: evidenceNote } : task,
-          );
-          const required = tasks.filter((task) => task.required);
-          const requiredDone = required.filter((task) => task.done);
-          const completion_pct = required.length > 0 ? (requiredDone.length / required.length) * 100 : 0;
-          return { ...prev, tasks, completion_pct };
+        setWorkpapersEntry(clienteId, {
+          data: entry.data
+            ? {
+                ...entry.data,
+                tasks: entry.data.tasks.map((task) =>
+                  task.id === taskId ? { ...task, done, evidence_note: evidenceNote } : task,
+                ),
+              }
+            : null,
         });
         await refresh();
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "No se pudo actualizar el papel de trabajo.";
-        setError(message);
+        setWorkpapersEntry(clienteId, { error: message });
       } finally {
-        setSavingTaskId(null);
+        setWorkpapersEntry(clienteId, { savingTaskId: null });
       }
     },
-    [clienteId, refresh],
+    [clienteId, entry.data, refresh, setWorkpapersEntry],
   );
 
-  return { data, isLoading, error, savingTaskId, refresh, updateTask };
+  return {
+    data: entry.data,
+    isLoading: entry.isLoading,
+    isLoadingMore: entry.isLoadingMore,
+    hasMore: Boolean(entry.data?.tasks_has_more),
+    error: entry.error,
+    savingTaskId: entry.savingTaskId,
+    refresh: () => refresh(),
+    loadMore,
+    updateTask,
+  };
 }
