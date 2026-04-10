@@ -12,39 +12,60 @@ type UseRiskResult = {
   error: string;
 };
 
+const RISK_CACHE = new Map<string, { data: RiskEngineResponse; updatedAt: number }>();
+
+function parseRiskCacheTtlMs(): number {
+  const raw = Number(process.env.NEXT_PUBLIC_RISK_CACHE_TTL_MS || 90000);
+  if (!Number.isFinite(raw) || raw <= 0) return 90000;
+  return Math.max(10000, Math.min(300000, Math.round(raw)));
+}
+
 export function useRiskEngine(clienteId: string): UseRiskResult {
   const [data, setData] = useState<RiskEngineResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const refresh = useCallback(async () => {
-    if (!clienteId) {
-      setData(null);
-      setError("Cliente inválido.");
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    setError("");
+  const refresh = useCallback(
+    async (force = false) => {
+      if (!clienteId) {
+        setData(null);
+        setError("Cliente invalido.");
+        setIsLoading(false);
+        return;
+      }
 
-    try {
-      const response = await getRiskEngineData(clienteId);
-      setData(response);
-    } catch (err: unknown) {
-      const rawMessage = err instanceof Error ? err.message : "No se pudo cargar la matriz de riesgo.";
-      const message =
-        rawMessage.toLowerCase().includes("missing jwt token")
-          ? "Sesión no iniciada. Vuelve al login para continuar."
+      const ttl = parseRiskCacheTtlMs();
+      const cached = RISK_CACHE.get(clienteId);
+      if (!force && cached && Date.now() - cached.updatedAt < ttl) {
+        setData(cached.data);
+        setError("");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!data) setIsLoading(true);
+      setError("");
+
+      try {
+        const response = await getRiskEngineData(clienteId);
+        RISK_CACHE.set(clienteId, { data: response, updatedAt: Date.now() });
+        setData(response);
+      } catch (err: unknown) {
+        const rawMessage = err instanceof Error ? err.message : "No se pudo cargar la matriz de riesgo.";
+        const message = rawMessage.toLowerCase().includes("missing jwt token")
+          ? "Sesion no iniciada. Vuelve al login para continuar."
           : rawMessage;
-      setError(message);
-      setData(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [clienteId]);
+        setError(message);
+        setData(null);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [clienteId, data],
+  );
 
   useEffect(() => {
-    void refresh();
+    void refresh(false);
   }, [refresh]);
 
   useEffect(() => {
@@ -58,7 +79,7 @@ export function useRiskEngine(clienteId: string): UseRiskResult {
         eventName.startsWith("area_") ||
         eventName === "perfil_updated"
       ) {
-        void refresh();
+        void refresh(true);
       }
     };
     window.addEventListener(SOCIO_CLIENTE_UPDATED_EVENT, handler as EventListener);

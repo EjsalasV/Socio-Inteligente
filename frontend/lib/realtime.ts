@@ -106,18 +106,29 @@ function toWsBase(httpBase: string): string {
 export function buildClienteRealtimeWsUrl(clienteId: string, moduleKey: AuditModule): string {
   if (!hasSessionState() || !clienteId) return "";
   const base = toWsBase(resolveWsSourceBase());
-  
-  // Get token from sessionStorage (stored during login)
-  const token = typeof window !== "undefined" ? (window.sessionStorage?.getItem("socio_auth_token") || "") : "";
-  
+
+  // Prefer current session token, then legacy localStorage token for backward compatibility.
+  const token =
+    typeof window !== "undefined"
+      ? window.sessionStorage?.getItem("socio_auth_token") ||
+        window.localStorage?.getItem("socio_token") ||
+        ""
+      : "";
+
+  // By default we require an explicit token in browser storage to avoid endless reconnect loops
+  // when cross-site cookies are blocked by the browser.
+  const requireTokenRaw = String(process.env.NEXT_PUBLIC_WS_REQUIRE_TOKEN || "1").toLowerCase();
+  const requireToken = requireTokenRaw === "1" || requireTokenRaw === "true" || requireTokenRaw === "yes";
+  if (requireToken && !token) return "";
+
   const params = new URLSearchParams({
     module: moduleKey,
   });
-  
+
   if (token) {
     params.set("token", token);
   }
-  
+
   return `${base}/ws/clientes/${encodeURIComponent(clienteId)}?${params.toString()}`;
 }
 

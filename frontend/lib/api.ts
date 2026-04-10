@@ -56,8 +56,8 @@ function getRequestTimeoutMs(path?: string): number {
   const raw = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 20000);
   if (!Number.isFinite(raw) || raw <= 0) return 20000;
   const base = Math.min(raw, 60000);
-  const heavyRaw = Number(process.env.NEXT_PUBLIC_API_HEAVY_TIMEOUT_MS || 45000);
-  const heavy = Number.isFinite(heavyRaw) && heavyRaw > 0 ? Math.min(heavyRaw, 90000) : 45000;
+  const heavyRaw = Number(process.env.NEXT_PUBLIC_API_HEAVY_TIMEOUT_MS || 25000);
+  const heavy = Number.isFinite(heavyRaw) && heavyRaw > 0 ? Math.min(heavyRaw, 60000) : 25000;
   const normalizedPath = String(path || "").toLowerCase();
   if (
     normalizedPath.startsWith("/dashboard/") ||
@@ -68,6 +68,16 @@ function getRequestTimeoutMs(path?: string): number {
     return Math.max(base, heavy);
   }
   return base;
+}
+
+function isHeavyPath(path: string): boolean {
+  const normalizedPath = String(path || "").toLowerCase();
+  return (
+    normalizedPath.startsWith("/dashboard/") ||
+    normalizedPath.startsWith("/risk-engine/") ||
+    normalizedPath.startsWith("/papeles-trabajo/") ||
+    normalizedPath.startsWith("/workflow/")
+  );
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -86,7 +96,8 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set("X-CSRF-Token", csrfToken);
   }
 
-  const attempts = 3; // Enable exponential backoff retries (500ms, 1s, 2s)
+  // Heavy modules should fail fast (avoid 2-3 minute lock feeling in UI).
+  const attempts = isHeavyPath(path) ? 1 : 2;
   let res: Response | null = null;
   let lastError: unknown = null;
 
