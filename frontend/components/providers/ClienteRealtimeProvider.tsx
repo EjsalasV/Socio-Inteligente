@@ -38,6 +38,12 @@ function safeJsonParse(value: string): Record<string, unknown> {
   }
 }
 
+function parseMaxReconnectAttempts(): number {
+  const raw = Number(process.env.NEXT_PUBLIC_WS_MAX_RECONNECT_ATTEMPTS || 6);
+  if (!Number.isFinite(raw)) return 6;
+  return Math.max(1, Math.min(30, Math.round(raw)));
+}
+
 export default function ClienteRealtimeProvider({ children }: { children: React.ReactNode }) {
   const { clienteId, moduleKey } = useAuditContext();
   const [connected, setConnected] = useState<boolean>(false);
@@ -83,6 +89,13 @@ export default function ClienteRealtimeProvider({ children }: { children: React.
       if (disposed || !shouldReconnectRef.current) return;
       clearReconnectTimer();
       const attempt = reconnectAttemptRef.current + 1;
+      const maxAttempts = parseMaxReconnectAttempts();
+      if (attempt > maxAttempts) {
+        shouldReconnectRef.current = false;
+        setReconnecting(false);
+        setConnected(false);
+        return;
+      }
       reconnectAttemptRef.current = attempt;
       const delayMs = Math.min(15000, 500 * Math.pow(2, Math.min(attempt, 5)));
       setReconnecting(true);

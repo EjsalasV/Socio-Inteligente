@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import os
+import time
 import unicodedata
 from pathlib import Path
 from typing import Any
@@ -24,6 +26,55 @@ from backend.services.judgement_service import build_risk_judgement_with_ai
 
 router = APIRouter(prefix="/risk-engine", tags=["risk-engine"])
 RUNTIME_CFG = get_runtime_config()
+_RISK_CACHE: dict[str, tuple[float, ApiResponse]] = {}
+
+
+def _risk_cache_ttl_seconds() -> float:
+    raw = str(os.getenv("RISK_ENGINE_CACHE_TTL_SECONDS") or "20").strip()
+    try:
+        ttl = float(raw)
+    except Exception:
+        ttl = 20.0
+    return max(0.0, min(ttl, 300.0))
+
+
+def _risk_engine_ai_enabled() -> bool:
+    raw = str(os.getenv("RISK_ENGINE_AI_ENABLED") or "1").strip().lower()
+    return raw in {"1", "true", "yes", "y", "on"}
+
+
+def _risk_signature(cliente_id: str) -> str:
+    root = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id
+    paths = [
+        root / "tb.xlsx",
+        root / "mayor.xlsx",
+        root / "perfil.yaml",
+        root / "hallazgos.md",
+        root / "workflow.yaml",
+    ]
+    parts: list[str] = []
+    for path in paths:
+        try:
+            stat = path.stat()
+            parts.append(f"{int(stat.st_mtime_ns)}:{int(stat.st_size)}")
+        except Exception:
+            parts.append("missing")
+    areas_dir = root / "areas"
+    newest = 0
+    count = 0
+    if areas_dir.exists():
+        try:
+            for area_file in areas_dir.glob("*.yaml"):
+                try:
+                    mtime = int(area_file.stat().st_mtime_ns)
+                except Exception:
+                    continue
+                newest = max(newest, mtime)
+                count += 1
+        except Exception:
+            pass
+    parts.append(f"{count}:{newest}")
+    return "|".join(parts)
 
 
 def _to_int(value: Any, default: int = 0) -> int:
@@ -611,6 +662,15 @@ def _from_area_files(cliente_id: str) -> list[RiskCriticalArea]:
 @router.get("/{cliente_id}", response_model=ApiResponse)
 def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
+    signature = _risk_signature(cliente_id)
+    cache_key = f"{cliente_id}:{signature}"
+    ttl_seconds = _risk_cache_ttl_seconds()
+    if ttl_seconds > 0:
+        cached = _RISK_CACHE.get(cache_key)
+        if cached:
+            expires_at, payload = cached
+            if expires_at > time.time():
+                return payload
 
     critical_areas = _from_ranking(cliente_id)
     if not critical_areas:
@@ -656,11 +716,16 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
     critical_areas.sort(key=lambda x: x.score, reverse=True)
     quadrants = _build_matrix_cells(critical_areas)
     deterministic_strategy = _build_strategy_deterministic(critical_areas)
-    strategy = build_risk_judgement_with_ai(
-        cliente_id,
-        areas=critical_areas,
-        deterministic=deterministic_strategy,
-    )
+    strategy = deterministic_strategy
+    if _risk_engine_ai_enabled():
+        try:
+            strategy = build_risk_judgement_with_ai(
+                cliente_id,
+                areas=critical_areas,
+                deterministic=deterministic_strategy,
+            )
+        except Exception:
+            strategy = deterministic_strategy
 
     payload = RiskEngineResponse(
         cliente_id=cliente_id,
@@ -669,4 +734,15 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
         strategy=strategy,
         recommended_tests=[*(strategy.control_tests or []), *(strategy.substantive_tests or [])],
     )
-    return ApiResponse(data=payload.model_dump())
+    response = ApiResponse(data=payload.model_dump())
+    if ttl_seconds > 0:
+        _RISK_CACHE[cache_key] = (time.time() + ttl_seconds, response)
+        if len(_RISK_CACHE) > 200:
+            now = time.time()
+            stale_keys = [k for k, (expires_at, _) in _RISK_CACHE.items() if expires_at <= now]
+            for stale_key in stale_keys[:100]:
+                _RISK_CACHE.pop(stale_key, None)
+            if len(_RISK_CACHE) > 200:
+                for old_key in list(_RISK_CACHE.keys())[:50]:
+                    _RISK_CACHE.pop(old_key, None)
+    return response

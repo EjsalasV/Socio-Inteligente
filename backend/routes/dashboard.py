@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import math
+import os
+import time
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -16,6 +19,56 @@ from backend.schemas import (
 )
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+_DASHBOARD_CACHE: dict[str, tuple[float, DashboardResponse]] = {}
+
+
+def _dashboard_cache_ttl_seconds() -> float:
+    raw = os.getenv("DASHBOARD_CACHE_TTL_SECONDS", "20").strip()
+    try:
+        ttl = float(raw)
+    except Exception:
+        ttl = 20.0
+    return max(0.0, min(ttl, 300.0))
+
+
+def _safe_stat_signature(path: Path) -> str:
+    try:
+        stat = path.stat()
+        return f"{int(stat.st_mtime_ns)}:{int(stat.st_size)}"
+    except Exception:
+        return "missing"
+
+
+def _areas_signature(cliente_root: Path) -> str:
+    areas_dir = cliente_root / "areas"
+    if not areas_dir.exists():
+        return "missing"
+    newest = 0
+    count = 0
+    try:
+        for path in areas_dir.glob("*.yaml"):
+            try:
+                mtime = int(path.stat().st_mtime_ns)
+            except Exception:
+                continue
+            newest = max(newest, mtime)
+            count += 1
+    except Exception:
+        return "missing"
+    return f"{count}:{newest}"
+
+
+def _dashboard_input_signature(cliente_id: str) -> str:
+    root = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id
+    parts = [
+        _safe_stat_signature(root / "perfil.yaml"),
+        _safe_stat_signature(root / "tb.xlsx"),
+        _safe_stat_signature(root / "mayor.xlsx"),
+        _safe_stat_signature(root / "workflow.yaml"),
+        _safe_stat_signature(root / "hallazgos.md"),
+        _areas_signature(root),
+    ]
+    return "|".join(parts)
 
 
 def _to_float(value: object, default: float = 0.0) -> float:
@@ -137,6 +190,16 @@ def get_dashboard(
     user: UserContext = Depends(get_current_user),
 ) -> DashboardResponse:
     authorize_cliente_access(cliente_id, user)
+    signature = _dashboard_input_signature(cliente_id)
+    cache_key = f"{cliente_id}:{areas_page}:{areas_page_size}:{signature}"
+    ttl_seconds = _dashboard_cache_ttl_seconds()
+    if ttl_seconds > 0:
+        cached = _DASHBOARD_CACHE.get(cache_key)
+        if cached:
+            expires_at, payload = cached
+            if expires_at > time.time():
+                return payload.model_copy(deep=True)
+
     stage = "init"
     try:
         stage = "imports"
@@ -327,6 +390,18 @@ def get_dashboard(
             top_areas_total=total_top_areas,
             top_areas_has_more=top_areas_has_more,
         )
+
+        if ttl_seconds > 0:
+            _DASHBOARD_CACHE[cache_key] = (time.time() + ttl_seconds, payload.model_copy(deep=True))
+            # Keep cache bounded to avoid unbounded growth on multi-client workloads.
+            if len(_DASHBOARD_CACHE) > 200:
+                now = time.time()
+                stale_keys = [k for k, (expires_at, _) in _DASHBOARD_CACHE.items() if expires_at <= now]
+                for stale_key in stale_keys[:100]:
+                    _DASHBOARD_CACHE.pop(stale_key, None)
+                if len(_DASHBOARD_CACHE) > 200:
+                    for old_key in list(_DASHBOARD_CACHE.keys())[:50]:
+                        _DASHBOARD_CACHE.pop(old_key, None)
 
         return payload
     except Exception as exc:

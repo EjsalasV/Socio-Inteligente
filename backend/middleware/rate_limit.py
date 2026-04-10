@@ -38,7 +38,17 @@ def _storage_uri() -> str:
         return explicit
     redis_url = str(os.getenv("RATE_LIMIT_REDIS_URL") or os.getenv("REDIS_URL") or "").strip()
     if redis_url and redis is not None:
-        return redis_url
+        try:
+            probe = redis.Redis.from_url(  # type: ignore[attr-defined]
+                redis_url,
+                decode_responses=True,
+                socket_connect_timeout=0.35,
+                socket_timeout=0.35,
+            )
+            probe.ping()
+            return redis_url
+        except Exception:
+            pass
     return "memory://"
 
 

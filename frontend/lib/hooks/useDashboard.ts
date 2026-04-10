@@ -30,6 +30,14 @@ function parseAreasPageSize(): number {
   return Math.max(4, Math.min(50, Math.round(parsed)));
 }
 
+function parseDashboardCacheTtlMs(): number {
+  const raw = process.env.NEXT_PUBLIC_DASHBOARD_CACHE_TTL_MS;
+  if (!raw) return 120000;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 120000;
+  return Math.max(10000, Math.min(300000, Math.round(parsed)));
+}
+
 function wait(ms: number): Promise<void> {
   if (ms <= 0) return Promise.resolve();
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -39,7 +47,7 @@ export function useDashboard(clienteId: string): UseDashboardResult {
   const { getDashboardEntry, setDashboardEntry } = useAppState();
   const entry = getDashboardEntry(clienteId);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (force = false) => {
     if (!clienteId) {
       setDashboardEntry(clienteId, {
         data: null,
@@ -51,6 +59,16 @@ export function useDashboard(clienteId: string): UseDashboardResult {
 
     const areasPage = 1;
     const areasPageSize = parseAreasPageSize();
+    const cacheTtlMs = parseDashboardCacheTtlMs();
+    const current = getDashboardEntry(clienteId);
+    if (
+      !force &&
+      current.data &&
+      current.updatedAt &&
+      Date.now() - current.updatedAt < cacheTtlMs
+    ) {
+      return;
+    }
     const requestKey = `${clienteId}:${areasPage}:${areasPageSize}`;
     const existing = inFlightByKey.get(requestKey);
     if (existing) {
@@ -83,10 +101,10 @@ export function useDashboard(clienteId: string): UseDashboardResult {
 
     inFlightByKey.set(requestKey, request);
     await request;
-  }, [clienteId, setDashboardEntry]);
+  }, [clienteId, getDashboardEntry, setDashboardEntry]);
 
   useEffect(() => {
-    void refresh();
+    void refresh(false);
   }, [refresh]);
 
   useEffect(() => {
@@ -101,7 +119,7 @@ export function useDashboard(clienteId: string): UseDashboardResult {
         eventName.startsWith("area_") ||
         eventName === "perfil_updated"
       ) {
-        void refresh();
+        void refresh(true);
       }
     };
     window.addEventListener(SOCIO_CLIENTE_UPDATED_EVENT, handler as EventListener);

@@ -13,23 +13,41 @@ from typing import Any, Optional
 
 import pandas as pd
 
-from infra.repositories.cliente_repository import cargar_tb as repo_cargar_tb
+from infra.repositories.cliente_repository import _resolve_cliente_dir, cargar_tb as repo_cargar_tb
 
 # Module-level TB cache
 # Populated by app_streamlit.py so internal services
 # can access uploaded TBs without filesystem access
-_TB_CACHE: dict[str, "pd.DataFrame"] = {}
+_TB_CACHE: dict[str, tuple[str, "pd.DataFrame"]] = {}
+
+
+def _tb_file_signature(cliente: str) -> str:
+    try:
+        tb_path = _resolve_cliente_dir(cliente) / "tb.xlsx"
+        if not tb_path.exists():
+            return "missing"
+        stat = tb_path.stat()
+        return f"{int(stat.st_mtime_ns)}:{int(stat.st_size)}"
+    except Exception:
+        return "missing"
 
 
 def set_tb_cache(cliente: str, df: "pd.DataFrame") -> None:
     """Store a TB DataFrame in module cache."""
     if isinstance(df, pd.DataFrame) and not df.empty:
-        _TB_CACHE[str(cliente).strip()] = df
+        _TB_CACHE[str(cliente).strip()] = ("manual", df.copy())
 
 
-def get_tb_cache(cliente: str) -> "Optional[pd.DataFrame]":
+def get_tb_cache(cliente: str, *, signature: str | None = None) -> "Optional[pd.DataFrame]":
     """Retrieve a TB DataFrame from module cache."""
-    return _TB_CACHE.get(str(cliente).strip())
+    key = str(cliente).strip()
+    cached = _TB_CACHE.get(key)
+    if not cached:
+        return None
+    cached_signature, cached_df = cached
+    if signature and cached_signature not in {"manual", signature}:
+        return None
+    return cached_df.copy()
 
 
 def clear_tb_cache(cliente: str) -> None:
@@ -83,14 +101,18 @@ def _normalizar_ls_val(v: Any) -> str:
 
 
 def leer_tb(cliente: str) -> Optional[pd.DataFrame]:
-    # Check module cache first (populated by Streamlit
-    # when user uploads a TB — works on Cloud)
-    cached = get_tb_cache(cliente)
+    if not cliente or not isinstance(cliente, str):
+        return None
+
+    signature = _tb_file_signature(cliente)
+    if signature == "missing":
+        clear_tb_cache(cliente)
+        return None
+
+    cached = get_tb_cache(cliente, signature=signature)
     if cached is not None:
         return cached
 
-    if not cliente or not isinstance(cliente, str):
-        return None
     """
     Lee y procesa el Trial Balance de un cliente.
 
@@ -101,6 +123,7 @@ def leer_tb(cliente: str) -> Optional[pd.DataFrame]:
         tb = repo_cargar_tb(cliente)
         if tb is None or tb.empty:
             print(f"[WARN] No se encontro TB para: {cliente}")
+            clear_tb_cache(cliente)
             return None
 
         tb = _normalizar_columnas(tb)
@@ -108,6 +131,7 @@ def leer_tb(cliente: str) -> Optional[pd.DataFrame]:
         tb = _validar_tb(tb)
         tb = _enriquecer_tb(tb)
 
+        _TB_CACHE[str(cliente).strip()] = (signature, tb.copy())
         print(f"[OK] TB cargado para {cliente}: {tb.shape[0]} filas")
         return tb
     except Exception as e:
