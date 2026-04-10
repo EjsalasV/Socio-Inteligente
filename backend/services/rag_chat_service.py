@@ -692,6 +692,46 @@ def _is_next_steps_question(query: str) -> bool:
     return any(h in q for h in hints)
 
 
+def _is_payroll_question(query: str) -> bool:
+    q = _query_normalized(query)
+    if not q:
+        return False
+    hints = [
+        "nomina",
+        "rol de pagos",
+        "rol pagos",
+        "sueldos",
+        "salarios",
+        "beneficios sociales",
+        "iess",
+    ]
+    return any(h in q for h in hints)
+
+
+def _payroll_tests_answer(cliente_id: str) -> dict[str, Any]:
+    perfil = read_perfil(cliente_id) or {}
+    cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
+    cliente_nombre = str(cliente.get("nombre_legal") or cliente_id)
+    answer = (
+        f"Para `{cliente_nombre}`, estas son **pruebas clave de nomina** (priorizadas):\n\n"
+        "1. **Recalculo de rol de pagos (muestra):** valida sueldo base, horas extra, decimos, provisiones y descuentos.\n"
+        "2. **Novedades vs autorizaciones:** altas/bajas/cambios salariales contra contratos, adendas y aprobacion.\n"
+        "3. **Conciliacion contable:** gasto de nomina y provisiones vs mayor y estados financieros.\n"
+        "4. **Pago y existencia:** cruza transferencias bancarias con empleados activos y detecta duplicados.\n"
+        "5. **Aportes y retenciones:** verifica IESS/impuestos/retenidos, calculo y pago oportuno.\n"
+        "6. **Corte de periodo:** confirma devengado al cierre (nomina por pagar, vacaciones, beneficios).\n\n"
+        "Si quieres, te armo un programa de trabajo listo para ejecutar en Papeles con muestra sugerida."
+    )
+    return {
+        "answer": answer,
+        "citations": [],
+        "context_sources": ["Contexto cliente"],
+        "confidence": 0.78,
+        "prompt_meta": {"prompt_id": "payroll_fastpath", "prompt_version": "v1"},
+        "mode_used": "chat_fastpath_payroll",
+    }
+
+
 def _risk_answer(cliente_id: str, query: str = "") -> dict[str, Any]:
     perfil = read_perfil(cliente_id) or {}
     cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
@@ -1275,6 +1315,8 @@ def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
         return _inventory_answer(cliente_id)
     if _is_next_steps_question(query):
         return _next_steps_answer(cliente_id)
+    if _is_payroll_question(query):
+        return _payroll_tests_answer(cliente_id)
 
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
     if not _has_llm_credentials():

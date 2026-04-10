@@ -15,6 +15,7 @@ from backend.repositories.identity_repository import store as identity_store
 from backend.schemas import ApiResponse, ClienteCreateRequest, ClienteDocumento, ClienteSummary, UserContext
 from backend.services.document_ingest_service import ingest_document_for_rag
 from backend.services.rag_cache_service import invalidate_rag_cache_for_cliente
+from backend.services.realtime_collab_service import hub
 
 router = APIRouter(prefix="/clientes", tags=["clientes"])
 
@@ -163,6 +164,14 @@ async def upload_cliente_file(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"No se pudo guardar el archivo: {exc}",
         ) from exc
+
+    event_name = "tb_uploaded" if target_name == "tb.xlsx" else "mayor_uploaded"
+    hub.publish_event_sync(
+        cliente_id=cliente_id,
+        event_name=event_name,
+        actor=user.display_name or user.sub,
+        payload={"rows": int(len(df)), "filename": raw_name},
+    )
 
     return ApiResponse(
         data={

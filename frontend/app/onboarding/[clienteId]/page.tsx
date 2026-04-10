@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { hasSessionState, logoutSession } from "../../../lib/auth-session";
 import { uploadClienteArchivo } from "../../../lib/api/clientes";
 import { getPerfil, savePerfil } from "../../../lib/api/perfil";
+import { useAppState } from "../../../components/providers/AppStateProvider";
 import { SECTOR_OPTIONS } from "../../../lib/sectorCatalog";
 import type { PerfilPayload } from "../../../types/perfil";
 
@@ -36,6 +37,7 @@ function toBool(value: unknown): boolean {
 
 export default function OnboardingClientePage() {
   const router = useRouter();
+  const { resetClientState } = useAppState();
   const params = useParams<Params>();
   const clienteId = useMemo(() => toClienteId(params?.clienteId), [params]);
 
@@ -163,6 +165,7 @@ export default function OnboardingClientePage() {
       };
 
       await savePerfil(clienteId, payload);
+      resetClientState(clienteId);
       setTbFile(trialBalanceNombre);
       setMayorFile(libroMayorNombre);
       setTbSelectedFile(null);

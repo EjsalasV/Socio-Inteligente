@@ -77,7 +77,9 @@ export function useRiskEngine(clienteId: string): UseRiskResult {
       if (
         eventName.startsWith("workflow_") ||
         eventName.startsWith("area_") ||
-        eventName === "perfil_updated"
+        eventName === "perfil_updated" ||
+        eventName === "tb_uploaded" ||
+        eventName === "mayor_uploaded"
       ) {
         void refresh(true);
       }
@@ -88,4 +90,3 @@ export function useRiskEngine(clienteId: string): UseRiskResult {
 
   return { data, isLoading, error };
 }
-

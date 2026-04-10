@@ -117,7 +117,9 @@ export function useDashboard(clienteId: string): UseDashboardResult {
         eventName.startsWith("workflow_") ||
         eventName.startsWith("workpaper_") ||
         eventName.startsWith("area_") ||
-        eventName === "perfil_updated"
+        eventName === "perfil_updated" ||
+        eventName === "tb_uploaded" ||
+        eventName === "mayor_uploaded"
       ) {
         void refresh(true);
       }

@@ -67,6 +67,9 @@ function getRequestTimeoutMs(path?: string): number {
   ) {
     return Math.max(base, heavy);
   }
+  if (normalizedPath.startsWith("/chat/") || normalizedPath.startsWith("/metodologia/")) {
+    return Math.max(base, 35000);
+  }
   return base;
 }
 
@@ -76,7 +79,9 @@ function isHeavyPath(path: string): boolean {
     normalizedPath.startsWith("/dashboard/") ||
     normalizedPath.startsWith("/risk-engine/") ||
     normalizedPath.startsWith("/papeles-trabajo/") ||
-    normalizedPath.startsWith("/workflow/")
+    normalizedPath.startsWith("/workflow/") ||
+    normalizedPath.startsWith("/chat/") ||
+    normalizedPath.startsWith("/metodologia/")
   );
 }
 
