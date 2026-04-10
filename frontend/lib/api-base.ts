@@ -4,6 +4,10 @@ function stripTrailingSlash(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
+function isRelativePath(value: string): boolean {
+  return value.startsWith("/");
+}
+
 function isLoopbackHost(value: string): boolean {
   const lower = value.toLowerCase();
   return lower.includes("localhost") || lower.includes("127.0.0.1");
@@ -19,6 +23,10 @@ export function getApiBase(): string {
   if (typeof window !== "undefined") {
     const configured = PUBLIC_API_BASE.trim();
     if (configured) {
+      // If env is configured as relative (/api), keep it only for local browser.
+      if (isRelativePath(configured)) {
+        return isLocalBrowserHost() ? stripTrailingSlash(configured) : stripTrailingSlash(DEFAULT_API_BASE);
+      }
       // Protect remote sessions from accidental localhost config.
       if (isLoopbackHost(configured) && !isLocalBrowserHost()) {
         return stripTrailingSlash(DEFAULT_API_BASE);
