@@ -106,9 +106,18 @@ function toWsBase(httpBase: string): string {
 export function buildClienteRealtimeWsUrl(clienteId: string, moduleKey: AuditModule): string {
   if (!hasSessionState() || !clienteId) return "";
   const base = toWsBase(resolveWsSourceBase());
+  
+  // Get token from sessionStorage (stored during login)
+  const token = typeof window !== "undefined" ? (window.sessionStorage?.getItem("socio_auth_token") || "") : "";
+  
   const params = new URLSearchParams({
     module: moduleKey,
   });
+  
+  if (token) {
+    params.set("token", token);
+  }
+  
   return `${base}/ws/clientes/${encodeURIComponent(clienteId)}?${params.toString()}`;
 }
 
