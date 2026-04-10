@@ -67,8 +67,9 @@ function resolveWsSourceBase(): string {
     if (isLoopbackHost(wsConfigured) && !isLocalBrowserHost()) {
       return stripTrailingSlash(DEFAULT_API_BASE);
     }
-    if (isRelativeBase(wsConfigured) && typeof window !== "undefined") {
-      return `${window.location.origin}${wsConfigured}`;
+    // Do not route WS through frontend relative proxy (/api), it usually does not support websocket upgrades.
+    if (isRelativeBase(wsConfigured)) {
+      return stripTrailingSlash(DEFAULT_API_BASE);
     }
     return wsConfigured;
   }
@@ -78,8 +79,9 @@ function resolveWsSourceBase(): string {
     if (isLoopbackHost(httpConfigured) && !isLocalBrowserHost()) {
       return stripTrailingSlash(DEFAULT_API_BASE);
     }
-    if (isRelativeBase(httpConfigured) && typeof window !== "undefined") {
-      return `${window.location.origin}${httpConfigured}`;
+    // If API base is relative (e.g. /api), use direct backend URL for WS.
+    if (isRelativeBase(httpConfigured)) {
+      return stripTrailingSlash(DEFAULT_API_BASE);
     }
     return httpConfigured;
   }

@@ -14,14 +14,9 @@ function getToken(): string | null {
 }
 
 function getRequestTimeoutMs(): number {
-  const raw = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 45000);
-  if (!Number.isFinite(raw) || raw <= 0) return 45000;
-  return Math.min(raw, 120000);
-}
-
-function isIdempotentMethod(method?: string): boolean {
-  const normalized = String(method || "GET").trim().toUpperCase();
-  return normalized === "GET" || normalized === "HEAD";
+  const raw = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 20000);
+  if (!Number.isFinite(raw) || raw <= 0) return 20000;
+  return Math.min(raw, 60000);
 }
 
 function requireToken(): string {
@@ -44,13 +39,13 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   const method = String(init?.method || "GET").toUpperCase();
-  const attempts = isIdempotentMethod(method) ? 2 : 1;
+  const attempts = 1;
   let res: Response | null = null;
   let lastError: unknown = null;
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const controller = new AbortController();
-    const timeoutMs = getRequestTimeoutMs() * attempt;
+    const timeoutMs = getRequestTimeoutMs();
     const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
     try {
       res = await fetch(buildApiUrl(path), {
