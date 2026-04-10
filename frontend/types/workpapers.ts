@@ -22,6 +22,11 @@ export interface WorkpaperPlanData {
   tasks: WorkpaperTask[];
   gates: QualityGateItem[];
   completion_pct: number;
+  tasks_page: number;
+  tasks_page_size: number;
+  tasks_total: number;
+  tasks_total_all: number;
+  tasks_has_more: boolean;
   coverage_summary: {
     total_assertions: number;
     covered_assertions: number;

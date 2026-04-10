@@ -1,6 +1,7 @@
 "use client";
 
 import type { AuditModule } from "./hooks/useAuditContext";
+import { hasSessionState } from "./auth-session";
 
 const DEFAULT_API_BASE =
   process.env.NODE_ENV === "development"
@@ -102,17 +103,10 @@ function toWsBase(httpBase: string): string {
     : `ws://${httpBase}`;
 }
 
-export function getSessionToken(): string {
-  if (typeof window === "undefined") return "";
-  return window.localStorage.getItem("socio_token") || "";
-}
-
 export function buildClienteRealtimeWsUrl(clienteId: string, moduleKey: AuditModule): string {
-  const token = getSessionToken();
-  if (!token || !clienteId) return "";
+  if (!hasSessionState() || !clienteId) return "";
   const base = toWsBase(resolveWsSourceBase());
   const params = new URLSearchParams({
-    token,
     module: moduleKey,
   });
   return `${base}/ws/clientes/${encodeURIComponent(clienteId)}?${params.toString()}`;

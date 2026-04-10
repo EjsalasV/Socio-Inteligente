@@ -1,19 +1,33 @@
 from __future__ import annotations
 
+import re
 from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import FileResponse
 
 from backend.auth import authorize_cliente_access, get_current_user
+from backend.middleware.rate_limit import limiter, LIMITS
 from backend.repositories.file_repository import create_cliente, delete_cliente, list_clientes, list_documentos, read_hallazgos, read_perfil
 from backend.repositories.identity_repository import store as identity_store
 from backend.schemas import ApiResponse, ClienteCreateRequest, ClienteDocumento, ClienteSummary, UserContext
 from backend.services.document_ingest_service import ingest_document_for_rag
+from backend.services.rag_cache_service import invalidate_rag_cache_for_cliente
 
 router = APIRouter(prefix="/clientes", tags=["clientes"])
+
+# Validar formato de cliente_id para evitar path traversal
+_CLIENTE_ID_REGEX = re.compile(r"^[a-zA-Z0-9_\-]+$")
+
+def _validate_cliente_id(cliente_id: str) -> None:
+    """Validar cliente_id contra path traversal."""
+    if not cliente_id or not _CLIENTE_ID_REGEX.match(cliente_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="cliente_id debe contener solo letras, números, guiones y guiones bajos.",
+        )
 
 
 @router.get("", response_model=ApiResponse)
@@ -77,12 +91,16 @@ def remove_cliente(cliente_id: str, user: UserContext = Depends(get_current_user
 
 
 @router.post("/{cliente_id}/upload/{kind}", response_model=ApiResponse)
+@limiter.limit(LIMITS["uploads"])  # 3 uploads por minuto por IP
 async def upload_cliente_file(
+    request: Request,
     cliente_id: str,
     kind: str,
     file: UploadFile = File(...),
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
+    # Validar cliente_id format antes de usar en path
+    _validate_cliente_id(cliente_id)
     authorize_cliente_access(cliente_id, user)
 
     kind_norm = kind.strip().lower()
@@ -103,9 +121,24 @@ async def upload_cliente_file(
             detail="Formato no soportado. Usa .xlsx, .xls o .csv.",
         )
 
+    # Validar tamaño ANTES de leer completo
+    MAX_FILE_SIZE_MB = 50
+    if file.size and file.size > MAX_FILE_SIZE_MB * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Archivo excede límite de {MAX_FILE_SIZE_MB}MB.",
+        )
+
     content = await file.read()
     if not content:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Archivo vacio.")
+    
+    # Double-check tamaño real (en caso que file.size sea None)
+    if len(content) > MAX_FILE_SIZE_MB * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Archivo excede límite de {MAX_FILE_SIZE_MB}MB.",
+        )
 
     try:
         if ext == ".csv":
@@ -156,6 +189,7 @@ async def upload_cliente_documento(
     file: UploadFile = File(...),
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
+    _validate_cliente_id(cliente_id)
     authorize_cliente_access(cliente_id, user)
 
     raw_name = (file.filename or "").strip()
@@ -175,9 +209,18 @@ async def upload_cliente_documento(
         ingestion = ingest_document_for_rag(cliente_id, target)
     except Exception:
         ingestion = {"indexed": False, "text_chars": 0}
+    cache_invalidated = invalidate_rag_cache_for_cliente(cliente_id)
 
     docs = [ClienteDocumento(**doc).model_dump() for doc in list_documentos(cliente_id)]
-    return ApiResponse(data={"uploaded": True, "documento": raw_name, "documentos": docs, "ingestion": ingestion})
+    return ApiResponse(
+        data={
+            "uploaded": True,
+            "documento": raw_name,
+            "documentos": docs,
+            "ingestion": ingestion,
+            "rag_cache_invalidated": int(cache_invalidated),
+        }
+    )
 
 
 @router.get("/{cliente_id}/hallazgos", response_model=ApiResponse)

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { hasSessionState } from "../../lib/auth-session";
 import { useAuditContext } from "../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../lib/hooks/useDashboard";
 import ClienteRealtimeProvider from "../providers/ClienteRealtimeProvider";
@@ -18,8 +19,7 @@ export default function ClientModuleShell({ children }: { children: React.ReactN
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("socio_token") : null;
-    if (!token) {
+    if (!hasSessionState()) {
       setIsAuthenticated(false);
       setReady(true);
       router.replace("/");

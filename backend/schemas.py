@@ -34,6 +34,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
     expires_in: int
+    csrf_token: str = ""
 
 
 class UserContext(BaseModel):
@@ -137,6 +138,10 @@ class DashboardResponse(BaseModel):
     resultado_periodo: float = 0.0
     balance_delta: float = 0.0
     materialidad_detalle: DashboardMaterialidadDetalle = Field(default_factory=DashboardMaterialidadDetalle)
+    top_areas_page: int = 1
+    top_areas_page_size: int = 8
+    top_areas_total: int = 0
+    top_areas_has_more: bool = False
 
 
 class RiskItem(BaseModel):
@@ -613,3 +618,8 @@ class WorkpaperPlanResponse(BaseModel):
     gates: list[QualityGateItem]
     completion_pct: float
     coverage_summary: CoverageSummary = Field(default_factory=CoverageSummary)
+    tasks_page: int = 1
+    tasks_page_size: int = 0
+    tasks_total: int = 0
+    tasks_total_all: int = 0
+    tasks_has_more: bool = False

@@ -11,6 +11,7 @@ from typing import Any
 
 import yaml
 from backend.repositories.file_repository import list_documentos, read_hallazgos, read_perfil, read_workflow
+from backend.services.rag_cache_service import build_rag_cache_key, get_cached_chunks, set_cached_chunks
 from backend.services.normativa_monitor_service import get_pending_normative_changes
 from backend.services.prompt_service import render_prompt, validate_minimum_output
 
@@ -29,6 +30,14 @@ METADATA_FILTER_KEYS = {
     "temas",
     "ultima_actualizacion",
 }
+
+
+def _rag_index_signature() -> str:
+    try:
+        stat = RAG_INDEX_PATH.stat()
+        return f"{int(stat.st_mtime)}:{int(stat.st_size)}"
+    except Exception:
+        return "missing"
 
 
 @dataclass
@@ -484,6 +493,21 @@ def retrieve_context_chunks(
     tipo: str | None = None,
     temas: str | list[str] | None = None,
 ) -> list[dict[str, Any]]:
+    cache_key = build_rag_cache_key(
+        cliente_id=cliente_id,
+        query=query,
+        top_k=top_k,
+        marco=marco,
+        etapa=etapa,
+        afirmacion=afirmacion,
+        tipo=tipo,
+        temas=temas,
+        index_signature=_rag_index_signature(),
+    )
+    cached = get_cached_chunks(cache_key)
+    if isinstance(cached, list):
+        return cached
+
     chunks = _retrieve_chunks(
         cliente_id,
         query,
@@ -504,6 +528,7 @@ def retrieve_context_chunks(
                 "metadata": dict(c.metadata or {}),
             }
         )
+    set_cached_chunks(cache_key, out)
     return out
 
 
@@ -1141,18 +1166,20 @@ def _has_llm_credentials() -> bool:
 def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat", cliente_id: str = "") -> dict[str, Any]:
     provider, api_key = _resolved_provider()
     from openai import OpenAI
+    timeout_seconds_raw = float(os.getenv("LLM_TIMEOUT_SECONDS", "12"))
+    timeout_seconds = max(5.0, min(timeout_seconds_raw, 60.0))
 
     if provider == "deepseek":
         if not api_key:
             raise RuntimeError("DEEPSEEK_API_KEY no configurada")
         model = os.getenv("DEEPSEEK_CHAT_MODEL", "deepseek-chat").strip() or "deepseek-chat"
         base_url = (os.getenv("DEEPSEEK_BASE_URL") or "https://api.deepseek.com").strip()
-        client = OpenAI(api_key=api_key, base_url=base_url)
+        client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout_seconds)
     else:
         if not api_key:
             raise RuntimeError("OPENAI_API_KEY no configurada")
         model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
-        client = OpenAI(api_key=api_key)
+        client = OpenAI(api_key=api_key, timeout=timeout_seconds)
 
     joined_context = "\n\n".join(
         [

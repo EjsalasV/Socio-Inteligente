@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
+import { hasSessionState } from "../../lib/auth-session";
 import {
   defaultUserPreferences,
   getAuthMe,
@@ -24,8 +25,7 @@ const UserPreferencesContext = createContext<UserPreferencesContextValue | null>
 const MIGRATION_MARK_PREFIX = "prefs:v1.2.1:migrated";
 
 function hasSessionToken(): boolean {
-  if (typeof window === "undefined") return false;
-  return Boolean(window.localStorage.getItem("socio_token"));
+  return hasSessionState();
 }
 
 function uniqueStrings(values: string[]): string[] {

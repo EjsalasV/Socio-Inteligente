@@ -1,10 +1,15 @@
-﻿"use client";
+"use client";
 
-import DashboardContent from "../../../components/dashboard/DashboardContent";
+import dynamic from "next/dynamic";
+
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
+
+const DashboardContent = dynamic(() => import("../../../components/dashboard/DashboardContent"), {
+  loading: () => <DashboardSkeleton />,
+});
 
 export default function DashboardClientePage() {
   const { clienteId } = useAuditContext();

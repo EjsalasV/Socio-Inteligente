@@ -6,6 +6,7 @@ fastapi>=0.115.0
 uvicorn>=0.32.0
 python-multipart>=0.0.9
 PyJWT>=2.9.0
+slowapi>=0.1.9
 
 # Data processing
 pandas>=2.0.0
@@ -36,6 +37,7 @@ tenacity>=8.2.0
 requests>=2.31.0
 gspread>=6.0.0
 google-auth>=2.0.0
+redis>=5.0.0
 
 # Development
 pytest>=7.4.0

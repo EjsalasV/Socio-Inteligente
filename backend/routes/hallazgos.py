@@ -3,9 +3,10 @@
 import logging
 import time
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 
 from backend.auth import authorize_cliente_access, get_current_user
+from backend.middleware.rate_limit import limiter, LIMITS
 from backend.repositories.file_repository import append_audit_log, append_briefing_time_log, append_hallazgo, append_traceability_event
 from backend.repositories.metrics_repository import record_metric_event
 from backend.schemas import (
@@ -26,7 +27,9 @@ LOGGER = logging.getLogger("socio_ai.hallazgos")
 
 
 @router.post("/estructurar", response_model=ApiResponse)
+@limiter.limit(LIMITS["hallazgos"])  # 10 por minuto por IP
 def post_estructurar_hallazgo(
+    request: Request,
     payload: HallazgoEstructurarRequest,
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:

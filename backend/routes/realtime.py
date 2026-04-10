@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
 
-from backend.auth import authorize_cliente_access, get_user_from_token
+from backend.auth import AUTH_COOKIE_NAME, authorize_cliente_access, get_user_from_token
 from backend.services.realtime_collab_service import hub
 
 router = APIRouter(tags=["realtime"])
@@ -27,6 +27,8 @@ def _close_code_from_http(status_code: int) -> int:
 @router.websocket("/ws/clientes/{cliente_id}")
 async def ws_cliente(cliente_id: str, websocket: WebSocket) -> None:
     token = str(websocket.query_params.get("token") or "").strip()
+    if not token:
+        token = str(websocket.cookies.get(AUTH_COOKIE_NAME) or "").strip()
     module = str(websocket.query_params.get("module") or "general").strip()
 
     if not token:
@@ -99,4 +101,3 @@ async def ws_cliente(cliente_id: str, websocket: WebSocket) -> None:
             actor=user.display_name or user.sub,
             payload={},
         )
-

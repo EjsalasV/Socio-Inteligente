@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { logoutSession } from "../../lib/auth-session";
 import { getClientes, type ClienteOption } from "../../lib/api/clientes";
 import { useAuditContext } from "../../lib/hooks/useAuditContext";
 import { useLearningRole, type LearningRole } from "../../lib/hooks/useLearningRole";
@@ -78,9 +79,8 @@ export default function Header() {
     return `${base} Documenta criterio y evidencia por área.`;
   }, [moduleKey, role]);
 
-  function handleLogout(): void {
-    localStorage.removeItem("socio_token");
-    window.dispatchEvent(new Event("socio-auth-changed"));
+  async function handleLogout(): Promise<void> {
+    await logoutSession();
     router.push("/");
   }
 
@@ -167,7 +167,7 @@ export default function Header() {
           </div>
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => void handleLogout()}
             className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
           >
             Cerrar sesión

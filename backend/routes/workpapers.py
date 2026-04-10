@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend.auth import authorize_cliente_access, get_current_user
 from backend.constants.runtime_config import get_runtime_config
@@ -553,11 +553,50 @@ def _quality_gates(cliente_id: str, tasks: list[dict[str, Any]]) -> tuple[list[Q
 
 
 @router.get("/{cliente_id}", response_model=ApiResponse)
-def get_workpapers(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+def get_workpapers(
+    cliente_id: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(0, ge=0, le=500),
+    area_code: str = Query(""),
+    q: str = Query(""),
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
     generated = _generate_tasks(cliente_id)
     merged = _merge_saved_tasks(cliente_id, generated)
     write_workpapers(cliente_id, merged)
+
+    tasks_filtered = merged
+    area_code_filter = area_code.strip().upper()
+    if area_code_filter:
+        tasks_filtered = [t for t in tasks_filtered if str(t.get("area_code") or "").strip().upper() == area_code_filter]
+
+    query_filter = q.strip().lower()
+    if query_filter:
+        filtered: list[dict[str, Any]] = []
+        for task in tasks_filtered:
+            title = str(task.get("title") or "").lower()
+            nia_ref = str(task.get("nia_ref") or "").lower()
+            evidence_note = str(task.get("evidence_note") or "").lower()
+            area_name = str(task.get("area_name") or "").lower()
+            if query_filter in f"{title} {nia_ref} {evidence_note} {area_name}":
+                filtered.append(task)
+        tasks_filtered = filtered
+
+    tasks_total_all = len(merged)
+    tasks_total = len(tasks_filtered)
+    if page_size <= 0:
+        tasks_page = 1
+        tasks_page_size = tasks_total
+        tasks_has_more = False
+        tasks_paged = tasks_filtered
+    else:
+        start = max(0, (page - 1) * page_size)
+        end = start + page_size
+        tasks_page = page
+        tasks_page_size = page_size
+        tasks_has_more = end < tasks_total
+        tasks_paged = tasks_filtered[start:end]
 
     required = [t for t in merged if bool(t.get("required", True))]
     required_done = [t for t in required if bool(t.get("done", False))]
@@ -566,10 +605,15 @@ def get_workpapers(cliente_id: str, user: UserContext = Depends(get_current_user
 
     payload = WorkpaperPlanResponse(
         cliente_id=cliente_id,
-        tasks=[WorkpaperTask(**task) for task in merged],
+        tasks=[WorkpaperTask(**task) for task in tasks_paged],
         gates=gates,
         completion_pct=round(completion, 2),
         coverage_summary=coverage,
+        tasks_page=tasks_page,
+        tasks_page_size=tasks_page_size,
+        tasks_total=tasks_total,
+        tasks_total_all=tasks_total_all,
+        tasks_has_more=tasks_has_more,
     )
     return ApiResponse(data=payload.model_dump())
 

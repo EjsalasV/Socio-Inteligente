@@ -29,6 +29,14 @@ type ChatMessage = {
   mode_used?: string;
 };
 
+type HistoryMessage = {
+  role?: "user" | "assistant" | string;
+  text?: string;
+  timestamp?: string;
+  citations?: ChatMessage["citations"];
+  confidence?: number;
+};
+
 const QUICK_PROMPTS = [
   "Pregunta sobre normativa NIIF...",
   "Analiza este hallazgo...",
@@ -62,6 +70,31 @@ function uniqueCitations(
   return out;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeChatCitations(input: unknown): NonNullable<ChatMessage["citations"]> {
+  if (!Array.isArray(input)) return [];
+  type Citation = NonNullable<ChatMessage["citations"]>[number];
+  const mapped: Array<Citation | null> = input.map((item: unknown) => {
+      if (!isRecord(item)) return null;
+      const source = typeof item.source === "string" ? item.source : "";
+      const excerpt = typeof item.excerpt === "string" ? item.excerpt : "";
+      return {
+        source,
+        excerpt,
+        norma: typeof item.norma === "string" ? item.norma : undefined,
+        version: typeof item.version === "string" ? item.version : undefined,
+        vigente_desde: typeof item.vigente_desde === "string" ? item.vigente_desde : undefined,
+        ultima_actualizacion:
+          typeof item.ultima_actualizacion === "string" ? item.ultima_actualizacion : undefined,
+        jurisdiccion: typeof item.jurisdiccion === "string" ? item.jurisdiccion : undefined,
+      };
+    });
+  return mapped.filter((item: Citation | null): item is Citation => item !== null);
+}
+
 function nowLabel(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -82,9 +115,14 @@ export default function SocioChatPage() {
       try {
         const response = await getChatHistory(clienteId);
         if (!active) return;
-        const raw = Array.isArray(response?.data?.messages) ? response.data.messages : [];
+        const raw: HistoryMessage[] = Array.isArray(response?.data?.messages)
+          ? (response.data.messages as HistoryMessage[])
+          : [];
         const mapped: ChatMessage[] = raw
-          .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.text === "string")
+          .filter(
+            (m: HistoryMessage): m is HistoryMessage & { role: "user" | "assistant"; text: string } =>
+              Boolean(m) && (m.role === "user" || m.role === "assistant") && typeof m.text === "string",
+          )
           .map((m, idx) => ({
             id: `h-${idx}-${m.timestamp || ""}`,
             role: m.role,
@@ -163,7 +201,7 @@ export default function SocioChatPage() {
         role: "assistant",
         timestamp: nowLabel(),
         text: answer,
-        citations: response?.data?.citations ?? [],
+        citations: normalizeChatCitations(response?.data?.citations),
         confidence: response?.data?.confidence ?? 0,
         mode_used: response?.data?.mode_used ?? "chat",
       };

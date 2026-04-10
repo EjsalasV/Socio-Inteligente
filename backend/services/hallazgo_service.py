@@ -9,6 +9,7 @@ from typing import Any
 
 import openai
 
+from backend.constants.normativa import is_internal_norma
 from backend.services.normativa_monitor_service import get_pending_normative_changes
 from backend.services.rag_chat_service import retrieve_context_chunks
 
@@ -21,7 +22,7 @@ def _normalize_text_list(values: list[str] | None, *, fallback: str = "N/D") -> 
 
 
 def _is_internal_methodology_norm(norma: str) -> bool:
-    return str(norma or "").strip().upper().startswith("METODOLOGIA_")
+    return is_internal_norma(norma)
 
 
 def _extract_normas(chunks: list[dict[str, Any]]) -> list[str]:
@@ -72,8 +73,26 @@ def _get_llm_client() -> openai.OpenAI:
 
 
 def _llm_call(prompt: str) -> str:
+    max_attempts = max(1, min(int(os.getenv("LLM_MAX_ATTEMPTS", "3")), 5))
+    base_backoff = max(0.2, min(float(os.getenv("LLM_BACKOFF_BASE_SECONDS", "0.8")), 5.0))
+    timeout_seconds = max(8.0, min(float(os.getenv("LLM_TIMEOUT_SECONDS", "25")), 60.0))
+
+    def _is_retryable(exc: Exception) -> bool:
+        message = str(exc).lower()
+        retry_tokens = [
+            "timeout",
+            "timed out",
+            "connection",
+            "temporarily unavailable",
+            "rate limit",
+            "502",
+            "503",
+            "504",
+        ]
+        return any(token in message for token in retry_tokens)
+
     last_exc: Exception | None = None
-    for _attempt in range(2):
+    for attempt in range(max_attempts):
         try:
             client = _get_llm_client()
             response = client.chat.completions.create(
@@ -81,7 +100,7 @@ def _llm_call(prompt: str) -> str:
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=900,
                 temperature=0.3,
-                timeout=25,
+                timeout=timeout_seconds,
             )
             content = response.choices[0].message.content if response.choices else ""
             text = str(content or "").strip()
@@ -92,7 +111,10 @@ def _llm_call(prompt: str) -> str:
             raise
         except Exception as exc:
             last_exc = exc
-            time.sleep(0.4)
+            if attempt >= (max_attempts - 1) or not _is_retryable(exc):
+                break
+            wait_seconds = base_backoff * (2 ** attempt)
+            time.sleep(wait_seconds)
     raise RuntimeError(f"Error al generar hallazgo con DeepSeek: {last_exc}")
 
 

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend.repositories.identity_repository import store as identity_store
@@ -15,7 +16,8 @@ from backend.schemas import UserContext
 _SECRET = (os.getenv("JWT_SECRET_KEY") or os.getenv("SOCIO_JWT_SECRET") or "").strip()
 if not _SECRET:
     if os.getenv("CI") or os.getenv("EXPORT_OPENAPI"):
-        _SECRET = "DUMMY_SECRET_FOR_CI"
+        # En CI/export de OpenAPI usamos secreto efimero por proceso, nunca hardcodeado.
+        _SECRET = secrets.token_urlsafe(48)
     else:
         raise RuntimeError(
             "JWT_SECRET_KEY no esta configurado. Define la variable de entorno antes de iniciar el backend."
@@ -29,6 +31,16 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(
 )
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+AUTH_COOKIE_NAME = (os.getenv("AUTH_COOKIE_NAME") or "socio-auth").strip() or "socio-auth"
+AUTH_COOKIE_SAMESITE = (
+    os.getenv("AUTH_COOKIE_SAMESITE")
+    or ("none" if os.getenv("ENV", "development").lower() == "production" else "lax")
+).strip().lower()
+AUTH_COOKIE_SECURE = os.getenv("AUTH_COOKIE_SECURE", "").strip().lower() in {"1", "true", "yes"}
+if not AUTH_COOKIE_SECURE:
+    AUTH_COOKIE_SECURE = os.getenv("ENV", "development").lower() == "production"
+CSRF_HEADER_NAME = "X-CSRF-Token"
 
 
 def _allowed_clientes_from_env() -> list[str] | None:
@@ -47,16 +59,19 @@ def create_access_token(
     role: str,
     user_id: str = "",
     display_name: str = "",
+    csrf_token: str = "",
     expires_minutes: int | None = None,
 ) -> tuple[str, int]:
     minutes = expires_minutes or ACCESS_TOKEN_EXPIRE_MINUTES
     exp = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+    csrf_value = csrf_token.strip() if csrf_token else secrets.token_urlsafe(24)
     payload = {
         "sub": sub,
         "org_id": org_id,
         "allowed_clientes": allowed_clientes,
         "role": role,
         "exp": exp,
+        "csrf": csrf_value,
     }
     if user_id:
         payload["uid"] = user_id
@@ -83,6 +98,9 @@ def user_context_from_payload(payload: dict[str, Any]) -> UserContext:
 
     sub = str(payload.get("sub") or "").strip()
     live_user = identity_store.get_user_by_username(sub) if sub else None
+    live_uid = str(payload.get("uid") or "").strip()
+    live_role = str(payload.get("role") or "auditor").strip()
+    live_display_name = str(payload.get("display_name") or sub).strip()
 
     # Dynamic authorization: if identity repository has user/assignments, prefer live values.
     if isinstance(live_user, dict):
@@ -91,9 +109,9 @@ def user_context_from_payload(payload: dict[str, Any]) -> UserContext:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Usuario desactivado",
             )
-        live_uid = str(live_user.get("user_id") or payload.get("uid") or "").strip()
-        live_role = str(live_user.get("role") or payload.get("role") or "auditor").strip()
-        live_display_name = str(live_user.get("display_name") or payload.get("display_name") or sub).strip()
+        live_uid = str(live_user.get("user_id") or live_uid or "").strip()
+        live_role = str(live_user.get("role") or live_role or "auditor").strip()
+        live_display_name = str(live_user.get("display_name") or live_display_name or sub).strip()
         dynamic_allowed = identity_store.get_user_clientes(live_uid) if live_uid else []
         # For real users in identity store, assignments are the source of truth (even if empty).
         allowed_clientes = dynamic_allowed
@@ -103,9 +121,9 @@ def user_context_from_payload(payload: dict[str, Any]) -> UserContext:
             sub=sub,
             org_id=str(payload.get("org_id") or "socio-default-org"),
             allowed_clientes=[str(c) for c in allowed_clientes],
-            role=live_role if isinstance(live_user, dict) else str(payload.get("role") or "auditor"),
-            user_id=live_uid if isinstance(live_user, dict) else str(payload.get("uid") or ""),
-            display_name=live_display_name if isinstance(live_user, dict) else str(payload.get("display_name") or ""),
+            role=live_role,
+            user_id=live_uid,
+            display_name=live_display_name,
         )
     except Exception as exc:
         raise HTTPException(
@@ -120,15 +138,20 @@ def get_user_from_token(token: str) -> UserContext:
 
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> UserContext:
-    if credentials is None or credentials.scheme.lower() != "bearer":
+    token = ""
+    if credentials is not None and credentials.scheme.lower() == "bearer":
+        token = str(credentials.credentials or "").strip()
+    if not token:
+        token = str(request.cookies.get(AUTH_COOKIE_NAME) or "").strip()
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Falta token bearer",
+            detail="Falta token bearer o cookie de sesion",
         )
-
-    return get_user_from_token(credentials.credentials)
+    return get_user_from_token(token)
 
 
 def authorize_cliente_access(cliente_id: str, user: UserContext | None = None) -> None:

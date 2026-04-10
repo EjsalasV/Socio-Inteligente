@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { hasSessionState } from "../../lib/auth-session";
 import { useUserPreferences } from "../../components/providers/UserPreferencesProvider";
 import {
   createAdminUser,
@@ -53,9 +54,7 @@ export default function AdminUsersPage() {
   const isAuthorized = canManageUsers(session?.role || "");
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const token = window.localStorage.getItem("socio_token");
-    if (!token) {
+    if (!hasSessionState()) {
       router.replace("/");
       return;
     }

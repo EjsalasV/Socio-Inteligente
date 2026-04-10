@@ -24,7 +24,7 @@ function priorityColor(priority: string): string {
 
 export default function PapelesTrabajoPage() {
   const { clienteId } = useAuditContext();
-  const { data, isLoading, error, savingTaskId, updateTask } = useWorkpapers(clienteId);
+  const { data, isLoading, isLoadingMore, hasMore, error, savingTaskId, updateTask, loadMore } = useWorkpapers(clienteId);
   const [evidenceDrafts, setEvidenceDrafts] = useState<EvidenceDraftMap>({});
   const [workflowMsg, setWorkflowMsg] = useState<string>("");
   const [areaFilter, setAreaFilter] = useState<string>("todas");
@@ -223,6 +223,9 @@ export default function PapelesTrabajoPage() {
             />
           </label>
         </div>
+        <p className="mt-3 text-xs text-slate-500">
+          Mostrando {data.tasks.length} de {data.tasks_total} tareas filtradas ({data.tasks_total_all} totales).
+        </p>
       </section>
 
       <section data-tour="papeles-tareas" className="space-y-6">
@@ -295,6 +298,20 @@ export default function PapelesTrabajoPage() {
           </article>
         ) : null}
       </section>
+      {hasMore ? (
+        <section className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              void loadMore();
+            }}
+            disabled={isLoadingMore}
+            className="px-4 py-2 rounded-xl text-sm font-semibold border border-[#041627]/20 text-[#041627] hover:bg-[#f1f4f6] disabled:opacity-50"
+          >
+            {isLoadingMore ? "Cargando más..." : "Cargar más tareas"}
+          </button>
+        </section>
+      ) : null}
     </div>
   );
 }

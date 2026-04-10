@@ -1,14 +1,25 @@
-﻿"use client";
+"use client";
+
+import dynamic from "next/dynamic";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
 import ContextualHelp from "../../../components/help/ContextualHelp";
-import CriticalRisks from "../../../components/risk/CriticalRisks";
-import RiskMatrix from "../../../components/risk/RiskMatrix";
-import RiskProcedureSuggestions from "../../../components/risk/RiskProcedureSuggestions";
-import RiskStrategyPanel from "../../../components/risk/RiskStrategyPanel";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useRiskEngine } from "../../../lib/hooks/useRiskEngine";
+
+const CriticalRisks = dynamic(() => import("../../../components/risk/CriticalRisks"), {
+  loading: () => <DashboardSkeleton />,
+});
+const RiskMatrix = dynamic(() => import("../../../components/risk/RiskMatrix"), {
+  loading: () => <DashboardSkeleton />,
+});
+const RiskProcedureSuggestions = dynamic(() => import("../../../components/risk/RiskProcedureSuggestions"), {
+  loading: () => <DashboardSkeleton />,
+});
+const RiskStrategyPanel = dynamic(() => import("../../../components/risk/RiskStrategyPanel"), {
+  loading: () => <DashboardSkeleton />,
+});
 
 export default function RiskEnginePage() {
   const { clienteId } = useAuditContext();
@@ -25,7 +36,7 @@ export default function RiskEnginePage() {
           Risk Intelligence Dashboard
         </span>
         <h1 data-tour="risk-title" className="font-headline text-4xl font-bold text-[#041627] tracking-tight">
-          Motor de Riesgos - Mapa de Calor de Auditoría
+          Motor de Riesgos - Mapa de Calor de Auditoria
         </h1>
       </header>
 
@@ -36,26 +47,26 @@ export default function RiskEnginePage() {
             label: "Matriz de calor",
             byRole: {
               junior:
-                "Empieza por los cuadrantes altos: esas áreas tienen mayor probabilidad de error material.",
+                "Empieza por los cuadrantes altos: esas areas tienen mayor probabilidad de error material.",
               semi:
-                "Cruza impacto y frecuencia para ubicar las áreas de mayor exposición.",
+                "Cruza impacto y frecuencia para ubicar las areas de mayor exposicion.",
               senior:
                 "Usa la matriz para validar alcance y reasignar recursos a riesgos altos.",
               socio:
-                "Usa la matriz para confirmar foco de auditoría, riesgo de emisión y necesidad de escalamiento.",
+                "Usa la matriz para confirmar foco de auditoria, riesgo de emision y necesidad de escalamiento.",
             },
           },
           {
             label: "Areas criticas",
             byRole: {
               junior:
-                "Toma la primera área del ranking y pasa a Workspace Areas para ejecutar pruebas.",
+                "Toma la primera area del ranking y pasa a Workspace Areas para ejecutar pruebas.",
               semi:
-                "Lista priorizada para decidir dónde ejecutar pruebas primero.",
+                "Lista priorizada para decidir donde ejecutar pruebas primero.",
               senior:
                 "Valida consistencia del ranking contra conocimiento del negocio y riesgos emergentes.",
               socio:
-                "Confirma que las áreas críticas soporten la estrategia global y la opinión esperada.",
+                "Confirma que las areas criticas soporten la estrategia global y la opinion esperada.",
             },
           },
           {
@@ -68,7 +79,7 @@ export default function RiskEnginePage() {
               senior:
                 "Revisa pertinencia y cobertura antes de aprobar la carga masiva de procedimientos.",
               socio:
-                "Define solo pruebas de mayor retorno de aseguramiento y evita sobre-auditar áreas no materiales.",
+                "Define solo pruebas de mayor retorno de aseguramiento y evita sobre-auditar areas no materiales.",
             },
           },
         ]}

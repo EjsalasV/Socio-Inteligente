@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+import { hasSessionState, logoutSession } from "../../../lib/auth-session";
 import { uploadClienteArchivo } from "../../../lib/api/clientes";
 import { getPerfil, savePerfil } from "../../../lib/api/perfil";
 import { SECTOR_OPTIONS } from "../../../lib/sectorCatalog";
@@ -63,8 +64,7 @@ export default function OnboardingClientePage() {
   });
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("socio_token") : null;
-    if (!token) {
+    if (!hasSessionState()) {
       router.replace("/");
       return;
     }
@@ -220,9 +220,7 @@ export default function OnboardingClientePage() {
           <button
             type="button"
             onClick={() => {
-              localStorage.removeItem("socio_token");
-              window.dispatchEvent(new Event("socio-auth-changed"));
-              router.push("/");
+              void logoutSession().finally(() => router.push("/"));
             }}
             className="sovereign-card !p-2 !px-3 text-[11px] uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
           >

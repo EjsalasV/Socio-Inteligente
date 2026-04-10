@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import logging
 import os
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+
+LOGGER = logging.getLogger("socio_ai.chat")
 from pydantic import BaseModel
 
 from backend.auditor_pipeline import execute_pipeline
 from backend.auth import authorize_cliente_access, get_current_user
+from backend.middleware.rate_limit import limiter, LIMITS
 from backend.repositories.file_repository import (
     append_audit_log,
     append_chat_message,
@@ -55,13 +59,19 @@ def _run_chat_engine(cliente_id: str, message: str) -> dict:
             senales_python={},
             consulta_adicional=message,
         )
-    except Exception:
-        # Fallback resiliente para no romper chat en productivo.
+    except Exception as exc:
+        # Loguear error pero mantener fallback resiliente
+        LOGGER.exception(
+            f"Pipeline failed for cliente={cliente_id}, message={message[:100]}",
+            exc_info=True,
+        )
         return generate_chat_response(cliente_id, message)
 
 
 @router.post("/{cliente_id}", response_model=ApiResponse)
+@limiter.limit(LIMITS["chat"])  # 20 mensajes por minuto por IP
 def post_chat(
+    request: Request,
     cliente_id: str,
     payload: ChatRequest,
     user: UserContext = Depends(get_current_user),

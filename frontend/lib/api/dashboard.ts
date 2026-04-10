@@ -97,13 +97,28 @@ function normalizeDashboardPayload(clienteId: string, raw: UnknownRecord): Dashb
         };
       })
       .filter((item): item is DashboardData["top_areas"][number] => item !== null),
+    top_areas_page: asNumber(raw.top_areas_page, 1),
+    top_areas_page_size: asNumber(raw.top_areas_page_size, topAreasRaw.length),
+    top_areas_total: asNumber(raw.top_areas_total, topAreasRaw.length),
+    top_areas_has_more: Boolean(raw.top_areas_has_more),
   };
 }
 
-export async function getDashboardData(clienteId: string): Promise<DashboardData> {
+type DashboardQueryOptions = {
+  areasPage?: number;
+  areasPageSize?: number;
+};
+
+function buildDashboardPath(clienteId: string, options?: DashboardQueryOptions): string {
+  const areasPage = options?.areasPage ?? 1;
+  const areasPageSize = options?.areasPageSize ?? 8;
+  return `/dashboard/${clienteId}?areas_page=${encodeURIComponent(String(areasPage))}&areas_page_size=${encodeURIComponent(String(areasPageSize))}`;
+}
+
+export async function getDashboardData(clienteId: string, options?: DashboardQueryOptions): Promise<DashboardData> {
   try {
     const response = await authFetchJson<ApiEnvelope<DashboardResponse> | DashboardResponse>(
-      `/dashboard/${clienteId}`,
+      buildDashboardPath(clienteId, options),
     );
 
     const payload = isRecord(response) && "data" in response && isRecord(response.data)

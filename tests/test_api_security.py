@@ -24,7 +24,7 @@ def test_protected_endpoint_requires_bearer_token() -> None:
     client = TestClient(app)
     res = client.get("/clientes")
     assert res.status_code == 401
-    assert "Falta token bearer" in res.text
+    assert "Falta token bearer o cookie de sesion" in res.text
 
 
 def test_invalid_token_is_rejected() -> None:
@@ -90,3 +90,59 @@ def test_cors_allows_configured_origin_and_blocks_unknown_origin() -> None:
     )
     assert blocked.status_code in {200, 400}
     assert blocked.headers.get("access-control-allow-origin") != "https://evil.example.com"
+
+
+def test_cookie_auth_requires_csrf_for_mutation() -> None:
+    client = TestClient(app)
+    token, _ = create_access_token(
+        sub="csrf-user",
+        org_id="org_demo",
+        allowed_clientes=["*"],
+        role="staff",
+        csrf_token="csrf-123",
+    )
+    res = client.post(
+        "/clientes",
+        cookies={"socio-auth": token},
+        json={"nombre": "Cliente CSRF", "sector": "Retail"},
+    )
+    assert res.status_code == 403
+    assert "CSRF_MISSING" in res.text
+
+
+def test_cookie_auth_rejects_invalid_csrf_for_mutation() -> None:
+    client = TestClient(app)
+    token, _ = create_access_token(
+        sub="csrf-user",
+        org_id="org_demo",
+        allowed_clientes=["*"],
+        role="staff",
+        csrf_token="csrf-123",
+    )
+    res = client.post(
+        "/clientes",
+        cookies={"socio-auth": token},
+        headers={"X-CSRF-Token": "invalid"},
+        json={"nombre": "Cliente CSRF", "sector": "Retail"},
+    )
+    assert res.status_code == 403
+    assert "CSRF_INVALID" in res.text
+
+
+def test_cookie_auth_accepts_valid_csrf_and_reaches_authorization_layer() -> None:
+    client = TestClient(app)
+    token, _ = create_access_token(
+        sub="csrf-user",
+        org_id="org_demo",
+        allowed_clientes=["*"],
+        role="staff",
+        csrf_token="csrf-ok",
+    )
+    res = client.post(
+        "/clientes",
+        cookies={"socio-auth": token},
+        headers={"X-CSRF-Token": "csrf-ok"},
+        json={"nombre": "Cliente CSRF", "sector": "Retail"},
+    )
+    assert res.status_code == 403
+    assert "Solo perfiles administradores" in res.text

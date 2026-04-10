@@ -62,6 +62,10 @@ export interface DashboardResponse {
     minimum_threshold_aplicado: number;
     minimum_threshold_origen: string;
   };
+  top_areas_page: number;
+  top_areas_page_size: number;
+  top_areas_total: number;
+  top_areas_has_more: boolean;
 }
 
 export interface DashboardData {
@@ -100,4 +104,8 @@ export interface DashboardData {
     minimum_threshold_origen: string;
   };
   top_areas: AreaRiesgo[];
+  top_areas_page: number;
+  top_areas_page_size: number;
+  top_areas_total: number;
+  top_areas_has_more: boolean;
 }

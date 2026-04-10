@@ -95,9 +95,9 @@ export async function uploadClienteArchivo(
 
 export async function getClienteDocumentos(clienteId: string): Promise<ClienteDocumento[]> {
   const response = await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}/documentos`);
-  const raw = Array.isArray(response?.data) ? response.data : [];
+  const raw: unknown[] = Array.isArray(response?.data) ? response.data : [];
   return raw
-    .map((item) => {
+    .map((item: unknown) => {
       if (!isRecord(item)) return null;
       return {
         id: typeof item.id === "string" ? item.id : "",
@@ -107,7 +107,7 @@ export async function getClienteDocumentos(clienteId: string): Promise<ClienteDo
         path: typeof item.path === "string" ? item.path : "",
       };
     })
-    .filter((item): item is ClienteDocumento => item !== null && Boolean(item.id));
+    .filter((item: ClienteDocumento | null): item is ClienteDocumento => item !== null && Boolean(item.id));
 }
 
 export interface DocumentoIngestionResult {
@@ -126,9 +126,9 @@ export async function uploadClienteDocumento(
     body: formData,
   });
   const data = isRecord(response?.data) ? response.data : {};
-  const docs = Array.isArray(data.documentos) ? data.documentos : [];
+  const docs: unknown[] = Array.isArray(data.documentos) ? data.documentos : [];
   const documentos = docs
-    .map((item) => {
+    .map((item: unknown) => {
       if (!isRecord(item)) return null;
       return {
         id: typeof item.id === "string" ? item.id : "",
@@ -138,7 +138,7 @@ export async function uploadClienteDocumento(
         path: typeof item.path === "string" ? item.path : "",
       };
     })
-    .filter((item): item is ClienteDocumento => item !== null && Boolean(item.id));
+    .filter((item: ClienteDocumento | null): item is ClienteDocumento => item !== null && Boolean(item.id));
   const ingestionRaw = isRecord(data.ingestion) ? data.ingestion : {};
   return {
     documentos,
@@ -151,14 +151,14 @@ export async function uploadClienteDocumento(
 
 export async function getClienteHallazgos(clienteId: string): Promise<ClienteHallazgo[]> {
   const response = await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}/hallazgos`);
-  const raw = Array.isArray(response?.data) ? response.data : [];
+  const raw: unknown[] = Array.isArray(response?.data) ? response.data : [];
   return raw
-    .map((item) => {
+    .map((item: unknown) => {
       if (!isRecord(item)) return null;
       return {
         title: typeof item.title === "string" ? item.title : "Hallazgo",
         body: typeof item.body === "string" ? item.body : "",
       };
     })
-    .filter((item): item is ClienteHallazgo => item !== null);
+    .filter((item: ClienteHallazgo | null): item is ClienteHallazgo => item !== null);
 }

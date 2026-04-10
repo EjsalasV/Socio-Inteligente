@@ -240,15 +240,8 @@ export async function getExecutiveMemo(clienteId: string): Promise<ReportMemoMet
 }
 
 export async function downloadExecutivePdf(clienteId: string): Promise<{ blob: Blob; filename: string }> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("socio_token") : null;
-  if (!token) {
-    throw new Error("Missing JWT token in session");
-  }
-
   const response = await fetch(buildApiUrl(`/reportes/${clienteId}/executive-pdf`), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: "include",
   });
   if (!response.ok) {
     throw new Error(`No se pudo descargar el PDF (${response.status}).`);
@@ -259,9 +252,7 @@ export async function downloadExecutivePdf(clienteId: string): Promise<{ blob: B
   const filename = typeof raw.report_name === "string" ? raw.report_name : `${clienteId}_executive_summary.pdf`;
 
   const fileResponse = await fetch(buildApiUrl(`/reportes/${clienteId}/executive-pdf/file?path=${encodeURIComponent(path)}`), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: "include",
   });
   if (!fileResponse.ok) {
     throw new Error(`No se pudo descargar el archivo (${fileResponse.status}).`);
@@ -274,14 +265,8 @@ export async function downloadExecutivePdfByPath(
   path: string,
   filename: string,
 ): Promise<{ blob: Blob; filename: string }> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("socio_token") : null;
-  if (!token) {
-    throw new Error("Missing JWT token in session");
-  }
   const fileResponse = await fetch(buildApiUrl(`/reportes/${clienteId}/executive-pdf/file?path=${encodeURIComponent(path)}`), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: "include",
   });
   if (!fileResponse.ok) {
     throw new Error(`No se pudo descargar el archivo (${fileResponse.status}).`);

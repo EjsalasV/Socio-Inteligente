@@ -32,6 +32,17 @@ DEFAULTS: dict[str, Any] = {
             "report_required_completion_pct": 95.0,
         }
     },
+    "normativa": {
+        "internal_prefixes": [
+            "METODOLOGIA_",
+            "INTERNAL_",
+            "HIDDEN_",
+        ]
+    },
+    "rate_limit": {
+        "admin_writes_per_minute": 20,
+        "normativa_refresh_per_minute": 3,
+    },
 }
 
 
@@ -55,4 +66,3 @@ def get_runtime_config() -> dict[str, Any]:
     if not isinstance(data, dict):
         return DEFAULTS
     return _deep_merge(DEFAULTS, data)
-

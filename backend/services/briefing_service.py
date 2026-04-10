@@ -9,6 +9,7 @@ from typing import Any
 
 import openai
 
+from backend.constants.normativa import get_internal_norm_prefixes, is_internal_norma
 from backend.services.normativa_monitor_service import get_pending_normative_changes
 from backend.services.rag_chat_service import retrieve_context_chunks
 
@@ -21,8 +22,26 @@ def get_llm_client() -> openai.OpenAI:
 
 
 def llamar_llm(prompt: str) -> str:
+    max_attempts = max(1, min(int(os.getenv("LLM_MAX_ATTEMPTS", "3")), 5))
+    base_backoff = max(0.2, min(float(os.getenv("LLM_BACKOFF_BASE_SECONDS", "0.8")), 5.0))
+    timeout_seconds = max(8.0, min(float(os.getenv("LLM_TIMEOUT_SECONDS", "25")), 60.0))
+
+    def _is_retryable(exc: Exception) -> bool:
+        message = str(exc).lower()
+        retry_tokens = [
+            "timeout",
+            "timed out",
+            "connection",
+            "temporarily unavailable",
+            "rate limit",
+            "502",
+            "503",
+            "504",
+        ]
+        return any(token in message for token in retry_tokens)
+
     last_exc: Exception | None = None
-    for _attempt in range(2):
+    for attempt in range(max_attempts):
         try:
             client = get_llm_client()
             response = client.chat.completions.create(
@@ -30,7 +49,7 @@ def llamar_llm(prompt: str) -> str:
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=800,
                 temperature=0.3,
-                timeout=25,
+                timeout=timeout_seconds,
             )
             content = response.choices[0].message.content if response.choices else ""
             text = str(content or "").strip()
@@ -41,7 +60,10 @@ def llamar_llm(prompt: str) -> str:
             raise
         except Exception as exc:
             last_exc = exc
-            time.sleep(0.4)
+            if attempt >= (max_attempts - 1) or not _is_retryable(exc):
+                break
+            wait_seconds = base_backoff * (2 ** attempt)
+            time.sleep(wait_seconds)
     raise RuntimeError(f"Error al generar briefing con DeepSeek: {last_exc}")
 
 
@@ -103,7 +125,7 @@ def _normalize_text_list(values: list[str] | None, *, fallback: str = "N/D") -> 
 
 
 def _is_internal_methodology_norm(norma: str) -> bool:
-    return str(norma or "").strip().upper().startswith("METODOLOGIA_")
+    return is_internal_norma(norma)
 
 
 def _build_chunks_block(title: str, chunks: list[dict[str, Any]]) -> str:
@@ -147,8 +169,15 @@ def _extract_normas(chunks: list[dict[str, Any]]) -> list[str]:
 
 
 def _strip_internal_norms_from_briefing(briefing: str) -> str:
+    prefixes = [p.upper() for p in get_internal_norm_prefixes()]
     lines = str(briefing or "").splitlines()
-    return "\n".join([line for line in lines if "METODOLOGIA_" not in line]).strip()
+    clean_lines: list[str] = []
+    for line in lines:
+        upper_line = line.upper()
+        if any(prefix in upper_line for prefix in prefixes):
+            continue
+        clean_lines.append(line)
+    return "\n".join(clean_lines).strip()
 
 
 def _build_prompt(payload: dict[str, Any], contables: list[dict[str, Any]], nias: list[dict[str, Any]]) -> str:

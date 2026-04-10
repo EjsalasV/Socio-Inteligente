@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { logoutSession } from "../../lib/auth-session";
 import { useAuditContext } from "../../lib/hooks/useAuditContext";
 import { useUserPreferences } from "../providers/UserPreferencesProvider";
 import { useTour } from "../tour/TourProvider";
@@ -169,9 +170,7 @@ export default function Sidebar() {
             <button
               type="button"
               onClick={() => {
-                localStorage.removeItem("socio_token");
-                window.dispatchEvent(new Event("socio-auth-changed"));
-                router.push("/");
+                void logoutSession().finally(() => router.push("/"));
               }}
             className="w-full flex items-center gap-3 rounded-editorial px-4 py-3 text-slate-600 hover:bg-white/75 transition-colors"
           >

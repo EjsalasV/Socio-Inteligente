@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { setSessionState } from "../lib/auth-session";
 import { getClientes } from "../lib/api/clientes";
 import { buildApiUrl, getApiBase, getBrowserOrigin } from "../lib/api-base";
 
@@ -10,6 +11,7 @@ type LoginApiData = {
   access_token?: string;
   token_type?: string;
   expires_in?: number;
+  csrf_token?: string;
 };
 
 type LoginApiResponse = {
@@ -34,11 +36,18 @@ function extractToken(payload: unknown): string {
   return typeof token === "string" && token.trim() ? token : "";
 }
 
+function extractCsrfToken(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return "";
+  const value = payload as LoginApiResponse;
+  const token = (value?.data as { csrf_token?: string } | undefined)?.csrf_token;
+  return typeof token === "string" && token.trim() ? token : "";
+}
+
 export default function LoginPage() {
   const router = useRouter();
 
-  const [username, setUsername] = useState<string>("joaosalas123@gmail.com");
-  const [password, setPassword] = useState<string>("1234");
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -57,6 +66,7 @@ export default function LoginPage() {
       const res = await fetch(buildApiUrl("/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ username: username.trim(), password }),
       });
 
@@ -77,9 +87,13 @@ export default function LoginPage() {
         setError("La respuesta de autenticación no incluyó token.");
         return;
       }
+      const csrfToken = extractCsrfToken(payload);
+      if (!csrfToken) {
+        setError("La respuesta de autenticación no incluyó token CSRF.");
+        return;
+      }
 
-      localStorage.setItem("socio_token", token);
-      window.dispatchEvent(new Event("socio-auth-changed"));
+      setSessionState(csrfToken);
 
       try {
         await getClientes();

@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logout_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/me": {
         parameters: {
             query?: never;
@@ -929,6 +946,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/rate-limit/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Rate Limit Metrics */
+        get: operations["get_rate_limit_metrics_api_admin_rate_limit_metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1275,6 +1309,26 @@ export interface components {
              */
             balance_delta: number;
             materialidad_detalle?: components["schemas"]["DashboardMaterialidadDetalle"];
+            /**
+             * Top Areas Page
+             * @default 1
+             */
+            top_areas_page: number;
+            /**
+             * Top Areas Page Size
+             * @default 8
+             */
+            top_areas_page_size: number;
+            /**
+             * Top Areas Total
+             * @default 0
+             */
+            top_areas_total: number;
+            /**
+             * Top Areas Has More
+             * @default false
+             */
+            top_areas_has_more: boolean;
         };
         /** DashboardWorkflowGate */
         DashboardWorkflowGate: {
@@ -1532,6 +1586,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logout_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
                 };
             };
         };
@@ -1876,7 +1950,10 @@ export interface operations {
     };
     get_dashboard_dashboard__cliente_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                areas_page?: number;
+                areas_page_size?: number;
+            };
             header?: never;
             path: {
                 cliente_id: string;
@@ -2817,7 +2894,12 @@ export interface operations {
     };
     get_workpapers_papeles_trabajo__cliente_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                page_size?: number;
+                area_code?: string;
+                q?: string;
+            };
             header?: never;
             path: {
                 cliente_id: string;
@@ -3474,6 +3556,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_rate_limit_metrics_api_admin_rate_limit_metrics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
                 };
             };
         };

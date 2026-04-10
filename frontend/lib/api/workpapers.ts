@@ -27,6 +27,11 @@ function normalizePlan(clienteId: string, raw: UnknownRecord): WorkpaperPlanData
   return {
     cliente_id: asString(raw.cliente_id, clienteId),
     completion_pct: asNumber(raw.completion_pct, 0),
+    tasks_page: asNumber(raw.tasks_page, 1),
+    tasks_page_size: asNumber(raw.tasks_page_size, 0),
+    tasks_total: asNumber(raw.tasks_total, tasksRaw.length),
+    tasks_total_all: asNumber(raw.tasks_total_all, tasksRaw.length),
+    tasks_has_more: asBoolean(raw.tasks_has_more, false),
     tasks: tasksRaw
       .map((item) => {
         const row = typeof item === "object" && item !== null ? (item as UnknownRecord) : null;
@@ -71,9 +76,37 @@ function normalizePlan(clienteId: string, raw: UnknownRecord): WorkpaperPlanData
   };
 }
 
-export async function getWorkpaperPlan(clienteId: string): Promise<WorkpaperPlanData> {
+type WorkpaperPlanQueryOptions = {
+  page?: number;
+  pageSize?: number;
+  areaCode?: string;
+  query?: string;
+};
+
+function buildWorkpaperPlanPath(clienteId: string, options?: WorkpaperPlanQueryOptions): string {
+  const params = new URLSearchParams();
+  if (options?.page && options.page > 0) {
+    params.set("page", String(options.page));
+  }
+  if (options?.pageSize !== undefined && options.pageSize >= 0) {
+    params.set("page_size", String(options.pageSize));
+  }
+  if (options?.areaCode && options.areaCode.trim()) {
+    params.set("area_code", options.areaCode.trim());
+  }
+  if (options?.query && options.query.trim()) {
+    params.set("q", options.query.trim());
+  }
+  const queryString = params.toString();
+  return queryString ? `/papeles-trabajo/${clienteId}?${queryString}` : `/papeles-trabajo/${clienteId}`;
+}
+
+export async function getWorkpaperPlan(
+  clienteId: string,
+  options?: WorkpaperPlanQueryOptions,
+): Promise<WorkpaperPlanData> {
   try {
-    const response = await authFetchJson<ApiEnvelope<unknown>>(`/papeles-trabajo/${clienteId}`);
+    const response = await authFetchJson<ApiEnvelope<unknown>>(buildWorkpaperPlanPath(clienteId, options));
     const raw = typeof response?.data === "object" && response?.data !== null ? (response.data as UnknownRecord) : {};
     return normalizePlan(clienteId, raw);
   } catch (error) {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from backend.auth import authorize_cliente_access, get_current_user
 from backend.schemas import (
@@ -130,7 +130,12 @@ def _extract_tb_stage(tb: object) -> str:
 
 
 @router.get("/{cliente_id}", response_model=DashboardResponse)
-def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)) -> DashboardResponse:
+def get_dashboard(
+    cliente_id: str,
+    areas_page: int = Query(1, ge=1),
+    areas_page_size: int = Query(8, ge=1, le=100),
+    user: UserContext = Depends(get_current_user),
+) -> DashboardResponse:
     authorize_cliente_access(cliente_id, user)
     stage = "init"
     try:
@@ -186,7 +191,7 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
         )
 
         stage = "build.areas"
-        top_areas: list[AreaRiesgo] = []
+        all_top_areas: list[AreaRiesgo] = []
         areas_completas = 0
         areas_en_proceso = 0
         areas_no_iniciadas = 0
@@ -212,8 +217,8 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
                 else:
                     areas_no_iniciadas += 1
 
-            for _, row in ranking_visible.head(8).iterrows():
-                top_areas.append(
+            for _, row in ranking_visible.iterrows():
+                all_top_areas.append(
                     AreaRiesgo(
                         codigo=_to_str(row.get("area", "")),
                         nombre=_to_str(row.get("nombre", "")),
@@ -223,6 +228,11 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
                         con_saldo=bool(row.get("con_saldo", False)),
                     )
                 )
+        total_top_areas = len(all_top_areas)
+        start = max(0, (areas_page - 1) * areas_page_size)
+        end = start + areas_page_size
+        top_areas = all_top_areas[start:end]
+        top_areas_has_more = end < total_top_areas
 
         stage = "build.progress"
         total_areas = areas_completas + areas_en_proceso + areas_no_iniciadas
@@ -312,6 +322,10 @@ def get_dashboard(cliente_id: str, user: UserContext = Depends(get_current_user)
             resultado_periodo=resultado_periodo,
             balance_delta=delta_abs,
             materialidad_detalle=materialidad_detalle,
+            top_areas_page=areas_page,
+            top_areas_page_size=areas_page_size,
+            top_areas_total=total_top_areas,
+            top_areas_has_more=top_areas_has_more,
         )
 
         return payload
