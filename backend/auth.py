@@ -23,6 +23,12 @@ if not _SECRET:
             "JWT_SECRET_KEY no esta configurado. Define la variable de entorno antes de iniciar el backend."
         )
 
+# Log para diagnosticar cual clave se está usando
+import sys
+_key_preview = _SECRET[:20] + "..." + _SECRET[-10:] if len(_SECRET) > 30 else _SECRET[:20] + "..."
+print(f"[JWT] JWT_SECRET_KEY loaded: {_key_preview} (len={len(_SECRET)})", file=sys.stderr)
+logging.getLogger().warning(f"[JWT] JWT_SECRET_KEY loaded: {_key_preview} (len={len(_SECRET)})")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(
     os.getenv("JWT_EXPIRE_MINUTES")
