@@ -87,6 +87,7 @@ def _register_routes_once() -> None:
         user_preferences,
         workpapers,
         workflow,
+        audit_programs_dashboard,
     )
 
     app.include_router(auth.router)
@@ -108,6 +109,7 @@ def _register_routes_once() -> None:
     app.include_router(admin.router)
     app.include_router(realtime.router)
     app.include_router(audit_validator.router)
+    app.include_router(audit_programs_dashboard.router)
     _routes_registered = True
 
 
@@ -140,6 +142,7 @@ def _get_observed_prefixes() -> tuple[str, ...]:
             "/api/user/",
             "/api/admin/",
             "/api/audit/",
+            "/api/audit-programs/",
         )
     return _observed_prefixes
 
