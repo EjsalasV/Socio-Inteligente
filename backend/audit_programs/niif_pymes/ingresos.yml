@@ -1,0 +1,418 @@
+framework: "NIIF_PYMES"
+norma_clave: "NIIF 15 / NIC 18 - Ingresos de Actividades Ordinarias"
+area: "ingresos"
+area_codigo: "410"
+
+conceptos_riesgo:
+  - "Ingresos es el riesgo NÚMERO UNO en auditoría: gerencia manipula para cumplir targets"
+  - "NIIF 15 requiere: Control de bien/servicio = Ingreso (no simple entrega)"
+  - "5 pasos: Identificar contrato → Obligaciones → Precio → Asignar precio → Reconocer"
+  - "Bundled services: 1 contrato, múltiples obligaciones → Cada una es ingreso separado"
+  - "Percentage of Completion: Si no hay hito claro, es fraude de reconocimiento"
+  - "Retornos: Cuentas por cobrar BRUTA menos estimado de devoluciones"
+  - "Ingresos futuros (contract liability) NO son ingreso hasta que se cumple obligación"
+
+principios_aplicables:
+  - "NIA 240: Fraude y error en reconocimiento de ingresos"
+  - "NIA 330: Procedimientos sustantivos en ingresos"
+  - "NIA 505: Confirmaciones de terceros (clientes)"
+  - "NIA 550: Partes relacionadas en contratos de venta"
+  - "NIIF 15.88-90: Disclosure de obligaciones de desempeño"
+  - "NIIF 15 Apéndice E: Ejemplos de cuando es satisfecha obligación"
+
+criterios_validacion:
+
+  - id: "INGR-001-CONTRATO-SIN-TERMINOS"
+    regla: "Ingreso registrado sin contrato formal o términos identificables"
+    es_permitido: false
+    descripcion: "RECHAZAR - NIIF 15 requiere contrato con términos claros"
+    
+    porque: |
+      NIIF 15.9: Para aplicar esta norma, PRIMERO debe haber un contrato
+      que cumpla:
+      1. Partes han aprobado el contrato (hay acuerdo)
+      2. Se identifican derechos y obligaciones (¿QUÉ se vende?)
+      3. Se identifica términos de pago (¿CUÁNDO paga el cliente?)
+      4. Es probable que cliente pague (¿RIESGO de no pago?)
+      5. El contrato tiene sustancia comercial
+      
+      Sin contrato = No hay base para ingresos.
+    
+    cuando_aplica:
+      - "Venta donde solo hay email diciendo 'nos interesa'"
+      - "Servicio comienza antes de que cliente firme contrato"
+      - "Gerencia registra 'ingreso probable' sin acuerdo escrito"
+    
+    que_validar:
+      - "¿Existe contrato escrito ANTES del ingreso?"
+      - "¿Contrato identifica: producto/servicio, fecha, precio, términos pago?"
+      - "¿Contrato está FIRMADO por ambas partes?"
+      - "¿O es solo 'acuerdo verbal' de gerencia?"
+    
+    que_hacer:
+      - "RECHAZAR hasta obtener contrato"
+      - "Pedir: Contrato firmado + evidencia de aceptación"
+      - "Si es servicio: Debe haber Purchase Order o equivalente"
+      - "Si es verbal: Fraude potencial (NIA 240)"
+    
+    nias: ["NIA 240", "NIA 330"]
+    materialidad: "Material si >2% ingresos"
+    trampa_asociada: "TRAMPA-INGR-001"
+
+  - id: "INGR-002-OBLIGACION-NO-SATISFECHA"
+    regla: "Ingreso registrado cuando obligación de desempeño NO está satisfecha"
+    es_permitido: false
+    descripcion: "RECHAZAR - Cliente no ha recibido bien/servicio"
+    
+    porque: |
+      NIIF 15.31: Ingreso se reconoce cuando cliente obtiene CONTROL del bien/servicio.
+      
+      Control = Cliente puede acceder, usar, consumir el bien.
+      Envío al almacén del cliente = Control
+      Envío al transporte (FCA) = Control pasa al cliente
+      Servicio completado = Control transferido
+      
+      Si obligación NO está satisfecha = NO hay ingreso.
+      (Podría ser contract liability / deferred revenue)
+    
+    casos_tipicos_fraude:
+      - "Envío FOB: Cliente recibió en transporte, pero gerencia registra antes"
+      - "Servicio: 'Estimamos completar 80%, registramos 80% ingresos' (SIN contrato)"
+      - "Bienes: 'Los tenemos en consignación en cliente, los registramos como venta'"
+    
+    que_validar:
+      - "¿Cliente tiene control del bien? (Recibió, firmó ACR)"
+      - "¿Incoterm identifica cuándo pasa control?"
+      - "¿Para servicios: está completo el desempeño? (hito, 100% terminado)"
+      - "¿O estamos en % of completion sin claridad?"
+    
+    que_pedir:
+      - "ACR (Acta de Conformidad / Receipt) del cliente"
+      - "Comprobante de transporte con firma de cliente"
+      - "Para servicios: Comprobante de aceptación/termino"
+      - "Si no existe: Reversión de ingreso hasta que exista"
+    
+    nias: ["NIA 240", "NIA 330", "NIA 505"]
+    materialidad: "Crítico - es RECONOCIMIENTO de ingreso"
+    trampa_asociada: "TRAMPA-INGR-002"
+
+  - id: "INGR-003-PRECIO-NO-DETERMINABLE"
+    regla: "Ingreso registrado cuando precio para el cliente NO está determinado"
+    es_permitido: false
+    descripcion: "RECHAZAR - Precio debe ser variable o fijo ACORDADO"
+    
+    porque: |
+      NIIF 15.49: El precio de la transacción es lo que la empresa espera
+      recibir del cliente a cambio de transferir bienes/servicios.
+      
+      Precio debe ser:
+      - Acordado en contrato (fijo), O
+      - Determinable por fórmula (variable), O
+      - Estimable con razonabilidad
+      
+      Si gerencia "espera" cliente pague diferente a lo acordado = Fraude.
+      Si precio es "a determinar después" = No hay ingreso hasta determinación.
+    
+    cuando_rechazar:
+      - "Contrato dice: 'Precio a acordar después de trabajo'"
+      - "Estimamos cliente pagará $100, pero contrato dice $80"
+      - "Precio variable pero no hay parámetro objetivo (ej: 'según satisfacción')"
+    
+    que_validar:
+      - "¿Contrato especifica el precio o la forma de calcularlo?"
+      - "¿Precio es FIJO (200) o VARIABLE (% sobre costo)?"
+      - "¿Variable tiene parámetro objetivo? (índice, precio mercado, fórmula)"
+      - "¿O es subjetivo? ('según nos parezca' = NO válido)"
+    
+    que_hacer:
+      - "RECHAZAR si precio no está determinado"
+      - "Pedir: Contrato con precio O fórmula clara"
+      - "Si es variable: Necesita parámetro medible (precio índice, costo +%)"
+      - "Si dice 'a acordar': Es contract asset, no ingreso aún"
+    
+    nias: ["NIA 330"]
+    materialidad: "Material si >1% precio total"
+
+  - id: "INGR-004-RETORNO-INEXISTENTE"
+    regla: "Ingreso registrado sin considerar derecho de retorno del cliente"
+    es_permitido: false
+    descripcion: "RECHAZAR - Debe estimarse devoluciones esperadas"
+    
+    porque: |
+      NIIF 15.52: Si cliente tiene derecho a retornar bien y recibir dinero:
+      - Empresa NO reconoce ingreso por monto que probablemente será devuelto
+      - Se estima # de devoluciones basado en experiencia histórica
+      - Se reduce account receivable por provision de devoluciones
+      
+      Tienda retail vende $100.000 pero tienen política "30 días para cambio":
+      - Histórico: 5% devoluciones
+      - Ingreso real = $100.000 - $5.000 = $95.000
+      - $5.000 va a provision de devoluciones esperadas
+    
+    cuando_aplica:
+      - "Tienda retail con política de cambios/devoluciones"
+      - "Software con período de prueba"
+      - "Servicio con garantía de satisfacción (30 días money-back)"
+    
+    que_validar:
+      - "¿Existe política de retorno en contrato?"
+      - "¿Cuál es el % histórico de retornos?"
+      - "¿Se estimó reducción por retornos esperados?"
+      - "¿O se registró 100% sin considerar retornos?"
+    
+    que_hacer:
+      - "RECHAZAR if retornos existe pero no se estimó"
+      - "Pedir: Análisis histórico de retornos (últimos 3 años)"
+      - "Calcular: % de devoluciones esperadas"
+      - "Reducir ingreso: Ingreso neto = Gross - Devoluciones esperadas"
+    
+    nias: ["NIA 330"]
+    materialidad: "Material si >2% ingresos"
+    trampa_asociada: "TRAMPA-INGR-003"
+
+  - id: "INGR-005-SERVICIO-BUNDLED"
+    regla: "Servicios bundled se reconocen como UN ingreso (no como componentes)"
+    es_permitido: false
+    descripcion: "RECHAZAR - Obligaciones múltiples = Ingresos múltiples"
+    
+    porque: |
+      NIIF 15.35-41: Si contrato tiene múltiples obligaciones de desempeño,
+      cada obligación se reconoce separadamente cuando se satisface.
+      
+      Ejemplo: Contrato de Software Maintenance
+      - Obligación 1: Setup inicial (30 horas)
+      - Obligación 2: Support 24/7 por 12 meses
+      - Obligación 3: Actualizaciones (si las hay)
+      
+      Precio total = $120.000
+      Debe asignarse:
+      - Setup: $20.000 (15% - se reconoce mes 1)
+      - Support: $90.000 (75% - se reconoce rateado 12 meses)
+      - Updates: $10.000 (8% - se reconoce cuando ocurren)
+      
+      Si registra $120.000 completo en mes 1 = FRAUDE
+    
+    cuando_aplica:
+      - "Contrato de software: instalación + mantenimiento"
+      - "Venta de equipo + instalación + entrenamiento"
+      - "Consultoría: diagnóstico + implementación + soporte"
+    
+    que_validar:
+      - "¿Contrato tiene MÚLTIPLES entregas/servicios?"
+      - "¿Se identificó cada obligación de desempeño?"
+      - "¿Se asignó precio a cada obligación (proporcionalmente)?"
+      - "¿Se reconoce cada una cuando es satisfecha?"
+    
+    que_hacer:
+      - "RECHAZAR si bundled se reconoce como uno"
+      - "Hacer análisis de obligaciones NIIF 15.30-31"
+      - "Asignar precio a cada obligación (si es posible a precios de mercado)"
+      - "Reconocer cada obligación en timing correcto"
+    
+    nias: ["NIA 330"]
+    materialidad: "Crítico si >10% ingresos"
+    trampa_asociada: "TRAMPA-INGR-004"
+
+  - id: "INGR-006-PERCENTAGE-COMPLETION-SIN-HITO"
+    regla: "Servicio usando % of completion sin hitos o medición objetiva"
+    es_permitido: false
+    descripcion: "RECHAZAR - Debe haber fórmula medible para % de avance"
+    
+    porque: |
+      NIIF 15.45: Para servicios que se prestan a lo largo del tiempo,
+      ingresos se reconocen basado en progreso hacia satisfacción.
+      
+      PERO: Progreso debe medirse OBJETIVAMENTE:
+      - Horas facturables de horas totales presupuestadas
+      - Unidades de salida entregadas vs. total proyectado
+      - Coste incurrido vs. coste total estimado
+      
+      NI PERMITIDO: "Gerencia estima 40% completado" sin base.
+      Eso es estimación sin sustancia = Fraude potencial.
+    
+    casos_fraude_tipicos:
+      - "Proyecto 'estimamos 50% completo' en junio (sin hitos)"
+      - "Consultoría: 'llevamos 70% de las horas' (pero contrato abierto)"
+      - "Obra: '40% avanzado según director' (sin medición)"
+    
+    que_validar:
+      - "¿Proyecto tiene HITOS identificados?"
+      - "¿% de avance está basado en: horas/unidades/costo objetivo?"
+      - "¿O es solo percepción de gerencia?"
+      - "¿Se valida avance con cliente o auditor independientemente?"
+    
+    que_hacer:
+      - "RECHAZAR if % of completion sin fórmula"
+      - "Pedir: Contrato con hitos/milestones"
+      - "Pedir: Evidencia de % (horas reportadas, unidades entregadas)"
+      - "Validar: % contra fuentes independientes"
+    
+    nias: ["NIA 240", "NIA 330"]
+    materialidad: "Crítico - alto riesgo de fraude"
+    trampa_asociada: "TRAMPA-INGR-005"
+
+  - id: "INGR-007-COMISION-AFFILIATE"
+    regla: "Comisión a distribuidor affiliate se registra como ingreso (no es reducción)"
+    es_permitido: false
+    descripcion: "RECHAZAR - Comisiones affiliate son gastos o reducción de ingresos"
+    
+    porque: |
+      NIIF 15.9(b): Si tercero (distribuidor) es esencial para cumplir
+      obligación de desempeño (ej: distribuidor es único que accede a cliente),
+      entonces comisión reduce el ingreso neto.
+      
+      Diferencia:
+      - Distribuidor que ENTREGA al cliente = Comisión es gasto (NIA 18)
+      - Distribuidor que ES REQUERIDO por contrato = Comisión reduce ingreso
+      
+      Ejemplo: SaaS que se vende SOLO a través de affiliates
+      - Venta bruta: $10.000
+      - Comisión affiliate: 30% = $3.000
+      - Ingreso neto: $7.000 (no $10.000)
+    
+    cuando_aplica:
+      - "Modelo de negocio: Distribuidor es intermediario requerido"
+      - "Comisión es % de cada venta a través del distribuidor"
+      - "Distribuidor tiene control de cliente"
+    
+    que_validar:
+      - "¿Es distribuidor parte ESENCIAL del modelo?"
+      - "¿O es solo canal adicional entre muchos?"
+      - "¿Contrato requiere que pases a través del distribuidor?"
+    
+    que_hacer:
+      - "Si distribuidor es esencial: Ingreso NETO (bruto - comisión)"
+      - "Si es solo canal: Comisión es gasto operativo"
+      - "Pedir: Análisis de esencialidad del distribuidor"
+    
+    nias: ["NIA 550", "NIA 330"]
+    materialidad: "Material si distribuidor >10% ingresos"
+
+  - id: "INGR-008-DESCUENTO-NO-REGISTRADO"
+    regla: "Descuento al cliente registrado como descuento posterior (no en precio)"
+    es_permitido: false
+    descripcion: "RECHAZAR - Descuento pactado reduce precio de transacción"
+    
+    porque: |
+      NIIF 15.52: Si cliente recibe descuento al momento de transacción
+      (no es posterior), el precio de transacción ya INCLUYE el descuento.
+      
+      Si vendemos a cliente mayorista que tiene "descuento 15% por volumen":
+      - Precio es: (Precio base × cantidad) - Descuento = Precio de transacción
+      - Ingreso = Precio ya con descuento
+      - NO registramos descuento después como "reducción de ingresos"
+      
+      Fraude típico: Registrar precio full, luego descuento como "promoción"
+      (intenta inflar ingresos para después reducirlos)
+    
+    cuando_aplica:
+      - "Cliente mayorista con 'descuento por volumen' en contrato"
+      - "Cliente antiguo con descuento por lealtad conocido"
+      - "Promoción confirmada AL resolver la transacción"
+    
+    que_validar:
+      - "¿Descuento está en contrato ORIGINAL?"
+      - "¿O es 'cortesía' posterior de gerencia?"
+      - "¿Precio ingresado ya incluye descuento?"
+      - "¿O se registra bruto y se resta después?"
+    
+    que_hacer:
+      - "INGRESO CORRECTO = Precio con descuento incorporado"
+      - "Si se registró bruto: Reversión al precio neto"
+      - "Pedir: Contrato con cliente mostrando descuento pactado"
+    
+    nias: ["NIA 330"]
+    materialidad: "Material si >2% ingresos"
+
+criterios_educacion:
+  objetivo: "Enseñar que ingresos es #1 riesgo de fraude: gerencia manipula para cumplir"
+  patron_riesgo: "Recognition timing: 'Lo reconozco hoy aunque cliente pague después' o 'reconozco completo aunque obligación está parcial'"
+  pregunta_siempre: "¿Cliente tiene CONTROL del bien/servicio en ESTA fecha? Si no, no hay ingreso."
+
+trampas_comunes:
+  
+  - id: "TRAMPA-INGR-001"
+    trampa: "Contract timing: Registra ingreso ANTES de que cliente firme contrato"
+    es_peligrosa: true
+    nia_violada: "NIA 240 - Fraude en ingresos"
+    caso_real: "Gerente vende licencia de software en diciembre pero cliente firma contrato en enero. Se registró en dic sin contrato."
+    criterio_socio: "NIIF 15 requiere contrato identificable ANTES. Sin protocolo: cada vendedor 'registra cuando quiere'"
+    
+  - id: "TRAMPA-INGR-002"
+    trampa: "Obligación incomplete: Registro de 100% de ingreso cuando entrega NO está completa"
+    es_peligrosa: true
+    nia_violada: "NIA 240 - Reconocimiento prematuro"
+    caso_real: "Equipo enviado en transporte FCA pero gerente registra antes de que cliente firme recepción. Cambió de opinión después."
+    criterio_socio: "Control = Cliente tiene acceso + derecho a uso. Transporte en tránsito = Cliente NO tiene control aún."
+    
+  - id: "TRAMPA-INGR-003"
+    trampa: "Returns amnesia: Vende flexible con derecho de retorno pero registra como 100% venta"
+    es_peligrosa: true
+    nia_violada: "NIA 330 - Omisión de ajuste"
+    caso_real: "Distribuidor compra $500k en productos con '30 días for return' pero se registra $500k. Después devuelve $100k."
+    criterio_socio: "Probabilidad de retorno debe estimarse AL reconocer. No es 'sorpresa' después; debió estar en provision."
+    
+  - id: "TRAMPA-INGR-004"
+    trampa: "Bundled trick: Contrato tiene TRES servicios (setup + maintenance + support) pero se registra TODO mes 1"
+    es_peligrosa: true
+    nia_violada: "NIA 330 - Segmentación de obligaciones"
+    caso_real: "Software SaaS: $12k total (setup $2k mes1, monthly support $5k/mes × 12, updates cuando). Se registró $12k en mes 1."
+    criterio_socio: "Cada obligación = Cada fecha de reconocimiento. Bundled ≠ Todo ahora; es multiple small recognitions."
+    
+  - id: "TRAMPA-INGR-005"
+    trampa: "% of Completion magic: 'Estamos 60% completado' sin medición objetiva"
+    es_peligrosa: true
+    nia_violada: "NIA 240 - Estimación sin base"
+    caso_real: "Consultoría presupuestó 1000 horas. Después de 600 horas = 60% ingresos ($60k de $100k). Pero cambio de scope suma 500 horas."
+    criterio_socio: "% debe ser medible: horas reales / horas presupuestadas. NO percepción. Con cambios de scope = recalcular."
+
+analisis_por_tipo:
+  bienes_discretos:
+    descripcion: "Punto de tiempo único de control"
+    validar:
+      - "¿Período de transporte? (FOB vs FCA vs DDP)"
+      - "¿ACR del cliente?"
+      - "¿Garantía afecta control?"
+  
+  servicios_continuo:
+    descripcion: "Satisfacción a lo largo de tiempo"
+    validar:
+      - "¿Hitos identificados?"
+      - "¿Obligaciones de desempeño SEPARADAS?"
+      - "¿% medible (horas, output, costo)?"
+  
+  bundled_contracts:
+    descripcion: "Múltiples obligaciones = Múltiples reconocimientos"
+    validar:
+      - "¿Cada obligación es DISTINTA? (Setup vs Maintenance)"
+      - "¿Precio asignado a cada uno?"
+      - "¿Timing de cada reconocimiento?"
+  
+  affiliate_distribution:
+    descripcion: "¿Es distribuidor esencial o solo canal?"
+    validar:
+      - "¿Distribuidor es REQUERIDO en contrato?"
+      - "¿O es opción entre canales?"
+      - "¿Comisión reduce ingreso o es gasto?"
+
+materialidad_considerations:
+  ingresos_special: |
+    Ingresos es #1 riesgo de fraude por:
+    - Presión de gerencia para cumplir targets
+    - Fácil manipular timing (cliente recibió vs. cliente pagó)
+    - Complejas: bundled services, affiliate networks, POC estimaciones
+    
+    Threshold BAJO: >1% de ingresos es material
+    Pero cualquier: - Fraude de timing (premature)
+    - Fraude de cantidad (sin contrato)
+    - Fraude de obligación (incomplete delivery)
+    ES ERROR MATERIAL
+
+nias: ["NIA 240", "NIA 330", "NIA 505", "NIA 550"]
+afirmaciones:
+  - "existencia de contrato"
+  - "derechos y obligaciones identificadas"
+  - "valuación de transacción (precio determinable)"
+  - "integridad de ingreso (completo)"
+  - "cutoff (timing correcto)"
+  - "presentación y divulgación"

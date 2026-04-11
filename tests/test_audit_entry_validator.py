@@ -347,10 +347,46 @@ class TestProvisionesValidation:
         
         # Debe tener al menos 6 trampas educativas
         assert len(program.get("trampas_comunes", [])) >= 6
+
+
+class TestIngresosValidation:
+    """Pruebas específicas para Ingresos (NIIF 15/NIC 18)"""
+
+    def test_ingresos_contrato_sin_terminos_rechaza(self):
+        """Ingreso sin contrato formal (RECHAZA)"""
+        context = ValidationContext(
+            cliente_id="COMMERCE_001",
+            framework="NIIF_PYMES",
+            area="ingresos",
+            cuenta="4105",
+            debito=100000,
+            credito=0,
+            descripcion="Venta sin contrato escrito, solo email de cliente",
+            tiene_soporte_documental=False,
+        )
         
-        # Debe incluir análisis por tipo de provision
-        assert "litigios" in program.get("analisis_por_tipo", {})
-        assert "garantias" in program.get("analisis_por_tipo", {})
+        result = validate_entry(context)
+        
+        assert result.framework == "NIIF_PYMES"
+        assert result.area == "ingresos"
+
+    def test_ingresos_programa_cargado(self):
+        """Verifica que programa Ingresos está disponible y funcional"""
+        program = load_audit_program("NIIF_PYMES", "ingresos")
+        
+        # Debe tener 8 criterios INGR-001 a INGR-008
+        criteria_ids = [c.get("id") for c in program.get("criterios_validacion", [])]
+        assert "INGR-001-CONTRATO-SIN-TERMINOS" in criteria_ids
+        assert "INGR-002-OBLIGACION-NO-SATISFECHA" in criteria_ids
+        assert "INGR-006-PERCENTAGE-COMPLETION-SIN-HITO" in criteria_ids
+        
+        # Debe tener al menos 5 trampas educativas
+        assert len(program.get("trampas_comunes", [])) >= 5
+        
+        # Debe incluir análisis por tipo de ingreso
+        assert "bienes_discretos" in program.get("analisis_por_tipo", {})
+        assert "servicios_continuo" in program.get("analisis_por_tipo", {})
+        assert "bundled_contracts" in program.get("analisis_por_tipo", {})
 
 
 class TestHoldingsValidation:
@@ -416,7 +452,7 @@ class TestAllProgramsAvailable:
 
     def test_all_programs_discoverable(self):
         """Verifica que todos los programas NIIF PYMES están disponibles"""
-        programs_to_test = ["cartera_cxc", "ppe", "provisiones", "holdings_intercompany"]
+        programs_to_test = ["cartera_cxc", "ppe", "provisiones", "holdings_intercompany", "ingresos"]
         
         for program_name in programs_to_test:
             # Debe cargar sin error
