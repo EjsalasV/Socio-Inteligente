@@ -73,6 +73,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clientes/{cliente_id}/tb-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cliente Tb Status */
+        get: operations["get_cliente_tb_status_clientes__cliente_id__tb_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clientes/{cliente_id}": {
         parameters: {
             query?: never;
@@ -963,6 +980,294 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/audit/validate-entry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validar asiento contra criterios de auditoría
+         * @description Valida un asiento contable contra los criterios de auditoría del framework normativo. Retorna veredicto normativo + educación sobre trampas comunes.
+         */
+        post: operations["post_validate_entry_api_audit_validate_entry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit/frameworks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar frameworks disponibles
+         * @description Retorna lista de frameworks disponibles para validación.
+         *
+         *     Respuesta:
+         *     ```json
+         *     {
+         *         "status": "ok",
+         *         "data": {
+         *             "frameworks": ["NIIF_PYMES", "NIIF_FULL", "holdings"]
+         *         }
+         *     }
+         *     ```
+         */
+        get: operations["get_available_frameworks_api_audit_frameworks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit/areas/{framework}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar áreas disponibles para un framework
+         * @description Retorna lista de áreas de auditoría disponibles para un framework.
+         *
+         *     Ejemplo: GET /api/audit/areas/NIIF_PYMES
+         *
+         *     Respuesta:
+         *     ```json
+         *     {
+         *         "status": "ok",
+         *         "data": {
+         *             "framework": "NIIF_PYMES",
+         *             "areas": ["cartera_cxc", "ppe", "provisiones"]
+         *         }
+         *     }
+         *     ```
+         */
+        get: operations["get_available_areas_api_audit_areas__framework__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit-programs/frameworks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Frameworks
+         * @description List all available audit frameworks
+         *
+         *     Example response:
+         *     ["NIIF_PYMES", "NIIF_FULL", "holdings"]
+         */
+        get: operations["list_frameworks_api_audit_programs_frameworks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit-programs/{framework}/areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Areas
+         * @description Listar todas las áreas de auditoría disponibles en un framework
+         *
+         *     Example: GET /api/audit-programs/NIIF_PYMES/areas
+         *     Response: ["cartera_cxc", "ppe", "provisiones", "holdings_intercompany", "ingresos"]
+         */
+        get: operations["list_areas_api_audit_programs__framework__areas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit-programs/{framework}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Framework Summary
+         * @description Get comprehensive summary for a framework
+         *
+         *     Includes:
+         *     - Total criteria count
+         *     - Total trampas count
+         *     - Area-by-area breakdown
+         */
+        get: operations["get_framework_summary_api_audit_programs__framework__summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit-programs/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get System Summary
+         * @description Get overall system summary
+         *
+         *     Shows:
+         *     - Total frameworks, areas, criteria, trappas
+         *     - Framework-level breakdown
+         */
+        get: operations["get_system_summary_api_audit_programs_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit-programs/{framework}/{area}/criteria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Area Criteria
+         * @description Get all criteria for a specific audit area
+         *
+         *     Example: GET /api/audit-programs/NIIF_PYMES/cartera_cxc/criteria
+         */
+        get: operations["get_area_criteria_api_audit_programs__framework___area__criteria_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit-programs/{framework}/{area}/trampas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Area Trappas
+         * @description Get all educational trappas for a specific audit area
+         *
+         *     Example: GET /api/audit-programs/NIIF_PYMES/cartera_cxc/trampas
+         */
+        get: operations["get_area_trappas_api_audit_programs__framework___area__trampas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit-programs/{framework}/{area}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Program Summary
+         * @description Get full summary for an audit program
+         *
+         *     Example: GET /api/audit-programs/NIIF_PYMES/cartera_cxc
+         */
+        get: operations["get_program_summary_api_audit_programs__framework___area__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit/holdings-cascade/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Holdings Cascade Endpoint
+         * @description Analiza cascada de dividendos en estructura multi-nivel de holdings.
+         *
+         *     Calcula:
+         *     - Flujos de dividendos en cascada con ajustes impositivos
+         *     - Detección de ciclos en estructura de propiedad (A→B→A)
+         *     - Eliminaciones en consolidado
+         *     - Riesgos: ciclos, arbitraje fiscal, complejidad, offsets sin acuerdo
+         *
+         *     Ejemplo de caso: Parent (60%) → Subsidiary A (80%) → Subsidiary B ($100 dividendo)
+         *     - Subsidiary A recibe: 80% × $100 - impuesto = $68
+         *     - Parent recibe: 60% × $68 - impuesto = $40.8
+         *     - Consolidado elimina: $100 inter-company
+         *
+         *     Returns:
+         *         {
+         *             "status": "success",
+         *             "data": {
+         *                 "parent_entity": "parent",
+         *                 "total_entities": 3,
+         *                 "has_cycles": false,
+         *                 "cascades": [...],
+         *                 "eliminations": [...],
+         *                 "risks_identified": [...]
+         *             }
+         *         }
+         */
+        post: operations["analyze_holdings_cascade_endpoint_api_audit_holdings_cascade_analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1069,6 +1374,121 @@ export interface components {
             /** Con Saldo */
             con_saldo: boolean;
         };
+        /**
+         * AuditEntryRequest
+         * @description Solicitud de validación de asiento contra normativa auditora
+         */
+        AuditEntryRequest: {
+            /**
+             * Cuenta
+             * @description Código de cuenta, ej: 2205, 1310
+             */
+            cuenta: string;
+            /**
+             * Debito
+             * @description Monto en débito
+             * @default 0
+             */
+            debito: number;
+            /**
+             * Credito
+             * @description Monto en crédito
+             * @default 0
+             */
+            credito: number;
+            /**
+             * Descripcion
+             * @description Descripción del asiento
+             * @default
+             */
+            descripcion: string;
+            /**
+             * Framework
+             * @description Marco normativo aplicable
+             * @default NIIF_PYMES
+             * @enum {string}
+             */
+            framework: "NIIF_PYMES" | "NIIF_FULL" | "holdings";
+            /**
+             * Area
+             * @description Área de auditoría: cartera_cxc, ppe, provisiones, intercompany, etc.
+             * @default cartera_cxc
+             */
+            area: string;
+            /**
+             * Cliente Id
+             * @description Identificador del cliente/empresa
+             */
+            cliente_id: string;
+            /**
+             * Antigüedad Dias
+             * @description Para CxC: Días desde fecha de vencimiento de factura
+             * @default 0
+             */
+            "antig\u00FCedad_dias": number;
+            /**
+             * Monto Original
+             * @description Para provisiones: Monto original de estimación
+             * @default 0
+             */
+            monto_original: number;
+            /**
+             * Tiene Soporte Documental
+             * @description ¿Existe comprobante/factura/contrato de soporte?
+             * @default false
+             */
+            tiene_soporte_documental: boolean;
+            /**
+             * Cliente En Riesgo
+             * @description ¿Cliente está en lista de riesgos crediticios o legales?
+             * @default false
+             */
+            cliente_en_riesgo: boolean;
+            /**
+             * Tiene Garantia
+             * @description ¿Existe garantía sobre el activo/pasivo?
+             * @default false
+             */
+            tiene_garantia: boolean;
+            /**
+             * Garantia Ejecutable
+             * @description ¿La garantía es real y ejecutable (libre de gravámenes)?
+             * @default false
+             */
+            garantia_ejecutable: boolean;
+            /**
+             * Es Holding
+             * @description ¿La empresa es holding (inversiones en filiales)?
+             * @default false
+             */
+            es_holding: boolean;
+            /**
+             * Tiene Partes Relacionadas
+             * @description ¿Hay transacciones con partes relacionadas?
+             * @default false
+             */
+            tiene_partes_relacionadas: boolean;
+        };
+        /**
+         * AuditProgramSummary
+         * @description Resumen de un programa de auditoría
+         */
+        AuditProgramSummary: {
+            /** Framework */
+            framework: string;
+            /** Area */
+            area: string;
+            /** Norma Clave */
+            norma_clave: string;
+            /** Criterios Count */
+            criterios_count: number;
+            /** Trampas Count */
+            trampas_count: number;
+            /** Nias */
+            nias?: string[];
+            /** Afirmaciones */
+            afirmaciones?: string[];
+        };
         /** BalanceKPIs */
         BalanceKPIs: {
             /**
@@ -1101,6 +1521,11 @@ export interface components {
              * @default 0
              */
             gastos: number;
+        };
+        /** Body_analyze_holdings_cascade_endpoint_api_audit_holdings_cascade_analyze_post */
+        Body_analyze_holdings_cascade_endpoint_api_audit_holdings_cascade_analyze_post: {
+            request: components["schemas"]["HoldingsCascadeAnalysisRequest"];
+            current_user?: components["schemas"]["UserContext"];
         };
         /** Body_upload_cliente_documento_clientes__cliente_id__documentos_upload_post */
         Body_upload_cliente_documento_clientes__cliente_id__documentos_upload_post: {
@@ -1185,6 +1610,20 @@ export interface components {
             nombre: string;
             /** Sector */
             sector?: string | null;
+        };
+        /**
+         * CriterionSummary
+         * @description Resumen de un criterio de validación
+         */
+        CriterionSummary: {
+            /** Id */
+            id: string;
+            /** Regla */
+            regla: string;
+            /** Es Permitido */
+            es_permitido: string;
+            /** Descripcion */
+            descripcion: string;
         };
         /** DashboardMaterialidadDetalle */
         DashboardMaterialidadDetalle: {
@@ -1344,6 +1783,24 @@ export interface components {
             /** Detail */
             detail: string;
         };
+        /**
+         * FrameworkOverview
+         * @description Visión general de un framework
+         */
+        FrameworkOverview: {
+            /** Framework */
+            framework: string;
+            /** Total Areas */
+            total_areas: number;
+            /** Total Criteria */
+            total_criteria: number;
+            /** Total Trappas */
+            total_trappas: number;
+            /** Areas */
+            areas?: {
+                [key: string]: unknown;
+            }[];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1387,6 +1844,74 @@ export interface components {
              * @default false
              */
             guardar_en_hallazgos: boolean;
+        };
+        /**
+         * HoldingEntityRequest
+         * @description Entidad en estructura de holdings
+         */
+        HoldingEntityRequest: {
+            /**
+             * Entity Id
+             * @description Identificador único, ej: 'parent', 'subsidiary_a'
+             */
+            entity_id: string;
+            /**
+             * Name
+             * @description Nombre comercial de la entidad
+             */
+            name: string;
+            /**
+             * Ownership Type
+             * @description Type: 'parent', 'subsidiary', 'joint_venture'
+             * @default subsidiary
+             */
+            ownership_type: string;
+            /**
+             * Tax Jurisdiction
+             * @description País de residencia fiscal, ej: 'COL', 'MEX', 'ESP'
+             */
+            tax_jurisdiction: string;
+            /**
+             * Balance
+             * @description Saldo de CxC/CxP con otros holdings (negativo = CxP)
+             * @default 0
+             */
+            balance: number;
+        };
+        /**
+         * HoldingsCascadeAnalysisRequest
+         * @description Solicitud para análisis de cascada de holdings
+         */
+        HoldingsCascadeAnalysisRequest: {
+            /**
+             * Entities
+             * @description Lista de entidades en la estructura
+             */
+            entities: components["schemas"]["HoldingEntityRequest"][];
+            /**
+             * Ownership Links
+             * @description Relaciones de propiedad
+             */
+            ownership_links: components["schemas"]["OwnershipLinkRequest"][];
+            /**
+             * Declared Dividends
+             * @description entity_id → monto dividendo declarado
+             */
+            declared_dividends?: {
+                [key: string]: number;
+            };
+            /**
+             * Tax Rates
+             * @description country_code → tasa impositiva (0.0-1.0)
+             */
+            tax_rates: {
+                [key: string]: number;
+            };
+            /**
+             * Cliente Id
+             * @description Identificador del cliente/empresa
+             */
+            cliente_id: string;
         };
         /** InternalControlLetterRequest */
         InternalControlLetterRequest: {
@@ -1437,6 +1962,39 @@ export interface components {
              */
             include_policy_section: boolean;
         };
+        /**
+         * OwnershipLinkRequest
+         * @description Relación de propiedad entre entidades
+         */
+        OwnershipLinkRequest: {
+            /**
+             * Owner Id
+             * @description Entidad que posee
+             */
+            owner_id: string;
+            /**
+             * Subsidiary Id
+             * @description Entidad que es poseída
+             */
+            subsidiary_id: string;
+            /**
+             * Ownership Percentage
+             * @description % de tenencia, 0-100
+             */
+            ownership_percentage: number;
+            /**
+             * Voting Rights
+             * @description % de derechos de voto (puede diferir)
+             * @default 100
+             */
+            voting_rights: number;
+            /**
+             * Direct Control
+             * @description ¿Es tenencia directa o a través de otra?
+             * @default true
+             */
+            direct_control: boolean;
+        };
         /** ProgresoEncargo */
         ProgresoEncargo: {
             /**
@@ -1464,6 +2022,60 @@ export interface components {
              * @default 0
              */
             total_areas: number;
+        };
+        /**
+         * SystemSummary
+         * @description Resumen completo del sistema de auditoría
+         */
+        SystemSummary: {
+            /** Total Frameworks */
+            total_frameworks: number;
+            /** Total Areas */
+            total_areas: number;
+            /** Total Criteria */
+            total_criteria: number;
+            /** Total Trappas */
+            total_trappas: number;
+            /** Frameworks */
+            frameworks?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /**
+         * TrappaSummary
+         * @description Resumen de una trampa educativa
+         */
+        TrappaSummary: {
+            /** Id */
+            id: string;
+            /** Trampa */
+            trampa: string;
+            /**
+             * Es Peligrosa
+             * @default true
+             */
+            es_peligrosa: boolean;
+        };
+        /** UserContext */
+        UserContext: {
+            /** Sub */
+            sub: string;
+            /** Org Id */
+            org_id: string;
+            /** Allowed Clientes */
+            allowed_clientes: string[];
+            /** Role */
+            role: string;
+            /**
+             * User Id
+             * @default
+             */
+            user_id: string;
+            /**
+             * Display Name
+             * @default
+             */
+            display_name: string;
         };
         /** UserPreferencesPatchRequest */
         UserPreferencesPatchRequest: {
@@ -1662,6 +2274,37 @@ export interface operations {
                 "application/json": components["schemas"]["ClienteCreateRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cliente_tb_status_clientes__cliente_id__tb_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -3576,6 +4219,321 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    post_validate_entry_api_audit_validate_entry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditEntryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_available_frameworks_api_audit_frameworks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    get_available_areas_api_audit_areas__framework__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                framework: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_frameworks_api_audit_programs_frameworks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+        };
+    };
+    list_areas_api_audit_programs__framework__areas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                framework: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_framework_summary_api_audit_programs__framework__summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                framework: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrameworkOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_system_summary_api_audit_programs_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemSummary"];
+                };
+            };
+        };
+    };
+    get_area_criteria_api_audit_programs__framework___area__criteria_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                framework: string;
+                area: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriterionSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_area_trappas_api_audit_programs__framework___area__trampas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                framework: string;
+                area: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrappaSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_program_summary_api_audit_programs__framework___area__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                framework: string;
+                area: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditProgramSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_holdings_cascade_endpoint_api_audit_holdings_cascade_analyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Body_analyze_holdings_cascade_endpoint_api_audit_holdings_cascade_analyze_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
