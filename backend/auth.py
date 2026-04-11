@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import secrets
+import sys
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -24,7 +26,6 @@ if not _SECRET:
         )
 
 # Log para diagnosticar cual clave se está usando
-import sys
 _key_preview = _SECRET[:20] + "..." + _SECRET[-10:] if len(_SECRET) > 30 else _SECRET[:20] + "..."
 print(f"[JWT] JWT_SECRET_KEY loaded: {_key_preview} (len={len(_SECRET)})", file=sys.stderr)
 logging.getLogger().warning(f"[JWT] JWT_SECRET_KEY loaded: {_key_preview} (len={len(_SECRET)})")
