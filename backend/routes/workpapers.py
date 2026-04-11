@@ -26,6 +26,7 @@ from backend.schemas import (
 )
 from backend.services.judgement_service import recommend_workpaper_tasks_from_strategy
 from backend.services.realtime_collab_service import hub
+from backend.services.view_cache_service import invalidate_view_cache_for_cliente
 
 router = APIRouter(prefix="/papeles-trabajo", tags=["papeles-trabajo"])
 RUNTIME_CFG = get_runtime_config()
@@ -642,6 +643,7 @@ def patch_workpaper_task(
         raise HTTPException(status_code=404, detail=f"Tarea no encontrada: {task_id}")
 
     write_workpapers(cliente_id, tasks)
+    invalidate_view_cache_for_cliente(cliente_id)
     hub.publish_event_sync(
         cliente_id=cliente_id,
         event_name="workpaper_task_updated",
@@ -708,6 +710,7 @@ def post_workpaper_task(
     }
     tasks.append(new_task)
     write_workpapers(cliente_id, tasks)
+    invalidate_view_cache_for_cliente(cliente_id)
     hub.publish_event_sync(
         cliente_id=cliente_id,
         event_name="workpaper_task_created",
@@ -734,6 +737,7 @@ def delete_workpaper_task(
         raise HTTPException(status_code=404, detail=f"Tarea no encontrada: {task_id}")
 
     write_workpapers(cliente_id, filtered)
+    invalidate_view_cache_for_cliente(cliente_id)
     hub.publish_event_sync(
         cliente_id=cliente_id,
         event_name="workpaper_task_deleted",

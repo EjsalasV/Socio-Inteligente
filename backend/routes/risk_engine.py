@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 import os
-import time
 import unicodedata
 from pathlib import Path
 from typing import Any
@@ -23,10 +22,10 @@ from backend.schemas import (
     UserContext,
 )
 from backend.services.judgement_service import build_risk_judgement_with_ai
+from backend.services.view_cache_service import get_cached_view, set_cached_view
 
 router = APIRouter(prefix="/risk-engine", tags=["risk-engine"])
 RUNTIME_CFG = get_runtime_config()
-_RISK_CACHE: dict[str, tuple[float, ApiResponse]] = {}
 
 
 def _risk_cache_ttl_seconds() -> float:
@@ -663,14 +662,15 @@ def _from_area_files(cliente_id: str) -> list[RiskCriticalArea]:
 def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
     signature = _risk_signature(cliente_id)
-    cache_key = f"{cliente_id}:{signature}"
+    cache_key = f"risk:{cliente_id}:{signature}"
     ttl_seconds = _risk_cache_ttl_seconds()
     if ttl_seconds > 0:
-        cached = _RISK_CACHE.get(cache_key)
+        cached = get_cached_view(cache_key)
         if cached:
-            expires_at, payload = cached
-            if expires_at > time.time():
-                return payload
+            try:
+                return ApiResponse.model_validate(cached)
+            except Exception:
+                pass
 
     critical_areas = _from_ranking(cliente_id)
     if not critical_areas:
@@ -736,13 +736,5 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
     )
     response = ApiResponse(data=payload.model_dump())
     if ttl_seconds > 0:
-        _RISK_CACHE[cache_key] = (time.time() + ttl_seconds, response)
-        if len(_RISK_CACHE) > 200:
-            now = time.time()
-            stale_keys = [k for k, (expires_at, _) in _RISK_CACHE.items() if expires_at <= now]
-            for stale_key in stale_keys[:100]:
-                _RISK_CACHE.pop(stale_key, None)
-            if len(_RISK_CACHE) > 200:
-                for old_key in list(_RISK_CACHE.keys())[:50]:
-                    _RISK_CACHE.pop(old_key, None)
+        set_cached_view(cache_key, response.model_dump(), int(max(1, round(ttl_seconds))))
     return response

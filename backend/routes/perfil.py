@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from backend.auth import authorize_cliente_access, get_current_user
 from backend.repositories.file_repository import append_audit_log, deep_merge_dict, read_perfil, write_perfil
 from backend.schemas import ApiResponse, ClienteProfile, UserContext
+from backend.services.view_cache_service import invalidate_view_cache_for_cliente
 from backend.validation import validate_perfil_doc_v1
 
 router = APIRouter(prefix="/perfil", tags=["perfil"])
@@ -34,6 +35,7 @@ def put_perfil(cliente_id: str, payload: dict, user: UserContext = Depends(get_c
             },
         )
     write_perfil(cliente_id, merged)
+    invalidate_view_cache_for_cliente(cliente_id)
 
     changed_keys: list[str] = []
     for key in patch.keys():

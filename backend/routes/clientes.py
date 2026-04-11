@@ -16,6 +16,7 @@ from backend.schemas import ApiResponse, ClienteCreateRequest, ClienteDocumento,
 from backend.services.document_ingest_service import ingest_document_for_rag
 from backend.services.rag_cache_service import invalidate_rag_cache_for_cliente
 from backend.services.realtime_collab_service import hub
+from backend.services.view_cache_service import invalidate_view_cache_for_cliente
 
 router = APIRouter(prefix="/clientes", tags=["clientes"])
 
@@ -166,6 +167,7 @@ async def upload_cliente_file(
         ) from exc
 
     event_name = "tb_uploaded" if target_name == "tb.xlsx" else "mayor_uploaded"
+    view_cache_invalidated = invalidate_view_cache_for_cliente(cliente_id)
     hub.publish_event_sync(
         cliente_id=cliente_id,
         event_name=event_name,
@@ -181,6 +183,7 @@ async def upload_cliente_file(
             "stored_as": target_name,
             "rows": int(len(df)),
             "columns": list(df.columns),
+            "view_cache_invalidated": int(view_cache_invalidated),
         }
     )
 
