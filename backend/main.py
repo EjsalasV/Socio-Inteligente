@@ -77,6 +77,7 @@ def _register_routes_once() -> None:
         clientes,
         dashboard,
         hallazgos,
+        holdings_cascade_route,
         metodologia,
         normativa,
         perfil,
@@ -110,6 +111,7 @@ def _register_routes_once() -> None:
     app.include_router(realtime.router)
     app.include_router(audit_validator.router)
     app.include_router(audit_programs_dashboard.router)
+    app.include_router(holdings_cascade_route.router)
     _routes_registered = True
 
 
