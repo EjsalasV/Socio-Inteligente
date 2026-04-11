@@ -57,7 +57,9 @@ function getRequestTimeoutMs(path?: string): number {
   if (!Number.isFinite(raw) || raw <= 0) return 20000;
   const base = Math.min(raw, 60000);
   const heavyRaw = Number(process.env.NEXT_PUBLIC_API_HEAVY_TIMEOUT_MS || 35000);
-  const heavy = Number.isFinite(heavyRaw) && heavyRaw > 0 ? Math.min(heavyRaw, 90000) : 35000;
+  const heavy = Number.isFinite(heavyRaw) && heavyRaw > 0
+    ? Math.max(35000, Math.min(heavyRaw, 90000))
+    : 35000;
   const normalizedPath = String(path || "").toLowerCase();
   if (
     normalizedPath.startsWith("/dashboard/") ||

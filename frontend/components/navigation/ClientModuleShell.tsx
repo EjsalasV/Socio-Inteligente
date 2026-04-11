@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { hasSessionState } from "../../lib/auth-session";
+import { getClienteTbStatus } from "../../lib/api/clientes";
 import { useAuditContext } from "../../lib/hooks/useAuditContext";
-import { useDashboard } from "../../lib/hooks/useDashboard";
 import ClienteRealtimeProvider from "../providers/ClienteRealtimeProvider";
 import Header from "./Header";
 import OnboardingGuideBanner from "./OnboardingGuideBanner";
@@ -14,7 +14,6 @@ import Sidebar from "./Sidebar";
 export default function ClientModuleShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { clienteId, moduleKey } = useAuditContext();
-  const { data: dashboard, isLoading: dashboardLoading } = useDashboard(clienteId);
   const [ready, setReady] = useState<boolean>(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
@@ -33,14 +32,27 @@ export default function ClientModuleShell({ children }: { children: React.ReactN
   useEffect(() => {
     if (!ready || !isAuthenticated) return;
     if (!clienteId) return;
-    if (dashboardLoading) return;
     const exemptModules = new Set(["perfil", "trial-balance"]);
     if (exemptModules.has(moduleKey)) return;
-    if (!dashboard) return;
-    if ((dashboard.tb_stage || "sin_saldos").toLowerCase() === "sin_saldos") {
-      router.replace(`/trial-balance/${clienteId}?required_tb=1`);
-    }
-  }, [clienteId, dashboard, dashboardLoading, isAuthenticated, moduleKey, ready, router]);
+
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const status = await getClienteTbStatus(clienteId);
+        if (cancelled) return;
+        if (!status.has_tb) {
+          router.replace(`/trial-balance/${clienteId}?required_tb=1`);
+        }
+      } catch {
+        // Si el chequeo liviano falla, no bloqueamos navegacion del modulo.
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [clienteId, isAuthenticated, moduleKey, ready, router]);
 
   if (!ready || !isAuthenticated) {
     return (

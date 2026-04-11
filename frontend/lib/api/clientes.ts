@@ -20,6 +20,15 @@ export interface ClienteHallazgo {
   body: string;
 }
 
+export interface ClienteTbStatus {
+  cliente_id: string;
+  has_tb: boolean;
+  has_mayor: boolean;
+  has_tb_cache: boolean;
+  tb_size_bytes: number;
+  tb_mtime_ns: number;
+}
+
 export interface CreateClienteInput {
   cliente_id: string;
   nombre: string;
@@ -161,4 +170,17 @@ export async function getClienteHallazgos(clienteId: string): Promise<ClienteHal
       };
     })
     .filter((item: ClienteHallazgo | null): item is ClienteHallazgo => item !== null);
+}
+
+export async function getClienteTbStatus(clienteId: string): Promise<ClienteTbStatus> {
+  const response = await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}/tb-status`);
+  const data = isRecord(response?.data) ? response.data : {};
+  return {
+    cliente_id: typeof data.cliente_id === "string" ? data.cliente_id : clienteId,
+    has_tb: Boolean(data.has_tb),
+    has_mayor: Boolean(data.has_mayor),
+    has_tb_cache: Boolean(data.has_tb_cache),
+    tb_size_bytes: typeof data.tb_size_bytes === "number" ? data.tb_size_bytes : 0,
+    tb_mtime_ns: typeof data.tb_mtime_ns === "number" ? data.tb_mtime_ns : 0,
+  };
 }

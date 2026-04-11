@@ -45,6 +45,26 @@ def get_clientes(user: UserContext = Depends(get_current_user)) -> ApiResponse:
     return ApiResponse(data=out)
 
 
+@router.get("/{cliente_id}/tb-status", response_model=ApiResponse)
+def get_cliente_tb_status(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    _validate_cliente_id(cliente_id)
+    authorize_cliente_access(cliente_id, user)
+    base = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id
+    tb_path = base / "tb.xlsx"
+    mayor_path = base / "mayor.xlsx"
+    tb_cache_path = base / ".tb_cache.pkl"
+    return ApiResponse(
+        data={
+            "cliente_id": cliente_id,
+            "has_tb": tb_path.exists(),
+            "has_mayor": mayor_path.exists(),
+            "has_tb_cache": tb_cache_path.exists(),
+            "tb_size_bytes": int(tb_path.stat().st_size) if tb_path.exists() else 0,
+            "tb_mtime_ns": int(tb_path.stat().st_mtime_ns) if tb_path.exists() else 0,
+        }
+    )
+
+
 @router.post("", response_model=ApiResponse)
 def post_cliente(payload: ClienteCreateRequest, user: UserContext = Depends(get_current_user)) -> ApiResponse:
     if user.role.lower() not in {"admin", "manager", "socio"}:
