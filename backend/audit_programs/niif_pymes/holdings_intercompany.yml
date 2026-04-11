@@ -1,0 +1,335 @@
+framework: "NIIF_PYMES"
+norma_clave: "NIC 27/28 - Inversiones en Asociadas, Relacionadas y Consolidación"
+area: "holdings_intercompany"
+area_codigo: "120"
+
+conceptos_riesgo:
+  - "Holdings son entidades cuyo propósito es mantener inversiones, NO operaciones"
+  - "Dividendos probables ≠ Dividendos realizados; provisión requiere probabilidad clara"
+  - "Partes relacionadas SIEMPRE requieren marcado especial (NIA 550)"
+  - "Offset de dividendos contra obligaciones es riesgo alto de manipulación"
+  - "Eliminaciones consolidadas: Ganancia en venta a relacionada NO se reconoce hasta venta a tercero"
+  - "Comisiones a directores/accionistas: Transferencia de riqueza, NO gasto operativo"
+  - "Deuda con accionista: ¿Es realmente deuda o es aporte de capital? (sustancia vs forma)"
+
+principios_aplicables:
+  - "NIA 550: Partes relacionadas (identificar todas, validar transacciones)"
+  - "NIA 505: Confirmaciones externas (obliga confirmación de saldos relacionados)"
+  - "NIA 520: Procedimientos analíticos (comparar comisiones contra promedio industria)"
+  - "NIC 27.18: Inversiones se contabilizan por costo (no equity salvo consolidación)"
+  - "NIC 28: Asociadas por equity (proporcional a participación)"
+  - "NIC 24: Divulgación de partes relacionadas obligatoria"
+
+criterios_validacion:
+  
+  - id: "HOLDING-001-DIVIDENDO-SIN-JUNTA"
+    regla: "Dividendo registrado como ingreso sin decisión de junta anterior"
+    es_permitido: false
+    descripcion: "RECHAZAR - Dividendo requiere aprobación formal previa"
+    
+    porque: |
+      NIC 28.11: Dividendos solo se reconocen cuando:
+      1. Derechos legalmente constituidos a recibir (junta decidió)
+      2. Probable que beneficio económico fluya
+      3. Se puede medir confiablemente
+      
+      Sin acta de junta = No hay derecho legal constituido.
+      Gerencia "espera" dividendos ≠ Dividendi reconocido.
+    
+    ejemplos_rechazo:
+      - "Dividendo 'que seguro nos pagarán este año' sin acta - RECHAZAR"
+      - "Gerencia proyectó ganancia y asumió dividendo - RECHAZAR"
+      - "Dividendo 'como los años anteriores' sin nueva decisión - RECHAZAR"
+    
+    que_hacer:
+      - "RECHAZAR hasta obtener copia de acta de junta"
+      - "Validar que acta es PREVIA al cierre del asiento"
+      - "Si es después del cierre → Evento posterior (NIC 10)"
+      - "Pedir: Acta + Estado financiero de la entidad que pagará"
+    
+    nias: ["NIA 550", "NIA 505", "NIA 580"]
+    materialidad: "Material si dividendo >5% de ingresos"
+    trampa_asociada: "TRAMPA-HOLDING-001"
+
+  - id: "HOLDING-002-DIVIDENDO-SOBREESTIMADO"
+    regla: "Dividendo registrado por más que el % de participación"
+    es_permitido: false
+    descripcion: "RECHAZAR - Dividendo no puede exceder proporción"
+    
+    porque: |
+      Si participamos 40% en asociada y asociada declara dividendo de 100:
+      - Nuestro dividendo = 40% × 100 = 40
+      - NO PODEMOS registrar 50 "porque esperamos redistribución"
+      
+      Eso es manipulación: Estamos reconociendo dividendos de otros accionistas.
+    
+    que_validar:
+      - "¿Verificaste % de participación accionaria? (SIEMPRE vence)"
+      - "¿Dividendo declarado = Dividendo / % participación que tenemos?"
+      - "¿O estás contabilizando dividendos de terceros?"
+      - "¿Hay acuerdo escrito para redistribución? (raro pero posible)"
+    
+    que_hacer:
+      - "RECHAZAR si es sobre-reconocimiento sin acuerdo"
+      - "Pedir: Acta de junta + certificado de participación accionaria"
+      - "Calcular: Dividendo debe ser ≤ (Nuestro %) × (Dividendo total)"
+      - "Si hay acuerdo especial: Pedir contrato de redistribución"
+    
+    nias: ["NIA 550"]
+    materialidad: "Crítico - cualquier sobre-reconocimiento es error"
+
+  - id: "HOLDING-003-GANANCIA-VENTA-RELACIONADA"
+    regla: "Ganancia en venta a relacionada se reconoce como ingreso final"
+    es_permitido: false
+    descripcion: "RECHAZAR - Debe eliminarse hasta venta a tercero"
+    
+    porque: |
+      NIC 27.28 (Consolidación): Ganancias en transacciones entre
+      entidades relacionadas se ELIMINAN hasta que se venda a tercero.
+      
+      Si holding vendió activo a filial por 100 (costo 60):
+      - Ganancia apparent = 40 (PROHIBIDA registrar en holding)
+      - Solo se reconoce cuando filial vende a tercero
+      - Sustancia: Todavía está en grupo + bajo control
+    
+    ejemplos_rechazo:
+      - "Holding vendió inmueble a filial por $100k (costo $60k), reconoció ganancia"
+      - "Ganancia de 40k se registró como ingreso extraordinario"
+      - "Sin reversa: Filial no vendió a tercero = NO es ganancia real"
+    
+    que_hacer:
+      - "RECHAZAR ganancia en venta a relacionada"
+      - "Pedir: Contrato de venta + DEBE VER si filial vendió a tercero"
+      - "Si filial no vendió → Reversa de ganancia"
+      - "Si filial vendió → Entonces SÍ se reconoce (pero por filial, no holding)"
+    
+    nias: ["NIA 550"]
+    materialidad: "Crítico - fraude potencial"
+
+  - id: "HOLDING-004-COMISION-DIRECTORES-SIN-ACTA"
+    regla: "Comisión a directores/accionistas registrada sin decisión previa"
+    es_permitido: false
+    descripcion: "RECHAZAR - Comisiones partes relacionadas requieren autorización"
+    
+    porque: |
+      NIA 550: Transacciones con partes relacionadas SIEMPRE requieren
+      verificación de aprobación.
+      
+      Comisión a director es transferencia de recursos que requiere:
+      1. Decisión de junta
+      2. Que sea "razonable" (no excesiva)
+      3. Que se correlacione con performance (si es que se prometió)
+    
+    cuando_rechazar:
+      - "Comisión 'al director general' sin acta de autorización"
+      - "Comisión que aumentó 50% sin cambio en responsabilidades"
+      - "Comisión 'discrecional' decidida unilateralmente por CFO"
+    
+    que_validar:
+      - "¿Existe acta de junta/consejo aprobando cantidad?"
+      - "¿Comisión es consistente con años anteriores?"
+      - "¿Se correlaciona con desempeño/resultados? (si hay condición)"
+      - "¿Comparar contra mercado (20% arriba ES problema)"
+    
+    que_hacer:
+      - "RECHAZAR hasta obtener acta de autorización"
+      - "Pedir: Acta + Justificación de monto"
+      - "Validar: Comisión razonable (NIA 550 benchmark)"
+      - "Si es participantes en ley: Requiere NIA 501 (abogado laboralista)"
+    
+    nias: ["NIA 550", "NIA 501"]
+    materialidad: "Material si >1% EBIT"
+    trampa_asociada: "TRAMPA-HOLDING-002"
+
+  - id: "HOLDING-005-OFF-SET-DIVIDENDO-OBLIGACION"
+    regla: "Dividendo por cobrar es offset contra obligación a accionista sin autorización"
+    es_permitido: "conditional"
+    descripcion: "RECHAZAR a menos que haya acuerdo de compensación"
+    
+    porque: |
+      Escenario típico:
+      - Holding tiene derecho a dividendo de filial = $100
+      - Holding debe a accionista (préstamo) = $80
+      - Offset = Registrar solo $20 neto
+      
+      SI hay acuerdo escrito de "compensaciones de dividendo contra deudas",
+      entonces el offset es permitido y se entiende como pago.
+      SI NO existe acuerdo = Es manipulación de flujos de caja.
+    
+    casos_reales:
+      - "Dividend offset: Holding espera recibir $100 de filial, debe $80 a accionista"
+      - "Sin acuerdo de offset = Dividendo es activo, deuda es pasivo SEPARADO"
+      - "Con acuerdo firmado = Offset es válido (se transfiere líquido)"
+    
+    que_validar:
+      - "¿Existe acuerdo ESCRITO de compensación?"
+      - "¿Fue anterior a la transacción o fue DESPUÉS?"
+      - "¿Ambas partes están de acuerdo?"
+      - "¿O solo el director financiero lo decidió?"
+    
+    que_pedir:
+      - "Acuerdo de offset ESCRITO y firmado por partes"
+      - "Acta de junta aprobando offset"
+      - "Comunicación entre holding y accionista (email, carta)"
+    
+    cuando_aceptar:
+      - "Existe contrato de offset ANTERIOR"
+      - "Ambas partes firmaron"
+      - "Montos coinciden (dividendo esperable ≥ deuda)"
+    
+    nias: ["NIA 550"]
+    materialidad: "Crítico si se manipula flujos"
+    trampa_asociada: "TRAMPA-HOLDING-003"
+
+  - id: "HOLDING-006-DEUDA-ACCIONISTA-NO-CLASIFICADA"
+    regla: "Préstamo de accionista se clasifica como pasivo corriente sin vencimiento"
+    es_permitido: "conditional"
+    descripcion: "Deuda relacionada SIEMPRE requiere análisis de sustancia"
+    
+    porque: |
+      Pregunta crítica: ¿Es realmente DEUDA o es APORTE?
+      
+      Si accionista da dinero a holding pero:
+      - NO hay tasa de interés
+      - NO hay fecha de vencimiento
+      - NO hay exigencia de pago
+      - Es "flexible" / "según necesidad"
+      
+      ENTONCES es probablemente PATRIMONIO, no deuda.
+      (O es una transacción sin base económica = fraude)
+    
+    indicios_fraude:
+      - "Deuda 'sin tasa de interés' → Forma sin sustancia"
+      - "Préstamo 'vencimiento a voluntad de accionista' → Es patrimonio"
+      - "Se registra como pasivo pero accionista dijo 'tranquilo, cuando puedas' → Capital"
+    
+    que_preguntar_cliente:
+      - "¿Tiene vencimiento fijo? ¿O es flexible?"
+      - "¿Genera intereses? ¿A qué tasa?"
+      - "¿Accionista puede exigir pago? ¿Cuándo?"
+      - "¿O es más bien un aporte que formalizamos como préstamo?"
+    
+    cuando_aceptar_pasivo:
+      - "Vencimiento fijo identificable"
+      - "Tasa de interés de mercado"
+      - "Obligación exigible por accionista"
+    
+    cuando_reclasificar_patrimonio:
+      - "Sin vencimiento fijo"
+      - "Sin tasa de interés"
+      - "Es flexible/discrecional"
+      - "En crisis: No se ha exigido pago"
+    
+    nias: ["NIA 500"]
+    materialidad: "Material si >10% patrimonio"
+
+  - id: "HOLDING-007-PARTES-RELACIONADAS-NO-DIVULGADAS"
+    regla: "Transación comercial con relacionada no identificada en NIC 24"
+    es_permitido: false
+    descripcion: "RECHAZAR - NIC 24 exige divulgación de TODAS"
+    
+    porque: |
+      NIC 24 (Divulgación de partes relacionadas): Holding DEBE revelar:
+      - Identidad de todas las partes relacionadas
+      - Naturaleza de la relación
+      - Montos de transacciones
+      - Saldos pendientes
+      
+      Omisión de divulgación es violación de NIIF → Auditoria calificada.
+    
+    casos_tipicos_omision:
+      - "Director tiene empresa de servicios, se contrata sin revelar"
+      - "Accionista mayoritario prestó dinero, se muestra como 'banco'"
+      - "Filial compró inventario sin indicar que es relacionada"
+    
+    que_hacer:
+      - "RECHAZAR: Pedir completa la nota de partes relacionadas"
+      - "Diligenciar NIA 550 document: Listar TODOS los relacionados"
+      - "Por cada transacción: Verificar que está en NIC 24"
+      - "Si falta: Es omisión material de divulgación"
+    
+    nias: ["NIA 550", "NIA 545"]
+    materialidad: "Crítico - omisión de divulgación"
+    trampa_asociada: "TRAMPA-HOLDING-004"
+
+criterios_educacion:
+  objetivo: "Enseñar que holdings son espacio de fraude: dividendos ficticios, comisiones, offsets"
+  patron_riesgo: "Gerencia manipula related-party transactions para 'limpiar' flujos"
+  pregunta_siempre: "¿Hay sustancia económica o es form without substance?"
+
+trampas_comunes:
+  
+  - id: "TRAMPA-HOLDING-001"
+    trampa: "Dividend optimism: Un gerente registra dividendos sin acta de junta previa"
+    es_peligrosa: true
+    nia_violada: "NIA 550 - Partes relacionadas"
+    caso_real: "Cliente esperaba $500k dividendo pero filial tuvo pérdida. Sin acta, reconoció $500k ficticio."
+    criterio_socio: "Gerentes asumen dividendos por costumbre; auditores novatos no exigen acta"
+    
+  - id: "TRAMPA-HOLDING-002"
+    trampa: "Commission padding: Director aumenta 'comisión extraordinaria' sin justificación"
+    es_peligrosa: true
+    nia_violada: "NIA 550 - Partes relacionadas"
+    caso_real: "Director CEO cambió su comisión de $50k a $200k sin acta de junta. Dijo 'es mi empresa'."
+    criterio_socio: "Partes relacionadas son transferencias de riqueza fáciles de ocultar"
+    
+  - id: "TRAMPA-HOLDING-003"
+    trampa: "Offset magic: Dividendo por cobrar se OFFSET contra deuda accionista sin acuerdo"
+    es_peligrosa: true
+    nia_violada: "NIA 550 - Partes relacionadas"
+    caso_real: "Holding debe $100k a accionista, espera dividendo $100k. Se offseteó sin acuerdo. Deuda nunca se pagó."
+    criterio_socio: "Offset manipula flujos de caja: aparenta pago cuando nunca ocurrió"
+    
+  - id: "TRAMPA-HOLDING-004"
+    trampa: "Ghost related parties: Director tiene empresa aparte que vende a holding sin revelación"
+    es_peligrosa: true
+    nia_violada: "NIA 545 - Divulgación NIC 24"
+    caso_real: "Director vendía servicios de marketing a holding por $50k/mes. Era su empresa privada. Nunca se reveló en notas."
+    criterio_socio: "Todas las transacciones con directores son relacionadas; omisión de divulgación es error de auditoría"
+
+
+analisis_por_tipo:
+  dividend_flow:
+    descripcion: "Validación del flujo: Decisión → Derecho → Cálculo → Cobro"
+    pasos:
+      - "Junta: ¿Acta da derecho a dividendo?"
+      - "Derecho: ¿Computado sobre EE.FF. auditados de filial?"
+      - "Calculo: ¿Nuestro % × dividendo total?"
+      - "Cálculo: ¿Está la filial en capacidad de pagar?"
+  
+  related_party_commission:
+    descripcion: "Comisiones a directores requieren control robusto"
+    validar:
+      - "¿Existe acta de junta?"
+      - "¿Monto es parte de contrato de director o es adicional?"
+      - "¿Timing: Se acumuló todo el año o pagos parciales?"
+      - "¿Es deductible fiscalmente? (puede haber conflicto tributario)"
+  
+  loan_substance:
+    descripcion: "Distinguir deuda de aporte de capital"
+    indicadores_deuda:
+      - "Vencimiento fijo"
+      - "Tasa de interés clara"
+      - "Exigible por acreedor"
+    indicadores_capital:
+      - "Flexible / sin vencimiento"
+      - "Sin tasa"
+      - "Accionista dice 'tranquilo'"
+
+materialidad_considerations:
+  holdings_special: |
+    Holdings suelen ser holding companies con pocas transacciones.
+    Por eso, CUALQUIER error en dividendos, comisiones u offsets
+    es proporcionalmente Material.
+    
+    Threshold: >2% de ingresos o >1% de patrimonio
+    Pero holdings: >5% de ganancias es material (muy pocas transacciones)
+
+nias: ["NIA 550", "NIA 505", "NIA 501", "NIA 500", "NIA 545"]
+afirmaciones:
+  - "existencia de relacionadas"
+  - "derechos a dividendos"
+  - "obligaciones partes relacionadas"
+  - "valuación de transacciones"
+  - "presentación y divulgación NIIF"
+

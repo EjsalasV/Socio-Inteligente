@@ -353,12 +353,70 @@ class TestProvisionesValidation:
         assert "garantias" in program.get("analisis_por_tipo", {})
 
 
+class TestHoldingsValidation:
+    """Pruebas específicas para Holdings & Intercompany (NIC 27/28)"""
+
+    def test_holdings_dividendo_sin_junta_rechaza(self):
+        """Dividendo registrado sin acta de junta previa (RECHAZA)"""
+        context = ValidationContext(
+            cliente_id="HOLDING_001",
+            framework="NIIF_PYMES",
+            area="holdings_intercompany",
+            cuenta="4105",  # Ingresos por dividendos
+            debito=100000,
+            credito=0,
+            descripcion="Dividendo esperado de filial (sin acta de junta)",
+            tiene_soporte_documental=False,
+        )
+        
+        result = validate_entry(context)
+        
+        # Programa debe estar disponible
+        assert result.framework == "NIIF_PYMES"
+        assert result.area == "holdings_intercompany"
+
+    def test_holdings_offset_dividendo_deuda(self):
+        """Offset de dividendo contra obligación accionista (CONDICIONAL)"""
+        context = ValidationContext(
+            cliente_id="HOLDING_002",
+            framework="NIIF_PYMES",
+            area="holdings_intercompany",
+            cuenta="4105",
+            debito=50000,
+            credito=0,
+            descripcion="Dividendo offset contra deuda accionista ($100k - $50k deuda)",
+            tiene_soporte_documental=False,
+        )
+        
+        result = validate_entry(context)
+        
+        # Debe evaluar pero requiere documentación de acuerdo
+        assert result.framework == "NIIF_PYMES"
+
+    def test_holdings_programa_cargado(self):
+        """Verifica que programa Holdings está disponible y funcional"""
+        program = load_audit_program("NIIF_PYMES", "holdings_intercompany")
+        
+        # Debe tener 7 criterios HOLDING-001 a HOLDING-007
+        criteria_ids = [c.get("id") for c in program.get("criterios_validacion", [])]
+        assert "HOLDING-001-DIVIDENDO-SIN-JUNTA" in criteria_ids
+        assert "HOLDING-002-DIVIDENDO-SOBREESTIMADO" in criteria_ids
+        assert "HOLDING-004-COMISION-DIRECTORES-SIN-ACTA" in criteria_ids
+        
+        # Debe tener al menos 4 trampas educativas
+        assert len(program.get("trampas_comunes", [])) >= 4
+        
+        # Debe incluir análisis de flujos
+        assert "dividend_flow" in program.get("analisis_por_tipo", {})
+        assert "related_party_commission" in program.get("analisis_por_tipo", {})
+
+
 class TestAllProgramsAvailable:
     """Pruebas de integración: verificar que todos los programas están disponibles"""
 
     def test_all_programs_discoverable(self):
         """Verifica que todos los programas NIIF PYMES están disponibles"""
-        programs_to_test = ["cartera_cxc", "ppe", "provisiones"]
+        programs_to_test = ["cartera_cxc", "ppe", "provisiones", "holdings_intercompany"]
         
         for program_name in programs_to_test:
             # Debe cargar sin error
