@@ -117,7 +117,7 @@ export function buildClienteRealtimeWsUrl(clienteId: string, moduleKey: AuditMod
 
   // By default we require an explicit token in browser storage to avoid endless reconnect loops
   // when cross-site cookies are blocked by the browser.
-  const requireTokenRaw = String(process.env.NEXT_PUBLIC_WS_REQUIRE_TOKEN || "1").toLowerCase();
+  const requireTokenRaw = String(process.env.NEXT_PUBLIC_WS_REQUIRE_TOKEN || "0").toLowerCase();
   const requireToken = requireTokenRaw === "1" || requireTokenRaw === "true" || requireTokenRaw === "yes";
   if (requireToken && !token) return "";
 

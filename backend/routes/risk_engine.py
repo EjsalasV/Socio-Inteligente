@@ -38,7 +38,7 @@ def _risk_cache_ttl_seconds() -> float:
 
 
 def _risk_engine_ai_enabled() -> bool:
-    raw = str(os.getenv("RISK_ENGINE_AI_ENABLED") or "1").strip().lower()
+    raw = str(os.getenv("RISK_ENGINE_AI_ENABLED") or "0").strip().lower()
     return raw in {"1", "true", "yes", "y", "on"}
 
 

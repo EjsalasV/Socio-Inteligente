@@ -56,8 +56,8 @@ function getRequestTimeoutMs(path?: string): number {
   const raw = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 20000);
   if (!Number.isFinite(raw) || raw <= 0) return 20000;
   const base = Math.min(raw, 60000);
-  const heavyRaw = Number(process.env.NEXT_PUBLIC_API_HEAVY_TIMEOUT_MS || 25000);
-  const heavy = Number.isFinite(heavyRaw) && heavyRaw > 0 ? Math.min(heavyRaw, 60000) : 25000;
+  const heavyRaw = Number(process.env.NEXT_PUBLIC_API_HEAVY_TIMEOUT_MS || 35000);
+  const heavy = Number.isFinite(heavyRaw) && heavyRaw > 0 ? Math.min(heavyRaw, 90000) : 35000;
   const normalizedPath = String(path || "").toLowerCase();
   if (
     normalizedPath.startsWith("/dashboard/") ||
@@ -101,8 +101,8 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set("X-CSRF-Token", csrfToken);
   }
 
-  // Heavy modules should fail fast (avoid 2-3 minute lock feeling in UI).
-  const attempts = isHeavyPath(path) ? 1 : 2;
+  // Heavy modules may need one retry when backend warms caches on first hit.
+  const attempts = isHeavyPath(path) ? 2 : 2;
   let res: Response | null = null;
   let lastError: unknown = null;
 
@@ -123,13 +123,19 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       lastError = error;
       const isAbort = (error as { name?: string })?.name === "AbortError";
       const canRetry = attempt < attempts;
-      if (isAbort && canRetry) continue;
+      if (isAbort && canRetry) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        continue;
+      }
       if (isAbort) {
         throw new Error(
           `Tiempo de espera agotado al conectar con el backend (${getApiBase()}) tras ${timeoutMs / 1000}s.`,
         );
       }
-      if (canRetry) continue;
+      if (canRetry) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        continue;
+      }
       throw new Error(
         `No se pudo conectar con el backend (${getApiBase()}). Origin actual: ${getBrowserOrigin()}.`,
       );

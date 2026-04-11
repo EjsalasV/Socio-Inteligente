@@ -32,6 +32,42 @@ def _tb_file_signature(cliente: str) -> str:
         return "missing"
 
 
+def _tb_disk_cache_path(cliente: str) -> Any:
+    try:
+        return _resolve_cliente_dir(cliente) / ".tb_cache.pkl"
+    except Exception:
+        return None
+
+
+def _load_tb_disk_cache(cliente: str, signature: str) -> "Optional[pd.DataFrame]":
+    path = _tb_disk_cache_path(cliente)
+    if path is None or signature == "missing":
+        return None
+    try:
+        if not path.exists():
+            return None
+        cached = pd.read_pickle(path)
+        if not isinstance(cached, dict):
+            return None
+        cached_signature = str(cached.get("signature") or "")
+        tb = cached.get("tb")
+        if cached_signature != signature or not isinstance(tb, pd.DataFrame) or tb.empty:
+            return None
+        return tb
+    except Exception:
+        return None
+
+
+def _save_tb_disk_cache(cliente: str, signature: str, tb: "pd.DataFrame") -> None:
+    path = _tb_disk_cache_path(cliente)
+    if path is None or signature == "missing":
+        return
+    try:
+        pd.to_pickle({"signature": signature, "tb": tb}, path)
+    except Exception:
+        return
+
+
 def set_tb_cache(cliente: str, df: "pd.DataFrame") -> None:
     """Store a TB DataFrame in module cache."""
     if isinstance(df, pd.DataFrame) and not df.empty:
@@ -53,6 +89,14 @@ def get_tb_cache(cliente: str, *, signature: str | None = None) -> "Optional[pd.
 def clear_tb_cache(cliente: str) -> None:
     """Remove a client's TB from cache."""
     _TB_CACHE.pop(str(cliente).strip(), None)
+    path = _tb_disk_cache_path(cliente)
+    if path is None:
+        return
+    try:
+        if path.exists():
+            path.unlink()
+    except Exception:
+        return
 
 
 def _normalize_header(col: Any) -> str:
@@ -112,6 +156,10 @@ def leer_tb(cliente: str) -> Optional[pd.DataFrame]:
     cached = get_tb_cache(cliente, signature=signature)
     if cached is not None:
         return cached
+    disk_cached = _load_tb_disk_cache(cliente, signature)
+    if disk_cached is not None:
+        _TB_CACHE[str(cliente).strip()] = (signature, disk_cached.copy())
+        return disk_cached.copy()
 
     """
     Lee y procesa el Trial Balance de un cliente.
@@ -132,6 +180,7 @@ def leer_tb(cliente: str) -> Optional[pd.DataFrame]:
         tb = _enriquecer_tb(tb)
 
         _TB_CACHE[str(cliente).strip()] = (signature, tb.copy())
+        _save_tb_disk_cache(cliente, signature, tb)
         print(f"[OK] TB cargado para {cliente}: {tb.shape[0]} filas")
         return tb
     except Exception as e:
