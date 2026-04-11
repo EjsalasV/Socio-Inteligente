@@ -6,6 +6,7 @@ import { useAuditContext } from "../../lib/hooks/useAuditContext";
 import {
   buildClienteRealtimeWsUrl,
   dispatchClienteUpdatedEvent,
+  ensureRealtimeToken,
   type ClienteRealtimeEventDetail,
   type PresenceParticipant,
 } from "../../lib/realtime";
@@ -67,14 +68,6 @@ export default function ClienteRealtimeProvider({ children }: { children: React.
       return;
     }
 
-    const wsUrl = buildClienteRealtimeWsUrl(clienteId, moduleKey);
-    if (!wsUrl) {
-      setConnected(false);
-      setReconnecting(false);
-      shouldReconnectRef.current = false;
-      return;
-    }
-
     let disposed = false;
     shouldReconnectRef.current = true;
 
@@ -100,13 +93,22 @@ export default function ClienteRealtimeProvider({ children }: { children: React.
       const delayMs = Math.min(15000, 500 * Math.pow(2, Math.min(attempt, 5)));
       setReconnecting(true);
       reconnectTimerRef.current = window.setTimeout(() => {
-        connect();
+        void connect();
       }, delayMs);
     };
 
-    const connect = () => {
+    const connect = async () => {
       if (disposed) return;
       try {
+        const token = await ensureRealtimeToken();
+        if (disposed) return;
+        const wsUrl = buildClienteRealtimeWsUrl(clienteId, moduleKey, token);
+        if (!wsUrl) {
+          setConnected(false);
+          setReconnecting(false);
+          shouldReconnectRef.current = false;
+          return;
+        }
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
@@ -185,7 +187,7 @@ export default function ClienteRealtimeProvider({ children }: { children: React.
       }
     };
 
-    connect();
+    void connect();
 
     return () => {
       disposed = true;

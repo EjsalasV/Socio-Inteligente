@@ -2,6 +2,7 @@
 
 import type { AuditModule } from "./hooks/useAuditContext";
 import { hasSessionState } from "./auth-session";
+import { buildApiUrl } from "./api-base";
 
 const DEFAULT_API_BASE =
   process.env.NODE_ENV === "development"
@@ -27,6 +28,13 @@ export type PresenceParticipant = {
   module: string;
   connected_at: string;
   last_seen_at: string;
+};
+
+type WsTokenResponse = {
+  status?: string;
+  data?: {
+    ws_token?: string;
+  };
 };
 
 function stripTrailingSlash(value: string): string {
@@ -103,20 +111,24 @@ function toWsBase(httpBase: string): string {
     : `ws://${httpBase}`;
 }
 
-export function buildClienteRealtimeWsUrl(clienteId: string, moduleKey: AuditModule): string {
+export function buildClienteRealtimeWsUrl(
+  clienteId: string,
+  moduleKey: AuditModule,
+  tokenOverride?: string,
+): string {
   if (!hasSessionState() || !clienteId) return "";
   const base = toWsBase(resolveWsSourceBase());
 
   // Prefer current session token, then legacy localStorage token for backward compatibility.
   const token =
-    typeof window !== "undefined"
+    String(tokenOverride || "").trim() ||
+    (typeof window !== "undefined"
       ? window.sessionStorage?.getItem("socio_auth_token") ||
         window.localStorage?.getItem("socio_token") ||
         ""
-      : "";
+      : "");
 
-  // If token is missing, backend may still authenticate using secure cookie.
-  // This avoids getting stuck in permanent "Sin conexion" state.
+  if (!token) return "";
 
   const params = new URLSearchParams({
     module: moduleKey,
@@ -127,6 +139,30 @@ export function buildClienteRealtimeWsUrl(clienteId: string, moduleKey: AuditMod
   }
 
   return `${base}/ws/clientes/${encodeURIComponent(clienteId)}?${params.toString()}`;
+}
+
+export async function ensureRealtimeToken(): Promise<string> {
+  if (typeof window === "undefined") return "";
+  const current =
+    window.sessionStorage?.getItem("socio_auth_token") || window.localStorage?.getItem("socio_token") || "";
+  if (current) return current;
+  if (!hasSessionState()) return "";
+
+  try {
+    const res = await fetch(buildApiUrl("/auth/ws-token"), {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return "";
+    const payload = (await res.json()) as WsTokenResponse;
+    const token = String(payload?.data?.ws_token || "").trim();
+    if (!token) return "";
+    window.sessionStorage?.setItem("socio_auth_token", token);
+    return token;
+  } catch {
+    return "";
+  }
 }
 
 export function dispatchClienteUpdatedEvent(detail: ClienteRealtimeEventDetail): void {

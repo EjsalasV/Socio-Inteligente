@@ -47,3 +47,24 @@ def test_websocket_rejects_missing_token() -> None:
     except WebSocketDisconnect:
         # Expected - conexión rechazada sin token
         pass
+
+
+def test_ws_token_endpoint_returns_cookie_token() -> None:
+    token, _ = create_access_token(
+        sub="ws-token-user",
+        org_id="org_test",
+        allowed_clientes=["cliente_demo"],
+        role="auditor",
+    )
+    client = TestClient(app)
+    res = client.get("/auth/ws-token", cookies={"socio-auth": token})
+    assert res.status_code == 200
+    body = res.json()
+    assert body.get("status") == "ok"
+    assert body.get("data", {}).get("ws_token") == token
+
+
+def test_ws_token_endpoint_requires_session_cookie() -> None:
+    client = TestClient(app)
+    res = client.get("/auth/ws-token")
+    assert res.status_code == 401

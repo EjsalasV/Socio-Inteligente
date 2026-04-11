@@ -113,3 +113,21 @@ def me(user: UserContext = Depends(get_current_user)) -> ApiResponse:
             allowed_clientes=user.allowed_clientes,
         ).model_dump()
     )
+
+
+@router.get("/ws-token", response_model=ApiResponse)
+def ws_token(request: Request, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    token = str(request.cookies.get(AUTH_COOKIE_NAME) or "").strip()
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesion no disponible para websocket",
+        )
+    # user dependency already validates token + access context
+    return ApiResponse(
+        data={
+            "ws_token": token,
+            "sub": user.sub,
+            "role": user.role,
+        }
+    )
