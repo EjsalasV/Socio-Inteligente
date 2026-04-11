@@ -1,0 +1,326 @@
+framework: "NIIF_PYMES"
+norma_clave: "NIC 16 - Propiedad, Planta y Equipo + NIC 36 - Deterioro de Activos"
+area: "ppe"
+area_codigo: "161"
+
+conceptos_riesgo:
+  - "Vida útil debe reflejar realidad económica, NO criterio tributario"
+  - "Deterioro NO es solo depreciación acumulada"
+  - "Componentización obliga a separar partes diferentes"
+  - "Revaluos crean volatilidad si no están justificados"
+  - "Activos ociosos o abandonados suelen estar mal clasificados"
+
+principios_aplicables:
+  - "NIA 315: Comprender cómo se generan bienes/servicios (entiende negocio primero)"
+  - "NIA 500: Evidencia de vidas útiles y tasas de deterioro"
+  - "NIA 330: Pruebas sobre tasas depreciation"
+  - "NIC 16: Costo, componentes, vida útil, residual"
+  - "NIC 36: Indicios deterioro, prueba de deterioro, UGE"
+
+criterios_validacion:
+  
+  - id: "PPE-001-VIDA-UTIL-TRIBUTARIA"
+    regla: "Vida útil igualada a depreciación tributaria (SRI)"
+    es_permitido: false
+    descripcion: "RECHAZAR - Viola NIC 16"
+    
+    porque: |
+      NIC 16.58: Vida útil debe reflejar PERÍODO EN QUE SE ESPERA CONSUMIR
+      beneficios económicos.
+      
+      SRI depreciación (5, 10, 20 años) es PISO FISCAL, no contable.
+      
+      Ejemplo: Máquina que técnicamente dura 8 años pero SRI dice 10
+      → Debe usarse 8 años en NIIF, no 10.
+    
+    que_hacer:
+      - "RECHAZAR: Solicitar justificación de vida útil real"
+      - "Pedir análisis técnico (ingeniero, historial equipo similar)"
+      - "Comparar con industria (benchmarking)"
+      - "Documentar por qué difiere de tributario"
+    
+    nias: ["NIA 315", "NIA 500"]
+    materialidad: "Material si >5% de activos"
+
+  - id: "PPE-002-REVIDUOS-ALTOS"
+    regla: "Valor residual estimado >50% del costo"
+    es_permitido: "conditional"
+    descripcion: "Alto residual sin justificación"
+    
+    cuando_aplica:
+      - "Depreciación anual es <1% del costo"
+      - "Cliente asume recuperación alta sin evidencia"
+    
+    cuando_rechazar:
+      - "No hay mercado secundario para activo"
+      - "Cliente solo dice 'es bueno' sin análisis"
+      - "Activo está deteriorado pero residual es alto"
+    
+    que_validar:
+      - "¿Existe mercado para este activo usado?"
+      - "¿Hay histórico de ventas similares?"
+      - "¿El residual es realista comparado con industria?"
+      - "¿Cliente tiene análisis escrito?"
+    
+    que_pedir:
+      - "Análisis de valor residual escrito"
+      - "Evidencia de mercado secundario"
+      - "Comparables de ventas pasadas"
+      - "Si hay duda: tasador independiente"
+    
+    nias: ["NIA 500"]
+
+  - id: "PPE-003-RECLASIFICACION-OBRA"
+    regla: "Obra en construcción capitalizada sin cierre de proyecto"
+    es_permitido: false
+    descripcion: "RECHAZAR - OEC en balance después de meses sin movimiento"
+    
+    porque: |
+      NIC 16.18: Capitalizar gastos DURANTE construcción.
+      NIC 16.73: TRANSFERIR a PPE cuando DISPONIBLE para uso.
+      
+      Trampa: Obra "en construcción" por 3 años sin cambios
+      = Probablemente ya está disponible o proyecto cancelado.
+    
+    que_hacer:
+      - "RECHAZAR: OEC debe transferirse a PPE"
+      - "Validar: ¿Qué falta para que esté disponible?"
+      - "Si proyecto cancelado: Impairment test"
+      - "Si disponible: Reclasificar y empezar depreciation"
+    
+    nias: ["NIA 500", "NIA 315"]
+
+  - id: "PPE-004-INDICIOS-DETERIORO"
+    regla: "PPE con indicios de deterioro sin prueba"
+    es_permitido: false
+    descripcion: "RECHAZAR - Hay indicios pero cliente no hizo test"
+    
+    indicios_deterioro:
+      - "Activo está dañado o inoperativo"
+      - "Tecnología obsoleta (máquina vs software moderno)"
+      - "Activo ociado >6 meses"
+      - "Cambio legal/regulatorio (no puede usarse)"
+      - "Tasa descuento de mercado aumentó significativamente"
+      - "Valor de mercado bajó vs costo neto"
+    
+    que_hacer:
+      - "RECHAZAR si hay 2+ indicios y NO hay prueba deterioro"
+      - "Solicitar: Cálculo de VRU (Valor Recuperable de Uso)"
+      - "VRU = MAYOR de: (Valor Venta - Gastos) O (VP Flows Futuros)"
+      - "Si VRU < VL: Registrar pérdida por deterioro"
+    
+    nias: ["NIA 500"]
+    materialidad: "Material por cualquier monto si es deterioro"
+
+  - id: "PPE-005-COMPONENTES-DESAGREGADOS"
+    regla: "PPE donde componentes de vida útil diferente NO están desagregados"
+    es_permitido: "conditional"
+    descripcion: "Falta de componentización donde es material"
+    
+    cuando_aplica:
+      - "Edificio + Techo (vida útil diferente)"
+      - "Máquina + Motor (vida < máquina)"
+      - "Activo con componentes >=10% del costo"
+    
+    cuando_rechazar:
+      - "Componente A de 5 años y B de 20 años → DEBE desagregarse"
+      - "Costo componente >10% del total"
+      - "Cliente es empresa industrial (no pyme pequeña)"
+    
+    que_validar:
+      - "¿Hay componentes con vida útil diferente?"
+      - "¿Costo componente es material (>5-10% del total)?"
+      - "¿La empresa tiende a reponer por componentes?"
+    
+    que_pedir:
+      - "Análisis de componentes principales"
+      - "Justificación si NO desagrega"
+      - "Costo histórico de reposiciones"
+    
+    nias: ["NIA 500"]
+
+  - id: "PPE-006-ACTIVOS-OCIOSOS"
+    regla: "Activos ociosos clasificados como PPE operativo"
+    es_permitido: false
+    descripcion: "RECHAZAR - Deben reclasificarse o evaluarse"
+    
+    porque: |
+      Activo ocioso NO genera beneficios → Posible deterioro.
+      Si puede venderse → Reclasificar a "Activos para Venta".
+      Si NO → Puede justificarse pero requiere análisis.
+    
+    que_hacer:
+      - "RECHAZAR: Activos ociosos deben evaluarse separate"
+      - "¿Va a vender? → Reclasificar a Activos para Venta"
+      - "¿Va a usar después? → Suspender depreciation + test deterioro"
+      - "¿Ya no sirve? → Bajar + documentar razón"
+    
+    nias: ["NIA 500", "NIA 315"]
+
+trampas_comunes:
+  
+  - id: "TRAMPA-PPE-001"
+    trampa: "Copiar vidas útiles tributarias sin análisis técnico"
+    es_peligrosa: true
+    nia_violada: "NIC 16, NIA 500"
+    
+    caso_real: |
+      Empresa tiene máquina importada (8 años vida real).
+      SRI permite 10 años.
+      Contador: "Uso 10 años porque SRI lo permite" ❌
+      
+      Realidad: Está sobredepreciando por 2 años
+      = Subestima gasto en años 9-10
+      = Ingresos netos altos artificialmente
+    
+    criterio_socio: |
+      Tributario es PISO, no techo.
+      Tu trabajo: Determinar realidad económica.
+      Si máquina dura 8 años, deprecia en 8.
+
+  - id: "TRAMPA-PPE-002"
+    trampa: "Asumir residual alto sin mercado que lo justifique"
+    es_peligrosa: true
+    nia_violada: "NIA 500"
+    
+    caso_real: |
+      Máquina especializada (solo sirve en está empresa).
+      Cliente: "Cuando se desgaste, la vendo al mercado usado por X"
+      Junior: "OK, residual = X" ❌
+      
+      Realidad: Máquina especializada = cero valor residual.
+      Cliente asume venta que nunca ocurriría.
+    
+    criterio_socio: |
+      Residual = lo que REALISTICALLY obtendrías vendiendo.
+      No lo que esperas si todo sale perfecto.
+
+  - id: "TRAMPA-PPE-003"
+    trampa: "Obra en construcción nunca termina pero sigue sin depreciar"
+    es_peligrosa: true
+    nia_violada: "NIC 16"
+    
+    caso_real: |
+      "Ampliación de planta 2022"
+      Hoy 2026 y sigue como OEC (Obra en Construcción).
+      Junior: "Todavía está en proceso" ❌
+      
+      Realidad:
+      - Proyecto fue cancelado hace 2 años
+      - O fue completado y olvidaron reclasificar
+      - O equivocación de capitalización
+    
+    criterio_socio: |
+      OEC > 2 años sin cambio = RED FLAG.
+      Investigar: ¿Por qué no termina?
+      Si terminó: Depreciar.
+      Si cancelado: Impairment.
+
+  - id: "TRAMPA-PPE-004"
+    trampa: "Activo deteriorado sigue en balance a costo íntegro"
+    es_peligrosa: true
+    nia_violada: "NIC 36, NIA 500"
+    
+    caso_real: |
+      Máquina física dañada (no funciona).
+      Cliente: "Todavía vale lo que costó"
+      Junior: "OK" ❌
+      
+      Realidad: Activo dañado = valor recuperable < valor neto
+      = DEBE registrar pérdida por deterioro.
+    
+    criterio_socio: |
+      Si hay evidencia física de deterioro,
+      debes hacer prueba de deterioro.
+      No es opcional.
+
+  - id: "TRAMPA-PPE-005"
+    trampa: "Confundir depreciación con vida útil"
+    es_peligrosa: true
+    nia_violada: "NIC 16, NIA 200"
+    
+    caso_real: |
+      Cliente: "Máquina tiene 15 años de antigüedad"
+      Junior: "Entonces vida útil = 15 años" ❌
+      
+      Realidad:
+      - Antigüedad ≠ vida útil
+      - Máquina de 15 años puede durar otros 5
+      - O de 5 años de edad puede durar solo 2 más
+      
+      Vida útil = tiempo FUTURO que generará beneficios.
+    
+    criterio_socio: |
+      Antigüedad histórica ≠ evaluación de futuro.
+      Pregunta: ¿Cuánto falta que funcione?
+      NO: ¿Cuánto lleva funcionando?
+
+analisis_riesgo_por_transaccion:
+  capitalizacion_nueva:
+    pregunta: "¿Este gasto debe capitalizarse o es mantenimiento?"
+    riesgo: "Alto (se capitaliza cuando es gasto)"
+    procedimiento:
+      - "¿Genera beneficios futuros? (Si no, es gasto)"
+      - "¿Aumenta vida útil? (Si sí, capitalizar)"
+      - "¿Mejora rendimiento? (Capitalizar la mejora)"
+  
+  depreciacion_anual:
+    pregunta: "¿Vida útil es realista?"
+    riesgo: "Medio (afecta gasto años futuros)"
+    procedimiento:
+      - "Revisar vida útil vs técnico"
+      - "Si cambió: NIC 8 (cambio de estimación)"
+      - "Documentar cambio y razón"
+  
+  disposicion_activo:
+    pregunta: "¿Ganancia/pérdida es correcta?"
+    riesgo: "Medio (puede ser fraude)"
+    procedimiento:
+      - "VL del activo a fecha disposición"
+      - "Precio obtenido vs VL"
+      - "Documentar diferencia"
+      - "Check: ¿Venta es arm's length? (no a relacionado a precio bajo)"
+
+nias_generales:
+  - "NIA 200: Consideraciones generales"
+  - "NIA 315: Conocimiento negocio y cómo genera ingresos"
+  - "NIA 330: Pruebas de auditoría sobre transacciones"
+  - "NIA 500: Evidencia sobre vidas útiles y evaluación deterioro"
+  - "NIA 501: Evidencia - Elementos específicos (PPE incluyó)"
+
+afirmaciones_auditoria:
+  existencia: "¿Activo existe físicamente?"
+  propiedad: "¿La empresa es propietaria legal?"
+  valuacion: "¿Costo inicial es correcto?"
+  depreciacion: "¿Vida útil y residual son razonables?"
+  deterioro: "¿Valor recuperable > costo neto?"
+  presentacion: "¿Clasificado correctamente en balance?"
+
+red_flags_auditoria:
+  - "OEC sin movimiento >12 meses"
+  - "PPE de edad >50% de vida útil pero sin depreciación"
+  - "Residual >30% sin justificación"
+  - "Activo inoperativo o dañado + sin impairment test"
+  - "Vida útil diferente a industria sin razón técnica"
+  - "Reclasificaciones de PPE a gasto sin documentación"
+  - "Tasas depreciación tributarias copiadas literalmente"
+
+casos_industria:
+  construccion:
+    ppe_tipico: "Maquinaria, herramientas, vehículos"
+    vida_util: "Maquinaria 8-12 años, vehículos 5-8, herramientas 3-5"
+    riesgo_comun: "Activos ociosos entre proyectos no se reclasifican"
+  
+  manufactura:
+    ppe_tipico: "Líneas producción, moldes, equipos especializados"
+    vida_util: "Máquinas 10-15 años, componentes 5-8"
+    riesgo_comun: "Componentes de vida útil diferente no desagregados"
+  
+  comercio:
+    ppe_tipico: "Mobiliario, equipos caja, exhibidores, vehículos"
+    vida_util: "Mobiliario 10 años, equipos 5-8, vehículos 5-7"
+    riesgo_comun: "Equipos obsoletos por cambios retail sin deterioro"
+
+version: "1.0"
+ultima_actualizacion: "2026-04-11"
+responsable: "Sistema Asesor Auditoría"

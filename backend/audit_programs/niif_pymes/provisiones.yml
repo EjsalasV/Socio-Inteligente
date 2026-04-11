@@ -1,0 +1,390 @@
+framework: "NIIF_PYMES"
+norma_clave: "NIC 37 - Provisiones, Pasivos Contingentes y Activos Contingentes"
+area: "provisiones"
+area_codigo: "280"
+
+conceptos_riesgo:
+  - "Provisión NO es estimación del gerente, debe cumplir 3 requisitos legales"
+  - "Probabilidad es clave: Probable (>50%), Posible (<50%), Remoto (<5%)"
+  - "Contigencia legal genera obligación = Provisión, no nota a pie"
+  - "Estimación de monto requiere mejor estimación técnica, no optimismo"
+  - "Cada demanda/litigio requiere evaluación individual"
+  - "Cambios en provisión provisiones deben justificarse normativamente"
+
+principios_aplicables:
+  - "NIA 500: Evidencia sobre provisiones (abogados, expertos técnicos)"
+  - "NIA 580: Representaciones de dirección sobre litigios"
+  - "NIA 501: Solicitudes de abogados externos"
+  - "NIC 37: Criterios para reconocimiento de provisiones"
+  - "NIC 37.90: Cambios en estimaciones se reconocen en P&L"
+
+criterios_validacion:
+  
+  - id: "PROV-001-SIN-OBLIGACION-LEGAL"
+    regla: "Provisión registrada sin obligación legal presente"
+    es_permitido: false
+    descripcion: "RECHAZAR - No cumple NIC 37"
+    
+    porque: |
+      NIC 37.14: Para provisionar debe haber:
+      1. OBLIGACIÓN presente (legal o constructiva)
+      2. Es probable se incurra en salida de recursos
+      3. Se puede estimar razonablemente el monto
+      
+      Sin obligación presente = NO es provisión
+      = Es simplemente estimación de gerencia.
+    
+    ejemplos_rechazo:
+      - "Provision 'por posibles cambios legales futuros' - RECHAZAR"
+      - "Provision 'por competencia que podría llegar' - RECHAZAR"
+      - "Provision 'por posible baja de ventas' - RECHAZAR"
+      - "Todas son CONTINGENCIAS, NO obligaciones presentes"
+    
+    que_hacer:
+      - "RECHAZAR: Validar que existe obligación legal/contractual"
+      - "Preguntar: ¿Qué genera la obligación? (demanda, contrato, ley)"
+      - "Si no existe → NO provisionar"
+      - "Si existe pero es posible (no probable) → Contingencia en nota"
+    
+    nias: ["NIA 500", "NIA 580"]
+    materialidad: "Material si es >5% pasivos"
+
+  - id: "PROV-002-PROBABILIDAD-VAGA"
+    regla: "Provisión con probabilidad 'posible' o sin evaluación escrita"
+    es_permitido: false
+    descripcion: "RECHAZAR - Falta de criterio de probabilidad"
+    
+    porque: |
+      NIC 37.25: Provisibles solo si es PROBABLE que ocurra (>50%)
+      
+      Si es POSIBLE (entre 5% y 50%) = Contingencia en nota, NO provisión.
+      Si es REMOTO (<5%) = Ni siquiera nota.
+    
+    criterios_probabilidad:
+      probable_mas50:
+        descripcion: "Más probable que sí ocurra"
+        accion: "PROVISIONAR"
+        
+      posible_5_50:
+        descripcion: "Podría ocurrir pero no es probable"
+        accion: "REVELAR EN NOTA (no provisionar)"
+        
+      remoto_menor5:
+        descripcion: "Muy poco probable"
+        accion: "NO REVELAR (no significativo)"
+    
+    que_hacer:
+      - "RECHAZAR hasta que abogado/experto diga PROBABLE"
+      - "Pedir: Carta de abogado con probabilidad (probable/posible)"
+      - "Si abogado dice 'posible' → Nota al pie, NO provisión"
+      - "Documento de probabilidad debe estar guardado"
+    
+    nias: ["NIA 500", "NIA 580"]
+    trampa_asociada: "TRAMPA-PROV-001"
+
+  - id: "PROV-003-MONTO-OPTIMISTA"
+    regla: "Provisión cuyo monto es 'mejor estimación' sin técnica"
+    es_permitido: "conditional"
+    descripcion: "Monto debe ser mejor estimación técnica"
+    
+    cuando_aplica:
+      - "Litigio donde se reclama X pero podría ser Y"
+      - "Garantía donde costo podría variar"
+      - "Reestructuración con monto impreciso"
+    
+    cuando_rechazar:
+      - "Monto es 'optimista' (mejor caso posible)"
+      - "Cliente 'espera que sea menos'"
+      - "No hay análisis técnico del monto probable"
+    
+    que_validar:
+      - "¿Monto es MEJOR ESTIMACIÓN (caso más probable)?"
+      - "¿Se consideró rango de resultados?"
+      - "¿Hay análisis técnico escrito (abogado, ingeniero)?"
+      - "¿El monto es independiente del optimismo del cliente?"
+    
+    que_hacer:
+      - "ACEPTAR si hay análisis técnico de mejor estimación"
+      - "RECHAZAR si es puramente optimista sin justificación"
+      - "Pedir: Rango de resultados posibles + por qué se eligió este monto"
+    
+    nias: ["NIA 500"]
+
+  - id: "PROV-004-LITIGIO-SIN-ABOGADO"
+    regla: "Demanda pendiente sin confirmación de abogado externo"
+    es_permitido: false
+    descripcion: "RECHAZAR - NIA 501 exige confirmación externa"
+    
+    porque: |
+      NIA 501 (Litigios): Solicitar confirmación de ABOGADO EXTERNO
+      (no interno de la empresa).
+      
+      Abogado interno = conflicto de interés.
+      Gerencia = sesgo optimista ("seguro ganamos").
+    
+    que_hacer:
+      - "RECHAZAR hasta obtener carta de abogado externo"
+      - "Enviar carta de auditoría a abogado solicitando: ¿Existe demanda? ¿Contra quién? ¿Probable resultado? ¿Monto estimado? ¿Plazo?"
+      - "Aceptar respuesta SOLO de abogado, no de cliente"
+    
+    nias: ["NIA 501", "NIA 500"]
+    materialidad: "Material por cualquier monto si es litigio"
+
+  - id: "PROV-005-CAMBIO-PROVISION-NO-JUSTIFICADO"
+    regla: "Provisión que cambió significativamente sin razón"
+    es_permitido: false
+    descripcion: "RECHAZAR - Cambio debe ser NIC 8 (cambio estimación)"
+    
+    porque: |
+      Si provisión cambió de X a Y:
+      - Si es por información nueva → OK (NIC 8)
+      - Si es por optimismo/pesimismo del cliente → NO
+      - Si no hay justificación → Posible manipulación
+    
+    que_validar:
+      - "¿Qué causó el cambio?"
+      - "¿Hay evento nuevo que justifique cambio?"
+      - "¿Hay comunicación del abogado diciendo 'ahora es más probable'?"
+      - "¿O es simplemente 'ahora esperamos menos gasto'?"
+    
+    que_hacer:
+      - "RECHAZAR si cambio es sin razón técnica"
+      - "Pedir: Justificación formal del cambio"
+      - "Validar contra comunicaciones de abogado"
+      - "Si no hay justificación → Exigir reversión"
+    
+    nias: ["NIA 500", "NIA 540"]
+
+  - id: "PROV-006-GARANTIA-SIN-HISTORICO"
+    regla: "Provisión por garantías sin análisis histórico de reclamaciones"
+    es_permitido: "conditional"
+    descripcion: "Provisión de garantía debe basarse en datos"
+    
+    cuando_aplica:
+      - "Empresa ofrece garantía sobre productos"
+      - "hay estimación de reclamaciones futuras"
+    
+    cuando_rechazar:
+      - "Cliente asume 'típicamente 5% reclamaciones' sin evidence"
+      - "Tasa de garantía sube/baja sin cambio en operación"
+      - "No hay análisis de reclamaciones históricas"
+    
+    que_validar:
+      - "¿Hay histórico de reclamaciones?"
+      - "¿Tasa propuesta es consistente con histórico?"
+      - "¿Ha cambiado calidad del producto?"
+      - "¿Hay cambios en garantía ofrecida?"
+    
+    que_pedir:
+      - "Análisis de reclamaciones últimos 3-5 años"
+      - "Tasa de reclamación histórica"
+      - "Justificación si tasa cambió"
+      - "Si es nuevo producto: Análisis de estimación"
+    
+    nias: ["NIA 500"]
+
+  - id: "PROV-007-REESTRUCTURACION-INCOMPLETA"
+    regla: "Provisión por reestructuración sin plan escrito detallado"
+    es_permitido: false
+    descripcion: "RECHAZAR - Reestructuración requiere plan formal"
+    
+    porque: |
+      NIC 37.72: Provisión por reestructuración solo si:
+      1. Existe PLAN detallado (publicado o comunicado)
+      2. Beneficiados tienen EXPECTATIVA razonable
+      3. Se identifica claramente: personal afectado, beneficios, timings
+    
+      "Pensamos reestructurar" ≠ Obligación
+    
+    que_hacer:
+      - "RECHAZAR si no existe plan formal por escrito"
+      - "Pedir: Plan de reestructuración detallado"
+      - "Validar: ¿Fue comunicado a empleados/sindicatos?"
+      - "¿Existe obligación legal o constructiva?"
+      - "Si no existe → NO provisionar"
+    
+    nias: ["NIA 500"]
+
+trampas_comunes:
+  
+  - id: "TRAMPA-PROV-001"
+    trampa: "Confundir PROBABLE (>50%) con POSIBLE (5-50%)"
+    es_peligrosa: true
+    nia_violada: "NIC 37, NIA 500"
+    
+    caso_real: |
+      Demanda donde "podría perder" el cliente.
+      Cliente: "Es posible que tenga que pagar X"
+      Junior: "Provisiono X" ❌
+      
+      Realidad: Si solo es POSIBLE (no probable)
+      = Contingencia en nota, NO provisión en balance.
+      
+      Resultado: Pasivos inflados, muestra empresa más débil de lo que es.
+    
+    criterio_socio: |
+      Probable = >50% (más probable que sí que no)
+      Posible = 5-50% (podría pasar)
+      
+      Si abogado dice "es posible" → Nota al pie.
+      Si abogado dice "es probable" → Provisión.
+
+  - id: "TRAMPA-PROV-002"
+    trampa: "Usar estimación optimista del cliente en lugar de mejor estimación"
+    es_peligrosa: true
+    nia_violada: "NIC 37, NIA 500"
+    
+    caso_real: |
+      Litigio donde se reclama $100.
+      Gerente: "Espero pagar solo $30"
+      Junior: "Provisiono $30" ❌
+      
+      Realidad: Abogado dice "monto más probable es $60-70"
+      = Provisión debe ser $60-70, no la esperanza del gerente.
+    
+    criterio_socio: |
+      NIC 37: MEJOR ESTIMACIÓN ≠ caso más favorable.
+      Mejor estimación = resultado MÁS PROBABLE técnicamente.
+      No lo que el cliente espera que sea.
+
+  - id: "TRAMPA-PROV-003"
+    trampa: "Usar abogado INTERNO para evaluar litigios"
+    es_peligrosa: true
+    nia_violada: "NIA 501, NIA 200"
+    
+    caso_real: |
+      Cliente tiene demanda pendiente.
+      Abogado interno (empleado): "Probablemente ganamos"
+      Junior: "No provisiono" ✓ (aparentemente)
+      
+      Realidad: Abogado interno tiene incentivo a ser optimista
+      (si cliente pierde, se cuestiona su trabajo).
+      
+      Riesgo: No provisionar porque abogado interno es sesgado.
+    
+    criterio_socio: |
+      NIA 501: SIEMPRE pedir confirmación de abogado EXTERNO.
+      Costo: Vale la pena por independencia.
+      No ahorres aquí.
+
+  - id: "TRAMPA-PROV-004"
+    trampa: "Cambiar provisión sin documentación de por qué"
+    es_peligrosa: true
+    nia_violada: "NIC 8, NIA 500"
+    
+    caso_real: |
+      2025: Provisión por demanda = $100
+      2026: Provisión = $50 (sin cambio en litigio)
+      Junior: "OK, bajó" ✓
+      
+      Realidad: Cliente "asume que va mejor"
+      pero abogado NO cambió su evaluación.
+      = Posible manipulación de resultados.
+    
+    criterio_socio: |
+      Cualquier cambio de provisión
+      debe tener documentación técnica:
+      - Comunicación del abogado diciendo "cambió"
+      - O evento nuevo que justifique cambio
+      
+      Si no existe → Exigir que se revierta.
+
+  - id: "TRAMPA-PROV-005"
+    trampa: "Provisionar por contingencias futuras (no actuales)"
+    es_peligrosa: true
+    nia_violada: "NIC 37"
+    
+    caso_real: |
+      Cliente: "Podría cambiar la ley sobre ambientes"
+      Junior: "Provisiono para nuevo cumplimiento" ❌
+      
+      Realidad: No hay OBLIGACIÓN actual.
+      = Si la ley cambia, es futura = No provisiona hoy.
+      
+      Resultado: Balance con pasivos que no existen.
+    
+    criterio_socio: |
+      Provisión = obligación PRESENTE.
+      "Posibles cambios" = Contingencia, NO provisión.
+      
+      Regla: Si obligación no existe AHORA
+      = No provisiones.
+
+  - id: "TRAMPA-PROV-006"
+    trampa: "Provisión de garantía con tasa inventada, sin histórico"
+    es_peligrosa: true
+    nia_violada: "NIA 500"
+    
+    caso_real: |
+      Empresa vende productos con garantía 2 años.
+      Cliente: "Asumo 8% de reclamaciones"
+      Junior: "OK, provisiono 8%" ✓
+      
+      Realidad: Histórico de últimos 3 años muestra 2%.
+      = Cliente está inflando provision para bajar ingresos.
+    
+    criterio_socio: |
+      Tasa de garantía debe basarse en DAO (datos actuales).
+      No en "lo que creemos".
+      
+      Pedir: Análisis histórico siempre.
+
+analisis_por_tipo:
+  litigios:
+    obligacion: "Demanda legal presentada"
+    probabilidad: "Requiere evaluación abogado externo"
+    monto: "Monto reclamado ± deficiencias técnicas"
+    plazo: "Resolución esperada"
+    
+  garantias:
+    obligacion: "Garantía ofrecida al cliente"
+    probabilidad: "Histórico de reclamaciones"
+    monto: "Costo promedio reclamación"
+    plazo: "Período de garantía"
+    
+  reestructuracion:
+    obligacion: "Plan comunicado a afectados"
+    probabilidad: "Si plan es formal = probable"
+    monto: "Indemnizaciones, cierres, despidos"
+    plazo: "Fechas del plan"
+    
+  devolucion_clientes:
+    obligacion: "Política de devolución existente"
+    probabilidad: "Histórico de devoluciones"
+    monto: "% de ventas recuperables"
+    plazo: "Típicamente 30-60 días"
+
+nias_generales:
+  - "NIA 200: Consideraciones generales"
+  - "NIA 330: Pruebas sobre transacciones"
+  - "NIA 500: Evidencia - Provisiones y contingencias"
+  - "NIA 501: Solicitudes de abogados externos"
+  - "NIA 540: Auditoría de estimaciones"
+  - "NIA 580: Representaciones de dirección"
+
+afirmaciones_auditoria:
+  existencia: "¿Obligación existe realmente?"
+  valuacion: "¿Monto es mejor estimación técnica?"
+  completitud: "¿Se incluyeron todas las obligaciones conocidas?"
+  presentacion: "¿Clasificada como pasivo o contingencia correctamente?"
+  revelacion: "¿Suficientemente revelada en notas?"
+
+red_flags_auditoria:
+  - "Provisión sin obligación legal clara"
+  - "Monto optimista sin análisis técnico"
+  - "Cambio de provisión año a año sin justificación"
+  - "Litigio sin confirmación de abogado externo"
+  - "Tasa de garantía/devolución sin histórico"
+  - "Reestructuración sin plan escrito formal"
+  - "Abogado interno explicando litigios sin confirmación externa"
+  - "Provisión que afecta significativamente el resultado neto"
+
+materiality_considerations:
+  provision_significativa: ">5% pasivos corrientes"
+  litigio_relevante: ">3% patrimonio (cualquier monto tiene riesgo)"
+  cambio_importante: ">10% vs año anterior"
+  contingencia_grave: "Podría affecting continuidad de negocio"
+
+version: "1.0"
+ultima_actualizacion: "2026-04-11"
+responsable: "Sistema Asesor Auditoría"
