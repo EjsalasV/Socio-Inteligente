@@ -1,0 +1,331 @@
+framework: "NIIF_FULL"
+norma_clave: "NIIF 9 + NIC 11 - Cuentas por Cobrar (Empresas Grandes)"
+area: "cartera_cxc"
+area_codigo: "1200"
+
+conceptos_riesgo:
+  - "NIIF 9 requiere ECL (Expected Credit Loss) dinámico, no estático como PYMES"
+  - "Modelos ECL son complejos: lifetime PD × LGD × EAD, ajustado por forward-looking"
+  - "Consolidación: Eliminar CxC entre relacionadas; separar inter-company vs. third-party"
+  - "Moneda extranjera: Ajustes por FX realizados e irrealizados ANTES del allowance"
+  - "Modificaciones contractuales: ¿Son refinanciamientos o renegociaciones? (trata diferente)"
+  - "Factoring: ¿Se transfirió control? Si vendió CxC a tercero, ya no es activo"
+  - "Default definition: NIIF 9 define default como 90+ días vencida O pérdida crediticia"
+
+principios_aplicables:
+  - "NIIF 9.2.1: ECL es probabilidad × monto × impact, no simplemente % vencida"
+  - "NIIF 9 Apéndice A: 5-Step approach para determine si ha habido incremento en riesgo crediticio"
+  - "NIA 330: Auditar modelo ECL include validar assumptions (PD, LGD, EAD, macro)"
+  - "NIA 540: Estimaciones: ECL requiere análisis de sensibilidad + back-testing"
+  - "NIC 21: Foreign exchange adjustments on CxC"
+  - "NIIF 3: Contingent consideration in M&A affects allowance"
+
+criterios_validacion:
+
+  - id: "CARTERA-ECL-001-MODELO-NO-CALIBRADO"
+    regla: "Modelo ECL utiliza assumptions desactualizadas (>1 año sin revisión)"
+    es_permitido: false
+    descripcion: "RECHAZAR - Modelo ECL debe calibrarse ANUALMENTE mínimo"
+    
+    porque: |
+      NIIF 9.5.5.18: Entities must use reasonable and supportable information
+      about future economic conditions (forward-looking).
+      
+      Si inputs no cambians en 2 años, NO estás considerando nuevas condiciones.
+      (Post-COVID: PD/LGD assumptions de pre-2020 = obsoletas)
+      
+      Banco de datos histórico debe actualizarse:
+      - Anual mínimo
+      - Inmediatamente post-evento (crisis, industria collapse)
+    
+    cuando_aplica:
+      - "PD model usada del 2022, ahora es 2024"
+      - "LGD no incluye ajustes por cambios in collateral values"
+      - "Forward-looking factors no actualizados"
+    
+    que_validar:
+      - "¿Cuándo fue última calibración del modelo ECL?"
+      - "¿Inputs incluyen datos económicos recientes (últimos 12 meses)?"
+      - "¿Se re-evaluó PD/LGD post-eventos significativos?"
+      - "¿Existe documentación de revisión independiente del modelo?"
+    
+    que_hacer:
+      - "RECHAZAR until recalibration occurs"
+      - "Pedir: documento de calibración con fecha y responsable"
+      - "Validar: data points used are <12 months old"
+      - "Solicitar: back-testing de modelo (predicted PD vs. actual defaults)"
+    
+    nias: ["NIA 540", "NIA 330"]
+    materialidad: "Crítico - Es base de allowance calculo"
+    trampa_asociada: "TRAMPA-CARTERA-FULL-001"
+
+  - id: "CARTERA-ECL-002-SIGNIFICANTE-INCREASE-CREDIT-RISK-NO-IDENTIFICADA"
+    regla: "Préstamo tiene indicios de SICR (Significant Increase in Credit Risk) pero está en Stage 1"
+    es_permitido: false
+    descripcion: "RECHAZAR - SICR requiere reclasificación a Stage 2"
+    
+    porque: |
+      NIIF 9.5.5.9: Un cambio es "significante" si:
+      - PD aumentó >X% desde reconocimiento inicial (umbral depende industria)
+      - Payment >30 días atrasado (automatic SICR trigger)
+      - Cliente breached covenant
+      - Indicios de distress (restructuring, refinancing)
+      
+      Stage 1 (no SICR) = 12-month ECL
+      Stage 2 (SICR) = Lifetime ECL
+      Stage 3 (Default/Impaired) = Lifetime ECL + interest on reduced amount
+      
+      Misclassify = Underestimate allowance.
+    
+    indicios_tipicos_sicr:
+      - "Cliente renegoció términos (menor tasa, mayor plazo)"
+      - "Covenant breach pero empresa lo 'espera resolver'"
+      - "Industry collapse (ej: retail, hospitality post-COVID)"
+      - "Downgrade by rating agency"
+    
+    que_validar:
+      - "¿Se monitoreó cambios in credit metrics? (CDS spread, credit rating)"
+      - "¿Existe documentación of SICR assessment?"
+      - "¿Si hay 30+ días vencida, está en Stage 2?"
+      - "¿Renegociación de términos fue documentada?"
+    
+    que_hacer:
+      - "RECHAZAR if SICR indicios exist pero Stage 1"
+      - "Pedir: SICR assessment por cada préstamo significante"
+      - "Reclasificar a Stage 2 and recalculate ECL (lifetime, not 12-month)"
+      - "Documentar: reasonfor reclassification + approval"
+    
+    nias: ["NIA 540"]
+    materialidad: "Material si Stage 2+ portfolio >2%"
+
+  - id: "CARTERA-ECL-003-FORWARD-LOOKING-FACTORS-AUSENTES"
+    regla: "Modelo ECL usa variables históricas pero NO incluye ajustes forward-looking"
+    es_permitido: false
+    descripcion: "RECHAZAR - NIIF 9 requiere probabilidad-ponderada de escenarios futuros"
+    
+    porque: |
+      NIIF 9 Point et al: ECL NO es simplemente "historical average default rate"
+      
+      Debe ser: Scenario 1 (base case) PD × Scenario 2 (worse case) PD × Scenario 3 (upside)
+      Ponderado por probabilidades.
+      
+      Especialmente importante:
+      - Macroeconomic forecasts (GDP, unemployment, interest rates)
+      - Industry-specific (retail sector weakness, etc.)
+      - Geographic factors (country risk, sector risk)
+    
+    ejemplos_fraude:
+      - "Usamos 5-year average default rate, no adjusting for rising unemployment"
+      - "2024 forecast says sector revenue will drop 20%, but we didn't adjust PD"
+      - "We used 2020 data (pandemic peak) without forward-looking adjustment"
+    
+    que_validar:
+      - "¿Se incorporó macroeconomic forecasts?"
+      - "¿Modelo incluye sensitivity to GDP growth, unemployment, rates?"
+      - "¿Se revisó post-evento (rate hikes, recession signals)?"
+    
+    que_hacer:
+      - "RECHAZAR model that ignores forward-looking"
+      - "Pedir: documento de forward-looking factors (GDP scenarios, etc.)"
+      - "Solicit: sensitivity analysis (if GDP -5%, allowance impact?)"
+      - "Recalculate: ECL using scenario-weighted probabilities"
+    
+    nias: ["NIA 540"]
+    materialidad: "Crítico si forward-looking >10% del allowance"
+
+  - id: "CARTERA-ECL-004-INTERCOMPANY-CxC-NO-ELIMINADA"
+    regla: "CxC entre relacionadas o consolidación no está eliminada de cartera"
+    es_permitido: false
+    descripcion: "RECHAZAR - Consolidados deben eliminar inter-company CxC"
+    
+    porque: |
+      NIC 27.27 (consolidation): Intra-group transactions eliminate en consolidated.
+      
+      Si parent tiene $100 CxC de subsidiary:
+      - En parent individual: ES activo (CxC)
+      - En consolidated: DESAPARECE (eliminated)
+      
+      Incluirla en consolidated = Overstate CxC y leverage.
+    
+    casos_tipicos:
+      - "Parent lent $50M to subsidiary but didn't eliminate in consolidated"
+      - "Inter-company sales $200M neted in parent pero no en consolidated"
+      - "Dividend payable to parent shown as CxC"
+    
+    que_validar:
+      - "¿Existe reconciliation de CxC entre individual y consolidated?"
+      - "¿Se eliminó 100% de inter-company CxC?"
+      - "¿Se auditó that related party CxC removals match subsidiary payables?"
+    
+    que_hacer:
+      - "RECHAZAR if inter-company CxC remains in consolidated"
+      - "Pedir: detailed reconciliation of eliminations"
+      - "Reverify: that subsidiary has corresponding payable"
+      - "Adjust: consolidated statements to remove"
+    
+    nias: ["NIA 330"]
+    materialidad: "Crítico si inter-company >5% of consolidated CxC"
+
+  - id: "CARTERA-ECL-005-FX-ADJUSTMENTS-NO-SEPARADOS"
+    regla: "Allowance includes FX adjustments without separating realized vs. unrealized"
+    es_permitido: false
+    descripcion: "RECHAZAR - FX realized y unrealized se tratan diferente"
+    
+    porque: |
+      NIC 21.21: Realized FX gains/losses van a P&L
+      NIC 21.23: Unrealized FX adjustments van a:
+      - OCI (cash flow hedge, disponible-for-sale)
+      - P&L (trading, FVtPL)
+      
+      Allowance debe ser LIMPIO de FX ajustes.
+      Allowance es por credit risk, no currency risk.
+    
+    ejemplo:
+      Client owes $1M USD. Exchange rate:
+      - Recording: 1 USD = 4,000 pesos = $4M CxC
+      - Later: 1 USD = 3,500 pesos
+      - CxC adjustment: -$500k (FX loss, OCI o P&L)
+      - Allowance: debe basarse en creditworthiness, NOT FX move
+    
+    que_validar:
+      - "¿Se separó credit allowance de FX adjustments?"
+      - "¿FX adjustments fueron registrados en P&L or OCI per NIC 21?"
+      - "¿Allowance % es consistent across all currencies?"
+    
+    que_hacer:
+      - "Pedir: breakdown of CxC by currency"
+      - "Separate: FX adjustments from credit loss allowance"
+      - "Verify: FX registered correctly (realized vs. unrealized)"
+      - "Recalculate: per-currency allowances"
+    
+    nias: ["NIA 330"]
+    materialidad: "Material si FX >10% of CxC en moneda extranjera"
+
+  - id: "CARTERA-ECL-006-RESTRUCTURING-TRATADO-COMO-ACTIVO-NORMAL"
+    regla: "Préstamo reestructurado (términos modificados) sin evaluación de 'troubled debt'"
+    es_permitido: false
+    descripcion: "RECHAZAR - Reestructuración requiere evaluación de 'troubled debt'"
+    
+    porque: |
+      NIIF 9: Cuando modificas términos POR RAZONES DE DISTRESS,
+      es "troubled debt restructuring" = indicador de SICR.
+      
+      Si reestructuraste por convenience, diferente (no SICR).
+      
+      Modificación por distress:
+      - Cliente puede't pay a términos originales
+      - Lender le da relief (lower rate, extend maturity, forgive interest)
+      - CLIENT HAD FINANCIAL DIFFICULTY
+      
+      = Automáticamente Stage 2 (SICR indicador)
+      
+      Diferencia crítica:
+      - Refinanciamiento: Cliente necesita dinero, es normal → Stage 1
+      - Reestructuración: Cliente está en difficulty → Stage 2
+    
+    que_validar:
+      - "¿Documentó el banco la razón de la restructuring?"
+      - "¿Fue por client financial difficulty or administrative?"
+      - "¿Se evaluó that credit risk increased significantly?"
+    
+    que_hacer:
+      - "Pedir: documentation of restructuring reason"
+      - "If fue por financial difficulty → Reclasify Stage 2"
+      - "Recalculate: ECL as Stage 2 (lifetime PD not 12-month)"
+      - "Monitor: para potential default"
+    
+    nias: ["NIA 330", "NIA 540"]
+    materialidad: "Material si restructured >3% of portfolio"
+    trampa_asociada: "TRAMPA-CARTERA-FULL-002"
+
+  - id: "CARTERA-ECL-007-COLLATERAL-NO-ACTUALIZADO"
+    regla: "Valor de colateral usado en LGD (Loss Given Default) es antiguo"
+    es_permitido: false
+    descripcion: "RECHAZAR - Collateral value debe ser reciente (últimos 12 meses)"
+    
+    porque: |
+      LGD (Loss Given Default) = Loss / Exposure
+      = (EAD - Collateral Value) / EAD
+      
+      Si collateral fue valuado hace 3 años:
+      - Property could appreciate (underestimate LGD, underestimate allowance)
+      - Property could depreciate (overestimate LGD, overestimate allowance)
+      
+      NIIF 9 requires reasonable current estimates.
+    
+    cuando_aplica:
+      - "Real estate collateral last valued in 2021"
+      - "Equipment collateral não actualizado from 2022"
+      - "Receivables collateral (aged debtors) not current"
+    
+    que_validar:
+      - "¿Cuándo fue último appraisal del collateral?"
+      - "¿Has there been significant market change en sector?"
+      - "¿Collateral values están en insurance or other third-party verification?"
+    
+    que_hacer:
+      - "If >12 meses: PEDIR nueva valuación"
+      - "If market has changed (e.g., RE values +30%): Revalue immediately"
+      - "Recalculate: LGD y ECL post-revaluation"
+      - "Adjust: allowance if needed"
+    
+    nias: ["NIA 540", "NIA 330"]
+    materialidad: "Material si collateral >20% of EAD"
+
+criterios_educacion:
+  objetivo: "NIIF 9 ECL es paradigma shift from incurred loss to expected loss"
+  patron_riesgo: "Lenders manipulate ECL by understating PD, LGD, ou ignoring forward-looking"
+  pregunta_siempre: "¿Es este cliente en credit distress? Si yes → Stage 2 ECL (lifetime). Si no → Stage 1 ECL (12-month)."
+
+trampas_comunes:
+  
+  - id: "TRAMPA-CARTERA-FULL-001"
+    trampa: "ECL model inertia: 'Model fue calibrado en 2021, seguimos usando esos inputs'"
+    es_peligrosa: true
+    nia_violada: "NIA 540 - Estimaciones"
+    caso_real: "PD model usaba 2021 default rates pero era 2024 post-recession. Allowance was 50% understated."
+    criterio_socio: "NIIF 9 requiere forward-looking. Modelos antiguos = systematic understatement."
+    
+  - id: "TRAMPA-CARTERA-FULL-002"
+    trampa: "Restructuring treated as normal refinancing, no Stage 2 reclassification"
+    es_peligrosa: true
+    nia_violada: "NIA 540 - Credit risk assessment"
+    caso_real: "Client negotiated lower rate due to cash flow problems. Bank kept in Stage 1. Later defaulted."
+    criterio_socio: "NIIF 9: Si restructuring es POR DIFFICULTY = SICR = Stage 2. Mislabel y understate allowance."
+
+analisis_por_tipo:
+  ecl_calculation:
+    descripcion: "Validación del modelo ECL (PD × LGD × EAD)"
+    validar:
+      - "¿PD inputs son basados en data >12 months o current?"
+      - "¿LGD= (EAD - Collateral) / EAD?"
+      - "¿EAD includes accrued interest?"
+  
+  stage_classification:
+    descripcion: "Clasificación Stage 1/2/3 es correcta"
+    validar:
+      - "¿Stage 2 si SICR detected? (30+ days, downgrade, restructuring)"
+      - "¿Stage 3 si default suspected?"
+  
+  forward_looking:
+    descripcion: "Scenario weighting y macroeconomic factors"
+    validar:
+      - "¿Include GDP growth scenarios?"
+      - "¿Include unemployment rate scenarios?"
+      - "¿Probability weights sum to 100%?"
+
+materialidad_considerations:
+  cartera_ecl_special: |
+    NIIF 9 ECL es typically largest estimate en financial statements.
+    Pequeñas % changes in assumptions = huge impact.
+    
+    Threshold: >0.5% of CxC es material para NIIF audit
+    (vs. PYMES threshold era 2%)
+
+nias: ["NIA 540", "NIA 330", "NIA 505"]
+afirmaciones:
+  - "Valor razonable de CxC"
+  - "Existencia de debtor relationships"
+  - "Valuación ECL (PD, LGD, EAD)"
+  - "Clasificación Stage 1/2/3"
+  - "Presentación y divulgación NIIF 9"

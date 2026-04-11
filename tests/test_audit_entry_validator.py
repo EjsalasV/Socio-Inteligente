@@ -389,7 +389,24 @@ class TestIngresosValidation:
         assert "bundled_contracts" in program.get("analisis_por_tipo", {})
 
 
-class TestHoldingsValidation:
+class TestMultipleFrameworks:
+    """Pruebas de múltiples frameworks"""
+    
+    def test_niif_full_cartera_programa_cargado(self):
+        """Verifica que programa Cartera CxC NIIF_FULL está disponible"""
+        program = load_audit_program("NIIF_FULL", "cartera_cxc")
+        
+        # Debe tener 7 criterios CARTERA-ECL-001 a CARTERA-ECL-007
+        criteria_ids = [c.get("id") for c in program.get("criterios_validacion", [])]
+        assert "CARTERA-ECL-001-MODELO-NO-CALIBRADO" in criteria_ids
+        assert "CARTERA-ECL-002-SIGNIFICANTE-INCREASE-CREDIT-RISK-NO-IDENTIFICADA" in criteria_ids
+        assert "CARTERA-ECL-007-COLLATERAL-NO-ACTUALIZADO" in criteria_ids
+        
+        # Debe ser NIIF_FULL framework
+        assert program.get("framework") == "NIIF_FULL"
+        
+        # Debe tener al menos 2 trampas
+        assert len(program.get("trampas_comunes", [])) >= 2
     """Pruebas específicas para Holdings & Intercompany (NIC 27/28)"""
 
     def test_holdings_dividendo_sin_junta_rechaza(self):
