@@ -11,7 +11,7 @@ import { patchAreaCheck } from "../../../../lib/api/areas";
 import { postAreaBriefing } from "../../../../lib/api/briefing";
 import { postBriefingTiempo, postEstructurarHallazgo } from "../../../../lib/api/hallazgos";
 import { useAreaDetail } from "../../../../lib/hooks/useAreaDetail";
-import { getLsName, getLsOptions, getLsShortName, normalizeLsCode } from "../../../../lib/lsCatalog";
+import { getLsName, getLsOptions, getLsShortName } from "../../../../lib/lsCatalog";
 import type { AreaCuenta } from "../../../../types/area";
 
 type Params = {
@@ -58,10 +58,12 @@ export default function AreaWorkspacePage() {
   const [tiempoManual, setTiempoManual] = useState<string>("");
   const [tiempoAI, setTiempoAI] = useState<string>("");
   const [logTiempoMsg, setLogTiempoMsg] = useState<string>("");
-  const areaNavOptions = useMemo(
-    () => Array.from(new Set(getLsOptions().map((x) => normalizeLsCode(x.codigo)))),
-    [],
-  );
+  const areaNavOptions = useMemo(() => {
+    const opts = getLsOptions();
+    if (!areaCode) return opts;
+    if (opts.some((x) => x.codigo === areaCode)) return opts;
+    return [{ codigo: areaCode, nombre: getLsName(areaCode) }, ...opts];
+  }, [areaCode]);
 
   useEffect(() => {
     setCuentas(data?.cuentas ?? []);
@@ -259,9 +261,9 @@ export default function AreaWorkspacePage() {
             onChange={(e) => router.push(`/areas/${clienteId}/${e.target.value}`)}
             className="ghost-input w-full"
           >
-            {areaNavOptions.map((code) => (
-              <option key={code} value={code}>
-                {getLsShortName(code)} · {code}
+            {areaNavOptions.map((item) => (
+              <option key={item.codigo} value={item.codigo}>
+                {getLsShortName(item.codigo)} · {item.codigo}
               </option>
             ))}
           </select>

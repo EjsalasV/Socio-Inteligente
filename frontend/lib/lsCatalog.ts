@@ -43,14 +43,19 @@ export function normalizeLsCode(raw: string): string {
 }
 
 export function getLsName(code: string): string {
-  const normalized = normalizeLsCode(code);
+  const clean = code.trim();
+  if (!clean) return `Area ${code}`;
+
+  const exact = LS_CATALOG.find((x) => x.codigo === clean);
+  if (exact) return exact.nombre;
+
+  const normalized = normalizeLsCode(clean);
   const found = LS_CATALOG.find((x) => normalizeLsCode(x.codigo) === normalized);
-  return found?.nombre ?? `Área ${normalized || code}`;
+  return found?.nombre ?? `Area ${normalized || clean}`;
 }
 
 export function getLsShortName(code: string): string {
-  const normalized = normalizeLsCode(code);
-  const raw = getLsName(normalized);
+  const raw = getLsName(code);
   const lower = raw.toLowerCase();
 
   if (lower.includes("efectivo")) return "Efectivo";

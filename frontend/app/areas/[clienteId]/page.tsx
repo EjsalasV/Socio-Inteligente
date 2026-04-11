@@ -4,18 +4,22 @@ import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { useDashboard } from "../../../lib/hooks/useDashboard";
+import { getLsOptions, normalizeLsCode } from "../../../lib/lsCatalog";
 
 function normalizeAreaCode(raw: string): string {
-  const digits = raw.replace(/[^0-9]/g, "");
+  const clean = raw.trim();
+  if (!clean) return "130";
+
+  const options = getLsOptions();
+  const exact = options.find((x) => x.codigo === clean);
+  if (exact) return exact.codigo;
+
+  const normalized = normalizeLsCode(clean);
+  const byFamily = options.find((x) => normalizeLsCode(x.codigo) === normalized);
+  if (byFamily) return byFamily.codigo;
+
+  const digits = clean.replace(/[^0-9]/g, "");
   if (!digits) return "130";
-  if (digits.startsWith("35")) return "35";
-  if (digits.startsWith("14")) return "140";
-  if (digits.startsWith("13")) return "130";
-  if (digits.startsWith("12")) return "120";
-  if (digits.startsWith("11")) return "110";
-  if (digits.startsWith("20")) return "200";
-  if (digits.startsWith("21")) return "210";
-  if (digits.startsWith("3")) return "300";
   return digits.slice(0, 3);
 }
 

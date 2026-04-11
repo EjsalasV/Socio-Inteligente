@@ -43,7 +43,8 @@ export function useRiskEngine(clienteId: string): UseRiskResult {
         return;
       }
 
-      if (!data) setIsLoading(true);
+      const hasWarmCache = Boolean(RISK_CACHE.get(clienteId));
+      if (!hasWarmCache) setIsLoading(true);
       setError("");
 
       try {
@@ -61,7 +62,7 @@ export function useRiskEngine(clienteId: string): UseRiskResult {
         setIsLoading(false);
       }
     },
-    [clienteId, data],
+    [clienteId],
   );
 
   useEffect(() => {

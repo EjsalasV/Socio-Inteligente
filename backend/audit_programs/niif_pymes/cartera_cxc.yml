@@ -1,0 +1,289 @@
+framework: "NIIF_PYMES"
+norma_clave: "Sección 11 - Instrumentos Financieros"
+area: "cartera_cxc"
+area_codigo: "130"
+
+conceptos_riesgo:
+  - "Deterioro NO es automático por vencimiento"
+  - "Requiere EVIDENCIA OBJETIVA de deterioro"
+  - "Independencia de evidencia > palabra de gerencia"
+  - "ECL (Expected Credit Loss) modelo requerido bajo NIIF"
+  - "Cliente en riesgo ≠ provisión automática"
+  - "Antigüedad sola NO justifica provisión"
+
+principios_aplicables:
+  - "NIA 500: Evidencia debe ser suficiente y apropiada"
+  - "NIA 610: Independencia de auditoría interna vs evidencia"
+  - "NIIF PYMES Sección 11: Modelo deterioro simplificado vs NIIF 9"
+  - "Materialidad: No todo error requiere ajuste"
+
+criterios_validacion:
+  
+  - id: "CXC-001-CORRIENTE"
+    regla: "Cartera corriente sin provisión"
+    es_permitido: "conditional"
+    descripcion: "Cliente no vencido, sin indicios de deterioro"
+    
+    cuando_aplica:
+      - "Plazo < 31 días desde vencimiento"
+      - "Cliente sin historial de morosidad"
+    
+    condiciones_aceptacion:
+      - "Historial cobranza 100% últimos 24 meses"
+      - "Cliente NO en lista de riesgo interno"
+      - "No hay conflictos legales con cliente"
+    
+    condiciones_rechazo:
+      - "Cliente en lista de riesgo crediticio"
+      - "Gerencia sin soporte documental"
+      - "Saldo es estimación, no factura"
+    
+    que_validar:
+      - "Confirmación cliente independiente (NIA 505)"
+      - "Historial cobranza últimos 24 meses"
+      - "Cliente status en CIC/Central de Riesgos"
+    
+    que_pedir:
+      - "Antigüedad real de factura"
+      - "Confirmación cliente por mail/teléfono"
+      - "Evidencia: por qué NO hay riesgo"
+    
+    documentar:
+      - "Criterio aplicado y por qué"
+      - "Confirmación cliente obtenida"
+    
+    nias: ["NIA 500", "NIA 505", "NIA 610"]
+    trampa_asociada: "GERENCIA_NO_ES_EVIDENCIA"
+
+  - id: "CXC-002-VENCIDA"
+    regla: "Cartera >365 días sin provisión"
+    es_permitido: false
+    descripcion: "RECHAZAR SIEMPRE - Incumple Sección 11"
+    
+    porque: |
+      Plazo vencido >365 días es INDICIO CLARO de deterioro.
+      Cliente no pagó en un año → riesgo muy alto.
+      NIIF PYMES exige deterioro observable cuando plazo vencido.
+      Excepción solo si: Cliente tiene acuerdo legal/juicio ganado.
+    
+    que_hacer:
+      - "RECHAZAR: Requiere provisión por deterioro"
+      - "Solicitar plan de pago escrito del cliente"
+      - "Evaluar si es contingencia (no balance)"
+      - "Calcular ECL basado en probabilidad de cobro real"
+      - "Si hay demanda, consultar con abogado"
+    
+    alternativa_valida:
+      - "Separar en cuenta 'cuentas por cobrar dudosas' con provisión"
+      - "Documentar razón por qué todavía no se ha cobrado"
+      - "Indicador contable >365 = demanda de provisión"
+    
+    nias: ["NIA 500", "NIA 315"]
+    materialidad: "Material por acumulación (nunca trivial)"
+
+  - id: "CXC-003-PROVISION-PORCENTAJE"
+    regla: "Provisión basada en porcentaje fijo de cartera"
+    es_permitido: "conditional"
+    descripcion: "Metodología corporativa de provisión anual"
+    
+    cuando_aceptar:
+      - "Si metodología es CONSISTENTE año a año"
+      - "Si se aplica a TODA la cartera (no selectiva)"
+      - "Si hay evidencia histórica de cobranza"
+      - "Si cubre al menos el riesgo identificado"
+    
+    cuando_rechazar:
+      - "Si porcentaje varía sin justificación normativa"
+      - "Si NO cubre cartera >365 días (debe ser mayor %)"
+      - "Si no hay análisis de cobranza histórica"
+      - "Si aplica solo a clientes seleccionados"
+    
+    que_validar:
+      - "Tasa de provisión vs. tasa de deterioro histórica"
+      - "Comparación con años anteriores"
+      - "¿Por qué la % es la que es?"
+      - "Aplicación consistente a toda cartera"
+    
+    que_documentar:
+      - "Tasa futura usada EN LA PROVISIÓN"
+      - "Ratios de cobranza histórica (últimos 3 años)"
+      - "Cambios año a año y JUSTIFICACIÓN"
+      - "Evidencia de que cubre deterioro estimado"
+      - "Análisis de antigüedad y morosidad"
+    
+    nias: ["NIA 500", "NIA 580"]
+    materialidad_consideración: |
+      Si provisión es <3% de cartera = bajo riesgo
+      Si provisión es >8% de cartera = investigar por qué
+      Análisis de tendencia es clave
+
+  - id: "CXC-004-CLIENTE-RIESGO"
+    regla: "Cliente en lista de riesgo sin ajuste de provisión"
+    es_permitido: false
+    descripcion: "RECHAZAR - Violaría materialidad cualitativa"
+    
+    porque: |
+      Si cliente está en lista de riesgos (CIC, antecedentes legales,
+      suspensión de operaciones), DEBE haber provisión adicional.
+      Independientemente de antigüedad.
+    
+    que_hacer:
+      - "Identificar clientes en riesgo"
+      - "Aumentar provisión o crear contingencia"
+      - "Documentar razón de riesgo (CIC, demanda, etc.)"
+      - "Consultar con gerencia + abogado"
+    
+    nias: ["NIA 500", "NIA 315"]
+
+  - id: "CXC-005-PROVISION-INSUFICIENTE"
+    regla: "Provisión menor al deterioro estimado"
+    es_permitido: false
+    descripcion: "RECHAZAR - Incumple cuantificación razonable"
+    
+    cuando_aplica: |
+      Si análisis de cobranza muestra:
+      - Cliente A (30 días): 100% probabilidad cobro → 0% provisión ✓
+      - Cliente B (180 días): 60% probabilidad → debe tener ≥40% provisión
+      - Cliente C (>365 días): 10% probabilidad → debe tener ≥90% provisión
+      Y la provisión registrada es MENOR = RECHAZAR
+    
+    que_hacer:
+      - "Calcular ECL correcto por cliente"
+      - "Pedir ajuste a la provisión"
+      - "Si no hay datos, usar modelo probabilístico"
+    
+    nias: ["NIA 500"]
+
+trampas_comunes:
+  
+  - id: "TRAMPA-001"
+    trampa: "Aceptar PROMESA del cliente como evidencia de recuperación"
+    es_peligrosa: true
+    nia_violada: "NIA 500"
+    
+    caso_real: |
+      Cartera >365 días.
+      Cliente dice: "Jefe, la próxima semana te deposito".
+      Junior: "OK, sin provisión" ❌
+      
+      Realidad: Cliente dijo lo mismo hace 6 meses.
+    
+    que_pedir_realmente:
+      - "Correo formal del cliente comprometiéndose con FECHA exacta"
+      - "Depósito en FIDEICOMISO o cuenta garantizada"
+      - "Acuerdo legal escrito con vigencia"
+      - "Evidencia: ¿Clientes similares cumplieron promesas?"
+    
+    criterio_socio: "Si no lo puedes DEMOSTRAR independientemente, no existe"
+
+  - id: "TRAMPA-002"
+    trampa: "Confundir CORRIENTE con SIN RIESGO"
+    es_peligrosa: true
+    nia_violada: "NIA 315"
+    
+    caso_real: |
+      Facturas < 30 días no pagadas.
+      Junior: "Está corriente, está OK sin provisión" ❌
+      
+      Realidad:
+      - Cliente insolvente (balance negativo)
+      - Historial de mora en otras áreas
+      - Conflicto legal en curso
+      
+      Plazo ≠ Riesgo. Deben analizarse ambos.
+    
+    que_validar: "Antigüedad AND condición financiera cliente"
+
+  - id: "TRAMPA-003"
+    trampa: "NO cuestionar SUPUESTOS de recuperabilidad"
+    es_peligrosa: true
+    nia_violada: "NIA 500"
+    
+    caso_real: |
+      Gerencia: "La cartera está cubierta 1.5x por garantía".
+      Junior: "OK, sin provisión" ❌
+      
+      Realidad:
+      - Garantía es sobre bien que bajó 60% de valor
+      - Bien está pignorado ya en otro banco
+      - Proceso judicial lleva 2 años sin resolver
+      
+      Garantía teórica ≠ Garantía ejecutable.
+    
+    que_validar:
+      - "¿Qué es la garantía exactamente?"
+      - "¿Están libres de gravamen?"
+      - "¿Valor es reciente o estimado?"
+      - "¿Hay demandas contra el cliente?"
+
+  - id: "TRAMPA-004"
+    trampa: "Tributario (SRI) = Normativa contable (NIIF)"
+    es_peligrosa: true
+    nia_violada: "NIA 200"
+    
+    caso_real: |
+      SRI permite depreciación acelerada.
+      Junior: "Entonces esa es la vida útil contable" ❌
+      
+      Realidad:
+      - NIC 16: Vida útil debe reflejar realidad económica
+      - SRI es piso fiscal, no criterio contable
+      - Pueden no alinearse
+    
+    criterio_socio: "Tributario es piso fiscal, no criterio de auditoría"
+
+  - id: "TRAMPA-005"
+    trampa: "ANTIGÜEDAD sola justifica riesgo o ausencia de riesgo"
+    es_peligrosa: true
+    nia_violada: "NIA 500"
+    
+    caso_real: |
+      Cliente con 45 días de vencimiento.
+      Junior: "Solo 45 días, sin riesgo" ❌
+      
+      Pero es socio del dueño que desapareció la empresa.
+      Antigüedad baja, riesgo alto.
+      
+    criterio_real: |
+      Antigüedad es INDICADOR, no conclusión.
+      Análisis correcto: Antigüedad + Cliente profile + Contexto = Riesgo
+
+analisis_antigüedad_referencia:
+  corriente_0_30_dias:
+    provision_minima: 0%
+    condicion: "Sin indicios deterioro"
+    
+  vencida_31_90_dias:
+    provision_minima: 5%
+    condicion: "Contactar cliente, buscar evidencia"
+    
+  vencida_91_180_dias:
+    provision_minima: 25%
+    condicion: "Tercera solicitud, análisis cobranza"
+    
+  vencida_181_365_dias:
+    provision_minima: 50%
+    condicion: "Significativamente alto, demanda preparada"
+    
+  vencida_mayor_365_dias:
+    provision_minima: 80%
+    condicion: "Material, requiere plan cobro o contingencia"
+
+afirmaciones_auditoria:
+  existencia: "¿Cliente existe? ¿Transacción ocurrió?"
+  valuacion: "¿Monto es correcto según factura?"
+  recuperabilidad: "¿Cliente puede y VA a pagar?"
+  presentacion: "¿Clasificada correcto? (corriente/vencida)"
+  cutoff: "¿Registrada en período correcto?"
+
+nias_generales:
+  - "NIA 200: Consideraciones generales"
+  - "NIA 315: Conocimiento entidad y entorno"
+  - "NIA 500: Evidencia de auditoría"
+  - "NIA 505: Confirmaciones externas"
+  - "NIA 580: Representaciones de dirección"
+  - "NIA 610: Coordinación con auditoría interna"
+
+version: "1.0"
+ultima_actualizacion: "2026-04-11"
+responsable: "Sistema Asesor Auditoría"

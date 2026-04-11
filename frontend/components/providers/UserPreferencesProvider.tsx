@@ -23,6 +23,7 @@ type UserPreferencesContextValue = {
 
 const UserPreferencesContext = createContext<UserPreferencesContextValue | null>(null);
 const MIGRATION_MARK_PREFIX = "prefs:v1.2.1:migrated";
+const FOCUS_REFRESH_THROTTLE_MS = 30000;
 
 function hasSessionToken(): boolean {
   return hasSessionState();
@@ -205,15 +206,22 @@ export default function UserPreferencesProvider({ children }: { children: React.
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    let lastFocusRefreshAt = 0;
     const handleAuthStateChange = () => {
       void refresh();
     };
+    const handleFocus = () => {
+      const now = Date.now();
+      if (now - lastFocusRefreshAt < FOCUS_REFRESH_THROTTLE_MS) return;
+      lastFocusRefreshAt = now;
+      void refresh();
+    };
     window.addEventListener("storage", handleAuthStateChange);
-    window.addEventListener("focus", handleAuthStateChange);
+    window.addEventListener("focus", handleFocus);
     window.addEventListener("socio-auth-changed", handleAuthStateChange);
     return () => {
       window.removeEventListener("storage", handleAuthStateChange);
-      window.removeEventListener("focus", handleAuthStateChange);
+      window.removeEventListener("focus", handleFocus);
       window.removeEventListener("socio-auth-changed", handleAuthStateChange);
     };
   }, [refresh]);

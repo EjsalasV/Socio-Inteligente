@@ -26,19 +26,16 @@ function isLocalBrowserHost(): boolean {
 export function getApiBase(): string {
   if (typeof window !== "undefined") {
     const configured = PUBLIC_API_BASE.trim();
-    if (configured) {
-      // If env is configured as relative (/api), keep it only for local browser.
-      if (isRelativePath(configured)) {
-        return isLocalBrowserHost() ? stripTrailingSlash(configured) : stripTrailingSlash(DEFAULT_API_BASE);
-      }
-      // Protect remote sessions from accidental localhost config.
-      if (isLoopbackHost(configured) && !isLocalBrowserHost()) {
-        return stripTrailingSlash(DEFAULT_API_BASE);
-      }
+    // Relative base (/api) is preferred in browser to keep auth first-party.
+    if (configured && isRelativePath(configured)) {
       return stripTrailingSlash(configured);
     }
-    // Local browser can keep proxy path; remote browser should use direct backend.
-    return isLocalBrowserHost() ? "/api" : stripTrailingSlash(DEFAULT_API_BASE);
+    // Local browser can still use explicit localhost backend for developer workflows.
+    if (configured && isLocalBrowserHost() && isLoopbackHost(configured)) {
+      return stripTrailingSlash(configured);
+    }
+    // Remote browsers should always use Next proxy to avoid cross-site cookie/CORS issues.
+    return "/api";
   }
   const configured = PUBLIC_API_BASE.trim();
   if (configured) {

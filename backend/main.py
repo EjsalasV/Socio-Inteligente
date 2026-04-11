@@ -70,6 +70,7 @@ def _register_routes_once() -> None:
     from backend.routes import (
         admin,
         areas,
+        audit_validator,
         auth,
         briefing,
         chat,
@@ -106,6 +107,7 @@ def _register_routes_once() -> None:
     app.include_router(user_preferences.router)
     app.include_router(admin.router)
     app.include_router(realtime.router)
+    app.include_router(audit_validator.router)
     _routes_registered = True
 
 
@@ -137,6 +139,7 @@ def _get_observed_prefixes() -> tuple[str, ...]:
             "/api/normativa/",
             "/api/user/",
             "/api/admin/",
+            "/api/audit/",
         )
     return _observed_prefixes
 
