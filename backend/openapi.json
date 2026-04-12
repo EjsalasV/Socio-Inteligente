@@ -93,6 +93,32 @@
         ]
       }
     },
+    "/auth/ws-token": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Ws Token",
+        "operationId": "ws_token_auth_ws_token_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/clientes": {
       "get": {
         "tags": [
