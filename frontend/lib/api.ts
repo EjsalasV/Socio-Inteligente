@@ -87,11 +87,28 @@ function isHeavyPath(path: string): boolean {
   );
 }
 
+function getSessionAuthToken(): string {
+  if (typeof window === "undefined") return "";
+  const fromSession = String(window.sessionStorage?.getItem("socio_auth_token") || "").trim();
+  if (fromSession) return fromSession;
+  // Compat with previous storage key used by older builds.
+  const fromLegacy = String(window.localStorage?.getItem("socio_token") || "").trim();
+  return fromLegacy;
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
   if (!isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
+  }
+  // Fallback auth path for environments where secure cookies are not persisted (e.g. local http).
+  // Backend accepts bearer token and/or cookie.
+  if (!headers.has("Authorization")) {
+    const sessionToken = getSessionAuthToken();
+    if (sessionToken) {
+      headers.set("Authorization", `Bearer ${sessionToken}`);
+    }
   }
 
   const method = String(init?.method || "GET").toUpperCase();
