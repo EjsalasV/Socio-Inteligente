@@ -486,3 +486,52 @@ class TestAllProgramsAvailable:
                   f"{len(program.get('trampas_comunes', []))} trampas")
 
 
+class TestHoldingsCascadeIntegration:
+    """Integration tests between entry validator and holdings cascade."""
+
+    def test_holdings_cascade_adds_documentation_hint(self):
+        context = ValidationContext(
+            cliente_id="HOLDING_CASCADE_01",
+            framework="NIIF_PYMES",
+            area="holdings_intercompany",
+            cuenta="4105",
+            debito=100000,
+            credito=0,
+            descripcion="Validate dividend cascade",
+            es_holding=True,
+            holdings_entities=[
+                {"entity_id": "parent", "name": "Parent Co", "ownership_type": "parent", "tax_jurisdiction": "COL"},
+                {"entity_id": "sub_a", "name": "Sub A", "ownership_type": "subsidiary", "tax_jurisdiction": "MEX"},
+            ],
+            ownership_links=[
+                {"owner_id": "parent", "subsidiary_id": "sub_a", "ownership_percentage": 60.0},
+            ],
+            declared_dividends={"sub_a": 120.0},
+            tax_rates={"COL": 0.1, "MEX": 0.15},
+        )
+
+        result = validate_entry(context)
+
+        assert result.area == "holdings_intercompany"
+        assert any("Consolidaci" in item for item in result.que_documentar)
+
+    def test_holdings_offset_invalid_marks_not_valid(self):
+        context = ValidationContext(
+            cliente_id="HOLDING_CASCADE_02",
+            framework="NIIF_PYMES",
+            area="holdings_intercompany",
+            cuenta="4105",
+            debito=100000,
+            credito=0,
+            descripcion="Offset without agreement",
+            es_holding=True,
+            offset_allowed=False,
+            offset_dividend_receivable=100.0,
+            offset_cxp_payable=100.0,
+        )
+
+        result = validate_entry(context)
+
+        assert result.valido is False
+        assert result.razon is not None
+        assert any("Offset" in warning for warning in result.advertencias)

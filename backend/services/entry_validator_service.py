@@ -7,6 +7,12 @@ from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field
+from backend.services.holdings_cascade_service import (
+    HoldingEntity,
+    OwnershipLink,
+    analyze_holdings_cascade,
+    validate_offset_agreement,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 AUDIT_PROGRAMS_PATH = ROOT / "backend" / "audit_programs"
@@ -90,6 +96,122 @@ class ValidationContext:
     # Contexto empresa
     es_holding: bool = False
     tiene_partes_relacionadas: bool = False
+    
+    # Contexto holdings/intercompany (opcional)
+    holdings_entities: list[dict[str, Any]] = field(default_factory=list)
+    ownership_links: list[dict[str, Any]] = field(default_factory=list)
+    declared_dividends: dict[str, float] = field(default_factory=dict)
+    tax_rates: dict[str, float] = field(default_factory=dict)
+    offset_allowed: bool = False
+    offset_dividend_receivable: float = 0.0
+    offset_cxp_payable: float = 0.0
+
+
+def _to_holding_entities(raw_entities: list[dict[str, Any]]) -> list[HoldingEntity]:
+    entities: list[HoldingEntity] = []
+    for item in raw_entities:
+        if not isinstance(item, dict):
+            continue
+        entity_id = str(item.get("entity_id") or "").strip()
+        if not entity_id:
+            continue
+        entities.append(
+            HoldingEntity(
+                entity_id=entity_id,
+                name=str(item.get("name") or entity_id),
+                ownership_type=str(item.get("ownership_type") or "subsidiary"),
+                tax_jurisdiction=str(item.get("tax_jurisdiction") or "COL"),
+                balance=float(item.get("balance") or 0.0),
+            )
+        )
+    return entities
+
+
+def _to_ownership_links(raw_links: list[dict[str, Any]]) -> list[OwnershipLink]:
+    links: list[OwnershipLink] = []
+    for item in raw_links:
+        if not isinstance(item, dict):
+            continue
+        owner_id = str(item.get("owner_id") or "").strip()
+        subsidiary_id = str(item.get("subsidiary_id") or "").strip()
+        if not owner_id or not subsidiary_id:
+            continue
+        links.append(
+            OwnershipLink(
+                owner_id=owner_id,
+                subsidiary_id=subsidiary_id,
+                ownership_percentage=float(item.get("ownership_percentage") or 0.0),
+                voting_rights=float(item.get("voting_rights") or 100.0),
+                direct_control=bool(item.get("direct_control", True)),
+            )
+        )
+    return links
+
+
+def _enrich_holdings_response(
+    context: ValidationContext,
+    response: EntryValidationResponse,
+) -> EntryValidationResponse:
+    """Ejecuta holdings cascade cuando área es holdings_intercompany."""
+    if context.area != "holdings_intercompany":
+        return response
+
+    advertencias = list(response.advertencias)
+    que_documentar = list(response.que_documentar)
+    valido = response.valido
+    razon = response.razon
+
+    if context.holdings_entities and context.ownership_links:
+        try:
+            entities = _to_holding_entities(context.holdings_entities)
+            links = _to_ownership_links(context.ownership_links)
+            if entities and links:
+                analysis = analyze_holdings_cascade(
+                    entities=entities,
+                    ownership_links=links,
+                    declared_dividends=context.declared_dividends or {},
+                    tax_rates=context.tax_rates or {},
+                )
+                if analysis.has_cycles:
+                    advertencias.append(
+                        "Ciclo de ownership detectado en holdings; requiere revisión senior."
+                    )
+                    if valido:
+                        valido = False
+                        razon = "Estructura holdings con ciclo de ownership."
+                if analysis.eliminations:
+                    que_documentar.append(
+                        f"Consolidación: documentar {len(analysis.eliminations)} eliminación(es) intercompany."
+                    )
+                advertencias.extend(analysis.risks_identified[:3])
+        except Exception:
+            advertencias.append(
+                "No se pudo ejecutar análisis de cascada; validar manualmente dividendos y eliminaciones."
+            )
+    else:
+        advertencias.append(
+            "Sin estructura holdings detallada (entities/links); análisis en modo básico."
+        )
+
+    if context.offset_dividend_receivable > 0 or context.offset_cxp_payable > 0:
+        offset_ok, offset_reason = validate_offset_agreement(
+            dividend_receivable=context.offset_dividend_receivable,
+            cxp_payable=context.offset_cxp_payable,
+            offset_allowed=context.offset_allowed,
+        )
+        if offset_ok:
+            que_documentar.append("Offset validado: conservar acuerdo firmado y conciliación.")
+        else:
+            advertencias.append(f"Offset no válido: {offset_reason}.")
+            if valido:
+                valido = False
+                razon = f"Offset no cumple requisitos: {offset_reason}"
+
+    response.advertencias = advertencias
+    response.que_documentar = que_documentar
+    response.valido = valido
+    response.razon = razon
+    return response
 
 
 def load_audit_program(framework: str, area: str) -> dict[str, Any]:
@@ -265,8 +387,12 @@ def validate_entry(context: ValidationContext) -> EntryValidationResponse:
             if trampa_id and trampa_id in trampas_map:
                 trampa = trampas_map[trampa_id]
                 trampa_detalle = f"TRAMPA: {trampa.trampa}\nCaso real: {trampa.caso_real}"
+                if trampa.criterio_socio:
+                    trampa_detalle += f"\nCriterio socio: {trampa.criterio_socio}"
             
-            return EntryValidationResponse(
+            return _enrich_holdings_response(
+                context,
+                EntryValidationResponse(
                 valido=False,
                 criterio_aplicado=criterion_id,
                 razon=criterion.get("regla", ""),
@@ -279,6 +405,7 @@ def validate_entry(context: ValidationContext) -> EntryValidationResponse:
                 trampa_evitar=criterion.get("trampa_asociada"),
                 trampa_detalle=trampa_detalle,
                 materialidad=criterion.get("materialidad", "Material"),
+                ),
             )
         
         # ▼ CASO 2: CONDICIONAL - Verificar condiciones
@@ -292,8 +419,12 @@ def validate_entry(context: ValidationContext) -> EntryValidationResponse:
                 if trampa_id and trampa_id in trampas_map:
                     trampa = trampas_map[trampa_id]
                     trampa_detalle = f"TRAMPA: {trampa.trampa}\nCaso real: {trampa.caso_real}"
+                    if trampa.criterio_socio:
+                        trampa_detalle += f"\nCriterio socio: {trampa.criterio_socio}"
                 
-                return EntryValidationResponse(
+                return _enrich_holdings_response(
+                    context,
+                    EntryValidationResponse(
                     valido=False,
                     criterio_aplicado=criterion_id,
                     razon=criterion.get("regla", ""),
@@ -305,10 +436,13 @@ def validate_entry(context: ValidationContext) -> EntryValidationResponse:
                     nias_aplicables=criterion.get("nias", []),
                     trampa_evitar=criterion.get("trampa_asociada"),
                     trampa_detalle=trampa_detalle,
+                    ),
                 )
             else:
                 # Pasó condiciones, pero documentar avisos
-                return EntryValidationResponse(
+                return _enrich_holdings_response(
+                    context,
+                    EntryValidationResponse(
                     valido=True,
                     criterio_aplicado=criterion_id,
                     razon=criterion.get("regla", ""),
@@ -319,17 +453,21 @@ def validate_entry(context: ValidationContext) -> EntryValidationResponse:
                     que_documentar=criterion.get("que_documentar", []),
                     nias_aplicables=criterion.get("nias", []),
                     afirmaciones_impactadas=program.get("afirmaciones_auditoria", {}).keys() or [],
+                    ),
                 )
     
     # 3. Si pasó TODOS los criterios aplicables, es válido genéricamente
-    return EntryValidationResponse(
-        valido=True,
-        criterio_aplicado="GENERIC_PASS",
-        framework=context.framework,
-        norma=program.get("norma_clave", ""),
-        area=context.area,
-        nias_aplicables=program.get("nias_generales", []),
-        que_documentar=["Aplicado criterio genérico auditoría"],
+    return _enrich_holdings_response(
+        context,
+        EntryValidationResponse(
+            valido=True,
+            criterio_aplicado="GENERIC_PASS",
+            framework=context.framework,
+            norma=program.get("norma_clave", ""),
+            area=context.area,
+            nias_aplicables=program.get("nias_generales", []),
+            que_documentar=["Aplicado criterio genérico auditoría"],
+        ),
     )
 
 

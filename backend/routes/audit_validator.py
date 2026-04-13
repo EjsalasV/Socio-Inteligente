@@ -79,6 +79,36 @@ class AuditEntryRequest(BaseModel):
     )
 
 
+    holdings_entities: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Estructura de entidades holdings para analisis de cascada",
+    )
+    ownership_links: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Relaciones owner -> subsidiary con porcentaje",
+    )
+    declared_dividends: dict[str, float] = Field(
+        default_factory=dict,
+        description="Dividendos declarados por entidad (entity_id -> monto)",
+    )
+    tax_rates: dict[str, float] = Field(
+        default_factory=dict,
+        description="Tasas fiscales por jurisdiccion (jurisdiccion -> tasa)",
+    )
+    offset_allowed: bool = Field(
+        False,
+        description="Si existe acuerdo formal para offset de dividendos/deudas",
+    )
+    offset_dividend_receivable: float = Field(
+        0.0,
+        ge=0,
+        description="Monto de dividendo por cobrar (para validar offset)",
+    )
+    offset_cxp_payable: float = Field(
+        0.0,
+        ge=0,
+        description="Monto de CxP a accionista/relacionada (para validar offset)",
+    )
 class AuditValidationResult(BaseModel):
     """Respuesta completa de validación de asiento"""
     
@@ -231,6 +261,13 @@ def post_validate_entry(
             garantia_ejecutable=payload.garantia_ejecutable,
             es_holding=payload.es_holding,
             tiene_partes_relacionadas=payload.tiene_partes_relacionadas,
+            holdings_entities=payload.holdings_entities,
+            ownership_links=payload.ownership_links,
+            declared_dividends=payload.declared_dividends,
+            tax_rates=payload.tax_rates,
+            offset_allowed=payload.offset_allowed,
+            offset_dividend_receivable=payload.offset_dividend_receivable,
+            offset_cxp_payable=payload.offset_cxp_payable,
         )
         
         # Ejecutar validación
