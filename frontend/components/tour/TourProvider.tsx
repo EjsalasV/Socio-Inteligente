@@ -35,6 +35,11 @@ function isTourModule(value: string): value is TourModule {
   return (TOUR_MODULES as readonly string[]).includes(value);
 }
 
+function isTourAutoStartEnabled(): boolean {
+  const raw = String(process.env.NEXT_PUBLIC_TOUR_AUTO_START || "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
+
 function readStringArrayStorage(key: string, session = false): string[] {
   if (typeof window === "undefined") return [];
   const storage = session ? window.sessionStorage : window.localStorage;
@@ -130,6 +135,7 @@ export default function TourProvider({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
+    if (!isTourAutoStartEnabled()) return;
     if (preferencesLoading) return;
     if (!activeModule || run) return;
     if (completedModules.includes(activeModule)) return;
