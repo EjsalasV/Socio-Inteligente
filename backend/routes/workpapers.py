@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -46,6 +47,18 @@ def _is_true(value: Any) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in {"true", "1", "si", "yes"}
     return False
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
+def _workpaper_ai_tasks_enabled() -> bool:
+    raw = str(os.getenv("WORKPAPER_AI_TASKS_ENABLED") or "0").strip().lower()
+    return raw in {"1", "true", "yes", "y", "on"}
 
 
 def _build_methodology_tasks(perfil: dict[str, Any]) -> list[dict[str, Any]]:
@@ -275,20 +288,21 @@ def _generate_tasks(cliente_id: str) -> list[dict[str, Any]]:
                 }
             )
 
-    # Anexa sugerencias de juicio AI (no bloqueantes) usando la misma logica del Risk Engine.
-    try:
-        from backend.routes.risk_engine import _build_strategy_deterministic, _from_area_files, _from_ranking
-        from backend.services.judgement_service import build_risk_judgement_with_ai
+    # Sugerencias de juicio AI desactivadas por defecto para evitar latencia extrema en endpoints GET.
+    if _workpaper_ai_tasks_enabled():
+        try:
+            from backend.routes.risk_engine import _build_strategy_deterministic, _from_area_files, _from_ranking
+            from backend.services.judgement_service import build_risk_judgement_with_ai
 
-        areas = _from_ranking(cliente_id)
-        if not areas:
-            areas = _from_area_files(cliente_id)
-        if areas:
-            deterministic = _build_strategy_deterministic(areas)
-            judged = build_risk_judgement_with_ai(cliente_id, areas=areas, deterministic=deterministic)
-            templates.extend(recommend_workpaper_tasks_from_strategy(judged, max_tasks=8))
-    except Exception:
-        pass
+            areas = _from_ranking(cliente_id)
+            if not areas:
+                areas = _from_area_files(cliente_id)
+            if areas:
+                deterministic = _build_strategy_deterministic(areas)
+                judged = build_risk_judgement_with_ai(cliente_id, areas=areas, deterministic=deterministic)
+                templates.extend(recommend_workpaper_tasks_from_strategy(judged, max_tasks=8))
+        except Exception:
+            pass
 
     # dedupe by id preserving order
     out: list[dict[str, Any]] = []
@@ -400,7 +414,7 @@ def _quality_gates(cliente_id: str, tasks: list[dict[str, Any]]) -> tuple[list[Q
     final = materialidad.get("final", {}) if isinstance(materialidad.get("final"), dict) else {}
 
     has_materialidad = any(
-        float(v or 0) > 0
+        _safe_float(v, 0.0) > 0
         for v in [
             preliminar.get("materialidad_global"),
             preliminar.get("materialidad_desempeno"),

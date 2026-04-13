@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.auth import authorize_cliente_access, get_current_user
-from backend.repositories.file_repository import read_perfil, read_workflow, write_perfil, write_workflow
+from backend.repositories.file_repository import read_perfil, read_workflow, read_workpapers, write_perfil, write_workflow
 from backend.routes.workpapers import _generate_tasks, _merge_saved_tasks, _quality_gates
 from backend.schemas import ApiResponse, UserContext, WorkflowAdvanceRequest, WorkflowFieldHistoryRequest, WorkflowStateResponse
 from backend.services.realtime_collab_service import hub
@@ -15,6 +16,7 @@ from backend.utils.api_errors import raise_api_error
 from backend.validation import normalize_workflow_doc_v1, validate_workflow_doc_v1
 
 router = APIRouter(prefix="/workflow", tags=["workflow"])
+LOGGER = logging.getLogger("socio.workflow")
 
 PHASES = ["planificacion", "ejecucion", "informe"]
 
@@ -64,9 +66,16 @@ def get_workflow_state(cliente_id: str, user: UserContext = Depends(get_current_
     encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
     current_phase = _normalize_phase(str(encargo.get("fase_actual") or "planificacion"))
 
-    generated = _generate_tasks(cliente_id)
-    merged = _merge_saved_tasks(cliente_id, generated)
-    gates, _coverage = _quality_gates(cliente_id, merged)
+    try:
+        merged = read_workpapers(cliente_id)
+        if not merged:
+            generated = _generate_tasks(cliente_id)
+            merged = _merge_saved_tasks(cliente_id, generated)
+        gates, _coverage = _quality_gates(cliente_id, merged)
+    except Exception as exc:
+        LOGGER.exception("Workflow state falló calculando gates para cliente=%s: %s", cliente_id, exc)
+        gates = []
+
     state = WorkflowStateResponse(
         cliente_id=cliente_id,
         previous_phase=current_phase,
@@ -74,19 +83,25 @@ def get_workflow_state(cliente_id: str, user: UserContext = Depends(get_current_
         changed=False,
         gates=gates,
     )
-    workflow_doc = normalize_workflow_doc_v1(
-        read_workflow(cliente_id),
-        cliente_id=cliente_id,
-        phase=current_phase,
-    )
-    workflow_doc["gates"] = [g.model_dump() for g in gates]
-    is_valid, errors = validate_workflow_doc_v1(workflow_doc, cliente_id=cliente_id, phase=current_phase)
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"message": "Workflow invalido para schema v1.", "errors": errors, "schema_version": "v1"},
+
+    # No persistir en GET para evitar latencia, errores externos y churn de cache del dashboard.
+    try:
+        workflow_doc = normalize_workflow_doc_v1(
+            read_workflow(cliente_id),
+            cliente_id=cliente_id,
+            phase=current_phase,
         )
-    write_workflow(cliente_id, workflow_doc)
+        workflow_doc["gates"] = [g.model_dump() for g in gates]
+        is_valid, errors = validate_workflow_doc_v1(workflow_doc, cliente_id=cliente_id, phase=current_phase)
+        if not is_valid:
+            LOGGER.warning(
+                "Workflow inválido en lectura para cliente=%s (no bloqueante): %s",
+                cliente_id,
+                errors,
+            )
+    except Exception as exc:
+        LOGGER.exception("Workflow state no pudo validar documento cliente=%s: %s", cliente_id, exc)
+
     return ApiResponse(data=state.model_dump())
 
 

@@ -95,13 +95,7 @@ export default function TourProvider({ children }: { children: React.ReactNode }
           const target = typeof step.target === "string" ? step.target : "";
           return !!target && !!document.querySelector(target);
         })
-        .map((step) => ({
-          ...step,
-          hideOverlay: true,
-          disableFocusTrap: true,
-          blockTargetInteraction: false,
-          overlayClickAction: "close" as const,
-        }));
+        .map((step) => ({ ...step }));
       if (!availableSteps.length) return;
 
       setCurrentModule(resolved);
