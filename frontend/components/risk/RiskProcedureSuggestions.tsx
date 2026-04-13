@@ -12,6 +12,8 @@ type Procedure = {
 };
 
 type ProcedureCard = Procedure & {
+  uid?: string;
+  test_id?: string;
   area_id?: string;
   prioridad?: string;
   scope: "control" | "substantive";
@@ -125,8 +127,26 @@ function inferTargetArea(areas: RiskCriticalArea[], procedure: Procedure): RiskC
   return areas[0] ?? null;
 }
 
+function normalizeKeyPart(value: string | undefined): string {
+  return String(value || "").trim().toLowerCase();
+}
+
 function cardKey(procedure: ProcedureCard): string {
-  return `${procedure.scope}|${procedure.nia}|${procedure.title}`;
+  if (procedure.uid) {
+    return procedure.uid;
+  }
+  // `test_id` arrives from backend and is the strongest unique identifier.
+  if (procedure.test_id) {
+    return `${procedure.scope}|${normalizeKeyPart(procedure.test_id)}`;
+  }
+  // Fallback key for static/local cards.
+  return [
+    procedure.scope,
+    normalizeKeyPart(procedure.area_id),
+    normalizeKeyPart(procedure.nia),
+    normalizeKeyPart(procedure.title),
+    normalizeKeyPart(procedure.vinculo),
+  ].join("|");
 }
 
 function timeLabel(): string {
@@ -142,7 +162,9 @@ export default function RiskProcedureSuggestions({
   const router = useRouter();
   const procedures = buildProcedures(areas);
 
-  const aiControl: ProcedureCard[] = controlTests.slice(0, 3).map((x) => ({
+  const aiControl: ProcedureCard[] = controlTests.slice(0, 3).map((x, idx) => ({
+    uid: `control|${normalizeKeyPart(x.test_id)}|${normalizeKeyPart(x.area_id)}|${idx}`,
+    test_id: x.test_id,
     nia: x.nia_ref || "NIA",
     title: x.title,
     description: x.description,
@@ -151,7 +173,9 @@ export default function RiskProcedureSuggestions({
     prioridad: x.priority,
     scope: "control",
   }));
-  const aiSubstantive: ProcedureCard[] = substantiveTests.slice(0, 3).map((x) => ({
+  const aiSubstantive: ProcedureCard[] = substantiveTests.slice(0, 3).map((x, idx) => ({
+    uid: `substantive|${normalizeKeyPart(x.test_id)}|${normalizeKeyPart(x.area_id)}|${idx}`,
+    test_id: x.test_id,
     nia: x.nia_ref || "NIA",
     title: x.title,
     description: x.description,
@@ -160,14 +184,16 @@ export default function RiskProcedureSuggestions({
     prioridad: x.priority,
     scope: "substantive",
   }));
-  const fallbackControl: ProcedureCard[] = procedures.slice(0, 3).map((p) => ({
+  const fallbackControl: ProcedureCard[] = procedures.slice(0, 3).map((p, idx) => ({
     ...p,
+    uid: `control|fallback|${normalizeKeyPart(p.nia)}|${normalizeKeyPart(p.title)}|${idx}`,
     area_id: "",
     prioridad: "media",
     scope: "control",
   }));
-  const fallbackSubstantive: ProcedureCard[] = procedures.slice(0, 3).map((p) => ({
+  const fallbackSubstantive: ProcedureCard[] = procedures.slice(0, 3).map((p, idx) => ({
     ...p,
+    uid: `substantive|fallback|${normalizeKeyPart(p.nia)}|${normalizeKeyPart(p.title)}|${idx}`,
     area_id: "",
     prioridad: "media",
     scope: "substantive",
