@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { hasSessionState } from "../../lib/auth-session";
+import { clearSessionState, hasSessionState } from "../../lib/auth-session";
+import { buildApiUrl } from "../../lib/api-base";
 import { getClienteTbStatus } from "../../lib/api/clientes";
 import { useAuditContext } from "../../lib/hooks/useAuditContext";
 import ClienteRealtimeProvider from "../providers/ClienteRealtimeProvider";
@@ -18,15 +19,54 @@ export default function ClientModuleShell({ children }: { children: React.ReactN
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!hasSessionState()) {
-      setIsAuthenticated(false);
-      setReady(true);
-      router.replace("/");
-      return;
-    }
+    let disposed = false;
 
-    setIsAuthenticated(true);
-    setReady(true);
+    const syncLocalState = () => {
+      const active = hasSessionState();
+      if (disposed) return active;
+      setIsAuthenticated(active);
+      setReady(true);
+      if (!active) {
+        router.replace("/");
+      }
+      return active;
+    };
+
+    const validateBackendSession = async () => {
+      const active = syncLocalState();
+      if (!active) return;
+      try {
+        const res = await fetch(buildApiUrl("/auth/me"), {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          clearSessionState();
+          if (!disposed) {
+            setIsAuthenticated(false);
+            router.replace("/");
+          }
+        }
+      } catch {
+        // Si no hay red, no forzamos logout; mantenemos estado local.
+      }
+    };
+
+    const onAuthChanged = () => {
+      syncLocalState();
+    };
+
+    syncLocalState();
+    void validateBackendSession();
+    window.addEventListener("socio-auth-changed", onAuthChanged);
+    window.addEventListener("focus", onAuthChanged);
+
+    return () => {
+      disposed = true;
+      window.removeEventListener("socio-auth-changed", onAuthChanged);
+      window.removeEventListener("focus", onAuthChanged);
+    };
   }, [router]);
 
   useEffect(() => {
