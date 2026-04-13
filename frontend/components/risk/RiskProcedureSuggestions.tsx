@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createWorkpaperTask, deleteWorkpaperTask } from "../../lib/api/workpapers";
@@ -160,44 +160,60 @@ export default function RiskProcedureSuggestions({
   substantiveTests = [],
 }: Props) {
   const router = useRouter();
-  const procedures = buildProcedures(areas);
+  const procedures = useMemo(() => buildProcedures(areas), [areas]);
 
-  const aiControl: ProcedureCard[] = controlTests.slice(0, 3).map((x, idx) => ({
-    uid: `control|${normalizeKeyPart(x.test_id)}|${normalizeKeyPart(x.area_id)}|${idx}`,
-    test_id: x.test_id,
-    nia: x.nia_ref || "NIA",
-    title: x.title,
-    description: x.description,
-    vinculo: x.area_nombre,
-    area_id: x.area_id,
-    prioridad: x.priority,
-    scope: "control",
-  }));
-  const aiSubstantive: ProcedureCard[] = substantiveTests.slice(0, 3).map((x, idx) => ({
-    uid: `substantive|${normalizeKeyPart(x.test_id)}|${normalizeKeyPart(x.area_id)}|${idx}`,
-    test_id: x.test_id,
-    nia: x.nia_ref || "NIA",
-    title: x.title,
-    description: x.description,
-    vinculo: x.area_nombre,
-    area_id: x.area_id,
-    prioridad: x.priority,
-    scope: "substantive",
-  }));
-  const fallbackControl: ProcedureCard[] = procedures.slice(0, 3).map((p, idx) => ({
-    ...p,
-    uid: `control|fallback|${normalizeKeyPart(p.nia)}|${normalizeKeyPart(p.title)}|${idx}`,
-    area_id: "",
-    prioridad: "media",
-    scope: "control",
-  }));
-  const fallbackSubstantive: ProcedureCard[] = procedures.slice(0, 3).map((p, idx) => ({
-    ...p,
-    uid: `substantive|fallback|${normalizeKeyPart(p.nia)}|${normalizeKeyPart(p.title)}|${idx}`,
-    area_id: "",
-    prioridad: "media",
-    scope: "substantive",
-  }));
+  const aiControl: ProcedureCard[] = useMemo(
+    () =>
+      controlTests.slice(0, 3).map((x, idx) => ({
+        uid: `control|${normalizeKeyPart(x.test_id)}|${normalizeKeyPart(x.area_id)}|${idx}`,
+        test_id: x.test_id,
+        nia: x.nia_ref || "NIA",
+        title: x.title,
+        description: x.description,
+        vinculo: x.area_nombre,
+        area_id: x.area_id,
+        prioridad: x.priority,
+        scope: "control" as const,
+      })),
+    [controlTests],
+  );
+  const aiSubstantive: ProcedureCard[] = useMemo(
+    () =>
+      substantiveTests.slice(0, 3).map((x, idx) => ({
+        uid: `substantive|${normalizeKeyPart(x.test_id)}|${normalizeKeyPart(x.area_id)}|${idx}`,
+        test_id: x.test_id,
+        nia: x.nia_ref || "NIA",
+        title: x.title,
+        description: x.description,
+        vinculo: x.area_nombre,
+        area_id: x.area_id,
+        prioridad: x.priority,
+        scope: "substantive" as const,
+      })),
+    [substantiveTests],
+  );
+  const fallbackControl: ProcedureCard[] = useMemo(
+    () =>
+      procedures.slice(0, 3).map((p, idx) => ({
+        ...p,
+        uid: `control|fallback|${normalizeKeyPart(p.nia)}|${normalizeKeyPart(p.title)}|${idx}`,
+        area_id: "",
+        prioridad: "media",
+        scope: "control" as const,
+      })),
+    [procedures],
+  );
+  const fallbackSubstantive: ProcedureCard[] = useMemo(
+    () =>
+      procedures.slice(0, 3).map((p, idx) => ({
+        ...p,
+        uid: `substantive|fallback|${normalizeKeyPart(p.nia)}|${normalizeKeyPart(p.title)}|${idx}`,
+        area_id: "",
+        prioridad: "media",
+        scope: "substantive" as const,
+      })),
+    [procedures],
+  );
 
   const controlList = aiControl.length ? aiControl : fallbackControl;
   const subList = aiSubstantive.length ? aiSubstantive : fallbackSubstantive;
@@ -211,20 +227,18 @@ export default function RiskProcedureSuggestions({
   const [autoGoToWorkpapers, setAutoGoToWorkpapers] = useState<boolean>(false);
   const [logs, setLogs] = useState<ActionLog[]>([]);
 
-  useEffect(() => {
-    if (!allCards.length) return;
-    setSelectedAreaByKey((prev) => {
-      const next = { ...prev };
-      for (const procedure of allCards) {
-        const key = cardKey(procedure);
-        if (next[key]) continue;
-        const inferred =
-          (procedure.area_id ? areas.find((a) => a.area_id === procedure.area_id) ?? null : null) ??
-          inferTargetArea(areas, procedure);
-        if (inferred?.area_id) next[key] = inferred.area_id;
+  const inferredAreaByKey = useMemo(() => {
+    const next: Record<string, string> = {};
+    for (const procedure of allCards) {
+      const key = cardKey(procedure);
+      const inferred =
+        (procedure.area_id ? areas.find((a) => a.area_id === procedure.area_id) ?? null : null) ??
+        inferTargetArea(areas, procedure);
+      if (inferred?.area_id) {
+        next[key] = inferred.area_id;
       }
-      return next;
-    });
+    }
+    return next;
   }, [allCards, areas]);
 
   async function addProcedure(procedure: ProcedureCard, silent = false): Promise<{
@@ -232,7 +246,8 @@ export default function RiskProcedureSuggestions({
     taskId: string;
   }> {
     const key = cardKey(procedure);
-    const chosenAreaId = selectedAreaByKey[key] || procedure.area_id || "";
+    const chosenAreaId =
+      selectedAreaByKey[key] || inferredAreaByKey[key] || procedure.area_id || "";
     const targetArea =
       (chosenAreaId ? areas.find((a) => a.area_id === chosenAreaId) ?? null : null) ??
       inferTargetArea(areas, procedure);
@@ -427,7 +442,7 @@ export default function RiskProcedureSuggestions({
                 <label className="text-[10px] uppercase tracking-[0.1em] text-slate-500 font-bold">
                   Área destino
                   <select
-                    value={selectedAreaByKey[key] || ""}
+                    value={selectedAreaByKey[key] || inferredAreaByKey[key] || ""}
                     onChange={(e) =>
                       setSelectedAreaByKey((prev) => ({
                         ...prev,
@@ -495,7 +510,7 @@ export default function RiskProcedureSuggestions({
                   <label className="text-[10px] uppercase tracking-[0.1em] text-slate-500 font-bold">
                     Área destino
                     <select
-                      value={selectedAreaByKey[key] || ""}
+                      value={selectedAreaByKey[key] || inferredAreaByKey[key] || ""}
                       onChange={(e) =>
                         setSelectedAreaByKey((prev) => ({
                           ...prev,
