@@ -1,6 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
@@ -24,6 +26,7 @@ export default function RiskEnginePage() {
   const { clienteId } = useAuditContext();
   const { data, isLoading, error } = useRiskEngine(clienteId);
   const { role } = useLearningRole();
+  const [showSocioSuggestions, setShowSocioSuggestions] = useState<boolean>(false);
   const strategy = data?.strategy ?? {
     approach: "mixto",
     control_pct: 50,
@@ -33,6 +36,8 @@ export default function RiskEnginePage() {
     substantive_tests: [],
   };
   const criticalAreas = data?.areas_criticas ?? [];
+  const totalHallazgosAbiertos = criticalAreas.reduce((acc, area) => acc + (area.hallazgos_abiertos || 0), 0);
+  const topArea = criticalAreas[0];
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -166,23 +171,156 @@ export default function RiskEnginePage() {
         </section>
       )}
 
-      <div className="grid grid-cols-12 gap-8">
-        <div data-tour="risk-matrix" className="col-span-12 lg:col-span-7">
-          <RiskMatrix data={data} />
+      {role === "junior" ? (
+        <section className="space-y-5">
+          <div className="sovereign-card">
+            <h2 className="font-headline text-3xl text-[#041627]">Áreas que debes auditar primero</h2>
+            <p className="text-sm text-slate-600 mt-2">
+              Empieza por el ranking de mayor riesgo y ejecuta pruebas con evidencia desde el primer ciclo.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {criticalAreas.length === 0 ? (
+              <div className="sovereign-card text-sm text-slate-600">No hay áreas críticas disponibles para priorizar.</div>
+            ) : (
+              criticalAreas.map((area, idx) => {
+                const isHigh = area.nivel === "ALTO" || area.nivel === "CRITICO";
+                const isMedium = area.nivel === "MEDIO";
+                const numberTone = isHigh
+                  ? "bg-rose-100 text-rose-800"
+                  : isMedium
+                    ? "bg-amber-100 text-amber-800"
+                    : "bg-emerald-100 text-emerald-800";
+                const nivelTone = isHigh
+                  ? "bg-rose-100 text-rose-800 border-rose-200"
+                  : isMedium
+                    ? "bg-amber-100 text-amber-800 border-amber-200"
+                    : "bg-emerald-100 text-emerald-800 border-emerald-200";
+
+                const actionSentence = isHigh
+                  ? "Ir al Workspace → generar briefing → ejecutar pruebas sustantivas prioritarias."
+                  : isMedium
+                    ? "Ir al Workspace → generar briefing → ejecutar pruebas sustantivas y controles clave."
+                    : "Ir al Workspace → generar briefing → ejecutar pruebas analíticas y cierre documental.";
+
+                return (
+                  <article key={`${area.area_id}-${area.area_nombre}`} className="sovereign-card">
+                    <div className="flex items-start gap-4">
+                      <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${numberTone}`}>
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-headline text-2xl text-[#041627]">{area.area_nombre}</h3>
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] ${nivelTone}`}>
+                            {area.nivel}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-700">{actionSentence}</p>
+                        <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">Referencia: NIA 315</p>
+                        <Link
+                          href={`/areas/${clienteId}/${area.area_id}`}
+                          className="inline-flex rounded-lg bg-[#041627] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white hover:opacity-90"
+                        >
+                          Ir al Workspace
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+
+          <article className="rounded-xl border border-[#041627]/15 bg-[#f1f4f6] p-5">
+            <p className="text-sm text-[#041627]">
+              El motor recomienda {strategy.substantive_pct}% pruebas directas de saldos y {strategy.control_pct}% pruebas de controles.
+            </p>
+          </article>
+        </section>
+      ) : null}
+
+      {role === "semi" ? (
+        <section className="space-y-6">
+          <p className="text-sm text-slate-600">
+            Enfoca la ejecución en áreas con mayor score y usa la estrategia recomendada para balancear controles y pruebas sustantivas.
+          </p>
+          <div className="grid grid-cols-12 gap-8">
+            <div data-tour="risk-critical" className="col-span-12 lg:col-span-7">
+              <CriticalRisks areas={criticalAreas} />
+            </div>
+            <RiskStrategyPanel areas={criticalAreas} strategy={strategy} />
+          </div>
+        </section>
+      ) : null}
+
+      {role === "senior" ? (
+        <div className="grid grid-cols-12 gap-8">
+          <div data-tour="risk-matrix" className="col-span-12 lg:col-span-7">
+            <RiskMatrix data={data} />
+          </div>
+          <RiskStrategyPanel areas={criticalAreas} strategy={strategy} />
+          <div data-tour="risk-critical" className="col-span-12 lg:col-span-5">
+            <CriticalRisks areas={criticalAreas} />
+          </div>
+          <div data-tour="risk-suggestions" className="col-span-12 lg:col-span-7">
+            <RiskProcedureSuggestions
+              clienteId={clienteId}
+              areas={criticalAreas}
+              controlTests={strategy.control_tests ?? []}
+              substantiveTests={strategy.substantive_tests ?? []}
+            />
+          </div>
         </div>
-        <RiskStrategyPanel areas={criticalAreas} strategy={strategy} />
-        <div data-tour="risk-critical" className="col-span-12 lg:col-span-5">
-          <CriticalRisks areas={criticalAreas} />
-        </div>
-        <div data-tour="risk-suggestions" className="col-span-12 lg:col-span-7">
-          <RiskProcedureSuggestions
-            clienteId={clienteId}
-            areas={criticalAreas}
-            controlTests={strategy.control_tests ?? []}
-            substantiveTests={strategy.substantive_tests ?? []}
-          />
-        </div>
-      </div>
+      ) : null}
+
+      {role === "socio" ? (
+        <section className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <article className="sovereign-card">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-bold">Área principal</p>
+              <p className="font-headline text-xl text-[#041627] mt-2">{topArea?.area_nombre ?? "No determinada"}</p>
+              <p className="text-xs text-slate-600 mt-1">Nivel: {topArea?.nivel ?? "N/D"}</p>
+            </article>
+            <article className="sovereign-card">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-bold">Estrategia</p>
+              <p className="font-headline text-xl text-[#041627] mt-2">{strategy.approach || "mixto"}</p>
+              <p className="text-xs text-slate-600 mt-1">{strategy.control_pct}% control · {strategy.substantive_pct}% sustantiva</p>
+            </article>
+            <article className="sovereign-card">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-bold">Hallazgos abiertos</p>
+              <p className="font-headline text-3xl text-[#041627] mt-2">{totalHallazgosAbiertos}</p>
+            </article>
+          </div>
+
+          <article className="rounded-xl bg-[#041627] border border-[#89d3d4]/25 p-6 text-white">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-[#89d3d4] font-bold mb-2">Rationale de estrategia</p>
+            <p className="text-sm leading-relaxed">{strategy.rationale || "Sin racional técnico disponible."}</p>
+          </article>
+
+          <div className="sovereign-card">
+            <button
+              type="button"
+              onClick={() => setShowSocioSuggestions((prev) => !prev)}
+              className="inline-flex items-center gap-2 rounded-lg border border-[#041627]/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#041627]"
+            >
+              <span className="material-symbols-outlined text-base">{showSocioSuggestions ? "expand_less" : "expand_more"}</span>
+              {showSocioSuggestions ? "Ocultar sugerencias" : "Ver sugerencias de procedimientos"}
+            </button>
+            {showSocioSuggestions ? (
+              <div className="mt-4">
+                <RiskProcedureSuggestions
+                  clienteId={clienteId}
+                  areas={criticalAreas}
+                  controlTests={strategy.control_tests ?? []}
+                  substantiveTests={strategy.substantive_tests ?? []}
+                />
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <footer className="mt-8 border-t border-slate-200 pt-8 flex justify-between items-center text-[10px] font-bold text-slate-400 tracking-widest uppercase">
         <div>Socio AI Risk Engine v2.4.0</div>

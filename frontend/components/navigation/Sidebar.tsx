@@ -23,7 +23,8 @@ type NavItem = {
     | "clientes"
     | "admin"
     | "socio-chat"
-    | "client-memory";
+    | "client-memory"
+    | "biblioteca";
   label: string;
   icon: string;
   href: string;
@@ -77,6 +78,7 @@ export default function Sidebar() {
       },
       { id: "socio-chat", key: "socio-chat", label: "Socio Chat", icon: "forum", href: withCliente("socio-chat") },
       { id: "client-memory", key: "client-memory", label: "Client Memory", icon: "folder_shared", href: withCliente("client-memory") },
+      { id: "biblioteca", key: "biblioteca", label: "Biblioteca", icon: "menu_book", href: "/biblioteca" },
       { id: "reportes", key: "reportes", label: "Reportes", icon: "description", href: withCliente("reportes") },
     ],
     [baseCliente, canManageUsers],
@@ -105,7 +107,9 @@ export default function Sidebar() {
           <nav className="space-y-2 flex-1 overflow-y-auto pr-1 min-h-0">
             {items.map((item) => {
               const active =
-                !baseCliente || item.key === "clientes"
+                item.key === "biblioteca"
+                  ? pathname.startsWith("/biblioteca")
+                  : !baseCliente || item.key === "clientes"
                   ? pathname.startsWith("/clientes") || pathname.startsWith("/onboarding/")
                   : item.key === "areas"
                   ? pathname.startsWith(`/areas/${baseCliente}`)
@@ -151,6 +155,8 @@ export default function Sidebar() {
                                         ? "sidebar-socio-chat"
                                         : item.key === "client-memory"
                                           ? "sidebar-client-memory"
+                                          : item.key === "biblioteca"
+                                            ? "sidebar-biblioteca"
                                           : undefined
                   }
                   className={`flex items-center gap-3 rounded-editorial px-4 py-3 transition-colors ${itemClass(active)}`}

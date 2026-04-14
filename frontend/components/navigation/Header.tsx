@@ -71,6 +71,7 @@ export default function Header() {
       "socio-chat": "Haz preguntas técnicas y exporta criterio a hallazgos o papeles.",
       "client-memory": "Consolida documentos e historial para mantener contexto del cliente.",
       "estados-financieros": "Liquidez, solvencia y rentabilidad — señales de riesgo financiero para el encargo.",
+      biblioteca: "Consulta NIAs y NIIF PYMES resumidas por rol — criterio de referencia rápida.",
     };
     const base = hints[moduleKey] ?? "Avanza por fases para mantener trazabilidad del encargo.";
     if (role === "junior") return `${base} Si algo no cuadra, pide soporte y registra evidencia minima.`;

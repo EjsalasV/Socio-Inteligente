@@ -116,167 +116,120 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface text-slate-900 font-body">
-      <div className="fixed inset-0 z-0">
-        <div className="absolute inset-0 bg-[#041627]/5 z-10" />
-        <img
-          className="w-full h-full object-cover opacity-20 grayscale"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQmiNIqGU3a7SQsk-Qcs4zncgJoaZl-F0cRUV-WokgCOu9FtESa62hAhiVsLqXpSLHiYvMK3dMnyQJljfrPDgxk7oGJzWTRnjmGA8cGDn7RNbsuMrTTqeCflkfrEU8jvlDC5O_nkKESTwm99rVx-urEwHOomaxAMFxI6ys4Cc3O235owyHv1vwkM6lI5O3QRZ0tIhkqXdGx5QiP5ik9SI-Vc82GBTBDYl9ZbQyKXPvM7xzKliszLJ1Mn2pJWhRmHcbYYUBSgzBbOQ"
-          alt="Fondo editorial de auditoría"
-        />
-      </div>
-
-      <header className="fixed top-0 w-full z-50 bg-white flex justify-between items-center px-8 py-4 shadow-sm shadow-slate-200/50">
-        <div className="text-xl font-semibold tracking-tight text-slate-900 font-headline">
-          Socio AI
-        </div>
-        <div className="flex items-center gap-3">
-          <a
-            href="/landing"
-            className="text-[11px] uppercase tracking-[0.14em] font-semibold text-[#002f30] hover:underline underline-offset-4"
-          >
-            Conocer Socio AI
-          </a>
-          <div className="flex items-center gap-2 text-slate-500">
-            <span className="material-symbols-outlined text-sm">lock</span>
-            <span className="text-[11px] uppercase tracking-widest font-medium">Entorno Encriptado</span>
-          </div>
-        </div>
-      </header>
-
-      <main className="relative z-20 flex-grow flex items-center justify-center px-6 py-24">
-        <div className="w-full max-w-lg">
-          <div className="mb-12 text-center">
-            <div className="mb-6">
-              <p className="font-headline text-5xl leading-none text-[#041627]">Socio AI</p>
-              <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-slate-500">
-                La plataforma de auditoría inteligente
+    <div className="min-h-screen bg-white text-slate-900 font-body">
+      <main className="min-h-screen grid grid-cols-1 md:grid-cols-2">
+        <section className="hidden md:flex bg-gradient-to-br from-[#041627] to-[#0d2a3f] text-white p-12 lg:p-16 flex-col justify-between">
+          <div className="space-y-8">
+            <div>
+              <h1 className="font-headline text-6xl leading-none">Socio AI</h1>
+              <p className="mt-4 text-lg text-slate-100 max-w-lg">
+                El criterio auditor, asistido por inteligencia artificial
               </p>
             </div>
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-sm mb-6">
-              <span
-                className="material-symbols-outlined text-[#041627] text-3xl"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                account_circle
-              </span>
+
+            <div className="space-y-5">
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-[#89d3d4]">psychology</span>
+                <p className="text-sm text-slate-100">Criterio NIA y NIIF en cada área del encargo</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-[#89d3d4]">school</span>
+                <p className="text-sm text-slate-100">Aprende auditoría en cada paso según tu rol</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-[#89d3d4]">route</span>
+                <p className="text-sm text-slate-100">Del Trial Balance al informe en un flujo guiado</p>
+              </div>
             </div>
-            <h1 className="font-headline text-4xl md:text-5xl text-[#041627] mb-4 leading-tight">
-              Acceso al Entorno de Auditoría
-            </h1>
-            <p className="text-slate-600 text-lg">
-              Bienvenido de nuevo. Su entorno de auditoría está listo.
-            </p>
           </div>
 
-          <div className="rounded-xl p-8 md:p-12 shadow-[0_20px_40px_rgba(24,28,30,0.06)] bg-white border border-white/60">
-            <form className="space-y-8" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <label className="text-[11px] uppercase tracking-widest font-semibold text-slate-500 block ml-1" htmlFor="username">
-                  Correo electrónico profesional
-                </label>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="joaosalas123@gmail.com"
-                  className="w-full bg-[#f1f4f6] border border-[rgba(196,198,205,0.35)] rounded-xl px-4 py-4 focus:ring-0 focus:border-[#89d3d4] transition-all outline-none text-slate-900 placeholder:text-slate-400"
-                  autoComplete="username"
-                />
-              </div>
+          <p className="text-xs uppercase tracking-[0.16em] text-[#a5eff0]">Para firmas de auditoría externa</p>
+        </section>
 
-              <div className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <label className="text-[11px] uppercase tracking-widest font-semibold text-slate-500 block ml-1" htmlFor="password">
-                    Contraseña
+        <section className="flex items-center justify-center p-6 md:p-12">
+          <div className="w-full max-w-lg">
+            <div className="mb-8">
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-500 font-semibold mb-2">Iniciar sesión</p>
+              <h2 className="font-headline text-4xl text-[#041627] leading-tight">Bienvenido de nuevo</h2>
+              <p className="text-slate-600 mt-2">Su entorno de auditoría está listo.</p>
+            </div>
+
+            <div className="rounded-xl p-8 md:p-10 shadow-[0_20px_40px_rgba(24,28,30,0.06)] bg-white border border-white/60">
+              <form className="space-y-8" onSubmit={handleSubmit}>
+                <div className="space-y-2">
+                  <label className="text-[11px] uppercase tracking-widest font-semibold text-slate-500 block ml-1" htmlFor="username">
+                    Correo electrónico profesional
                   </label>
-                  <button
-                    type="button"
-                    className="text-[11px] uppercase tracking-widest font-semibold text-[#002f30] hover:text-[#001919] transition-colors"
-                    onClick={() => setShowPassword((v) => !v)}
-                  >
-                    {showPassword ? "Ocultar" : "Mostrar"}
-                  </button>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="joaosalas123@gmail.com"
+                    className="w-full bg-[#f1f4f6] border border-[rgba(196,198,205,0.35)] rounded-xl px-4 py-4 focus:ring-0 focus:border-[#89d3d4] transition-all outline-none text-slate-900 placeholder:text-slate-400"
+                    autoComplete="username"
+                  />
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="1234"
-                  className="w-full bg-[#f1f4f6] border border-[rgba(196,198,205,0.35)] rounded-xl px-4 py-4 focus:ring-0 focus:border-[#89d3d4] transition-all outline-none text-slate-900 placeholder:text-slate-400"
-                  autoComplete="current-password"
-                />
-              </div>
 
-              <div className="flex items-start gap-3 p-4 bg-[#002f30]/5 rounded-xl border border-[#89d3d4]/25">
-                <span className="material-symbols-outlined text-[#529c9d] text-xl">verified_user</span>
-                <p className="text-[13px] text-[#004f50] font-medium">
-                  Autenticación de dos factores (2FA) requerida para este entorno.
-                </p>
-              </div>
-
-              <div className="flex items-start gap-3 p-4 bg-[#f1f4f6] rounded-xl border border-[#c4c6cd]/35">
-                <span className="material-symbols-outlined text-[#041627] text-xl">info</span>
-                <p className="text-[13px] text-slate-600 font-medium">
-                  Usa tus credenciales autorizadas para este cliente. Si no tienes acceso, solicita alta al administrador.
-                </p>
-              </div>
-
-              {error ? (
-                <div className="rounded-xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-4 py-3 text-sm text-[#93000a]">
-                  {error}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-end">
+                    <label className="text-[11px] uppercase tracking-widest font-semibold text-slate-500 block ml-1" htmlFor="password">
+                      Contraseña
+                    </label>
+                    <button
+                      type="button"
+                      className="text-[11px] uppercase tracking-widest font-semibold text-[#002f30] hover:text-[#001919] transition-colors"
+                      onClick={() => setShowPassword((v) => !v)}
+                    >
+                      {showPassword ? "Ocultar" : "Mostrar"}
+                    </button>
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="1234"
+                    className="w-full bg-[#f1f4f6] border border-[rgba(196,198,205,0.35)] rounded-xl px-4 py-4 focus:ring-0 focus:border-[#89d3d4] transition-all outline-none text-slate-900 placeholder:text-slate-400"
+                    autoComplete="current-password"
+                  />
                 </div>
-              ) : null}
 
-              <button
-                type="submit"
-                disabled={isDisabled}
-                className="w-full text-white py-5 rounded-full font-label font-semibold tracking-wide shadow-lg shadow-[#041627]/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}
-              >
-                {isLoading ? "Validando credenciales..." : "Iniciar Sesión en Socio AI"}
-              </button>
-            </form>
-          </div>
+                <div className="flex items-start gap-3 p-4 bg-[#002f30]/5 rounded-xl border border-[#89d3d4]/25">
+                  <span className="material-symbols-outlined text-[#529c9d] text-xl">verified_user</span>
+                  <p className="text-[13px] text-[#004f50] font-medium">
+                    Autenticación de dos factores (2FA) requerida para este entorno.
+                  </p>
+                </div>
 
-          <div className="mt-8 text-center">
-            <p className="mb-4 text-sm font-medium text-[#002f30]">
-              <a className="hover:underline underline-offset-4 decoration-2" href="/landing">
-                ¿Conoces Socio AI? Ver qué hacemos →
-              </a>
-            </p>
-            <p className="text-[11px] uppercase tracking-widest font-medium text-slate-500">
-              ¿Problemas de acceso?{" "}
-              <a className="text-[#041627] hover:underline underline-offset-4 decoration-2" href="mailto:soporte@socioai.app">
-                Contactar Soporte
-              </a>
-            </p>
+                <div className="flex items-start gap-3 p-4 bg-[#f1f4f6] rounded-xl border border-[#c4c6cd]/35">
+                  <span className="material-symbols-outlined text-[#041627] text-xl">info</span>
+                  <p className="text-[13px] text-slate-600 font-medium">
+                    Usa tus credenciales autorizadas para este cliente. Si no tienes acceso, solicita alta al administrador.
+                  </p>
+                </div>
+
+                {error ? (
+                  <div className="rounded-xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-4 py-3 text-sm text-[#93000a]">
+                    {error}
+                  </div>
+                ) : null}
+
+                <button
+                  type="submit"
+                  disabled={isDisabled}
+                  className="w-full text-white py-5 rounded-full font-label font-semibold tracking-wide shadow-lg shadow-[#041627]/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}
+                >
+                  {isLoading ? "Validando credenciales..." : "Iniciar Sesión en Socio AI"}
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
+        </section>
       </main>
-
-      <footer className="relative z-20 w-full py-8 border-t border-slate-200/20 bg-slate-50">
-        <div className="flex flex-col md:flex-row justify-between items-center px-8 md:px-12 max-w-7xl mx-auto space-y-4 md:space-y-0">
-          <div className="text-[11px] uppercase tracking-widest font-medium text-slate-400">
-            © 2026 Socio AI. Todos los derechos reservados.
-          </div>
-          <div className="flex gap-6 md:gap-8 flex-wrap justify-center">
-            <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="https://socioai.app/privacy" target="_blank" rel="noreferrer">
-              Política de privacidad
-            </a>
-            <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="https://socioai.app/security" target="_blank" rel="noreferrer">
-              Arquitectura de seguridad
-            </a>
-            <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="https://socioai.app/compliance" target="_blank" rel="noreferrer">
-              Cumplimiento normativo
-            </a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
