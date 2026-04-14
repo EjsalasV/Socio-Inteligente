@@ -7,6 +7,7 @@ import ErrorMessage from "../../../components/dashboard/ErrorMessage";
 import ContextualHelp from "../../../components/help/ContextualHelp";
 import { advanceWorkflow } from "../../../lib/api/workflow";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
+import { useLearningRole } from "../../../lib/hooks/useLearningRole";
 import { useWorkpapers } from "../../../lib/hooks/useWorkpapers";
 
 type EvidenceDraftMap = Record<string, string>;
@@ -24,6 +25,7 @@ function priorityColor(priority: string): string {
 
 export default function PapelesTrabajoPage() {
   const { clienteId } = useAuditContext();
+  const { role } = useLearningRole();
   const { data, isLoading, isLoadingMore, hasMore, error, savingTaskId, updateTask, loadMore } = useWorkpapers(clienteId);
   const [evidenceDrafts, setEvidenceDrafts] = useState<EvidenceDraftMap>({});
   const [workflowMsg, setWorkflowMsg] = useState<string>("");
@@ -128,6 +130,96 @@ export default function PapelesTrabajoPage() {
           },
         ]}
       />
+
+      {/* Panel de rol */}
+      {role === "junior" && (
+        <section className="bg-[#a5eff0]/10 border border-[#a5eff0]/30 rounded-xl p-6 space-y-4">
+          <div className="flex items-start gap-4">
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#041627] text-[#a5eff0] text-xs font-bold mt-0.5">NIA</span>
+            <div>
+              <p className="text-xs uppercase tracking-[0.15em] text-[#041627]/60 font-bold mb-1">Cómo usar Papeles de Trabajo — Vista Junior</p>
+              <p className="text-sm text-[#041627] leading-relaxed">
+                Los papeles de trabajo son tu <strong>registro de evidencia</strong>. Cada tarea representa un procedimiento de auditoría. No marques una tarea como completada si no tienes evidencia escrita de qué hiciste, qué encontraste y a qué conclusión llegaste.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              {
+                num: 1,
+                accion: "Ejecuta el procedimiento en el Workspace del Área",
+                nia: "NIA 230",
+                detalle: "Revisa cuentas, genera el briefing y documenta lo que encontraste. Luego regresa aquí a registrar la evidencia.",
+              },
+              {
+                num: 2,
+                accion: "Escribe la nota de evidencia antes de marcar completada",
+                nia: "NIA 500",
+                detalle: "En el campo de evidencia escribe: qué hiciste (ej. cotejé facturas), qué encontraste (ej. sin diferencias) y tu conclusión.",
+              },
+              {
+                num: 3,
+                accion: "Verifica que los Quality Gates estén en OK",
+                nia: "NIA 220",
+                detalle: "Si un gate está bloqueado, el sistema te indica qué falta. No puedes avanzar de fase hasta resolverlos todos.",
+              },
+            ].map((step) => (
+              <div key={step.nia} className="flex gap-3 p-4 bg-white rounded-lg border border-slate-100">
+                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#041627] text-white text-xs font-bold mt-0.5">{step.num}</span>
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-[#041627] text-sm">{step.accion}</p>
+                    <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#041627]/10 text-[#041627] text-[10px] font-bold uppercase">{step.nia}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{step.detalle}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {role === "socio" && (
+        <section className="rounded-xl p-6 bg-[#001919] border border-[#a5eff0]/20 shadow-md text-white">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#a5eff0] font-bold mb-3">Resumen Ejecutivo — Vista Socio</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Avance</p>
+              <p className={`font-headline text-2xl mt-1 font-semibold ${data.completion_pct >= 80 ? "text-emerald-400" : data.completion_pct >= 50 ? "text-amber-400" : "text-rose-400"}`}>
+                {data.completion_pct.toFixed(1)}%
+              </p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Gates OK</p>
+              <p className="font-headline text-2xl mt-1 font-semibold text-emerald-400">
+                {data.gates.filter(g => g.status === "ok").length} / {data.gates.length}
+              </p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Bloqueados</p>
+              <p className={`font-headline text-2xl mt-1 font-semibold ${data.gates.some(g => g.status === "blocked") ? "text-rose-400" : "text-emerald-400"}`}>
+                {data.gates.filter(g => g.status === "blocked").length}
+              </p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Tareas totales</p>
+              <p className="font-headline text-2xl mt-1 font-semibold text-white">{data.tasks.length}</p>
+            </div>
+          </div>
+          {data.gates.filter(g => g.status === "blocked").length > 0 && (
+            <div className="border-t border-white/10 pt-3">
+              <p className="text-xs text-slate-400 mb-2">Gates bloqueados que requieren atención:</p>
+              <div className="flex flex-wrap gap-2">
+                {data.gates.filter(g => g.status === "blocked").map(g => (
+                  <span key={g.code} className="px-3 py-1 rounded-full bg-rose-900/60 text-rose-200 text-xs font-semibold border border-rose-700/50">
+                    {g.code}: {g.title}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       <section data-tour="papeles-gates" className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {data.gates.map((gate) => (

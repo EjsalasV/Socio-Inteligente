@@ -9,6 +9,7 @@ import { exportChatCriterion, getChatHistory, postChat } from "../../../lib/api"
 import { createWorkpaperTask } from "../../../lib/api/workpapers";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
+import { useLearningRole } from "../../../lib/hooks/useLearningRole";
 import { useRiskEngine } from "../../../lib/hooks/useRiskEngine";
 
 type ChatMessage = {
@@ -101,6 +102,7 @@ function nowLabel(): string {
 
 export default function SocioChatPage() {
   const { clienteId } = useAuditContext();
+  const { role } = useLearningRole();
   const { data: dashboard, isLoading: dashboardLoading, error: dashboardError } = useDashboard(clienteId);
   const { data: riskData } = useRiskEngine(clienteId);
 
@@ -297,6 +299,45 @@ export default function SocioChatPage() {
           },
         ]}
       />
+      {/* Panel de rol — compacto para no reducir el espacio del chat */}
+      {role === "junior" && (
+        <div className="bg-[#a5eff0]/10 border border-[#a5eff0]/30 rounded-xl px-5 py-4 flex flex-col md:flex-row md:items-start gap-4">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#041627] text-[#a5eff0] text-[10px] font-bold">NIA</span>
+            <p className="text-xs uppercase tracking-[0.14em] text-[#041627]/60 font-bold">Vista Junior — Preguntas sugeridas</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              "¿Qué procedimientos debo aplicar en CxC?",
+              "¿Cómo evalúo el riesgo de going concern?",
+              "¿Qué es la materialidad de ejecución?",
+              "¿Qué aseveraciones cubre una confirmación bancaria?",
+              "¿Cuándo aplica NIA 540 en estimaciones contables?",
+              "¿Cómo estructuro un hallazgo correctamente?",
+            ].map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => setInput(q)}
+                className="px-3 py-1.5 rounded-full bg-white border border-[#041627]/15 text-xs text-[#041627] font-medium hover:bg-[#041627] hover:text-white transition-colors"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {role === "socio" && (
+        <div className="bg-[#001919] border border-[#a5eff0]/20 rounded-xl px-5 py-4 flex items-center gap-4 text-white">
+          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#a5eff0]/20 text-[#a5eff0] text-[10px] font-bold">AI</span>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            <span className="font-semibold text-white">Modo Socio:</span> el chat responde con criterio ejecutivo — riesgo de emisión, materialidad y enfoque estratégico.
+            Pregunta por áreas críticas, hallazgos relevantes o si el encargo está listo para emitir opinión.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr_320px] gap-6 h-full">
         <aside data-tour="sociochat-conversaciones" className="sovereign-card !p-4 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-2 mb-4">
