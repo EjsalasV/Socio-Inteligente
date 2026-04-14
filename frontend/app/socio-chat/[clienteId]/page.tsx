@@ -230,14 +230,21 @@ export default function SocioChatPage() {
       setActionMsg("No hay área priorizada para crear tarea.");
       return;
     }
+    const areaCode = String(top.codigo || "").trim();
+    const areaName = String(top.nombre || "").trim();
+    const prioridad = String(top.prioridad || "media").trim().toLowerCase() || "media";
+    if (!areaCode || !areaName) {
+      setActionMsg("No hay datos válidos del área priorizada para crear la tarea.");
+      return;
+    }
     const title = `Criterio Socio Chat: ${lastAssistantMessage.text.slice(0, 60)}${lastAssistantMessage.text.length > 60 ? "..." : ""}`;
     try {
       const result = await createWorkpaperTask(clienteId, {
-        area_code: top.codigo,
-        area_name: top.nombre,
+        area_code: areaCode,
+        area_name: areaName,
         title,
         nia_ref: "NIA 500",
-        prioridad: top.prioridad,
+        prioridad,
         required: true,
         evidence_note: "",
       });

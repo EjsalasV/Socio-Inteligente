@@ -56,6 +56,10 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def _normalize_assertion_name(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
 def _workpaper_ai_tasks_enabled() -> bool:
     raw = str(os.getenv("WORKPAPER_AI_TASKS_ENABLED") or "0").strip().lower()
     return raw in {"1", "true", "yes", "y", "on"}
@@ -347,15 +351,6 @@ def _compute_assertion_coverage(cliente_id: str, tasks: list[dict[str, Any]]) ->
     total = 0
     covered = 0
 
-    done_task_by_area: dict[str, list[dict[str, Any]]] = {}
-    for task in tasks:
-        if not bool(task.get("done", False)):
-            continue
-        area_code = str(task.get("area_code") or "").strip()
-        if not area_code:
-            continue
-        done_task_by_area.setdefault(area_code, []).append(task)
-
     for area_code in area_codes:
         area = read_area_yaml(cliente_id, area_code)
         criticas = area.get("afirmaciones_criticas")
@@ -369,7 +364,7 @@ def _compute_assertion_coverage(cliente_id: str, tasks: list[dict[str, Any]]) ->
         for row in coverage_rows:
             if not isinstance(row, dict):
                 continue
-            nombre = str(row.get("nombre") or "").strip()
+            nombre = _normalize_assertion_name(row.get("nombre"))
             if not nombre:
                 continue
             is_covered = bool(row.get("covered", False))
@@ -382,13 +377,7 @@ def _compute_assertion_coverage(cliente_id: str, tasks: list[dict[str, Any]]) ->
             if not assertion:
                 continue
             total += 1
-            is_covered = covered_map.get(assertion, False)
-            if not is_covered:
-                area_tasks = done_task_by_area.get(area_code, [])
-                for t in area_tasks:
-                    if str(t.get("evidence_note") or "").strip():
-                        is_covered = True
-                        break
+            is_covered = covered_map.get(_normalize_assertion_name(assertion), False)
             if is_covered:
                 covered += 1
             else:
@@ -471,7 +460,7 @@ def _quality_gates(cliente_id: str, tasks: list[dict[str, Any]]) -> tuple[list[Q
                 for row in cov_rows:
                     if not isinstance(row, dict):
                         continue
-                    n = str(row.get("nombre") or "").strip()
+                    n = _normalize_assertion_name(row.get("nombre"))
                     if not n:
                         continue
                     cov_map[n] = bool(row.get("covered", False)) and bool(str(row.get("evidencia") or "").strip())
@@ -480,7 +469,7 @@ def _quality_gates(cliente_id: str, tasks: list[dict[str, Any]]) -> tuple[list[Q
                 if not a:
                     continue
                 total_local += 1
-                if cov_map.get(a, False):
+                if cov_map.get(_normalize_assertion_name(a), False):
                     covered_local += 1
         if total_local == 0:
             return True

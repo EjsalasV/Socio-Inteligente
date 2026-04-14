@@ -121,7 +121,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   // Heavy modules may need one retry when backend warms caches on first hit.
-  const attempts = isHeavyPath(path) ? 2 : 2;
+  const attempts = isHeavyPath(path) ? 3 : 2;
   let res: Response | null = null;
   let lastError: unknown = null;
 

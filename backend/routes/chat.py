@@ -4,8 +4,6 @@ import logging
 import os
 
 from fastapi import APIRouter, Depends, Request
-
-LOGGER = logging.getLogger("socio_ai.chat")
 from pydantic import BaseModel
 
 from backend.auditor_pipeline import execute_pipeline
@@ -22,6 +20,7 @@ from backend.schemas import ApiResponse, ChatRequest, ChatResponse, MetodoReques
 from backend.services.rag_chat_service import generate_chat_response, generate_metodologia_response
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+LOGGER = logging.getLogger("socio_ai.chat")
 
 
 class ChatExportRequest(BaseModel):

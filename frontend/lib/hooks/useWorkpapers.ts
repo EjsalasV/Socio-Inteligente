@@ -114,11 +114,12 @@ export function useWorkpapers(clienteId: string): UseWorkpapersResult {
       setWorkpapersEntry(clienteId, { savingTaskId: taskId });
       try {
         await patchWorkpaperTask(clienteId, taskId, { done, evidence_note: evidenceNote });
+        const latestEntry = getWorkpapersEntry(clienteId);
         setWorkpapersEntry(clienteId, {
-          data: entry.data
+          data: latestEntry.data
             ? {
-                ...entry.data,
-                tasks: entry.data.tasks.map((task) =>
+                ...latestEntry.data,
+                tasks: latestEntry.data.tasks.map((task) =>
                   task.id === taskId ? { ...task, done, evidence_note: evidenceNote } : task,
                 ),
               }
@@ -132,7 +133,7 @@ export function useWorkpapers(clienteId: string): UseWorkpapersResult {
         setWorkpapersEntry(clienteId, { savingTaskId: null });
       }
     },
-    [clienteId, entry.data, refresh, setWorkpapersEntry],
+    [clienteId, getWorkpapersEntry, refresh, setWorkpapersEntry],
   );
 
   return {

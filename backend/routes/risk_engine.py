@@ -150,7 +150,7 @@ def _build_matrix_cells(areas: list[RiskCriticalArea]) -> list[list[RiskMatrixCe
             nivel = _normalize_level(score)
             matrix_row.append(
                 RiskMatrixCell(
-                    row=6 - row,
+                    row=5 - row,
                     col=col - 1,
                     frecuencia=row,
                     impacto=col,
