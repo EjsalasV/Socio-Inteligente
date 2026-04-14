@@ -34,6 +34,7 @@ import {
 import { formatMoney } from "../../../lib/formatters";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
+import { useLearningRole } from "../../../lib/hooks/useLearningRole";
 
 function gateTone(status: string): string {
   return status === "ok"
@@ -50,16 +51,91 @@ function formatDateLabel(raw: string): string {
 
 const DOCUMENT_TYPES = ["carta_control_interno", "niif_pymes_borrador"] as const;
 type DocumentType = (typeof DOCUMENT_TYPES)[number];
-const EVIDENCE_SOURCE_TYPES = [
-  "trial_balance",
-  "workpaper",
-  "hallazgo",
-  "management_response",
-  "adjustment",
-  "supporting_document",
-  "cedula",
-] as const;
-type EvidenceSourceType = (typeof EVIDENCE_SOURCE_TYPES)[number];
+
+type EvidenceLinkModalProps = {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (sourceType: string, sourceId: string, label: string) => void;
+  documentType?: string;
+  sectionId?: string;
+};
+
+function EvidenceLinkModal({ open, onClose, onConfirm, documentType, sectionId }: EvidenceLinkModalProps) {
+  const [sourceType, setSourceType] = useState<string>("papeles_trabajo");
+  const [sourceId, setSourceId] = useState<string>("");
+  const [label, setLabel] = useState<string>("");
+
+  useEffect(() => {
+    if (!open) return;
+    setSourceType("papeles_trabajo");
+    setSourceId("");
+    setLabel("");
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl p-6 shadow-xl max-w-md w-full">
+        <h3 className="font-headline text-2xl text-[#041627]">Vincular evidencia</h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Documento: <b>{documentType || "N/D"}</b> · Sección: <b>{sectionId || "N/D"}</b>
+        </p>
+        <div className="mt-4 space-y-3">
+          <label className="block text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
+            Tipo de fuente
+            <select
+              value={sourceType}
+              onChange={(e) => setSourceType(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-[#041627]/15 bg-[#f1f4f6] px-3 py-2 text-sm text-slate-900 focus:border-[#89d3d4] focus:outline-none"
+            >
+              <option value="papeles_trabajo">papeles_trabajo</option>
+              <option value="hallazgo">hallazgo</option>
+              <option value="documento">documento</option>
+              <option value="aseveracion">aseveracion</option>
+            </select>
+          </label>
+          <label className="block text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
+            ID de la fuente
+            <input
+              type="text"
+              value={sourceId}
+              onChange={(e) => setSourceId(e.target.value)}
+              placeholder="Ej: PT-001, HLZ-03"
+              className="mt-1 w-full rounded-lg border border-[#041627]/15 bg-[#f1f4f6] px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#89d3d4] focus:outline-none"
+            />
+          </label>
+          <label className="block text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
+            Etiqueta / descripción
+            <input
+              type="text"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="Ej: Confirmación bancaria saldo dic-25"
+              className="mt-1 w-full rounded-lg border border-[#041627]/15 bg-[#f1f4f6] px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#89d3d4] focus:outline-none"
+            />
+          </label>
+        </div>
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-[#041627]/20 px-4 py-2 text-sm text-slate-700"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(sourceType, sourceId, label)}
+            className="rounded-lg bg-[#041627] px-4 py-2 text-sm text-white"
+          >
+            Vincular evidencia
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function nextStateLabel(state: string): string {
   if (state === "reviewed") return "Marcar reviewed";
@@ -81,6 +157,7 @@ function evidenceCtaLabel(reason: string): string {
 export default function ReportesPage() {
   const { clienteId } = useAuditContext();
   const { data, isLoading, error } = useDashboard(clienteId);
+  const { role } = useLearningRole();
 
   const [reportMsg, setReportMsg] = useState<string>("");
   const [generatingPdf, setGeneratingPdf] = useState<boolean>(false);
@@ -98,12 +175,11 @@ export default function ReportesPage() {
   const [selectedSection, setSelectedSection] = useState<Record<string, DocumentSectionEvidencePayload | null>>({});
   const [focusedSectionId, setFocusedSectionId] = useState<Record<string, string | null>>({});
   const [docBusy, setDocBusy] = useState<Record<string, boolean>>({});
-  const [evidenceModalOpen, setEvidenceModalOpen] = useState<boolean>(false);
+  const [evidenceModal, setEvidenceModal] = useState<{
+    open: boolean;
+    onConfirm: (sourceType: string, sourceId: string, label: string) => void;
+  }>({ open: false, onConfirm: () => {} });
   const [evidenceTarget, setEvidenceTarget] = useState<{ documentType: DocumentType; sectionId: string } | null>(null);
-  const [evidenceSourceType, setEvidenceSourceType] = useState<EvidenceSourceType>("workpaper");
-  const [evidenceSourceId, setEvidenceSourceId] = useState<string>("");
-  const [evidenceLabel, setEvidenceLabel] = useState<string>("");
-  const [evidenceReference, setEvidenceReference] = useState<string>("");
 
   async function refreshHistory(): Promise<void> {
     setHistoryLoading(true);
@@ -328,42 +404,38 @@ export default function ReportesPage() {
       return;
     }
     setEvidenceTarget({ documentType, sectionId });
-    setEvidenceSourceType("workpaper");
-    setEvidenceSourceId("");
-    setEvidenceLabel("");
-    setEvidenceReference("");
-    setEvidenceModalOpen(true);
+    setEvidenceModal({
+      open: true,
+      onConfirm: (sourceType, sourceId, label) => {
+        void (async () => {
+          if (!sourceId.trim() || !label.trim()) {
+            setReportMsg("Completa ID de la fuente y etiqueta para vincular la evidencia.");
+            return;
+          }
+          setDocBusy((prev) => ({ ...prev, [documentType]: true }));
+          try {
+            await linkDocumentSectionEvidence(clienteId, documentType, sectionId, {
+              source_type: sourceType,
+              source_id: sourceId.trim(),
+              label: label.trim(),
+            });
+            setReportMsg(`Evidencia vinculada en ${documentType} / ${sectionId}`);
+            await refreshHistory();
+            await handleOpenSection(documentType, sectionId);
+            setEvidenceModal({ open: false, onConfirm: () => {} });
+          } catch (err) {
+            setReportMsg(err instanceof Error ? err.message : "No se pudo vincular evidencia.");
+          } finally {
+            setDocBusy((prev) => ({ ...prev, [documentType]: false }));
+          }
+        })();
+      },
+    });
   }
 
   function closeEvidenceModal(): void {
-    setEvidenceModalOpen(false);
+    setEvidenceModal({ open: false, onConfirm: () => {} });
     setEvidenceTarget(null);
-  }
-
-  async function handleSubmitEvidenceLink(): Promise<void> {
-    if (!evidenceTarget) return;
-    if (!evidenceSourceId.trim() || !evidenceLabel.trim()) {
-      setReportMsg("Completa source_id y label para vincular la evidencia.");
-      return;
-    }
-    const { documentType, sectionId } = evidenceTarget;
-    setDocBusy((prev) => ({ ...prev, [documentType]: true }));
-    try {
-      await linkDocumentSectionEvidence(clienteId, documentType, sectionId, {
-        source_type: evidenceSourceType,
-        source_id: evidenceSourceId.trim(),
-        label: evidenceLabel.trim(),
-        reference: evidenceReference.trim(),
-      });
-      setReportMsg(`Evidencia vinculada en ${documentType} / ${sectionId}`);
-      await refreshHistory();
-      await handleOpenSection(documentType, sectionId);
-      closeEvidenceModal();
-    } catch (err) {
-      setReportMsg(err instanceof Error ? err.message : "No se pudo vincular evidencia.");
-    } finally {
-      setDocBusy((prev) => ({ ...prev, [documentType]: false }));
-    }
   }
 
   return (
@@ -398,6 +470,65 @@ export default function ReportesPage() {
           },
         ]}
       />
+
+      {/* Panel de rol */}
+      {role === "junior" && (
+        <section className="bg-[#a5eff0]/10 border border-[#a5eff0]/30 rounded-xl p-6 space-y-4">
+          <div className="flex items-start gap-4">
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#041627] text-[#a5eff0] text-xs font-bold mt-0.5">NIA</span>
+            <div>
+              <p className="text-xs uppercase tracking-[0.15em] text-[#041627]/60 font-bold mb-1">Qué es este módulo — Vista Junior</p>
+              <p className="text-sm text-[#041627] leading-relaxed">
+                Aquí se genera el <strong>informe de auditoría</strong>. Tu rol es vincular la evidencia de tus papeles de trabajo a cada sección del documento para que el Senior pueda revisar y el Socio pueda aprobar. Sin evidencia vinculada, el gate de emisión permanece bloqueado.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { num: 1, texto: "Revisa los Quality Gates — deben estar todos en OK antes de emitir el informe final. Si hay bloqueos, necesitas completar los pasos indicados.", nia: "NIA 700" },
+              { num: 2, texto: "Para vincular evidencia a una sección: abre el documento, encuentra la sección y usa el botón 'Vincular evidencia'. Referencia tu papel de trabajo con su ID.", nia: "NIA 230" },
+              { num: 3, texto: "El borrador interno puedes generarlo en cualquier momento. El informe final solo cuando todos los gates estén OK y el Senior haya revisado.", nia: "NIA 265" },
+            ].map((step) => (
+              <div key={step.nia} className="flex gap-3 p-4 bg-white rounded-lg border border-slate-100">
+                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#041627] text-white text-xs font-bold mt-0.5">{step.num}</span>
+                <div>
+                  <p className="text-xs text-slate-700 leading-relaxed">{step.texto}</p>
+                  <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-[#041627]/10 text-[#041627] text-[10px] font-bold uppercase">{step.nia}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {role === "socio" && history && (
+        <section className="rounded-xl p-6 bg-[#001919] border border-[#a5eff0]/20 shadow-md text-white">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#a5eff0] font-bold mb-3">Estado de Emisión — Vista Socio</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            {(history.gates ?? []).slice(0, 4).map((gate) => (
+              <div key={gate.code} className="bg-white/10 rounded-lg p-4">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">{gate.code}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5 truncate">{gate.title}</p>
+                <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${gate.status === "ok" ? "bg-emerald-900/60 text-emerald-300 border border-emerald-700/50" : "bg-rose-900/60 text-rose-300 border border-rose-700/50"}`}>
+                  {gate.status === "ok" ? "OK" : "Bloqueado"}
+                </span>
+              </div>
+            ))}
+            {(history.gates ?? []).length === 0 && (
+              <div className="col-span-4 bg-white/10 rounded-lg p-4">
+                <p className="text-sm text-slate-300">Sin quality gates registrados aún.</p>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-slate-400">
+            Para emitir informe final, todos los gates deben estar en OK.
+            {statusPayload?.can_emit_final
+              ? <span className="ml-2 text-emerald-400 font-semibold">Listo para emisión final.</span>
+              : <span className="ml-2 text-amber-400 font-semibold">Pendiente de completar requisitos.</span>
+            }
+          </p>
+        </section>
+      )}
 
       <section data-tour="reportes-gates" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <article className="sovereign-card lg:col-span-2">
@@ -484,76 +615,13 @@ export default function ReportesPage() {
 
       {reportMsg ? <section className="sovereign-card text-sm text-slate-700">{reportMsg}</section> : null}
 
-      {evidenceModalOpen ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#041627]/45 p-4">
-          <div className="w-full max-w-xl rounded-editorial bg-white p-6 shadow-editorial border border-[#041627]/15">
-            <h3 className="font-headline text-2xl text-[#041627]">Vincular evidencia</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Documento: <b>{evidenceTarget?.documentType}</b> · Sección: <b>{evidenceTarget?.sectionId}</b>
-            </p>
-            <div className="mt-4 grid grid-cols-1 gap-3">
-              <label className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
-                source_type
-                <select
-                  value={evidenceSourceType}
-                  onChange={(e) => setEvidenceSourceType(e.target.value as EvidenceSourceType)}
-                  className="ghost-input mt-1 w-full"
-                >
-                  {EVIDENCE_SOURCE_TYPES.map((sourceType) => (
-                    <option key={sourceType} value={sourceType}>
-                      {sourceType}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
-                source_id
-                <input
-                  value={evidenceSourceId}
-                  onChange={(e) => setEvidenceSourceId(e.target.value)}
-                  className="ghost-input mt-1 w-full"
-                  placeholder="Ej: WP-130-2026-01"
-                />
-              </label>
-              <label className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
-                label
-                <input
-                  value={evidenceLabel}
-                  onChange={(e) => setEvidenceLabel(e.target.value)}
-                  className="ghost-input mt-1 w-full"
-                  placeholder="Ej: Prueba sustantiva cartera"
-                />
-              </label>
-              <label className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
-                reference (opcional)
-                <input
-                  value={evidenceReference}
-                  onChange={(e) => setEvidenceReference(e.target.value)}
-                  className="ghost-input mt-1 w-full"
-                  placeholder="Ej: Folio 14-18"
-                />
-              </label>
-            </div>
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeEvidenceModal}
-                className="px-4 py-2 rounded-lg border border-black/10 text-sm text-slate-600"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSubmitEvidenceLink()}
-                disabled={!evidenceSourceId.trim() || !evidenceLabel.trim() || !evidenceTarget}
-                className="px-4 py-2 rounded-lg bg-[#041627] text-sm text-white disabled:opacity-60"
-              >
-                Vincular evidencia
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <EvidenceLinkModal
+        open={evidenceModal.open}
+        onClose={closeEvidenceModal}
+        onConfirm={evidenceModal.onConfirm}
+        documentType={evidenceTarget?.documentType}
+        sectionId={evidenceTarget?.sectionId}
+      />
 
       {lastMemo ? (
         <section className="sovereign-card">

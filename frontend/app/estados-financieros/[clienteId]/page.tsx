@@ -9,6 +9,7 @@ import { formatMoney, moneyClass } from "../../../lib/formatters";
 import { useAreaDetail } from "../../../lib/hooks/useAreaDetail";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
+import { useLearningRole } from "../../../lib/hooks/useLearningRole";
 import { getLsName, getLsOptions, getLsShortName, normalizeLsCode } from "../../../lib/lsCatalog";
 
 function variationPct(actual: number, previous: number): number {
@@ -16,9 +17,36 @@ function variationPct(actual: number, previous: number): number {
   return ((actual - previous) / Math.abs(previous)) * 100;
 }
 
+function buildFinancialCriterion(data: {
+  riesgoGlobal: string;
+  mpGlobal: number | null;
+  meGlobal: number | null;
+  tbStage: string;
+  topVarianceAccount: string | null;
+  sector: string;
+}): string {
+  const alertas = data.topVarianceAccount
+    ? `La cuenta con mayor variación es ${data.topVarianceAccount}, ` +
+      `que requiere revisión analítica prioritaria conforme a NIA 520.`
+    : "No se detectaron variaciones significativas en las cuentas principales.";
+
+  const matText = data.mpGlobal
+    ? `La materialidad de planeación es de $${data.mpGlobal.toLocaleString("es-CO")} ` +
+      `y la de ejecución de $${(data.meGlobal ?? 0).toLocaleString("es-CO")}.`
+    : "Materialidad pendiente de definir en el perfil del encargo.";
+
+  return `Encargo en sector ${data.sector} con riesgo global ${data.riesgoGlobal}. ` +
+    `${matText} ` +
+    `Balance en estado: ${data.tbStage}. ` +
+    `${alertas} ` +
+    `Se recomienda verificar integridad del patrimonio y consistencia entre ` +
+    `el estado de resultados y las variaciones del balance general.`;
+}
+
 export default function EstadosFinancierosPage() {
   const { clienteId } = useAuditContext();
   const { data: dashboard, isLoading, error } = useDashboard(clienteId);
+  const { role } = useLearningRole();
 
   const baseOptions = useMemo(() => getLsOptions().map((x) => normalizeLsCode(x.codigo)), []);
   const dynamicOptions = useMemo(
@@ -74,11 +102,14 @@ export default function EstadosFinancierosPage() {
   if (error) return <ErrorMessage message={error} />;
   if (!dashboard) return <ErrorMessage message="No hay datos de estados financieros para este cliente." />;
   const topVariation = cuentasComparativas[0];
-  const topVariationAmount = topVariation ? topVariation.saldo_actual - topVariation.saldo_anterior : 0;
-  const topVariationPct = topVariation ? variationPct(topVariation.saldo_actual, topVariation.saldo_anterior) : 0;
-  const criterioPrincipal = topVariation
-    ? `En ${dashboard.nombre_cliente}, el foco inmediato está en ${topVariation.codigo} - ${topVariation.nombre}, con variación de ${formatMoney(topVariationAmount)} (${topVariationPct.toFixed(1)}%). Se recomienda validar soporte y racional económico contra la materialidad de ejecución (${formatMoney(me)}).`
-    : `En ${dashboard.nombre_cliente}, no se detectan cuentas con variación dominante en esta área. Mantén revisión por materialidad de ejecución (${formatMoney(me)}) y confirma consistencia de revelaciones.`;
+  const criterioPrincipal = buildFinancialCriterion({
+    riesgoGlobal: dashboard.riesgo_global || "No determinado",
+    mpGlobal: dashboard.materialidad_global > 0 ? dashboard.materialidad_global : null,
+    meGlobal: me > 0 ? me : null,
+    tbStage: tbStageLabel,
+    topVarianceAccount: topVariation ? `${topVariation.codigo} - ${topVariation.nombre}` : null,
+    sector: dashboard.sector || "No determinado",
+  });
   const coherenciaResumen = `Activo ${formatMoney(dashboard.activo)} · Pasivo ${formatMoney(dashboard.pasivo)} · Patrimonio ${formatMoney(dashboard.patrimonio)} · Riesgo global ${dashboard.riesgo_global}.`;
 
   return (
@@ -132,6 +163,62 @@ export default function EstadosFinancierosPage() {
           },
         ]}
       />
+
+      {/* Panel de rol */}
+      {role === "junior" && (
+        <section className="bg-[#a5eff0]/10 border border-[#a5eff0]/30 rounded-xl p-6 space-y-4">
+          <div className="flex items-start gap-4">
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#041627] text-[#a5eff0] text-xs font-bold mt-0.5">NIA</span>
+            <div>
+              <p className="text-xs uppercase tracking-[0.15em] text-[#041627]/60 font-bold mb-1">Cómo usar esta pantalla — Vista Junior</p>
+              <p className="text-sm text-[#041627] leading-relaxed">
+                Esta tabla compara el <strong>año actual vs el año anterior</strong> cuenta por cuenta. Las filas en rojo tienen variaciones superiores a la materialidad de ejecución o más de 10% — esas son las que debes revisar primero.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { num: 1, texto: "Identifica las filas resaltadas en rojo. Esas cuentas superan la materialidad y requieren procedimientos analíticos (NIA 520).", nia: "NIA 520" },
+              { num: 2, texto: "Compara la variación en $ con la materialidad de ejecución mostrada arriba. Si la supera, debes obtener evidencia adicional.", nia: "NIA 320" },
+              { num: 3, texto: "Lee el Criterio del Socio AI — resume el enfoque recomendado para este cliente según el riesgo global y el sector.", nia: "NIA 315" },
+            ].map((step) => (
+              <div key={step.nia} className="flex gap-3 p-4 bg-white rounded-lg border border-slate-100">
+                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#041627] text-white text-xs font-bold mt-0.5">{step.num}</span>
+                <div>
+                  <p className="text-xs text-slate-700 leading-relaxed">{step.texto}</p>
+                  <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-[#041627]/10 text-[#041627] text-[10px] font-bold uppercase">{step.nia}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {role === "socio" && (
+        <section className="rounded-xl p-6 bg-[#001919] border border-[#a5eff0]/20 shadow-md text-white">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#a5eff0] font-bold mb-3">Resumen Ejecutivo — Vista Socio</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Activo Total</p>
+              <p className="font-headline text-xl mt-1 font-semibold text-white">{formatMoney(dashboard.activo, "USD", 0)}</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Pasivo</p>
+              <p className="font-headline text-xl mt-1 font-semibold text-white">{formatMoney(dashboard.pasivo, "USD", 0)}</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Patrimonio</p>
+              <p className="font-headline text-xl mt-1 font-semibold text-white">{formatMoney(dashboard.patrimonio, "USD", 0)}</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Materialidad</p>
+              <p className="font-headline text-xl mt-1 font-semibold text-white">{formatMoney(me, "USD", 0)}</p>
+            </div>
+          </div>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400 mb-1">Estado del balance</p>
+          <p className="text-sm text-slate-200">{tbStageLabel} · Riesgo global: <strong className="text-white">{(dashboard.riesgo_global || "N/D").toUpperCase()}</strong></p>
+        </section>
+      )}
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <article data-tour="estados-materialidad" className="sovereign-card border-l-4 border-[#041627]">

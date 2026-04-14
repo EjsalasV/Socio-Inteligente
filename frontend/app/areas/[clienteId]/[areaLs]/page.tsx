@@ -11,6 +11,7 @@ import { patchAreaCheck } from "../../../../lib/api/areas";
 import { postAreaBriefing } from "../../../../lib/api/briefing";
 import { postBriefingTiempo, postEstructurarHallazgo } from "../../../../lib/api/hallazgos";
 import { useAreaDetail } from "../../../../lib/hooks/useAreaDetail";
+import { useLearningRole } from "../../../../lib/hooks/useLearningRole";
 import { getLsName, getLsOptions, getLsShortName } from "../../../../lib/lsCatalog";
 import type { AreaCuenta } from "../../../../types/area";
 
@@ -44,6 +45,7 @@ export default function AreaWorkspacePage() {
   }, [params]);
 
   const { data, isLoading, error } = useAreaDetail(clienteId, areaCode);
+  const { role } = useLearningRole();
   const [cuentas, setCuentas] = useState<AreaCuenta[]>([]);
   const [briefing, setBriefing] = useState<string>("");
   const [briefingLoading, setBriefingLoading] = useState<boolean>(false);
@@ -55,6 +57,7 @@ export default function AreaWorkspacePage() {
   const [hallazgoGenerado, setHallazgoGenerado] = useState<string>("");
   const [hallazgoLoading, setHallazgoLoading] = useState<boolean>(false);
   const [hallazgoError, setHallazgoError] = useState<string>("");
+  const [manualMinutes, setManualMinutes] = useState<string>("");
   const [tiempoManual, setTiempoManual] = useState<string>("");
   const [tiempoAI, setTiempoAI] = useState<string>("");
   const [logTiempoMsg, setLogTiempoMsg] = useState<string>("");
@@ -164,11 +167,12 @@ export default function AreaWorkspacePage() {
     }
   }
 
-  async function handleGuardarTiempo(): Promise<void> {
+  async function handleGuardarTiempo(manualOverride?: number): Promise<void> {
     if (!clienteId || !data) return;
-    const manual = Number(tiempoManual);
-    const ai = Number(tiempoAI);
-    if (!Number.isFinite(manual) || !Number.isFinite(ai)) {
+    const manual = typeof manualOverride === "number" ? manualOverride : Number(tiempoManual);
+    const aiParsed = Number(tiempoAI);
+    const ai = Number.isFinite(aiParsed) ? aiParsed : 0;
+    if (!Number.isFinite(manual)) {
       setLogTiempoMsg("Ingresa tiempos validos en minutos.");
       return;
     }
@@ -272,6 +276,73 @@ export default function AreaWorkspacePage() {
           </p>
         </div>
       </section>
+
+      {/* Panel de rol */}
+      {role === "junior" && (
+        <section className="bg-[#a5eff0]/10 border border-[#a5eff0]/30 rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#041627] text-[#a5eff0] text-xs font-bold">NIA</span>
+            <div>
+              <p className="text-xs uppercase tracking-[0.15em] text-[#041627]/60 font-bold">Guía de trabajo — Vista Junior</p>
+              <p className="text-sm font-semibold text-[#041627]">{data.encabezado.area_code} — {data.encabezado.nombre}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { num: 1, accion: "Revisa cada cuenta en el Lead Schedule", nia: "NIA 230", detalle: "Marca check solo cuando tengas soporte documental. Deja nota si hay diferencia con el año anterior." },
+              { num: 2, accion: "Genera el Briefing del área", nia: "NIA 500", detalle: "El briefing te dice qué procedimiento aplicar primero y por qué, según las aseveraciones en riesgo." },
+              { num: 3, accion: data.aseveraciones.length > 0 ? `Documenta ${data.aseveraciones[0]?.nombre ?? "aseveración clave"}` : "Documenta la aseveración principal", nia: "NIA 315", detalle: "Si encuentras desviación, usa el Estructurador de Hallazgo para redactarla correctamente." },
+            ].map((step) => (
+              <div key={step.nia} className="flex gap-3 p-4 bg-white rounded-lg border border-slate-100">
+                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#041627] text-white text-xs font-bold mt-0.5">{step.num}</span>
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-[#041627] text-sm">{step.accion}</p>
+                    <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#041627]/10 text-[#041627] text-[10px] font-bold uppercase">{step.nia}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{step.detalle}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {role === "socio" && (
+        <section className="rounded-xl p-6 bg-[#001919] border border-[#a5eff0]/20 shadow-md text-white">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#a5eff0] font-bold mb-3">Resumen Ejecutivo — Vista Socio</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Estado</p>
+              <p className={`font-headline text-xl mt-1 font-semibold ${highRisk ? "text-rose-400" : "text-emerald-400"}`}>
+                {highRisk ? "Requiere acción" : "Lista para cierre"}
+              </p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Aseveraciones</p>
+              <p className="font-headline text-xl mt-1 font-semibold text-white">{data.aseveraciones.length}</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Pendientes</p>
+              <p className={`font-headline text-xl mt-1 font-semibold ${pendingCount > 0 ? "text-amber-400" : "text-emerald-400"}`}>{pendingCount}</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Alto riesgo</p>
+              <p className={`font-headline text-xl mt-1 font-semibold ${blockingCount > 0 ? "text-rose-400" : "text-emerald-400"}`}>{blockingCount}</p>
+            </div>
+          </div>
+          {data.aseveraciones.filter((a) => a.riesgo_tipico.toLowerCase().includes("alto")).length > 0 && (
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <p className="text-xs text-slate-300 mb-2">Aseveraciones de alto riesgo que requieren evidencia suficiente:</p>
+              <div className="flex flex-wrap gap-2">
+                {data.aseveraciones.filter((a) => a.riesgo_tipico.toLowerCase().includes("alto")).map((a, i) => (
+                  <span key={`${a.nombre}-${i}`} className="px-3 py-1 rounded-full bg-rose-900/60 text-rose-200 text-xs font-semibold border border-rose-700/50">{a.nombre}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className={`rounded-[2rem] p-1 shadow-editorial ${highRisk ? "bg-gradient-to-br from-[#ba1a1a] to-[#93000a]" : "bg-gradient-to-br from-[#041627] to-[#1a2b3c]"}`}>
         <div className={`rounded-[1.9rem] p-8 border ${highRisk ? "bg-[#ba1a1a] border-white/10" : "bg-[#1a2b3c] border-white/10"} text-white`}>
@@ -488,35 +559,49 @@ export default function AreaWorkspacePage() {
             ) : null}
           </article>
 
-          <article data-tour="tiempo-block" className="sovereign-card space-y-3">
+          {role !== "socio" && <article data-tour="tiempo-block" className="sovereign-card space-y-3">
             <h4 className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Medicion de Tiempo (Real)</h4>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-2">
               <input
                 type="number"
-                step="0.1"
-                value={tiempoManual}
-                onChange={(e) => setTiempoManual(e.target.value)}
-                placeholder="Manual (min)"
-                className="ghost-input"
+                min="0"
+                value={manualMinutes}
+                onChange={(e) => setManualMinutes(e.target.value)}
+                placeholder="Minutos manuales"
+                className="w-36 rounded-lg border border-[#041627]/15 bg-[#f1f4f6] px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#89d3d4] focus:outline-none"
               />
-              <input
-                type="number"
-                step="0.1"
-                value={tiempoAI}
-                onChange={(e) => setTiempoAI(e.target.value)}
-                placeholder="Con AI (min)"
-                className="ghost-input"
-              />
+              <button
+                type="button"
+                onClick={() => {
+                  const mins = parseInt(manualMinutes, 10);
+                  if (!isNaN(mins) && mins >= 0) {
+                    void handleGuardarTiempo(mins);
+                    setTiempoManual(String(mins));
+                    setManualMinutes("");
+                  }
+                }}
+                className="rounded-full bg-[#041627] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white hover:opacity-90"
+              >
+                Registrar
+              </button>
             </div>
+            <input
+              type="number"
+              step="0.1"
+              value={tiempoAI}
+              onChange={(e) => setTiempoAI(e.target.value)}
+              placeholder="Con AI (min)"
+              className="ghost-input"
+            />
             <button
               type="button"
-              onClick={handleGuardarTiempo}
+              onClick={() => void handleGuardarTiempo()}
               className="px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold tracking-[0.08em] uppercase"
             >
               Guardar Medicion
             </button>
             {logTiempoMsg ? <p className="text-xs text-slate-700">{logTiempoMsg}</p> : null}
-          </article>
+          </article>}
         </section>
       </div>
     </div>
