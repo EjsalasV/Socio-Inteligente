@@ -1,330 +1,363 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
-import ContextualHelp from "../../../components/help/ContextualHelp";
-import { formatMoney, moneyClass } from "../../../lib/formatters";
-import { useAreaDetail } from "../../../lib/hooks/useAreaDetail";
+import { formatMoney } from "../../../lib/formatters";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
 import { useLearningRole } from "../../../lib/hooks/useLearningRole";
-import { getLsName, getLsOptions, getLsShortName, normalizeLsCode } from "../../../lib/lsCatalog";
 
-function variationPct(actual: number, previous: number): number {
-  if (previous === 0) return actual === 0 ? 0 : 100;
-  return ((actual - previous) / Math.abs(previous)) * 100;
+// Clasificación de códigos LS por tipo de balance
+const AC_CODES = new Set(["140", "141", "130", "130.1", "130.2", "120", "110", "135", "136"]);
+const PC_CODES = new Set(["425", "300.1", "324", "410", "420"]);
+const INV_CODES = new Set(["110"]);
+
+type RatioStatus = "ok" | "warning" | "risk";
+
+interface Ratio {
+  label: string;
+  formatted: string;
+  rawValue: number;
+  benchmark: string;
+  status: RatioStatus;
+  audit_note: string;
+  nia: string;
+  category: "liquidez" | "solvencia" | "rentabilidad";
 }
 
-function buildFinancialCriterion(data: {
-  riesgoGlobal: string;
-  mpGlobal: number | null;
-  meGlobal: number | null;
-  tbStage: string;
-  topVarianceAccount: string | null;
-  sector: string;
-}): string {
-  const alertas = data.topVarianceAccount
-    ? `La cuenta con mayor variación es ${data.topVarianceAccount}, ` +
-      `que requiere revisión analítica prioritaria conforme a NIA 520.`
-    : "No se detectaron variaciones significativas en las cuentas principales.";
-
-  const matText = data.mpGlobal
-    ? `La materialidad de planeación es de $${data.mpGlobal.toLocaleString("es-CO")} ` +
-      `y la de ejecución de $${(data.meGlobal ?? 0).toLocaleString("es-CO")}.`
-    : "Materialidad pendiente de definir en el perfil del encargo.";
-
-  return `Encargo en sector ${data.sector} con riesgo global ${data.riesgoGlobal}. ` +
-    `${matText} ` +
-    `Balance en estado: ${data.tbStage}. ` +
-    `${alertas} ` +
-    `Se recomienda verificar integridad del patrimonio y consistencia entre ` +
-    `el estado de resultados y las variaciones del balance general.`;
+function statusColors(s: RatioStatus) {
+  if (s === "ok") return { card: "bg-emerald-50 border-emerald-200", value: "text-emerald-700", badge: "bg-emerald-100 text-emerald-800", dot: "bg-emerald-500" };
+  if (s === "warning") return { card: "bg-amber-50 border-amber-200", value: "text-amber-700", badge: "bg-amber-100 text-amber-800", dot: "bg-amber-500" };
+  return { card: "bg-rose-50 border-rose-200", value: "text-rose-700", badge: "bg-rose-100 text-rose-800", dot: "bg-rose-600" };
 }
 
-export default function EstadosFinancierosPage() {
+function statusLabel(s: RatioStatus) {
+  if (s === "ok") return "Normal";
+  if (s === "warning") return "Atención";
+  return "Riesgo";
+}
+
+function buildRatios(params: {
+  activo: number; pasivo: number; patrimonio: number;
+  ingresos: number; resultado_periodo: number;
+  ac: number; pc: number; inventarios: number;
+}): Ratio[] {
+  const { activo, pasivo, patrimonio, ingresos, resultado_periodo, ac, pc, inventarios } = params;
+  const list: Ratio[] = [];
+
+  // --- Liquidez ---
+  if (ac > 0 && pc > 0) {
+    const v = ac / pc;
+    list.push({
+      label: "Liquidez Corriente",
+      formatted: v.toFixed(2) + "x",
+      rawValue: v,
+      benchmark: "> 1.5x óptimo",
+      status: v >= 1.5 ? "ok" : v >= 1.0 ? "warning" : "risk",
+      audit_note: v < 1.0
+        ? "Activo corriente no cubre pasivo corriente. Evaluar going concern (NIA 570)."
+        : v < 1.5
+        ? "Liquidez ajustada. Revisar plazos de cobro y pago."
+        : "Liquidez suficiente para cubrir obligaciones de corto plazo.",
+      nia: "NIA 570",
+      category: "liquidez",
+    });
+
+    const prueba = (ac - inventarios) / pc;
+    list.push({
+      label: "Prueba Ácida",
+      formatted: prueba.toFixed(2) + "x",
+      rawValue: prueba,
+      benchmark: "> 1.0x óptimo",
+      status: prueba >= 1.0 ? "ok" : prueba >= 0.7 ? "warning" : "risk",
+      audit_note: prueba < 0.7
+        ? "Alta dependencia de inventarios para cubrir deuda corriente. Revisar valuación y rotación."
+        : prueba < 1.0
+        ? "Liquidez inmediata ajustada. Monitorear rotación de cartera."
+        : "Liquidez inmediata adecuada sin depender de inventarios.",
+      nia: "NIA 500",
+      category: "liquidez",
+    });
+  }
+
+  if (ac > 0 || pc > 0) {
+    const kt = ac - pc;
+    list.push({
+      label: "Capital de Trabajo",
+      formatted: formatMoney(kt, "USD", 0),
+      rawValue: kt,
+      benchmark: "Debe ser positivo",
+      status: kt > 0 ? "ok" : "risk",
+      audit_note: kt < 0
+        ? "Capital de trabajo negativo: obligaciones corrientes superan activos líquidos. Going concern en evaluación."
+        : "La empresa mantiene colchón operativo positivo.",
+      nia: "NIA 570",
+      category: "liquidez",
+    });
+  }
+
+  // --- Solvencia ---
+  if (activo > 0) {
+    const v = pasivo / activo;
+    list.push({
+      label: "Endeudamiento",
+      formatted: (v * 100).toFixed(1) + "%",
+      rawValue: v,
+      benchmark: "< 60% óptimo",
+      status: v < 0.6 ? "ok" : v < 0.75 ? "warning" : "risk",
+      audit_note: v > 0.75
+        ? "Alta dependencia de deuda. Presión sobre la gerencia — revisar incentivos de fraude (NIA 240)."
+        : v > 0.6
+        ? "Endeudamiento elevado. Verificar cumplimiento de covenants bancarios."
+        : "Nivel de deuda manejable dentro del activo total.",
+      nia: "NIA 240",
+      category: "solvencia",
+    });
+  }
+
+  if (patrimonio > 0) {
+    const v = pasivo / patrimonio;
+    list.push({
+      label: "Apalancamiento",
+      formatted: v.toFixed(2) + "x",
+      rawValue: v,
+      benchmark: "< 1.0x óptimo",
+      status: v < 1.0 ? "ok" : v < 2.0 ? "warning" : "risk",
+      audit_note: v > 2.0
+        ? "Deuda más del doble del patrimonio. Riesgo significativo de incumplimiento de obligaciones."
+        : v > 1.0
+        ? "Pasivos superan al patrimonio. Vigilar estructura de financiamiento."
+        : "Estructura de capital equilibrada.",
+      nia: "NIA 315",
+      category: "solvencia",
+    });
+  }
+
+  // --- Rentabilidad ---
+  if (activo > 0 && resultado_periodo !== 0) {
+    const v = resultado_periodo / activo;
+    list.push({
+      label: "ROA",
+      formatted: (v * 100).toFixed(1) + "%",
+      rawValue: v,
+      benchmark: "> 3% óptimo",
+      status: v >= 0.03 ? "ok" : v >= 0 ? "warning" : "risk",
+      audit_note: v < 0
+        ? "Resultado negativo: destruye valor sobre activos. Evaluar going concern y presión sobre resultados."
+        : v < 0.03
+        ? "Rentabilidad baja sobre activos. Posible presión de gerencia para manipular cifras."
+        : "Rentabilidad sobre activos aceptable.",
+      nia: "NIA 240",
+      category: "rentabilidad",
+    });
+  }
+
+  if (patrimonio > 0 && resultado_periodo !== 0) {
+    const v = resultado_periodo / patrimonio;
+    list.push({
+      label: "ROE",
+      formatted: (v * 100).toFixed(1) + "%",
+      rawValue: v,
+      benchmark: "> 5% óptimo",
+      status: v >= 0.05 ? "ok" : v >= 0 ? "warning" : "risk",
+      audit_note: v < 0
+        ? "Resultado negativo: erosiona el patrimonio. Evaluar continuidad del negocio."
+        : v < 0.05
+        ? "Retorno bajo para los accionistas. Riesgo de presión sobre resultados."
+        : "Retorno al accionista adecuado.",
+      nia: "NIA 570",
+      category: "rentabilidad",
+    });
+  }
+
+  if (ingresos > 0) {
+    const v = resultado_periodo / ingresos;
+    list.push({
+      label: "Margen Neto",
+      formatted: (v * 100).toFixed(1) + "%",
+      rawValue: v,
+      benchmark: "> 5% óptimo",
+      status: v >= 0.05 ? "ok" : v >= 0 ? "warning" : "risk",
+      audit_note: v < 0
+        ? "Empresa opera a pérdida. Revisar reconocimiento de ingresos y gastos (NIA 540)."
+        : v < 0.05
+        ? "Margen muy ajustado. Errores en ingresos/gastos impactan materialmente el resultado."
+        : "Margen neto saludable.",
+      nia: "NIA 540",
+      category: "rentabilidad",
+    });
+  }
+
+  return list;
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  liquidez: "Liquidez",
+  solvencia: "Solvencia",
+  rentabilidad: "Rentabilidad",
+};
+
+export default function IndicesFinancierosPage() {
   const { clienteId } = useAuditContext();
-  const { data: dashboard, isLoading, error } = useDashboard(clienteId);
+  const { data, isLoading, error } = useDashboard(clienteId);
   const { role } = useLearningRole();
 
-  const baseOptions = useMemo(() => getLsOptions().map((x) => normalizeLsCode(x.codigo)), []);
-  const dynamicOptions = useMemo(
-    () =>
-      (dashboard?.top_areas ?? [])
-        .filter((x) => x.con_saldo)
-        .map((x) => normalizeLsCode(x.codigo))
-        .filter(Boolean),
-    [dashboard],
-  );
-  const options = useMemo(() => {
-    if (dynamicOptions.length > 0) return Array.from(new Set(dynamicOptions));
-    return Array.from(new Set(baseOptions));
-  }, [baseOptions, dynamicOptions]);
-  const [selectedArea, setSelectedArea] = useState<string>(options[0] ?? "140");
+  const { ac, pc, inventarios } = useMemo(() => {
+    let ac = 0, pc = 0, inv = 0;
+    for (const area of (data?.top_areas ?? [])) {
+      if (!area.con_saldo) continue;
+      const code = area.codigo.toString().trim();
+      const base = code.includes(".") ? code.split(".")[0] : code;
+      if (AC_CODES.has(code) || AC_CODES.has(base)) ac += Math.abs(area.saldo_total);
+      if (PC_CODES.has(code) || PC_CODES.has(base)) pc += Math.abs(area.saldo_total);
+      if (INV_CODES.has(code) || INV_CODES.has(base)) inv += Math.abs(area.saldo_total);
+    }
+    return { ac, pc, inventarios: inv };
+  }, [data]);
 
-  useEffect(() => {
-    if (options.length === 0) return;
-    if (!options.includes(selectedArea)) setSelectedArea(options[0]);
-  }, [options, selectedArea]);
+  const ratios = useMemo(() => {
+    if (!data) return [];
+    return buildRatios({
+      activo: data.activo,
+      pasivo: data.pasivo,
+      patrimonio: data.patrimonio,
+      ingresos: data.ingresos,
+      resultado_periodo: data.resultado_periodo,
+      ac, pc, inventarios,
+    });
+  }, [data, ac, pc, inventarios]);
 
-  const { data: areaData } = useAreaDetail(clienteId, selectedArea);
+  const riskRatios = ratios.filter(r => r.status === "risk");
+  const warningRatios = ratios.filter(r => r.status === "warning");
 
-  const cuentasComparativas = useMemo(() => {
-    return [...(areaData?.cuentas ?? [])]
-      .sort((a, b) => Math.abs(b.saldo_actual) - Math.abs(a.saldo_actual))
-      .slice(0, 8);
-  }, [areaData]);
-
-  const me = dashboard?.materialidad_ejecucion ?? (dashboard?.materialidad_global ?? 0) * 0.75;
-  const triviales = dashboard?.umbral_trivial ?? (dashboard?.materialidad_global ?? 0) * 0.05;
-  const tbStage = (dashboard?.tb_stage || "sin_saldos").toLowerCase();
-  const tbStageLabel =
-    tbStage === "final"
-      ? "Corte Final"
-      : tbStage === "preliminar"
-        ? "Corte Preliminar"
-        : tbStage === "inicial"
-          ? "Corte Inicial"
-          : "Sin saldos";
-  const materialidadOrigenLabel =
-    dashboard?.materialidad_origen === "perfil"
-      ? "Definida en perfil del cliente"
-      : dashboard?.materialidad_origen === "motor"
-        ? "Estimación automática del motor"
-        : "Pendiente de definición";
-  const materialidadDetalle = dashboard?.materialidad_detalle;
-  const materialidadFormula = materialidadDetalle?.base_usada
-    ? `${materialidadDetalle.porcentaje_rango_min.toFixed(1)}% - ${materialidadDetalle.porcentaje_rango_max.toFixed(1)}% de ${materialidadDetalle.base_usada}`
-    : "Sin formula tecnica disponible";
+  const categories = ["liquidez", "solvencia", "rentabilidad"] as const;
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
-  if (!dashboard) return <ErrorMessage message="No hay datos de estados financieros para este cliente." />;
-  const topVariation = cuentasComparativas[0];
-  const criterioPrincipal = buildFinancialCriterion({
-    riesgoGlobal: dashboard.riesgo_global || "No determinado",
-    mpGlobal: dashboard.materialidad_global > 0 ? dashboard.materialidad_global : null,
-    meGlobal: me > 0 ? me : null,
-    tbStage: tbStageLabel,
-    topVarianceAccount: topVariation ? `${topVariation.codigo} - ${topVariation.nombre}` : null,
-    sector: dashboard.sector || "No determinado",
-  });
-  const coherenciaResumen = `Activo ${formatMoney(dashboard.activo)} · Pasivo ${formatMoney(dashboard.pasivo)} · Patrimonio ${formatMoney(dashboard.patrimonio)} · Riesgo global ${dashboard.riesgo_global}.`;
+  if (!data) return <ErrorMessage message="No hay datos para analizar." />;
 
   return (
     <div className="pt-4 pb-10 space-y-8 max-w-screen-2xl">
+
+      {/* Header */}
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
-          <h1 data-tour="estados-title" className="font-headline text-4xl text-[#041627]">Estados Financieros - Análisis Comparativo</h1>
-          <p className="font-body text-sm text-slate-500 mt-2">
-            Cliente {dashboard.nombre_cliente} · Periodo {dashboard.periodo || "Actual"}
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Análisis Financiero</p>
+          <h1 className="font-headline text-4xl text-[#041627] mt-1">Índices Financieros</h1>
+          <p className="text-sm text-slate-500 mt-2">
+            {data.nombre_cliente} · {data.periodo || "Periodo actual"} · Sector: {data.sector || "N/D"}
           </p>
-          <div className="mt-3">
-            <span className="inline-flex items-center rounded-full border border-[#041627]/20 bg-[#f1f4f6] px-3 py-1 text-[11px] font-semibold text-[#041627]">
-              TB: {tbStageLabel}
-            </span>
-          </div>
         </div>
-        <div className="min-w-[320px]">
-          <label className="block text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold mb-2">Area</label>
-          <select
-            value={selectedArea}
-            onChange={(e) => setSelectedArea(e.target.value)}
-            className="ghost-input w-full"
-          >
-            {options.map((area) => (
-              <option key={area} value={area}>
-                {getLsShortName(area)} · {area}
-              </option>
-            ))}
-          </select>
-          <p className="text-[11px] text-slate-500 mt-2">{getLsName(selectedArea)}</p>
+        <div className="flex gap-3">
+          {riskRatios.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-800 text-xs font-bold">
+              <span className="h-2 w-2 rounded-full bg-rose-600 inline-block" />
+              {riskRatios.length} señal{riskRatios.length > 1 ? "es" : ""} de riesgo
+            </span>
+          )}
+          {warningRatios.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
+              <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
+              {warningRatios.length} en atención
+            </span>
+          )}
         </div>
       </header>
 
-      <ContextualHelp
-        title="Ayuda del modulo Estados Financieros"
-        items={[
-          {
-            label: "Materialidad",
-            description:
-              "Usa MP, ME y umbral trivial como referencia para evaluar desviaciones.",
-          },
-          {
-            label: "Análisis comparativo",
-            description:
-              "Compara año actual vs anterior para identificar rubros con mayor impacto.",
-          },
-          {
-            label: "Alertas de integridad",
-            description:
-              "Resume focos de riesgo para ajustar alcance de pruebas y revelaciones.",
-          },
-        ]}
-      />
-
       {/* Panel de rol */}
       {role === "junior" && (
-        <section className="bg-[#a5eff0]/10 border border-[#a5eff0]/30 rounded-xl p-6 space-y-4">
+        <section className="bg-[#a5eff0]/10 border border-[#a5eff0]/30 rounded-xl p-6">
           <div className="flex items-start gap-4">
             <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#041627] text-[#a5eff0] text-xs font-bold mt-0.5">NIA</span>
             <div>
-              <p className="text-xs uppercase tracking-[0.15em] text-[#041627]/60 font-bold mb-1">Cómo usar esta pantalla — Vista Junior</p>
+              <p className="text-xs uppercase tracking-[0.15em] text-[#041627]/60 font-bold mb-1">Cómo usar los índices — Vista Junior</p>
               <p className="text-sm text-[#041627] leading-relaxed">
-                Esta tabla compara el <strong>año actual vs el año anterior</strong> cuenta por cuenta. Las filas en rojo tienen variaciones superiores a la materialidad de ejecución o más de 10% — esas son las que debes revisar primero.
+                Los índices financieros te dicen si el cliente tiene problemas de liquidez, demasiada deuda o resultados que justifican presión sobre la gerencia.
+                Cualquier índice en <strong>rojo</strong> es una señal que debes investigar: puede indicar riesgo de fraude (NIA 240), going concern (NIA 570) o errores en el reconocimiento de cifras (NIA 540).
               </p>
             </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {[
-              { num: 1, texto: "Identifica las filas resaltadas en rojo. Esas cuentas superan la materialidad y requieren procedimientos analíticos (NIA 520).", nia: "NIA 520" },
-              { num: 2, texto: "Compara la variación en $ con la materialidad de ejecución mostrada arriba. Si la supera, debes obtener evidencia adicional.", nia: "NIA 320" },
-              { num: 3, texto: "Lee el Criterio del Socio AI — resume el enfoque recomendado para este cliente según el riesgo global y el sector.", nia: "NIA 315" },
-            ].map((step) => (
-              <div key={step.nia} className="flex gap-3 p-4 bg-white rounded-lg border border-slate-100">
-                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#041627] text-white text-xs font-bold mt-0.5">{step.num}</span>
-                <div>
-                  <p className="text-xs text-slate-700 leading-relaxed">{step.texto}</p>
-                  <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-[#041627]/10 text-[#041627] text-[10px] font-bold uppercase">{step.nia}</span>
-                </div>
-              </div>
-            ))}
           </div>
         </section>
       )}
 
-      {role === "socio" && (
+      {role === "socio" && (riskRatios.length > 0 || warningRatios.length > 0) && (
         <section className="rounded-xl p-6 bg-[#001919] border border-[#a5eff0]/20 shadow-md text-white">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#a5eff0] font-bold mb-3">Resumen Ejecutivo — Vista Socio</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="bg-white/10 rounded-lg p-4">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Activo Total</p>
-              <p className="font-headline text-xl mt-1 font-semibold text-white">{formatMoney(dashboard.activo, "USD", 0)}</p>
-            </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Pasivo</p>
-              <p className="font-headline text-xl mt-1 font-semibold text-white">{formatMoney(dashboard.pasivo, "USD", 0)}</p>
-            </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Patrimonio</p>
-              <p className="font-headline text-xl mt-1 font-semibold text-white">{formatMoney(dashboard.patrimonio, "USD", 0)}</p>
-            </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">Materialidad</p>
-              <p className="font-headline text-xl mt-1 font-semibold text-white">{formatMoney(me, "USD", 0)}</p>
-            </div>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#a5eff0] font-bold mb-3">Señales Ejecutivas — Vista Socio</p>
+          <div className="flex flex-wrap gap-3">
+            {[...riskRatios, ...warningRatios].map(r => (
+              <div key={r.label} className={`px-4 py-3 rounded-lg ${r.status === "risk" ? "bg-rose-900/40 border border-rose-700/50" : "bg-amber-900/40 border border-amber-700/50"}`}>
+                <p className="text-xs font-bold text-white">{r.label}: <span className={r.status === "risk" ? "text-rose-300" : "text-amber-300"}>{r.formatted}</span></p>
+                <p className="text-[11px] text-slate-300 mt-0.5">{r.nia}</p>
+              </div>
+            ))}
           </div>
-          <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400 mb-1">Estado del balance</p>
-          <p className="text-sm text-slate-200">{tbStageLabel} · Riesgo global: <strong className="text-white">{(dashboard.riesgo_global || "N/D").toUpperCase()}</strong></p>
         </section>
       )}
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <article data-tour="estados-materialidad" className="sovereign-card border-l-4 border-[#041627]">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Materialidad de Planeación</p>
-          <h3 className="font-headline text-3xl text-[#041627] mt-3">{formatMoney(dashboard.materialidad_global)}</h3>
-          <p className="text-xs text-slate-500 mt-2">{materialidadOrigenLabel}</p>
-          <p className="text-xs text-slate-500 mt-1">{materialidadFormula}</p>
-        </article>
-
-        <article className="sovereign-card border-l-4 border-[#89d3d4]">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Materialidad de Ejecución</p>
-          <h3 className="font-headline text-3xl text-[#041627] mt-3">{formatMoney(me)}</h3>
-          <p className="text-xs text-slate-500 mt-2">75% de MP</p>
-        </article>
-
-        <article className="rounded-editorial bg-[#1a2b3c] p-6 shadow-editorial text-white">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-[#89d3d4] font-bold">Umbral Trivial</p>
-          <h3 className="font-headline text-3xl mt-3">{formatMoney(triviales)}</h3>
-          <p className="text-xs text-slate-300 mt-2">5% de MP</p>
-        </article>
+      {/* Totales del balance */}
+      <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {[
+          { label: "Activo Total", value: formatMoney(data.activo, "USD", 0) },
+          { label: "Pasivo Total", value: formatMoney(data.pasivo, "USD", 0) },
+          { label: "Patrimonio", value: formatMoney(data.patrimonio, "USD", 0) },
+          { label: "Ingresos", value: formatMoney(data.ingresos, "USD", 0) },
+          { label: "Resultado", value: formatMoney(data.resultado_periodo, "USD", 0), highlight: data.resultado_periodo < 0 },
+        ].map(kpi => (
+          <div key={kpi.label} className="bg-white rounded-xl p-5 shadow-sm border border-slate-200/60">
+            <p className="text-[10px] uppercase tracking-[0.15em] text-slate-500 font-bold">{kpi.label}</p>
+            <p className={`font-headline text-2xl mt-1 font-semibold ${kpi.highlight ? "text-rose-700" : "text-[#041627]"}`}>{kpi.value}</p>
+          </div>
+        ))}
       </section>
 
-      <section data-tour="estados-table" className="bg-[#f1f4f6] rounded-editorial p-1">
-        <div className="bg-white rounded-editorial overflow-hidden">
-          <div className="px-8 py-6 border-b border-black/5 flex items-center justify-between gap-3">
-            <h2 className="font-headline text-2xl text-[#041627]">
-              Balance General y P&G · {areaData?.encabezado.nombre || getLsName(selectedArea)}
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-[#f1f4f6]">
-                  <th className="px-8 py-4 text-left text-[11px] uppercase tracking-[0.14em] text-slate-500">Cuenta</th>
-                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Año actual</th>
-                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Año anterior</th>
-                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Variación $</th>
-                  <th className="px-8 py-4 text-right text-[11px] uppercase tracking-[0.14em] text-slate-500">Variación %</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/5">
-                {cuentasComparativas.map((row) => {
-                  const varMonto = row.saldo_actual - row.saldo_anterior;
-                  const varPct = variationPct(row.saldo_actual, row.saldo_anterior);
-                  const critical = Math.abs(varMonto) > me || Math.abs(varPct) > 10;
-                  return (
-                    <tr key={row.codigo} className={`hover:bg-[#f7fafc] ${critical ? "bg-[#ffdad6]/30" : "bg-white"}`}>
-                      <td className="px-8 py-5 text-sm font-semibold text-[#041627]">
-                        {row.codigo} - {row.nombre}
-                      </td>
-                      <td className={`px-8 py-5 text-right text-sm ${moneyClass(row.saldo_actual)}`}>{formatMoney(row.saldo_actual)}</td>
-                      <td className={`px-8 py-5 text-right text-sm ${moneyClass(row.saldo_anterior)}`}>{formatMoney(row.saldo_anterior)}</td>
-                      <td className={`px-8 py-5 text-right text-sm ${moneyClass(varMonto)} ${critical ? "font-bold" : ""}`}>{formatMoney(varMonto)}</td>
-                      <td className={`px-8 py-5 text-right text-sm ${critical ? "text-[#ba1a1a] font-bold" : "text-slate-600"}`}>
-                        {varPct.toFixed(1)}%
-                        {critical ? <span className="material-symbols-outlined text-sm align-middle ml-1">warning</span> : null}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        <article className="lg:col-span-3 sovereign-card">
-          <div className="flex items-center gap-3 mb-6">
-            <span className="material-symbols-outlined text-[#89d3d4] bg-[#002f30] p-2 rounded-lg">psychology</span>
-            <h3 className="font-headline text-2xl text-[#041627]">Criterio del Socio AI</h3>
-          </div>
-          <div className="space-y-4">
-            <div className="bg-[#f1f4f6] rounded-editorial p-5 border-l-4 border-[#89d3d4]">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-bold mb-2">Análisis principal</p>
-              <p className="text-sm text-slate-700 leading-relaxed">
-                {criterioPrincipal}
-              </p>
+      {/* Ratios por categoría */}
+      {categories.map(cat => {
+        const catRatios = ratios.filter(r => r.category === cat);
+        if (catRatios.length === 0) return null;
+        return (
+          <section key={cat}>
+            <h2 className="font-headline text-2xl text-[#041627] mb-4">{CATEGORY_LABELS[cat]}</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {catRatios.map(ratio => {
+                const c = statusColors(ratio.status);
+                return (
+                  <article key={ratio.label} className={`rounded-xl p-6 border ${c.card} shadow-sm`}>
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <p className="font-semibold text-[#041627] text-sm">{ratio.label}</p>
+                      <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${c.badge}`}>
+                        {statusLabel(ratio.status)}
+                      </span>
+                    </div>
+                    <p className={`font-headline text-3xl font-semibold mb-1 ${c.value}`}>{ratio.formatted}</p>
+                    <p className="text-[11px] text-slate-500 mb-3">{ratio.benchmark}</p>
+                    <div className="border-t border-black/5 pt-3">
+                      <p className="text-xs text-slate-600 leading-relaxed">{ratio.audit_note}</p>
+                      <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-[#041627]/8 text-[#041627] text-[10px] font-bold">{ratio.nia}</span>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
-            <div className="bg-[#f1f4f6] rounded-editorial p-5">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-bold mb-2">Coherencia financiera</p>
-              <p className="text-sm text-slate-700 leading-relaxed">
-                {coherenciaResumen}
-              </p>
-            </div>
-          </div>
-        </article>
+          </section>
+        );
+      })}
 
-        <article data-tour="estados-alertas" className="lg:col-span-2 rounded-editorial bg-[#1a2b3c] text-white p-8 shadow-editorial">
-          <h3 className="font-headline text-2xl">Alertas de Integridad</h3>
-          <div className="space-y-4 mt-6">
-            {(areaData?.aseveraciones ?? []).slice(0, 3).map((a, idx) => (
-              <div key={`${a.nombre}-${idx}`} className="flex gap-3">
-                <span className="material-symbols-outlined text-[#89d3d4] mt-0.5">report_problem</span>
-                <div>
-                  <p className="text-sm font-semibold">{a.nombre}</p>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">{a.descripcion}</p>
-                </div>
-              </div>
-            ))}
-            {(areaData?.aseveraciones ?? []).length === 0 ? (
-              <p className="text-sm text-slate-300">Sin alertas automáticas para esta área.</p>
-            ) : null}
-          </div>
-        </article>
-      </section>
+      {ratios.length === 0 && (
+        <section className="bg-white rounded-xl p-10 text-center border border-slate-200/50 shadow-sm">
+          <p className="text-slate-500 text-sm">No hay suficientes datos para calcular índices.</p>
+          <p className="text-xs text-slate-400 mt-2">Carga el Trial Balance y configura la materialidad en el Perfil para habilitar el análisis.</p>
+        </section>
+      )}
+
+      {/* Nota metodológica */}
+      {ratios.length > 0 && (
+        <p className="text-[11px] text-slate-400">
+          Los índices de liquidez (corriente y prueba ácida) se estiman a partir de las áreas con saldo cargadas en el Trial Balance clasificadas por código LS.
+          Los valores de activo, pasivo, patrimonio e ingresos provienen del balance auditado.
+        </p>
+      )}
     </div>
   );
 }

@@ -123,8 +123,8 @@ export default function SovereignCommand() {
       },
       {
         id: "cmd-estados-financieros",
-        label: "Ver Estados Financieros",
-        subtitle: "Abrir análisis comparativo",
+        label: "Ver Índices Financieros",
+        subtitle: "Liquidez, solvencia y rentabilidad",
         kind: "command",
         action: () => router.push(currentClienteId ? `/estados-financieros/${currentClienteId}` : "/"),
       },

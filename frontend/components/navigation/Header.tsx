@@ -70,7 +70,7 @@ export default function Header() {
       reportes: "Emite borrador/final cuando PLAN y EXEC estén en estado OK.",
       "socio-chat": "Haz preguntas técnicas y exporta criterio a hallazgos o papeles.",
       "client-memory": "Consolida documentos e historial para mantener contexto del cliente.",
-      "estados-financieros": "Analiza variaciones contra materialidad y alertas de integridad.",
+      "estados-financieros": "Liquidez, solvencia y rentabilidad — señales de riesgo financiero para el encargo.",
     };
     const base = hints[moduleKey] ?? "Avanza por fases para mantener trazabilidad del encargo.";
     if (role === "junior") return `${base} Si algo no cuadra, pide soporte y registra evidencia minima.`;

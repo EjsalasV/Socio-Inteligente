@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
+import FlowGuide from "../../../components/flow/FlowGuide";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
 import { useLearningRole } from "../../../lib/hooks/useLearningRole";
@@ -30,8 +31,23 @@ export default function DashboardClientePage() {
   if (error) return <ErrorMessage message={error} />;
   if (!data) return <ErrorMessage message="No hay datos disponibles para este cliente." />;
 
-  if (role === "socio") return <DashboardSocio data={data} />;
-  if (role === "senior") return <DashboardSenior data={data} />;
-  if (role === "junior") return <DashboardJunior data={data} />;
-  return <DashboardSemi data={data} />;
+  // Mostrar la guía de flujo cuando el setup aún no está completo
+  const setupIncomplete = data.tb_stage === "sin_saldos" || data.materialidad_global === 0;
+
+  const view =
+    role === "socio" ? <DashboardSocio data={data} /> :
+    role === "senior" ? <DashboardSenior data={data} /> :
+    role === "junior" ? <DashboardJunior data={data} /> :
+    <DashboardSemi data={data} />;
+
+  if (setupIncomplete) {
+    return (
+      <div className="space-y-8 pb-8">
+        <FlowGuide data={data} clienteId={clienteId} />
+        {view}
+      </div>
+    );
+  }
+
+  return view;
 }

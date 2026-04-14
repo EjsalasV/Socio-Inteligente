@@ -63,8 +63,8 @@ export default function Sidebar() {
       {
         id: "estados-financieros",
         key: "estados-financieros",
-        label: "Estados Financieros",
-        icon: "bar_chart",
+        label: "Índices Financieros",
+        icon: "monitoring",
         href: withCliente("estados-financieros"),
       },
       { id: "areas", key: "areas", label: "Workspace Áreas", icon: "receipt_long", href: withCliente("areas") },
