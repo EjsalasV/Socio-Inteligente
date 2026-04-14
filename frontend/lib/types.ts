@@ -1485,6 +1485,52 @@ export interface components {
              * @default false
              */
             tiene_partes_relacionadas: boolean;
+            /**
+             * Holdings Entities
+             * @description Estructura de entidades holdings para analisis de cascada
+             */
+            holdings_entities?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Ownership Links
+             * @description Relaciones owner -> subsidiary con porcentaje
+             */
+            ownership_links?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Declared Dividends
+             * @description Dividendos declarados por entidad (entity_id -> monto)
+             */
+            declared_dividends?: {
+                [key: string]: number;
+            };
+            /**
+             * Tax Rates
+             * @description Tasas fiscales por jurisdiccion (jurisdiccion -> tasa)
+             */
+            tax_rates?: {
+                [key: string]: number;
+            };
+            /**
+             * Offset Allowed
+             * @description Si existe acuerdo formal para offset de dividendos/deudas
+             * @default false
+             */
+            offset_allowed: boolean;
+            /**
+             * Offset Dividend Receivable
+             * @description Monto de dividendo por cobrar (para validar offset)
+             * @default 0
+             */
+            offset_dividend_receivable: number;
+            /**
+             * Offset Cxp Payable
+             * @description Monto de CxP a accionista/relacionada (para validar offset)
+             * @default 0
+             */
+            offset_cxp_payable: number;
         };
         /**
          * AuditProgramSummary

@@ -4195,6 +4195,60 @@
             "title": "Tiene Partes Relacionadas",
             "description": "¿Hay transacciones con partes relacionadas?",
             "default": false
+          },
+          "holdings_entities": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Holdings Entities",
+            "description": "Estructura de entidades holdings para analisis de cascada"
+          },
+          "ownership_links": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Ownership Links",
+            "description": "Relaciones owner -> subsidiary con porcentaje"
+          },
+          "declared_dividends": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Declared Dividends",
+            "description": "Dividendos declarados por entidad (entity_id -> monto)"
+          },
+          "tax_rates": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Tax Rates",
+            "description": "Tasas fiscales por jurisdiccion (jurisdiccion -> tasa)"
+          },
+          "offset_allowed": {
+            "type": "boolean",
+            "title": "Offset Allowed",
+            "description": "Si existe acuerdo formal para offset de dividendos/deudas",
+            "default": false
+          },
+          "offset_dividend_receivable": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Offset Dividend Receivable",
+            "description": "Monto de dividendo por cobrar (para validar offset)",
+            "default": 0.0
+          },
+          "offset_cxp_payable": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Offset Cxp Payable",
+            "description": "Monto de CxP a accionista/relacionada (para validar offset)",
+            "default": 0.0
           }
         },
         "type": "object",
@@ -4848,7 +4902,8 @@
           "monto_estimado": {
             "anyOf": [
               {
-                "type": "number"
+                "type": "number",
+                "minimum": 0.0
               },
               {
                 "type": "null"
