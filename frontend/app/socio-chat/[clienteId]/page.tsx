@@ -21,6 +21,7 @@ type ChatMessage = {
     source: string;
     excerpt: string;
     norma?: string;
+    title?: string;
     version?: string;
     vigente_desde?: string;
     ultima_actualizacion?: string;
@@ -28,6 +29,7 @@ type ChatMessage = {
   }>;
   confidence?: number;
   mode_used?: string;
+  web_search_used?: boolean;
 };
 
 type HistoryMessage = {
@@ -206,6 +208,7 @@ export default function SocioChatPage() {
         citations: normalizeChatCitations(response?.data?.citations),
         confidence: response?.data?.confidence ?? 0,
         mode_used: response?.data?.mode_used ?? "chat",
+        web_search_used: response?.data?.web_search_used === true,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
@@ -405,24 +408,63 @@ export default function SocioChatPage() {
                       Modo respaldo activo. Para respuesta generativa completa, configura la API key del LLM.
                     </div>
                   ) : null}
-                  {msg.role === "assistant" && msg.citations && msg.citations.length > 0 ? (
-                    <div className="mt-3 space-y-1">
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Fuentes</p>
-                      {uniqueCitations(msg.citations).slice(0, 3).map((c) => (
-                        <div key={`${msg.id}-${c.source}`} className="text-[11px] text-slate-500">
-                          <p>{prettyRefLabel(c.source)}</p>
-                          <p className="text-[10px] text-slate-400">
-                            {c.norma ? `${c.norma}` : "Norma"} · Vigente: {c.vigente_desde || "N/D"} · Actualizado: {c.ultima_actualizacion || "N/D"}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
+                  {msg.role === "assistant" && msg.citations && msg.citations.length > 0 ? (() => {
+                    const niaCitations = uniqueCitations(msg.citations).filter(c => c.norma !== "Web");
+                    const webCitations = uniqueCitations(msg.citations).filter(c => c.norma === "Web");
+                    return (
+                      <div className="mt-3 space-y-2">
+                        {niaCitations.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Fuentes normativas</p>
+                            {niaCitations.slice(0, 3).map((c) => (
+                              <div key={`${msg.id}-${c.source}`} className="text-[11px] text-slate-500">
+                                <p>{prettyRefLabel(c.source)}</p>
+                                <p className="text-[10px] text-slate-400">
+                                  {c.norma ?? "Norma"} · Vigente: {c.vigente_desde || "N/D"} · Actualizado: {c.ultima_actualizacion || "N/D"}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {webCitations.length > 0 && (
+                          <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 space-y-1">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="material-symbols-outlined text-blue-600 text-sm">language</span>
+                              <p className="text-[10px] uppercase tracking-[0.12em] text-blue-700 font-bold">Fuentes web</p>
+                            </div>
+                            {webCitations.slice(0, 3).map((c) => (
+                              <div key={`${msg.id}-${c.source}`} className="text-[11px]">
+                                <a
+                                  href={c.source}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-700 underline underline-offset-2 font-medium hover:text-blue-900"
+                                >
+                                  {c.title || prettyRefLabel(c.source)}
+                                </a>
+                                {c.excerpt && (
+                                  <p className="text-[10px] text-blue-600/70 mt-0.5 line-clamp-2">{c.excerpt}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })() : null}
                   {msg.role === "assistant" && typeof msg.confidence === "number" ? (
-                    <p className="text-[10px] text-slate-500 mt-2">
-                      Confianza: {(msg.confidence * 100).toFixed(0)}%
-                      {msg.mode_used ? ` · modo: ${msg.mode_used}` : ""}
-                    </p>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <p className="text-[10px] text-slate-500">
+                        Confianza: {(msg.confidence * 100).toFixed(0)}%
+                        {msg.mode_used ? ` · modo: ${msg.mode_used}` : ""}
+                      </p>
+                      {msg.web_search_used && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
+                          <span className="material-symbols-outlined text-[11px]">language</span>
+                          Búsqueda web activa
+                        </span>
+                      )}
+                    </div>
                   ) : null}
                   <p className="text-[10px] text-slate-400 mt-2 uppercase tracking-[0.12em]">{msg.timestamp}</p>
                 </div>

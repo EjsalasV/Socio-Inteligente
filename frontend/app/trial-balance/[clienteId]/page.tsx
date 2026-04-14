@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
 import ContextualHelp from "../../../components/help/ContextualHelp";
+import Link from "next/link";
+
 import { formatMoney, moneyClass } from "../../../lib/formatters";
 import { useAreaDetail } from "../../../lib/hooks/useAreaDetail";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
@@ -99,7 +101,25 @@ export default function TrialBalancePage() {
         </div>
       </header>
 
-      {requiredTb ? (
+      {tbStage === "sin_saldos" ? (
+        <div className="rounded-xl border-2 border-dashed border-[#041627]/25 bg-gradient-to-br from-[#f7f9fa] to-white p-8 text-center space-y-4">
+          <span className="material-symbols-outlined text-5xl text-[#041627]/30">upload_file</span>
+          <div>
+            <h3 className="font-headline text-2xl text-[#041627]">No hay Trial Balance cargado</h3>
+            <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">
+              El Trial Balance es el punto de partida del encargo. Sin él no se calculan riesgos, materialidad ni áreas a auditar.
+            </p>
+          </div>
+          <Link
+            href={`/onboarding/${clienteId}`}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#041627] text-white text-sm font-bold uppercase tracking-[0.08em] hover:bg-[#163550] transition-colors"
+          >
+            <span className="material-symbols-outlined text-base">upload</span>
+            Cargar Trial Balance
+          </Link>
+          <p className="text-xs text-slate-400">Formatos aceptados: Excel (.xlsx), CSV</p>
+        </div>
+      ) : requiredTb ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Para continuar con el flujo de auditoría debes cargar y validar el Trial Balance. Sin TB no se habilitan
           los módulos de ejecución.
