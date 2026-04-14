@@ -381,6 +381,31 @@ class FileRepository:
         p = cdir / "chat_history.json"
         p.write_text(json.dumps(history[-200:], ensure_ascii=False, indent=2), encoding="utf-8")
 
+    def write_chat_history(self, cliente_id: str, messages: list[dict[str, Any]]) -> None:
+        """Reemplaza el historial completo (usado por memory_service tras compresión)."""
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
+        cdir.mkdir(parents=True, exist_ok=True)
+        p = cdir / "chat_history.json"
+        p.write_text(json.dumps(messages[-200:], ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def read_chat_memory(self, cliente_id: str) -> list[dict[str, Any]]:
+        """Lee los resúmenes de memoria comprimida del encargo."""
+        p = self._resolve_cliente_dir(cliente_id) / "chat_memory.json"
+        if not p.exists():
+            return []
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+
+    def write_chat_memory(self, cliente_id: str, summaries: list[dict[str, Any]]) -> None:
+        """Guarda los resúmenes de memoria comprimida del encargo."""
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
+        cdir.mkdir(parents=True, exist_ok=True)
+        p = cdir / "chat_memory.json"
+        p.write_text(json.dumps(summaries, ensure_ascii=False, indent=2), encoding="utf-8")
+
     def append_briefing_time_log(
         self,
         *,
@@ -1035,4 +1060,16 @@ def append_briefing_time_log(
 
 def append_traceability_event(cliente_id: str, payload: dict[str, Any]) -> None:
     repo.append_traceability_event(cliente_id, payload)
+
+
+def write_chat_history(cliente_id: str, messages: list[dict[str, Any]]) -> None:
+    repo.write_chat_history(cliente_id, messages)
+
+
+def read_chat_memory(cliente_id: str) -> list[dict[str, Any]]:
+    return repo.read_chat_memory(cliente_id)
+
+
+def write_chat_memory(cliente_id: str, summaries: list[dict[str, Any]]) -> None:
+    repo.write_chat_memory(cliente_id, summaries)
 

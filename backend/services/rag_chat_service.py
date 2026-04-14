@@ -1203,7 +1203,15 @@ def _has_llm_credentials() -> bool:
     return bool(key)
 
 
-def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat", cliente_id: str = "") -> dict[str, Any]:
+def _llm_answer(
+    query: str,
+    chunks: list[RetrievedChunk],
+    *,
+    mode: str = "chat",
+    cliente_id: str = "",
+    memory_summary: str = "",
+    recent_history: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
     provider, api_key = _resolved_provider()
     from openai import OpenAI
     timeout_seconds_raw = float(os.getenv("LLM_TIMEOUT_SECONDS", "12"))
@@ -1259,12 +1267,22 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat",
         )
     )
 
+    # Construir lista de mensajes con memoria inyectada
+    system_content = instruction
+    if memory_summary:
+        system_content = f"{instruction}\n\n{memory_summary}"
+
+    messages_for_llm: list[dict[str, str]] = [{"role": "system", "content": system_content}]
+
+    # Inyectar historial reciente antes de la pregunta actual
+    if recent_history:
+        messages_for_llm.extend(recent_history)
+
+    messages_for_llm.append({"role": "user", "content": user_content})
+
     response = client.chat.completions.create(
         model=model,
-        messages=[
-            {"role": "system", "content": instruction},
-            {"role": "user", "content": user_content},
-        ],
+        messages=messages_for_llm,
         temperature=0.35 if mode == "chat" else 0.2,
         max_tokens=900,
     )
@@ -1310,7 +1328,14 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat",
     }
 
 
-def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
+def generate_chat_response(
+    cliente_id: str,
+    query: str,
+    *,
+    user_sub: str = "",
+    user_display_name: str = "",
+    user_role: str = "",
+) -> dict[str, Any]:
     # Respuestas de alto valor y baja latencia, siempre contextuales.
     if _is_data_inventory_question(query):
         return _inventory_answer(cliente_id)
@@ -1320,6 +1345,16 @@ def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
         return _payroll_tests_answer(cliente_id)
 
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
+
+    # Construir contexto de memoria (resúmenes + mensajes recientes)
+    memory_summary: str = ""
+    recent_history: list[dict[str, str]] = []
+    try:
+        from backend.services.memory_service import build_memory_context
+        memory_summary, recent_history = build_memory_context(cliente_id)
+    except Exception:
+        pass
+
     if not _has_llm_credentials():
         if _is_risk_question(query):
             return _risk_answer(cliente_id, query)
@@ -1327,9 +1362,14 @@ def generate_chat_response(cliente_id: str, query: str) -> dict[str, Any]:
 
     try:
         if _is_risk_question(query):
-            return _llm_answer(query, chunks, mode="judgement_risk", cliente_id=cliente_id)
-        # En chat general intentamos LLM aun sin chunks para mantener experiencia conversacional.
-        return _llm_answer(query, chunks, mode="chat", cliente_id=cliente_id)
+            return _llm_answer(
+                query, chunks, mode="judgement_risk", cliente_id=cliente_id,
+                memory_summary=memory_summary, recent_history=recent_history,
+            )
+        return _llm_answer(
+            query, chunks, mode="chat", cliente_id=cliente_id,
+            memory_summary=memory_summary, recent_history=recent_history,
+        )
     except Exception:
         if _is_risk_question(query):
             return _risk_answer(cliente_id, query)

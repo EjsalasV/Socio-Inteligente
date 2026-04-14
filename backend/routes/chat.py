@@ -16,6 +16,7 @@ from backend.repositories.file_repository import (
     list_area_codes,
     read_chat_history,
 )
+from backend.services.memory_service import compress_old_messages_if_needed
 from backend.schemas import ApiResponse, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse, UserContext
 from backend.services.rag_chat_service import generate_chat_response, generate_metodologia_response
 
@@ -43,12 +44,25 @@ def _select_area_code(cliente_id: str) -> str:
     return str(codes[0])
 
 
-def _run_chat_engine(cliente_id: str, message: str) -> dict:
+def _run_chat_engine(
+    cliente_id: str,
+    message: str,
+    *,
+    user_sub: str = "",
+    user_display_name: str = "",
+    user_role: str = "",
+) -> dict:
     # El chat principal debe sentirse conversacional.
     # El pipeline estructurado se puede activar de forma explicita para chat si se requiere.
     use_pipeline = _is_true(os.getenv("USE_AUDITOR_PIPELINE_CHAT"))
     if not use_pipeline:
-        return generate_chat_response(cliente_id, message)
+        return generate_chat_response(
+            cliente_id,
+            message,
+            user_sub=user_sub,
+            user_display_name=user_display_name,
+            user_role=user_role,
+        )
 
     try:
         return execute_pipeline(
@@ -59,12 +73,17 @@ def _run_chat_engine(cliente_id: str, message: str) -> dict:
             consulta_adicional=message,
         )
     except Exception as exc:
-        # Loguear error pero mantener fallback resiliente
         LOGGER.exception(
             f"Pipeline failed for cliente={cliente_id}, message={message[:100]}",
             exc_info=True,
         )
-        return generate_chat_response(cliente_id, message)
+        return generate_chat_response(
+            cliente_id,
+            message,
+            user_sub=user_sub,
+            user_display_name=user_display_name,
+            user_role=user_role,
+        )
 
 
 @router.post("/{cliente_id}", response_model=ApiResponse)
@@ -76,13 +95,21 @@ def post_chat(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
-    rag = _run_chat_engine(cliente_id, payload.message)
+    rag = _run_chat_engine(
+        cliente_id,
+        payload.message,
+        user_sub=user.sub,
+        user_display_name=user.display_name or user.sub,
+        user_role=user.role or "",
+    )
     append_chat_message(
         cliente_id,
         {
             "role": "user",
             "text": payload.message,
             "user_id": user.sub,
+            "user_display_name": user.display_name or user.sub,
+            "user_role": user.role or "",
         },
     )
 
@@ -115,6 +142,11 @@ def post_chat(
             "user_id": user.sub,
         },
     )
+    # Comprimir historial si supera el umbral (no bloquea la respuesta)
+    try:
+        compress_old_messages_if_needed(cliente_id)
+    except Exception:
+        pass
     return ApiResponse(data=data.model_dump())
 
 
