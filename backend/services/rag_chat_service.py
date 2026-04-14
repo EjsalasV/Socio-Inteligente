@@ -31,6 +31,12 @@ METADATA_FILTER_KEYS = {
     "ultima_actualizacion",
 }
 
+# Web search fallback thresholds
+# If the best local chunk scores below this, web search is triggered.
+_WEB_SEARCH_SCORE_THRESHOLD = 2.5
+# If fewer than this many chunks are retrieved, web search is also triggered.
+_WEB_SEARCH_MIN_CHUNKS = 2
+
 
 def _rag_index_signature() -> str:
     try:
@@ -387,6 +393,13 @@ def _calculate_filter_match(
             strict_hits += 1
             soft_boost += topic_hits * 0.4
     return strict_hits, soft_boost
+
+
+def _needs_web_search(chunks: list[RetrievedChunk]) -> bool:
+    """Return True when local RAG results are too thin to answer reliably."""
+    if not chunks or len(chunks) < _WEB_SEARCH_MIN_CHUNKS:
+        return True
+    return max(c.score for c in chunks) < _WEB_SEARCH_SCORE_THRESHOLD
 
 
 def _retrieve_chunks(
@@ -1211,6 +1224,7 @@ def _llm_answer(
     cliente_id: str = "",
     memory_summary: str = "",
     recent_history: list[dict[str, str]] | None = None,
+    web_results: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     provider, api_key = _resolved_provider()
     from openai import OpenAI
@@ -1243,6 +1257,12 @@ def _llm_answer(
         joined_context = f"[SNAPSHOT CLIENTE]\n{snapshot}\n\n{joined_context}".strip()
     if risk_snapshot:
         joined_context = f"{joined_context}\n\n[SNAPSHOT RIESGO]\n{risk_snapshot}".strip()
+    if web_results:
+        web_block = "\n\n".join(
+            f"[WEB: {r['title']}] {r['url']}\n{r['content']}"
+            for r in web_results
+        )
+        joined_context = f"{joined_context}\n\n[FUENTES WEB — criterio externo]\n{web_block}".strip()
     instruction, prompt_meta = render_prompt(mode, query=query, context=joined_context)
 
     reasoning_hint = ""
@@ -1316,11 +1336,27 @@ def _llm_answer(
             }
         )
 
+    web_citations: list[dict[str, str]] = []
+    if web_results:
+        web_citations = [
+            {"source": r["url"], "excerpt": r["content"][:220], "norma": "Web", "title": r["title"],
+             "version": "", "vigente_desde": "", "ultima_actualizacion": "", "jurisdiccion": ""}
+            for r in web_results
+        ]
+
+    confidence = (
+        0.72 if chunks and not web_results
+        else 0.65 if chunks and web_results
+        else 0.55 if web_results
+        else 0.35
+    )
+
     return {
         "answer": _append_staleness_warning(text.strip(), chunks),
-        "citations": citations,
-        "context_sources": [c.source for c in chunks],
-        "confidence": 0.72 if chunks else 0.35,
+        "citations": citations + web_citations,
+        "context_sources": [c.source for c in chunks] + [r["url"] for r in (web_results or [])],
+        "confidence": confidence,
+        "web_search_used": bool(web_results),
         "provider": provider,
         "model": model,
         "prompt_meta": prompt_meta,
@@ -1355,6 +1391,15 @@ def generate_chat_response(
     except Exception:
         pass
 
+    # Web search fallback: si los chunks locales son insuficientes, buscar en la web
+    web_results: list[dict[str, str]] = []
+    if _needs_web_search(chunks):
+        try:
+            from backend.services.web_search_service import search_web
+            web_results = search_web(query, max_results=3)
+        except Exception:
+            pass
+
     if not _has_llm_credentials():
         if _is_risk_question(query):
             return _risk_answer(cliente_id, query)
@@ -1365,10 +1410,12 @@ def generate_chat_response(
             return _llm_answer(
                 query, chunks, mode="judgement_risk", cliente_id=cliente_id,
                 memory_summary=memory_summary, recent_history=recent_history,
+                web_results=web_results or None,
             )
         return _llm_answer(
             query, chunks, mode="chat", cliente_id=cliente_id,
             memory_summary=memory_summary, recent_history=recent_history,
+            web_results=web_results or None,
         )
     except Exception:
         if _is_risk_question(query):
