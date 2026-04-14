@@ -38,9 +38,9 @@ type HistoryMessage = {
 };
 
 const QUICK_PROMPTS = [
-  "Pregunta sobre normativa NIIF...",
-  "Analiza este hallazgo...",
-  "Redacta un párrafo para informe...",
+  "¿Qué norma NIIF o NIA aplica para este caso y por qué?",
+  "Analiza este hallazgo y sugiere procedimientos de auditoría.",
+  "Redacta un párrafo técnico para el informe final de auditoría.",
 ];
 
 function normalizeRefPath(path: string): string {

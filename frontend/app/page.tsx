@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -130,15 +130,29 @@ export default function LoginPage() {
         <div className="text-xl font-semibold tracking-tight text-slate-900 font-headline">
           Socio AI
         </div>
-        <div className="flex items-center gap-2 text-slate-500">
-          <span className="material-symbols-outlined text-sm">lock</span>
-          <span className="text-[11px] uppercase tracking-widest font-medium">Entorno Encriptado</span>
+        <div className="flex items-center gap-3">
+          <a
+            href="/landing"
+            className="text-[11px] uppercase tracking-[0.14em] font-semibold text-[#002f30] hover:underline underline-offset-4"
+          >
+            Conocer Socio AI
+          </a>
+          <div className="flex items-center gap-2 text-slate-500">
+            <span className="material-symbols-outlined text-sm">lock</span>
+            <span className="text-[11px] uppercase tracking-widest font-medium">Entorno Encriptado</span>
+          </div>
         </div>
       </header>
 
       <main className="relative z-20 flex-grow flex items-center justify-center px-6 py-24">
         <div className="w-full max-w-lg">
           <div className="mb-12 text-center">
+            <div className="mb-6">
+              <p className="font-headline text-5xl leading-none text-[#041627]">Socio AI</p>
+              <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-slate-500">
+                La plataforma de auditoría inteligente
+              </p>
+            </div>
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-sm mb-6">
               <span
                 className="material-symbols-outlined text-[#041627] text-3xl"
@@ -151,7 +165,7 @@ export default function LoginPage() {
               Acceso al Entorno de Auditoría
             </h1>
             <p className="text-slate-600 text-lg">
-              Bienvenido de nuevo, Auditor. Su entorno seguro está listo.
+              Bienvenido de nuevo. Su entorno de auditoría está listo.
             </p>
           </div>
 
@@ -230,6 +244,11 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-8 text-center">
+            <p className="mb-4 text-sm font-medium text-[#002f30]">
+              <a className="hover:underline underline-offset-4 decoration-2" href="/landing">
+                ¿Conoces Socio AI? Ver qué hacemos →
+              </a>
+            </p>
             <p className="text-[11px] uppercase tracking-widest font-medium text-slate-500">
               ¿Problemas de acceso?{" "}
               <a className="text-[#041627] hover:underline underline-offset-4 decoration-2" href="mailto:soporte@socioai.app">
@@ -247,13 +266,13 @@ export default function LoginPage() {
           </div>
           <div className="flex gap-6 md:gap-8 flex-wrap justify-center">
             <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="https://socioai.app/privacy" target="_blank" rel="noreferrer">
-              Privacy Policy
+              Política de privacidad
             </a>
             <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="https://socioai.app/security" target="_blank" rel="noreferrer">
-              Security Architecture
+              Arquitectura de seguridad
             </a>
             <a className="text-[11px] uppercase tracking-widest font-medium text-slate-500 hover:text-[#0f766e] underline decoration-2 underline-offset-4 transition-opacity" href="https://socioai.app/compliance" target="_blank" rel="noreferrer">
-              Regulatory Compliance
+              Cumplimiento normativo
             </a>
           </div>
         </div>

@@ -7,8 +7,9 @@ import UserPreferencesProvider from "../components/providers/UserPreferencesProv
 import TourProvider from "../components/tour/TourProvider";
 
 export const metadata: Metadata = {
-  title: "Socio AI Sovereign",
-  description: "Editorial audit workspace",
+  title: "Socio AI — Plataforma de Auditoría Inteligente",
+  description:
+    "Automatiza la planificación, ejecución y documentación de auditorías. Motor de riesgos, papeles de trabajo y IA normativa para firmas independientes en LATAM.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
