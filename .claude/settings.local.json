@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep:*)",
+      "Bash(grep -E \"\\\\.\\(py\\)$\")",
+      "Bash(ls -1 \"C:\\\\Users\\\\echoe\\\\Desktop\\\\Nuevo Socio AI\"/*.py)",
+      "Bash(find backend:*)",
+      "Bash(grep -n \"^from app\\\\|^import app\" backend/routes/*.py backend/routes/*.py)",
+      "Bash(grep -n \"from llm.client\\\\|from llm.hallazgo\\\\|import hallazgo_llm\" backend/routes/*.py)",
+      "Bash(grep -n \"^import click\" backend/**/*.py)",
+      "Bash(ls *.md *.json)",
+      "Bash(ls *.py)",
+      "Bash(rm -f diagnostico_normativo_resultado.json diagnostico_normativo_resultado.txt .coverage)",
+      "Bash(rm -rf deploy/ app/)"
+    ]
+  }
+}

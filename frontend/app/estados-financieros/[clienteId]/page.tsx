@@ -73,6 +73,13 @@ export default function EstadosFinancierosPage() {
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
   if (!dashboard) return <ErrorMessage message="No hay datos de estados financieros para este cliente." />;
+  const topVariation = cuentasComparativas[0];
+  const topVariationAmount = topVariation ? topVariation.saldo_actual - topVariation.saldo_anterior : 0;
+  const topVariationPct = topVariation ? variationPct(topVariation.saldo_actual, topVariation.saldo_anterior) : 0;
+  const criterioPrincipal = topVariation
+    ? `En ${dashboard.nombre_cliente}, el foco inmediato está en ${topVariation.codigo} - ${topVariation.nombre}, con variación de ${formatMoney(topVariationAmount)} (${topVariationPct.toFixed(1)}%). Se recomienda validar soporte y racional económico contra la materialidad de ejecución (${formatMoney(me)}).`
+    : `En ${dashboard.nombre_cliente}, no se detectan cuentas con variación dominante en esta área. Mantén revisión por materialidad de ejecución (${formatMoney(me)}) y confirma consistencia de revelaciones.`;
+  const coherenciaResumen = `Activo ${formatMoney(dashboard.activo)} · Pasivo ${formatMoney(dashboard.pasivo)} · Patrimonio ${formatMoney(dashboard.patrimonio)} · Riesgo global ${dashboard.riesgo_global}.`;
 
   return (
     <div className="pt-4 pb-10 space-y-8 max-w-screen-2xl">
@@ -201,14 +208,13 @@ export default function EstadosFinancierosPage() {
             <div className="bg-[#f1f4f6] rounded-editorial p-5 border-l-4 border-[#89d3d4]">
               <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-bold mb-2">Análisis principal</p>
               <p className="text-sm text-slate-700 leading-relaxed">
-                El riesgo global se mantiene en <b>{dashboard.riesgo_global}</b>. Se recomienda priorizar revisión de variaciones
-                superiores a ME y validar su soporte documental antes del cierre.
+                {criterioPrincipal}
               </p>
             </div>
             <div className="bg-[#f1f4f6] rounded-editorial p-5">
               <p className="text-xs uppercase tracking-[0.12em] text-slate-500 font-bold mb-2">Coherencia financiera</p>
               <p className="text-sm text-slate-700 leading-relaxed">
-                Activo: <b>{formatMoney(dashboard.activo)}</b> · Pasivo: <b>{formatMoney(dashboard.pasivo)}</b> · Patrimonio: <b>{formatMoney(dashboard.patrimonio)}</b>.
+                {coherenciaResumen}
               </p>
             </div>
           </div>

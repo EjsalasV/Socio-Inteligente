@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
 import ContextualHelp from "../../../components/help/ContextualHelp";
+import RiskProcedureSuggestions from "../../../components/risk/RiskProcedureSuggestions";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useRiskEngine } from "../../../lib/hooks/useRiskEngine";
 
@@ -14,9 +15,6 @@ const CriticalRisks = dynamic(() => import("../../../components/risk/CriticalRis
 const RiskMatrix = dynamic(() => import("../../../components/risk/RiskMatrix"), {
   loading: () => <DashboardSkeleton />,
 });
-const RiskProcedureSuggestions = dynamic(() => import("../../../components/risk/RiskProcedureSuggestions"), {
-  loading: () => <DashboardSkeleton />,
-});
 const RiskStrategyPanel = dynamic(() => import("../../../components/risk/RiskStrategyPanel"), {
   loading: () => <DashboardSkeleton />,
 });
@@ -24,6 +22,15 @@ const RiskStrategyPanel = dynamic(() => import("../../../components/risk/RiskStr
 export default function RiskEnginePage() {
   const { clienteId } = useAuditContext();
   const { data, isLoading, error } = useRiskEngine(clienteId);
+  const strategy = data?.strategy ?? {
+    approach: "mixto",
+    control_pct: 50,
+    substantive_pct: 50,
+    rationale: "",
+    control_tests: [],
+    substantive_tests: [],
+  };
+  const criticalAreas = data?.areas_criticas ?? [];
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -89,16 +96,16 @@ export default function RiskEnginePage() {
         <div data-tour="risk-matrix" className="col-span-12 lg:col-span-7">
           <RiskMatrix data={data} />
         </div>
-        <RiskStrategyPanel areas={data.areas_criticas} strategy={data.strategy} />
+        <RiskStrategyPanel areas={criticalAreas} strategy={strategy} />
         <div data-tour="risk-critical" className="col-span-12 lg:col-span-5">
-          <CriticalRisks areas={data.areas_criticas} />
+          <CriticalRisks areas={criticalAreas} />
         </div>
         <div data-tour="risk-suggestions" className="col-span-12 lg:col-span-7">
           <RiskProcedureSuggestions
             clienteId={clienteId}
-            areas={data.areas_criticas}
-            controlTests={data.strategy.control_tests}
-            substantiveTests={data.strategy.substantive_tests}
+            areas={criticalAreas}
+            controlTests={strategy.control_tests ?? []}
+            substantiveTests={strategy.substantive_tests ?? []}
           />
         </div>
       </div>

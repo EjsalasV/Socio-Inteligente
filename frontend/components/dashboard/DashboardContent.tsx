@@ -41,7 +41,16 @@ export default function DashboardContent({ data }: Props) {
         ? "Corte Preliminar"
         : tbStage === "inicial"
           ? "Corte Inicial"
-          : "Sin saldos";
+        : "Sin saldos";
+  const topArea = orderedAreas[0];
+  const blockedGates = (data.workflow_gates ?? []).filter((g) => g.status !== "ok").map((g) => g.code);
+  const gateHint =
+    blockedGates.length > 0
+      ? `Hay bloqueos en ${blockedGates.join(", ")}; prioriza cerrar evidencias y tareas requeridas.`
+      : "Los quality gates están en buen estado; mantén foco en consistencia de evidencia y cierre técnico.";
+  const auditorPerspectiveMain = topArea
+    ? `con avance de ${progreso.toFixed(1)}%. El área más expuesta es ${topArea.codigo} - ${topArea.nombre} (${riskPct(topArea.score_riesgo).toFixed(1)}%), por lo que conviene iniciar pruebas allí.`
+    : `con avance de ${progreso.toFixed(1)}%. Aún no hay áreas con saldo para ranking; completa carga de información para definir foco de trabajo.`;
 
   return (
     <div className="space-y-8 pb-8">
@@ -189,8 +198,9 @@ export default function DashboardContent({ data }: Props) {
           <article className="ai-memo">
             <div className="text-xs uppercase tracking-[0.2em] font-body font-bold opacity-90">Perspectiva del Auditor</div>
             <p className="font-headline italic text-lg mt-2 leading-relaxed text-white">
-              Riesgo global <span className={riesgoTone}>{data.riesgo_global}</span> con avance de <b>{progreso.toFixed(1)}%</b>.
-              Se recomienda cerrar áreas críticas antes del informe final.
+              Riesgo global <span className={riesgoTone}>{data.riesgo_global}</span> {auditorPerspectiveMain}
+              {" "}
+              {gateHint}
             </p>
             <p className="text-xs text-slate-200 mt-3">
               NIA 320 · Base: <b>{data.materialidad_detalle.base_usada || "N/D"}</b> ·

@@ -50,6 +50,16 @@ function formatDateLabel(raw: string): string {
 
 const DOCUMENT_TYPES = ["carta_control_interno", "niif_pymes_borrador"] as const;
 type DocumentType = (typeof DOCUMENT_TYPES)[number];
+const EVIDENCE_SOURCE_TYPES = [
+  "trial_balance",
+  "workpaper",
+  "hallazgo",
+  "management_response",
+  "adjustment",
+  "supporting_document",
+  "cedula",
+] as const;
+type EvidenceSourceType = (typeof EVIDENCE_SOURCE_TYPES)[number];
 
 function nextStateLabel(state: string): string {
   if (state === "reviewed") return "Marcar reviewed";
@@ -88,6 +98,12 @@ export default function ReportesPage() {
   const [selectedSection, setSelectedSection] = useState<Record<string, DocumentSectionEvidencePayload | null>>({});
   const [focusedSectionId, setFocusedSectionId] = useState<Record<string, string | null>>({});
   const [docBusy, setDocBusy] = useState<Record<string, boolean>>({});
+  const [evidenceModalOpen, setEvidenceModalOpen] = useState<boolean>(false);
+  const [evidenceTarget, setEvidenceTarget] = useState<{ documentType: DocumentType; sectionId: string } | null>(null);
+  const [evidenceSourceType, setEvidenceSourceType] = useState<EvidenceSourceType>("workpaper");
+  const [evidenceSourceId, setEvidenceSourceId] = useState<string>("");
+  const [evidenceLabel, setEvidenceLabel] = useState<string>("");
+  const [evidenceReference, setEvidenceReference] = useState<string>("");
 
   async function refreshHistory(): Promise<void> {
     setHistoryLoading(true);
@@ -307,24 +323,42 @@ export default function ReportesPage() {
   }
 
   async function handleQuickLinkEvidence(documentType: DocumentType, sectionId: string): Promise<void> {
-    const sourceType = window.prompt("source_type (trial_balance/workpaper/hallazgo/management_response/adjustment/supporting_document/cedula):");
-    if (!sourceType) return;
-    const sourceId = window.prompt("source_id:");
-    if (!sourceId) return;
-    const label = window.prompt("label:");
-    if (!label) return;
-    const reference = window.prompt("reference (opcional):") ?? "";
+    if (!sectionId) {
+      setReportMsg("No se encontró la sección objetivo para vincular evidencia.");
+      return;
+    }
+    setEvidenceTarget({ documentType, sectionId });
+    setEvidenceSourceType("workpaper");
+    setEvidenceSourceId("");
+    setEvidenceLabel("");
+    setEvidenceReference("");
+    setEvidenceModalOpen(true);
+  }
+
+  function closeEvidenceModal(): void {
+    setEvidenceModalOpen(false);
+    setEvidenceTarget(null);
+  }
+
+  async function handleSubmitEvidenceLink(): Promise<void> {
+    if (!evidenceTarget) return;
+    if (!evidenceSourceId.trim() || !evidenceLabel.trim()) {
+      setReportMsg("Completa source_id y label para vincular la evidencia.");
+      return;
+    }
+    const { documentType, sectionId } = evidenceTarget;
     setDocBusy((prev) => ({ ...prev, [documentType]: true }));
     try {
       await linkDocumentSectionEvidence(clienteId, documentType, sectionId, {
-        source_type: sourceType,
-        source_id: sourceId,
-        label,
-        reference,
+        source_type: evidenceSourceType,
+        source_id: evidenceSourceId.trim(),
+        label: evidenceLabel.trim(),
+        reference: evidenceReference.trim(),
       });
       setReportMsg(`Evidencia vinculada en ${documentType} / ${sectionId}`);
       await refreshHistory();
       await handleOpenSection(documentType, sectionId);
+      closeEvidenceModal();
     } catch (err) {
       setReportMsg(err instanceof Error ? err.message : "No se pudo vincular evidencia.");
     } finally {
@@ -449,6 +483,77 @@ export default function ReportesPage() {
       </section>
 
       {reportMsg ? <section className="sovereign-card text-sm text-slate-700">{reportMsg}</section> : null}
+
+      {evidenceModalOpen ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#041627]/45 p-4">
+          <div className="w-full max-w-xl rounded-editorial bg-white p-6 shadow-editorial border border-[#041627]/15">
+            <h3 className="font-headline text-2xl text-[#041627]">Vincular evidencia</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Documento: <b>{evidenceTarget?.documentType}</b> · Sección: <b>{evidenceTarget?.sectionId}</b>
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-3">
+              <label className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
+                source_type
+                <select
+                  value={evidenceSourceType}
+                  onChange={(e) => setEvidenceSourceType(e.target.value as EvidenceSourceType)}
+                  className="ghost-input mt-1 w-full"
+                >
+                  {EVIDENCE_SOURCE_TYPES.map((sourceType) => (
+                    <option key={sourceType} value={sourceType}>
+                      {sourceType}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
+                source_id
+                <input
+                  value={evidenceSourceId}
+                  onChange={(e) => setEvidenceSourceId(e.target.value)}
+                  className="ghost-input mt-1 w-full"
+                  placeholder="Ej: WP-130-2026-01"
+                />
+              </label>
+              <label className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
+                label
+                <input
+                  value={evidenceLabel}
+                  onChange={(e) => setEvidenceLabel(e.target.value)}
+                  className="ghost-input mt-1 w-full"
+                  placeholder="Ej: Prueba sustantiva cartera"
+                />
+              </label>
+              <label className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
+                reference (opcional)
+                <input
+                  value={evidenceReference}
+                  onChange={(e) => setEvidenceReference(e.target.value)}
+                  className="ghost-input mt-1 w-full"
+                  placeholder="Ej: Folio 14-18"
+                />
+              </label>
+            </div>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeEvidenceModal}
+                className="px-4 py-2 rounded-lg border border-black/10 text-sm text-slate-600"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSubmitEvidenceLink()}
+                disabled={!evidenceSourceId.trim() || !evidenceLabel.trim() || !evidenceTarget}
+                className="px-4 py-2 rounded-lg bg-[#041627] text-sm text-white disabled:opacity-60"
+              >
+                Vincular evidencia
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {lastMemo ? (
         <section className="sovereign-card">
