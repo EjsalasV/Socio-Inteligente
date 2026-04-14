@@ -1223,8 +1223,9 @@ def _llm_answer(query: str, chunks: list[RetrievedChunk], *, mode: str = "chat",
 
     joined_context = "\n\n".join(
         [
-            f"[{c.source}] ({c.metadata.get('norma', 'N/A')} | vigente: {c.metadata.get('vigente_desde', 'N/D')} | "
-            f"actualizacion: {c.metadata.get('ultima_actualizacion', 'N/D')}) {c.excerpt}"
+            f"[{c.source}] ({(c.metadata or {}).get('norma', 'N/A')} | "
+            f"vigente: {(c.metadata or {}).get('vigente_desde', 'N/D')} | "
+            f"actualizacion: {(c.metadata or {}).get('ultima_actualizacion', 'N/D')}) {c.excerpt}"
             for c in chunks[:6]
         ]
     )

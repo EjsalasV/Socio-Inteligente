@@ -213,7 +213,7 @@ def collect_findings(cliente_id: str, *, max_findings: int) -> list[dict[str, st
             if len(findings) >= max_findings:
                 return findings
 
-    raw_hallazgos = read_hallazgos(cliente_id).strip()
+    raw_hallazgos = str(read_hallazgos(cliente_id) or "").strip()
     if raw_hallazgos and len(findings) < max_findings:
         blocks = [b.strip() for b in raw_hallazgos.split("## ") if b.strip()]
         for idx, block in enumerate(blocks, start=1):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import threading
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -37,6 +38,19 @@ EXEC_MIN_PCT = float(THRESHOLDS.get("exec_required_completion_pct", 70.0) or 70.
 REPORT_MIN_PCT = float(THRESHOLDS.get("report_required_completion_pct", 95.0) or 95.0)
 EXEC_COVERAGE_HIGH_MIN_PCT = float(THRESHOLDS.get("exec_coverage_high_min_pct", 100.0) or 100.0)
 EXEC_COVERAGE_MEDIUM_MIN_PCT = float(THRESHOLDS.get("exec_coverage_medium_min_pct", 80.0) or 80.0)
+
+_WORKPAPERS_LOCKS: dict[str, threading.Lock] = {}
+_WORKPAPERS_LOCKS_GUARD = threading.Lock()
+
+
+def _get_workpapers_lock(cliente_id: str) -> threading.Lock:
+    key = str(cliente_id or "").strip().lower()
+    with _WORKPAPERS_LOCKS_GUARD:
+        lock = _WORKPAPERS_LOCKS.get(key)
+        if lock is None:
+            lock = threading.Lock()
+            _WORKPAPERS_LOCKS[key] = lock
+    return lock
 
 
 def _is_true(value: Any) -> bool:
@@ -566,9 +580,10 @@ def get_workpapers(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
-    generated = _generate_tasks(cliente_id)
-    merged = _merge_saved_tasks(cliente_id, generated)
-    write_workpapers(cliente_id, merged)
+    with _get_workpapers_lock(cliente_id):
+        generated = _generate_tasks(cliente_id)
+        merged = _merge_saved_tasks(cliente_id, generated)
+        write_workpapers(cliente_id, merged)
 
     tasks_filtered = merged
     area_code_filter = area_code.strip().upper()
@@ -630,22 +645,23 @@ def patch_workpaper_task(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
-    tasks = read_workpapers(cliente_id)
-    if not tasks:
-        raise HTTPException(status_code=404, detail="No hay papeles de trabajo para este cliente.")
+    with _get_workpapers_lock(cliente_id):
+        tasks = read_workpapers(cliente_id)
+        if not tasks:
+            raise HTTPException(status_code=404, detail="No hay papeles de trabajo para este cliente.")
 
-    updated = False
-    for task in tasks:
-        if str(task.get("id") or "") == task_id:
-            task["done"] = bool(payload.done)
-            task["evidence_note"] = payload.evidence_note.strip()
-            updated = True
-            break
+        updated = False
+        for task in tasks:
+            if str(task.get("id") or "") == task_id:
+                task["done"] = bool(payload.done)
+                task["evidence_note"] = payload.evidence_note.strip()
+                updated = True
+                break
 
-    if not updated:
-        raise HTTPException(status_code=404, detail=f"Tarea no encontrada: {task_id}")
+        if not updated:
+            raise HTTPException(status_code=404, detail=f"Tarea no encontrada: {task_id}")
 
-    write_workpapers(cliente_id, tasks)
+        write_workpapers(cliente_id, tasks)
     invalidate_view_cache_for_cliente(cliente_id)
     hub.publish_event_sync(
         cliente_id=cliente_id,
@@ -681,38 +697,39 @@ def post_workpaper_task(
     if not area_code or not area_name or not title:
         raise HTTPException(status_code=422, detail="area_code, area_name y title son obligatorios.")
 
-    tasks = read_workpapers(cliente_id)
-    if not tasks:
-        tasks = _generate_tasks(cliente_id)
+    with _get_workpapers_lock(cliente_id):
+        tasks = read_workpapers(cliente_id)
+        if not tasks:
+            tasks = _generate_tasks(cliente_id)
 
-    dedupe_key = f"{area_code}|{nia_ref.lower()}|{title.lower()}"
-    for task in tasks:
-        key = f"{str(task.get('area_code') or '').strip()}|{str(task.get('nia_ref') or '').strip().lower()}|{str(task.get('title') or '').strip().lower()}"
-        if key == dedupe_key:
-            return ApiResponse(data={"created": False, "task": WorkpaperTask(**task).model_dump()})
+        dedupe_key = f"{area_code}|{nia_ref.lower()}|{title.lower()}"
+        for task in tasks:
+            key = f"{str(task.get('area_code') or '').strip()}|{str(task.get('nia_ref') or '').strip().lower()}|{str(task.get('title') or '').strip().lower()}"
+            if key == dedupe_key:
+                return ApiResponse(data={"created": False, "task": WorkpaperTask(**task).model_dump()})
 
-    task_id = _normalize_task_id(area_code, nia_ref, title)
-    existing_ids = {str(t.get("id") or "") for t in tasks}
-    if task_id in existing_ids:
-        suffix = 2
-        base = task_id
-        while f"{base}-{suffix}" in existing_ids:
-            suffix += 1
-        task_id = f"{base}-{suffix}"
+        task_id = _normalize_task_id(area_code, nia_ref, title)
+        existing_ids = {str(t.get("id") or "") for t in tasks}
+        if task_id in existing_ids:
+            suffix = 2
+            base = task_id
+            while f"{base}-{suffix}" in existing_ids:
+                suffix += 1
+            task_id = f"{base}-{suffix}"
 
-    new_task = {
-        "id": task_id,
-        "area_code": area_code,
-        "area_name": area_name,
-        "title": title,
-        "nia_ref": nia_ref,
-        "prioridad": prioridad,
-        "required": bool(payload.required),
-        "done": False,
-        "evidence_note": payload.evidence_note.strip(),
-    }
-    tasks.append(new_task)
-    write_workpapers(cliente_id, tasks)
+        new_task = {
+            "id": task_id,
+            "area_code": area_code,
+            "area_name": area_name,
+            "title": title,
+            "nia_ref": nia_ref,
+            "prioridad": prioridad,
+            "required": bool(payload.required),
+            "done": False,
+            "evidence_note": payload.evidence_note.strip(),
+        }
+        tasks.append(new_task)
+        write_workpapers(cliente_id, tasks)
     invalidate_view_cache_for_cliente(cliente_id)
     hub.publish_event_sync(
         cliente_id=cliente_id,
@@ -730,16 +747,17 @@ def delete_workpaper_task(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
-    tasks = read_workpapers(cliente_id)
-    if not tasks:
-        raise HTTPException(status_code=404, detail="No hay papeles de trabajo para este cliente.")
+    with _get_workpapers_lock(cliente_id):
+        tasks = read_workpapers(cliente_id)
+        if not tasks:
+            raise HTTPException(status_code=404, detail="No hay papeles de trabajo para este cliente.")
 
-    initial_len = len(tasks)
-    filtered = [task for task in tasks if str(task.get("id") or "") != task_id]
-    if len(filtered) == initial_len:
-        raise HTTPException(status_code=404, detail=f"Tarea no encontrada: {task_id}")
+        initial_len = len(tasks)
+        filtered = [task for task in tasks if str(task.get("id") or "") != task_id]
+        if len(filtered) == initial_len:
+            raise HTTPException(status_code=404, detail=f"Tarea no encontrada: {task_id}")
 
-    write_workpapers(cliente_id, filtered)
+        write_workpapers(cliente_id, filtered)
     invalidate_view_cache_for_cliente(cliente_id)
     hub.publish_event_sync(
         cliente_id=cliente_id,

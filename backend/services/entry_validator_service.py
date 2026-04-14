@@ -262,7 +262,20 @@ def _applies_to_entry(
     - CXC-003 (provision): Aplica si hay provisión registrada
     - CXC-004 (cliente riesgo): Aplica si cliente está en riesgo
     """
-    criterion_id = criterion.get("id", "")
+    criterion_id = str(criterion.get("id", "") or "").strip().upper()
+    criterion_prefix = criterion_id.split("-", 1)[0] if criterion_id else ""
+
+    # Aisla criterios por area para evitar aplicar reglas cruzadas.
+    area_prefixes: dict[str, set[str]] = {
+        "cartera_cxc": {"CXC"},
+        "ingresos": {"INGR"},
+        "provisiones": {"PROV"},
+        "ppe": {"PPE"},
+        "holdings_intercompany": {"HOLD", "HOLDINGS", "INTERCO", "INTC"},
+    }
+    expected_prefixes = area_prefixes.get(str(context.area or "").strip().lower())
+    if expected_prefixes and criterion_prefix and criterion_prefix not in expected_prefixes:
+        return False
     
     # Verificar si es cuenta de CxC (comienzan con 13, 1305, 1310, etc)
     es_cxc = context.cuenta.startswith("13")

@@ -236,7 +236,7 @@ def post_validate_entry(
     
     try:
         # Autorizar acceso del usuario al cliente
-        authorize_cliente_access(user, payload.cliente_id)
+        authorize_cliente_access(payload.cliente_id, user)
     except HTTPException as e:
         LOGGER.warning(
             f"Unauthorized audit validation: user={user.sub}, cliente={payload.cliente_id}",

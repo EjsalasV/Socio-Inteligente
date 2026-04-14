@@ -341,7 +341,7 @@ class HallazgoEstructurarRequest(BaseModel):
     afirmaciones_criticas: list[str] = Field(default_factory=list)
     etapa: str = "ejecucion"
     condicion_detectada: str
-    monto_estimado: float | None = None
+    monto_estimado: float | None = Field(default=None, ge=0)
     causa_preliminar: str = ""
     efecto_preliminar: str = ""
     guardar_en_hallazgos: bool = False

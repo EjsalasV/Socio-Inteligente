@@ -131,6 +131,34 @@ function normalizeKeyPart(value: string | undefined): string {
   return String(value || "").trim().toLowerCase();
 }
 
+function buildAiProcedureUid(scope: "control" | "substantive", test: RiskStrategyTest): string {
+  return [
+    scope,
+    normalizeKeyPart(test.test_id),
+    normalizeKeyPart(test.area_id),
+    normalizeKeyPart(test.nia_ref),
+    normalizeKeyPart(test.title),
+  ].join("|");
+}
+
+function dedupeAiTests(tests: RiskStrategyTest[]): RiskStrategyTest[] {
+  const out: RiskStrategyTest[] = [];
+  const seen = new Set<string>();
+  for (const test of tests) {
+    const key = [
+      normalizeKeyPart(test.test_id),
+      normalizeKeyPart(test.area_id),
+      normalizeKeyPart(test.nia_ref),
+      normalizeKeyPart(test.title),
+      normalizeKeyPart(test.description),
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(test);
+  }
+  return out;
+}
+
 function cardKey(procedure: ProcedureCard): string {
   if (procedure.uid) {
     return procedure.uid;
@@ -164,8 +192,8 @@ export default function RiskProcedureSuggestions({
 
   const aiControl: ProcedureCard[] = useMemo(
     () =>
-      controlTests.slice(0, 3).map((x, idx) => ({
-        uid: `control|${normalizeKeyPart(x.test_id)}|${normalizeKeyPart(x.area_id)}|${idx}`,
+      dedupeAiTests(controlTests).slice(0, 3).map((x) => ({
+        uid: buildAiProcedureUid("control", x),
         test_id: x.test_id,
         nia: x.nia_ref || "NIA",
         title: x.title,
@@ -179,8 +207,8 @@ export default function RiskProcedureSuggestions({
   );
   const aiSubstantive: ProcedureCard[] = useMemo(
     () =>
-      substantiveTests.slice(0, 3).map((x, idx) => ({
-        uid: `substantive|${normalizeKeyPart(x.test_id)}|${normalizeKeyPart(x.area_id)}|${idx}`,
+      dedupeAiTests(substantiveTests).slice(0, 3).map((x) => ({
+        uid: buildAiProcedureUid("substantive", x),
         test_id: x.test_id,
         nia: x.nia_ref || "NIA",
         title: x.title,

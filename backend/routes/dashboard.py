@@ -258,6 +258,7 @@ def get_dashboard(
         areas_completas = 0
         areas_en_proceso = 0
         areas_no_iniciadas = 0
+        merged_tasks: list[dict[str, object]] = []
 
         if ranking is not None and not ranking.empty:
             if "con_saldo" in ranking.columns:
@@ -270,15 +271,6 @@ def get_dashboard(
                 ranking_visible = ranking
             if ranking_visible.empty:
                 ranking_visible = ranking.iloc[0:0]
-
-            for _, row in ranking_visible.iterrows():
-                prioridad = _to_str(row.get("prioridad", "baja"), "baja").lower()
-                if prioridad == "baja":
-                    areas_completas += 1
-                elif prioridad == "media":
-                    areas_en_proceso += 1
-                else:
-                    areas_no_iniciadas += 1
 
             for _, row in ranking_visible.iterrows():
                 all_top_areas.append(
@@ -297,7 +289,38 @@ def get_dashboard(
         top_areas = all_top_areas[start:end]
         top_areas_has_more = end < total_top_areas
 
+        stage = "build.gates"
+        workflow_gates: list[DashboardWorkflowGate] = []
+        try:
+            generated = _generate_tasks(cliente_id)
+            merged_tasks = _merge_saved_tasks(cliente_id, generated)
+            gates, _coverage = _quality_gates(cliente_id, merged_tasks)
+            workflow_gates = [
+                DashboardWorkflowGate(code=g.code, title=g.title, status=g.status, detail=g.detail)
+                for g in gates
+            ]
+        except Exception:
+            workflow_gates = []
+
         stage = "build.progress"
+        if all_top_areas:
+            for area in all_top_areas:
+                area_code = _to_str(area.codigo, "")
+                if not area_code:
+                    continue
+                area_tasks = [t for t in merged_tasks if _to_str(t.get("area_code"), "") == area_code]
+                required_tasks = [t for t in area_tasks if bool(t.get("required", True))]
+                scope = required_tasks if required_tasks else area_tasks
+                if not scope:
+                    areas_no_iniciadas += 1
+                    continue
+                done_count = sum(1 for t in scope if bool(t.get("done", False)))
+                if done_count <= 0:
+                    areas_no_iniciadas += 1
+                elif done_count >= len(scope):
+                    areas_completas += 1
+                else:
+                    areas_en_proceso += 1
         total_areas = areas_completas + areas_en_proceso + areas_no_iniciadas
         pct_completado = int(round((areas_completas / total_areas) * 100, 0)) if total_areas > 0 else 0
         fase_actual = _to_str(encargo.get("fase_actual", ""), "")
@@ -305,19 +328,6 @@ def get_dashboard(
         pct_from_fase = _progreso_from_fase(fase_actual)
         if pct_from_fase is not None:
             pct_completado = pct_from_fase
-
-        stage = "build.gates"
-        workflow_gates: list[DashboardWorkflowGate] = []
-        try:
-            generated = _generate_tasks(cliente_id)
-            merged = _merge_saved_tasks(cliente_id, generated)
-            gates, _coverage = _quality_gates(cliente_id, merged)
-            workflow_gates = [
-                DashboardWorkflowGate(code=g.code, title=g.title, status=g.status, detail=g.detail)
-                for g in gates
-            ]
-        except Exception:
-            workflow_gates = []
 
         stage = "build.materialidad"
         mp_perfil, me_perfil, trivial_perfil = _materialidad_from_perfil(perfil)
