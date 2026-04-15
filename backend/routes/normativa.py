@@ -8,6 +8,7 @@ from backend.constants.runtime_config import get_runtime_config
 from backend.repositories.file_repository import append_audit_log
 from backend.schemas import ApiResponse, UserContext
 from backend.services.normativa_monitor_service import run_monthly_normative_refresh
+from backend.services.normative_catalog_service import list_normative_catalog
 from backend.services.rag_cache_service import invalidate_rag_cache_all
 from backend.services.rate_limit_service import RateLimitExceeded, rate_limiter
 from backend.utils.api_errors import raise_api_error
@@ -24,6 +25,18 @@ def _refresh_limit_per_minute() -> int:
     except Exception:
         value = 3
     return max(1, min(value, 60))
+
+
+@router.get("/catalogo", response_model=ApiResponse)
+def get_normative_catalog(user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    rows = list_normative_catalog()
+    append_audit_log(
+        user_id=user.sub,
+        cliente_id="*",
+        endpoint="GET /api/normativa/catalogo",
+        extra={"total": len(rows)},
+    )
+    return ApiResponse(data={"normas": rows, "total": len(rows)})
 
 
 @router.post("/refresh-monthly", response_model=ApiResponse)

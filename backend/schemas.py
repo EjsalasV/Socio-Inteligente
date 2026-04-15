@@ -117,6 +117,14 @@ class DashboardMaterialidadDetalle(BaseModel):
     minimum_threshold_origen: str = ""
 
 
+class DashboardAreaMaterialidad(BaseModel):
+    area_codigo: str
+    area_nombre: str
+    porcentaje_aplicado: float = 0.0
+    base_referencia: float = 0.0
+    materialidad_sugerida: float = 0.0
+
+
 class DashboardResponse(BaseModel):
     cliente_id: str
     nombre_cliente: str
@@ -138,6 +146,7 @@ class DashboardResponse(BaseModel):
     resultado_periodo: float = 0.0
     balance_delta: float = 0.0
     materialidad_detalle: DashboardMaterialidadDetalle = Field(default_factory=DashboardMaterialidadDetalle)
+    materialidad_por_area: list[DashboardAreaMaterialidad] = Field(default_factory=list)
     top_areas_page: int = 1
     top_areas_page_size: int = 8
     top_areas_total: int = 0
@@ -428,6 +437,7 @@ class ChatResponse(BaseModel):
     prompt_id: str = ""
     prompt_version: str = ""
     mode_used: str = "chat"
+    expert_criteria_used: bool = False
 
 
 class MetodoRequest(BaseModel):

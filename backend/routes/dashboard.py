@@ -10,6 +10,7 @@ from backend.auth import authorize_cliente_access, get_current_user
 from backend.schemas import (
     AreaRiesgo,
     BalanceKPIs,
+    DashboardAreaMaterialidad,
     DashboardMaterialidadDetalle,
     DashboardResponse,
     DashboardWorkflowGate,
@@ -207,6 +208,7 @@ def get_dashboard(
         from analysis.ranking_areas import calcular_ranking_areas
         from backend.routes.workpapers import _generate_tasks, _merge_saved_tasks, _quality_gates
         from backend.repositories.file_repository import read_perfil as read_perfil_repo
+        from backend.services.materiality_service import calculate_materiality as calculate_area_materiality
         from domain.services.leer_perfil import leer_perfil as read_perfil_legacy
         from domain.services.materialidad_service import calcular_materialidad
 
@@ -350,6 +352,26 @@ def get_dashboard(
                 "3% alto riesgo, 5% medio, 10% bajo (NIA 320, juicio profesional)"
             )
 
+        stage = "build.materialidad_por_area"
+        areas_for_materiality = [
+            {"codigo": _to_str(area.codigo, ""), "nombre": _to_str(area.nombre, "")}
+            for area in all_top_areas
+            if bool(area.con_saldo)
+        ]
+        base_for_area_materiality = balance.ingresos if balance.ingresos > 0 else balance.activo
+        area_materiality_rows = calculate_area_materiality(base_for_area_materiality, areas_for_materiality)
+        materialidad_por_area = [
+            DashboardAreaMaterialidad(
+                area_codigo=_to_str(item.get("area_codigo", "")),
+                area_nombre=_to_str(item.get("area_nombre", "")),
+                porcentaje_aplicado=_to_float(item.get("porcentaje_aplicado", 0.0)),
+                base_referencia=_to_float(item.get("base_referencia", 0.0)),
+                materialidad_sugerida=_to_float(item.get("materialidad_sugerida", 0.0)),
+            )
+            for item in area_materiality_rows
+            if _to_str(item.get("area_codigo", ""))
+        ][:12]
+
         stage = "build.balance_status"
         accounting_delta = balance.activo - (balance.pasivo + balance.patrimonio)
         resultado_periodo = balance.ingresos - balance.gastos
@@ -395,6 +417,7 @@ def get_dashboard(
             resultado_periodo=resultado_periodo,
             balance_delta=delta_abs,
             materialidad_detalle=materialidad_detalle,
+            materialidad_por_area=materialidad_por_area,
             top_areas_page=areas_page,
             top_areas_page_size=areas_page_size,
             top_areas_total=total_top_areas,
