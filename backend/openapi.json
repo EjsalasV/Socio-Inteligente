@@ -3051,6 +3051,32 @@
         }
       }
     },
+    "/api/normativa/catalogo": {
+      "get": {
+        "tags": [
+          "normativa"
+        ],
+        "summary": "Get Normative Catalog",
+        "operationId": "get_normative_catalog_api_normativa_catalogo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/normativa/refresh-monthly": {
       "post": {
         "tags": [
@@ -3870,6 +3896,256 @@
         }
       }
     },
+    "/api/areas": {
+      "get": {
+        "tags": [
+          "areas-catalog"
+        ],
+        "summary": "List Areas",
+        "operationId": "list_areas_api_areas_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/areas/{area_codigo}/procedimientos": {
+      "get": {
+        "tags": [
+          "areas-catalog"
+        ],
+        "summary": "Get Area Procedures",
+        "operationId": "get_area_procedures_api_areas__area_codigo__procedimientos_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "area_codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Area Codigo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/expert-criteria/area/{area_codigo}": {
+      "get": {
+        "tags": [
+          "expert-criteria"
+        ],
+        "summary": "Get Area Criteria",
+        "operationId": "get_area_criteria_api_expert_criteria_area__area_codigo__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "area_codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Area Codigo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/expert-criteria/sector/{sector}": {
+      "get": {
+        "tags": [
+          "expert-criteria"
+        ],
+        "summary": "Get Sector Criteria",
+        "operationId": "get_sector_criteria_api_expert_criteria_sector__sector__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sector",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sector"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/expert-criteria/revision/general": {
+      "get": {
+        "tags": [
+          "expert-criteria"
+        ],
+        "summary": "Get Quality Criteria",
+        "operationId": "get_quality_criteria_api_expert_criteria_revision_general_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/expert-criteria/{path}": {
+      "post": {
+        "tags": [
+          "expert-criteria"
+        ],
+        "summary": "Post Expert Criteria",
+        "operationId": "post_expert_criteria_api_expert_criteria__path__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Path"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpertCriteriaUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -4589,6 +4865,39 @@
         "title": "CriterionSummary",
         "description": "Resumen de un criterio de validación"
       },
+      "DashboardAreaMaterialidad": {
+        "properties": {
+          "area_codigo": {
+            "type": "string",
+            "title": "Area Codigo"
+          },
+          "area_nombre": {
+            "type": "string",
+            "title": "Area Nombre"
+          },
+          "porcentaje_aplicado": {
+            "type": "number",
+            "title": "Porcentaje Aplicado",
+            "default": 0.0
+          },
+          "base_referencia": {
+            "type": "number",
+            "title": "Base Referencia",
+            "default": 0.0
+          },
+          "materialidad_sugerida": {
+            "type": "number",
+            "title": "Materialidad Sugerida",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "area_codigo",
+          "area_nombre"
+        ],
+        "title": "DashboardAreaMaterialidad"
+      },
       "DashboardMaterialidadDetalle": {
         "properties": {
           "nia_base": {
@@ -4745,6 +5054,13 @@
           "materialidad_detalle": {
             "$ref": "#/components/schemas/DashboardMaterialidadDetalle"
           },
+          "materialidad_por_area": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardAreaMaterialidad"
+            },
+            "type": "array",
+            "title": "Materialidad Por Area"
+          },
           "top_areas_page": {
             "type": "integer",
             "title": "Top Areas Page",
@@ -4810,6 +5126,19 @@
           "detail"
         ],
         "title": "DashboardWorkflowGate"
+      },
+      "ExpertCriteriaUpdateRequest": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "title": "ExpertCriteriaUpdateRequest"
       },
       "FrameworkOverview": {
         "properties": {

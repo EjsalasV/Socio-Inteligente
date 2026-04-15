@@ -876,6 +876,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/normativa/catalogo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Normative Catalog */
+        get: operations["get_normative_catalog_api_normativa_catalogo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/normativa/refresh-monthly": {
         parameters: {
             query?: never;
@@ -1285,6 +1302,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Areas */
+        get: operations["list_areas_api_areas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/areas/{area_codigo}/procedimientos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Area Procedures */
+        get: operations["get_area_procedures_api_areas__area_codigo__procedimientos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expert-criteria/area/{area_codigo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Area Criteria */
+        get: operations["get_area_criteria_api_expert_criteria_area__area_codigo__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expert-criteria/sector/{sector}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sector Criteria */
+        get: operations["get_sector_criteria_api_expert_criteria_sector__sector__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expert-criteria/revision/general": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Quality Criteria */
+        get: operations["get_quality_criteria_api_expert_criteria_revision_general_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expert-criteria/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Expert Criteria */
+        post: operations["post_expert_criteria_api_expert_criteria__path__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1688,6 +1807,28 @@ export interface components {
             /** Descripcion */
             descripcion: string;
         };
+        /** DashboardAreaMaterialidad */
+        DashboardAreaMaterialidad: {
+            /** Area Codigo */
+            area_codigo: string;
+            /** Area Nombre */
+            area_nombre: string;
+            /**
+             * Porcentaje Aplicado
+             * @default 0
+             */
+            porcentaje_aplicado: number;
+            /**
+             * Base Referencia
+             * @default 0
+             */
+            base_referencia: number;
+            /**
+             * Materialidad Sugerida
+             * @default 0
+             */
+            materialidad_sugerida: number;
+        };
         /** DashboardMaterialidadDetalle */
         DashboardMaterialidadDetalle: {
             /**
@@ -1811,6 +1952,8 @@ export interface components {
              */
             balance_delta: number;
             materialidad_detalle?: components["schemas"]["DashboardMaterialidadDetalle"];
+            /** Materialidad Por Area */
+            materialidad_por_area?: components["schemas"]["DashboardAreaMaterialidad"][];
             /**
              * Top Areas Page
              * @default 1
@@ -1845,6 +1988,11 @@ export interface components {
             status: "ok" | "blocked";
             /** Detail */
             detail: string;
+        };
+        /** ExpertCriteriaUpdateRequest */
+        ExpertCriteriaUpdateRequest: {
+            /** Content */
+            content: string;
         };
         /**
          * FrameworkOverview
@@ -4059,6 +4207,26 @@ export interface operations {
             };
         };
     };
+    get_normative_catalog_api_normativa_catalogo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
     post_refresh_monthly_api_normativa_refresh_monthly_post: {
         parameters: {
             query?: never;
@@ -4598,6 +4766,174 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["Body_analyze_holdings_cascade_endpoint_api_audit_holdings_cascade_analyze_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_areas_api_areas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    get_area_procedures_api_areas__area_codigo__procedimientos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                area_codigo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_area_criteria_api_expert_criteria_area__area_codigo__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                area_codigo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sector_criteria_api_expert_criteria_sector__sector__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sector: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_quality_criteria_api_expert_criteria_revision_general_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    post_expert_criteria_api_expert_criteria__path__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpertCriteriaUpdateRequest"];
             };
         };
         responses: {
