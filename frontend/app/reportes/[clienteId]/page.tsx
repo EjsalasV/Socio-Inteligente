@@ -6,6 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
 import ContextualHelp from "../../../components/help/ContextualHelp";
+import ReportesJunior from "../../../components/reportes/ReportesJunior";
+import ReportesSemi from "../../../components/reportes/ReportesSemi";
+import ReportesSenior from "../../../components/reportes/ReportesSenior";
+import ReportesSocio from "../../../components/reportes/ReportesSocio";
 import {
   downloadExecutivePdfByPath,
   getDocumentAllowedActions,
@@ -34,7 +38,7 @@ import {
 import { formatMoney } from "../../../lib/formatters";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
-import { useLearningRole } from "../../../lib/hooks/useLearningRole";
+import { type LearningRole, useLearningRole } from "../../../lib/hooks/useLearningRole";
 
 function gateTone(status: string): string {
   return status === "ok"
@@ -152,6 +156,13 @@ function summarizeBlockingReason(reason: string): string {
 function evidenceCtaLabel(reason: string): string {
   if (reason === "missing_required_support") return "Completar evidencia";
   return "Ver detalle";
+}
+
+function normalizeRole(role: LearningRole): LearningRole {
+  if (role === "junior" || role === "semi" || role === "senior" || role === "socio") {
+    return role;
+  }
+  return "semi";
 }
 
 export default function ReportesPage() {
@@ -438,6 +449,53 @@ export default function ReportesPage() {
     setEvidenceTarget(null);
   }
 
+  const activeRole = normalizeRole(role);
+  const areaOptions = (data.top_areas ?? []).map((area) => ({
+    codigo: area.codigo,
+    nombre: area.nombre,
+  }));
+  const missingByArea = history?.coverage_summary.missing_by_area ?? {};
+  const reportRows = areaOptions.map((area) => {
+    const missingCount =
+      (missingByArea[area.codigo]?.length ?? 0) + (missingByArea[area.nombre]?.length ?? 0);
+    let estado: "Borrador" | "Finalizado" | "Pendiente revisión senior" = "Borrador";
+    if (missingCount > 0) {
+      estado = "Pendiente revisión senior";
+    } else if (latestPdf) {
+      estado = "Finalizado";
+    }
+    return {
+      codigo: area.codigo,
+      nombre: area.nombre,
+      estado,
+      auditor: "Equipo auditor",
+      fecha: data.periodo || "Periodo actual",
+      hallazgosCount: missingCount,
+    };
+  });
+  const finalReports = (history?.items ?? [])
+    .filter((item) => item.kind === "executive_pdf" && item.path)
+    .map((item) => ({
+      title: item.report_name || "Informe ejecutivo",
+      auditor: "Equipo auditor",
+      fecha: formatDateLabel(item.generated_at),
+      hallazgosCount: Object.values(missingByArea).reduce((acc, val) => acc + (val?.length ?? 0), 0),
+      path: item.path,
+      filename: item.report_name || "informe.pdf",
+    }));
+  const uniqueFinalReports = finalReports.length > 0
+    ? finalReports
+    : latestPdf
+      ? [{
+          title: latestPdf.report_name || "Informe ejecutivo",
+          auditor: "Equipo auditor",
+          fecha: formatDateLabel(latestPdf.generated_at),
+          hallazgosCount: Object.values(missingByArea).reduce((acc, val) => acc + (val?.length ?? 0), 0),
+          path: latestPdf.path,
+          filename: latestPdf.report_name || "informe.pdf",
+        }]
+      : [];
+
   return (
     <div className="pt-4 pb-10 space-y-8 max-w-[1500px]">
       <section className="rounded-editorial p-7 shadow-editorial text-white border border-[#041627]/20 bg-gradient-to-br from-[#041627] to-[#1a2b3c]">
@@ -471,147 +529,129 @@ export default function ReportesPage() {
         ]}
       />
 
-      {/* Panel de rol */}
-      {role === "junior" && (
-        <section className="bg-[#a5eff0]/10 border border-[#a5eff0]/30 rounded-xl p-6 space-y-4">
-          <div className="flex items-start gap-4">
-            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#041627] text-[#a5eff0] text-xs font-bold mt-0.5">NIA</span>
-            <div>
-              <p className="text-xs uppercase tracking-[0.15em] text-[#041627]/60 font-bold mb-1">Qué es este módulo — Vista Junior</p>
-              <p className="text-sm text-[#041627] leading-relaxed">
-                Aquí se genera el <strong>informe de auditoría</strong>. Tu rol es vincular la evidencia de tus papeles de trabajo a cada sección del documento para que el Senior pueda revisar y el Socio pueda aprobar. Sin evidencia vinculada, el gate de emisión permanece bloqueado.
-              </p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {[
-              { num: 1, texto: "Revisa los Quality Gates — deben estar todos en OK antes de emitir el informe final. Si hay bloqueos, necesitas completar los pasos indicados.", nia: "NIA 700" },
-              { num: 2, texto: "Para vincular evidencia a una sección: abre el documento, encuentra la sección y usa el botón 'Vincular evidencia'. Referencia tu papel de trabajo con su ID.", nia: "NIA 230" },
-              { num: 3, texto: "El borrador interno puedes generarlo en cualquier momento. El informe final solo cuando todos los gates estén OK y el Senior haya revisado.", nia: "NIA 265" },
-            ].map((step) => (
-              <div key={step.nia} className="flex gap-3 p-4 bg-white rounded-lg border border-slate-100">
-                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#041627] text-white text-xs font-bold mt-0.5">{step.num}</span>
-                <div>
-                  <p className="text-xs text-slate-700 leading-relaxed">{step.texto}</p>
-                  <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-[#041627]/10 text-[#041627] text-[10px] font-bold uppercase">{step.nia}</span>
+      {activeRole === "junior" ? (
+        <ReportesJunior
+          clienteId={clienteId}
+          areas={areaOptions}
+          isBusy={generatingPdf || memoGenerating}
+          onGenerateDraft={() => void handleGeneratePdf(false)}
+          onGenerateMemo={() => void handleGenerateMemo()}
+          onViewSample={() => void handleDownloadLatest()}
+        />
+      ) : null}
+
+      {activeRole === "semi" ? (
+        <ReportesSemi
+          areas={reportRows}
+          onGenerateMissing={() => void handleGeneratePdf(false)}
+        />
+      ) : null}
+
+      {activeRole === "senior" ? (
+        <>
+          <ReportesSenior
+            reports={reportRows.map((row) => ({
+              area: `${row.codigo} · ${row.nombre}`,
+              estado: row.estado,
+              auditor: row.auditor,
+              fecha: row.fecha,
+              hallazgosCount: row.hallazgosCount,
+            }))}
+          />
+
+          <section data-tour="reportes-gates" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <article className="sovereign-card lg:col-span-2">
+              <h3 className="font-headline text-2xl text-[#041627] mb-4">Quality Gates de Emision</h3>
+              {historyLoading ? <p className="text-sm text-slate-500">Cargando estado de gates...</p> : null}
+              {historyError ? <p className="text-sm text-red-700">{historyError}</p> : null}
+              {!historyLoading && !historyError ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {(history?.gates ?? []).map((gate) => (
+                    <div key={gate.code} className={`rounded-xl border p-3 ${gateTone(gate.status)}`}>
+                      <p className="text-[10px] uppercase tracking-[0.12em] font-bold">{gate.code}</p>
+                      <p className="text-sm font-semibold mt-1">{gate.title}</p>
+                      <p className="text-xs mt-2">{gate.detail}</p>
+                    </div>
+                  ))}
                 </div>
+              ) : null}
+              <div className="mt-4 p-3 rounded-xl bg-[#f8fafc] border border-black/10 text-sm text-slate-700">
+                Cobertura por afirmaciones: <b>{history?.coverage_summary.coverage_pct ?? 0}%</b>
+                {" "}({history?.coverage_summary.covered_assertions ?? 0}/{history?.coverage_summary.total_assertions ?? 0})
               </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {role === "socio" && history && (
-        <section className="rounded-xl p-6 bg-[#001919] border border-[#a5eff0]/20 shadow-md text-white">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#a5eff0] font-bold mb-3">Estado de Emisión — Vista Socio</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            {(history.gates ?? []).slice(0, 4).map((gate) => (
-              <div key={gate.code} className="bg-white/10 rounded-lg p-4">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-slate-300">{gate.code}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5 truncate">{gate.title}</p>
-                <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${gate.status === "ok" ? "bg-emerald-900/60 text-emerald-300 border border-emerald-700/50" : "bg-rose-900/60 text-rose-300 border border-rose-700/50"}`}>
-                  {gate.status === "ok" ? "OK" : "Bloqueado"}
-                </span>
-              </div>
-            ))}
-            {(history.gates ?? []).length === 0 && (
-              <div className="col-span-4 bg-white/10 rounded-lg p-4">
-                <p className="text-sm text-slate-300">Sin quality gates registrados aún.</p>
-              </div>
-            )}
-          </div>
-          <p className="text-xs text-slate-400">
-            Para emitir informe final, todos los gates deben estar en OK.
-            {statusPayload?.can_emit_final
-              ? <span className="ml-2 text-emerald-400 font-semibold">Listo para emisión final.</span>
-              : <span className="ml-2 text-amber-400 font-semibold">Pendiente de completar requisitos.</span>
-            }
-          </p>
-        </section>
-      )}
-
-      <section data-tour="reportes-gates" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <article className="sovereign-card lg:col-span-2">
-          <h3 className="font-headline text-2xl text-[#041627] mb-4">Quality Gates de Emision</h3>
-          {historyLoading ? <p className="text-sm text-slate-500">Cargando estado de gates...</p> : null}
-          {historyError ? <p className="text-sm text-red-700">{historyError}</p> : null}
-          {!historyLoading && !historyError ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {(history?.gates ?? []).map((gate) => (
-                <div key={gate.code} className={`rounded-xl border p-3 ${gateTone(gate.status)}`}>
-                  <p className="text-[10px] uppercase tracking-[0.12em] font-bold">{gate.code}</p>
-                  <p className="text-sm font-semibold mt-1">{gate.title}</p>
-                  <p className="text-xs mt-2">{gate.detail}</p>
+              {(statusPayload?.missing_sections?.length ?? 0) > 0 ? (
+                <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
+                  Faltantes para emision final:
+                  <ul className="mt-2 list-disc list-inside">
+                    {statusPayload?.missing_sections?.slice(0, 5).map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
                 </div>
-              ))}
-            </div>
-          ) : null}
-          <div className="mt-4 p-3 rounded-xl bg-[#f8fafc] border border-black/10 text-sm text-slate-700">
-            Cobertura por afirmaciones: <b>{history?.coverage_summary.coverage_pct ?? 0}%</b>
-            {" "}({history?.coverage_summary.covered_assertions ?? 0}/{history?.coverage_summary.total_assertions ?? 0})
-          </div>
-          {(statusPayload?.missing_sections?.length ?? 0) > 0 ? (
-            <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
-              Faltantes para emision final:
-              <ul className="mt-2 list-disc list-inside">
-                {statusPayload?.missing_sections?.slice(0, 5).map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {gateMap.get("REPORT")?.status !== "ok" ? (
-            <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
-              Emision final bloqueada: completa tareas requeridas en Papeles de Trabajo y registra conclusion tecnica en hallazgos.
-            </div>
-          ) : null}
-        </article>
+              ) : null}
+              {gateMap.get("REPORT")?.status !== "ok" ? (
+                <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                  Emision final bloqueada: completa tareas requeridas en Papeles de Trabajo y registra conclusion tecnica en hallazgos.
+                </div>
+              ) : null}
+            </article>
 
-        <article className="sovereign-card">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold">Materialidad</p>
-          <h3 className="font-headline text-2xl text-[#041627] mt-2">{formatMoney(data.materialidad_global)}</h3>
-          <p className="text-sm text-slate-600 mt-2">Base tecnica para evaluacion de desviaciones.</p>
-          <div className="mt-4 space-y-2 text-sm">
-            <p>Riesgo global: <b>{data.riesgo_global}</b></p>
-            <p>Top area: <b>{data.top_areas?.[0]?.nombre ?? "N/D"}</b></p>
-          </div>
-        </article>
-      </section>
+            <article className="sovereign-card">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold">Materialidad</p>
+              <h3 className="font-headline text-2xl text-[#041627] mt-2">{formatMoney(data.materialidad_global)}</h3>
+              <p className="text-sm text-slate-600 mt-2">Base tecnica para evaluacion de desviaciones.</p>
+              <div className="mt-4 space-y-2 text-sm">
+                <p>Riesgo global: <b>{data.riesgo_global}</b></p>
+                <p>Top area: <b>{data.top_areas?.[0]?.nombre ?? "N/D"}</b></p>
+              </div>
+            </article>
+          </section>
 
-      <section data-tour="reportes-actions" className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-        <button
-          type="button"
-          onClick={() => void handleGeneratePdf(false)}
-          disabled={generatingPdf || (statusPayload ? !statusPayload.can_emit_draft : false)}
-          className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627] disabled:opacity-60 bg-white"
-        >
-          {generatingPdf ? "Procesando..." : "Generar borrador interno"}
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleGeneratePdf(true)}
-          disabled={generatingPdf || (statusPayload ? !statusPayload.can_emit_final : gateMap.get("REPORT")?.status !== "ok")}
-          className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-[0.12em] bg-[#041627] text-white disabled:opacity-60"
-        >
-          {generatingPdf ? "Procesando..." : "Emitir informe final"}
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleDownloadLatest()}
-          disabled={generatingPdf || !latestPdf}
-          className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627] disabled:opacity-60 bg-white"
-        >
-          Descargar ultimo PDF
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleGenerateMemo()}
-          disabled={memoGenerating}
-          className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627] disabled:opacity-60 bg-white"
-        >
-          {memoGenerating ? "Generando memo..." : "Generar memo ejecutivo"}
-        </button>
-      </section>
+          <section data-tour="reportes-actions" className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+            <button
+              type="button"
+              onClick={() => void handleGeneratePdf(false)}
+              disabled={generatingPdf || (statusPayload ? !statusPayload.can_emit_draft : false)}
+              className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627] disabled:opacity-60 bg-white"
+            >
+              {generatingPdf ? "Procesando..." : "Generar borrador interno"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleGeneratePdf(true)}
+              disabled={generatingPdf || (statusPayload ? !statusPayload.can_emit_final : gateMap.get("REPORT")?.status !== "ok")}
+              className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-[0.12em] bg-[#041627] text-white disabled:opacity-60"
+            >
+              {generatingPdf ? "Procesando..." : "Emitir informe final"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDownloadLatest()}
+              disabled={generatingPdf || !latestPdf}
+              className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627] disabled:opacity-60 bg-white"
+            >
+              Descargar ultimo PDF
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleGenerateMemo()}
+              disabled={memoGenerating}
+              className="px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-[0.12em] border border-[#041627]/20 text-[#041627] disabled:opacity-60 bg-white"
+            >
+              {memoGenerating ? "Generando memo..." : "Generar memo ejecutivo"}
+            </button>
+          </section>
+        </>
+      ) : null}
+
+      {activeRole === "socio" ? (
+        <ReportesSocio
+          finalReports={uniqueFinalReports}
+          canEmitFinal={Boolean(statusPayload?.can_emit_final && gateMap.get("REPORT")?.status === "ok")}
+          onEmitFinal={() => void handleGeneratePdf(true)}
+          onDownload={(path, filename) => void handleDownloadFromHistory(path, filename)}
+        />
+      ) : null}
 
       {reportMsg ? <section className="sovereign-card text-sm text-slate-700">{reportMsg}</section> : null}
 
@@ -630,6 +670,7 @@ export default function ReportesPage() {
         </section>
       ) : null}
 
+      {activeRole === "senior" ? (
       <section data-tour="reportes-history" className="sovereign-card">
         <h2 className="font-headline text-3xl text-[#041627] mb-4">Gobierno Documental</h2>
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -878,7 +919,9 @@ export default function ReportesPage() {
           })}
         </div>
       </section>
+      ) : null}
 
+      {activeRole === "senior" ? (
       <section className="sovereign-card">
         <h2 className="font-headline text-3xl text-[#041627] mb-4">Historial de artefactos</h2>
         {historyLoading ? <p className="text-sm text-slate-500">Cargando historial...</p> : null}
@@ -926,7 +969,9 @@ export default function ReportesPage() {
           </div>
         ) : null}
       </section>
+      ) : null}
 
+      {activeRole === "senior" ? (
       <section className="sovereign-card">
         <h2 className="font-headline text-3xl text-[#041627] mb-4">Acciones</h2>
         <div className="flex flex-wrap gap-3">
@@ -944,7 +989,7 @@ export default function ReportesPage() {
           </Link>
         </div>
       </section>
+      ) : null}
     </div>
   );
 }
-
