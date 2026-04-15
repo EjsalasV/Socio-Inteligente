@@ -13,7 +13,8 @@ export type AuditModule =
   | "perfil"
   | "reportes"
   | "socio-chat"
-  | "client-memory";
+  | "client-memory"
+  | "biblioteca";
 
 type AuditContextValue = {
   clienteId: string;
@@ -39,6 +40,7 @@ function parseFromPath(pathname: string): AuditContextValue {
   if (first === "papeles-trabajo") moduleKey = "papeles-trabajo";
   if (first === "socio-chat") moduleKey = "socio-chat";
   if (first === "client-memory") moduleKey = "client-memory";
+  if (first === "biblioteca") moduleKey = "biblioteca";
 
   const labels: Record<AuditModule, string> = {
     dashboard: "Dashboard",
@@ -51,6 +53,7 @@ function parseFromPath(pathname: string): AuditContextValue {
     reportes: "Reportes",
     "socio-chat": "Socio Chat",
     "client-memory": "Client Memory",
+    biblioteca: "Biblioteca",
   };
 
   return {

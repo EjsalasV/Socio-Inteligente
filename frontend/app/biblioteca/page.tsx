@@ -1,9 +1,20 @@
-"use client";
+﻿"use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useLearningRole } from "../../lib/hooks/useLearningRole";
-import { NORMAS, type NormaEntry } from "../../data/normas";
+import type { NormaEntry } from "../../data/normas";
+
+type CategoriaMap = Record<NormaEntry["categoria"], NormaEntry[]>;
+
+const EMPTY_GROUPS: CategoriaMap = {
+  NIA: [],
+  NIIF_PYMES: [],
+  NIC: [],
+  NIIF: [],
+};
+
+const CATEGORIAS_ORDEN: Array<NormaEntry["categoria"]> = ["NIA", "NIIF_PYMES", "NIC", "NIIF"];
 
 function categoriaLabel(categoria: NormaEntry["categoria"]): string {
   if (categoria === "NIIF_PYMES") return "NIIF PYMES";
@@ -17,45 +28,109 @@ function faseLabel(fase: NormaEntry["cuando_aplica"]): string {
   return "Todo el encargo";
 }
 
+function normalizeNormaToken(token: string): string {
+  const trimmed = token.trim().toUpperCase();
+  const nia = trimmed.match(/NIA\s*-?\s*(\d{3})/);
+  if (nia) return `NIA-${nia[1]}`;
+  return trimmed;
+}
+
 export default function BibliotecaPage() {
   const { role, roleLabel } = useLearningRole();
-  const [query, setQuery] = useState<string>("");
-  const [selectedCodigo, setSelectedCodigo] = useState<string>(
-    NORMAS.find((n) => n.categoria === "NIA")?.codigo ?? NORMAS[0]?.codigo ?? "",
-  );
-  const [mobileDetailOpen, setMobileDetailOpen] = useState<boolean>(false);
 
-  const filteredNormas = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return NORMAS;
-    return NORMAS.filter((norma) => {
-      const hayTag = norma.tags.some((tag) => tag.toLowerCase().includes(q));
-      return (
-        norma.codigo.toLowerCase().includes(q) ||
-        norma.titulo.toLowerCase().includes(q) ||
-        hayTag
-      );
+  const [loadingNormas, setLoadingNormas] = useState<boolean>(true);
+  const [normas, setNormas] = useState<NormaEntry[]>([]);
+  const [groupedBase, setGroupedBase] = useState<CategoriaMap>(EMPTY_GROUPS);
+  const [queryInput, setQueryInput] = useState<string>("");
+  const [debouncedQuery, setDebouncedQuery] = useState<string>("");
+  const [selectedCodigo, setSelectedCodigo] = useState<string>("");
+  const [mobileListOpen, setMobileListOpen] = useState<boolean>(true);
+
+  useEffect(() => {
+    let active = true;
+    void import("../../data/normas")
+      .then((mod) => {
+        if (!active) return;
+        setNormas(mod.NORMAS);
+        setGroupedBase(mod.NORMAS_GROUPED_BY_CATEGORIA as CategoriaMap);
+        const defaultNorma = mod.NORMAS.find((n) => n.categoria === "NIA") ?? mod.NORMAS[0];
+        setSelectedCodigo((prev) => prev || defaultNorma?.codigo || "");
+      })
+      .finally(() => {
+        if (active) setLoadingNormas(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedQuery(queryInput.trim().toLowerCase());
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [queryInput]);
+
+  const filteredGrouped = useMemo(() => {
+    if (!debouncedQuery) return groupedBase;
+
+    const next: CategoriaMap = { NIA: [], NIIF_PYMES: [], NIC: [], NIIF: [] };
+    for (const categoria of CATEGORIAS_ORDEN) {
+      next[categoria] = groupedBase[categoria].filter((norma) => {
+        const inTags = norma.tags.some((tag) => tag.toLowerCase().includes(debouncedQuery));
+        return (
+          norma.codigo.toLowerCase().includes(debouncedQuery) ||
+          norma.titulo.toLowerCase().includes(debouncedQuery) ||
+          inTags
+        );
+      });
+    }
+    return next;
+  }, [debouncedQuery, groupedBase]);
+
+  const filteredFlat = useMemo(() => {
+    return CATEGORIAS_ORDEN.flatMap((categoria) => filteredGrouped[categoria]);
+  }, [filteredGrouped]);
+
+  const selectedNorma = useMemo(() => {
+    return filteredFlat.find((n) => n.codigo === selectedCodigo) ?? filteredFlat[0] ?? null;
+  }, [filteredFlat, selectedCodigo]);
+
+  useEffect(() => {
+    if (!selectedNorma) return;
+    if (selectedNorma.codigo !== selectedCodigo) {
+      setSelectedCodigo(selectedNorma.codigo);
+    }
+  }, [selectedCodigo, selectedNorma]);
+
+  const normaCodigoSet = useMemo(() => new Set(normas.map((n) => n.codigo)), [normas]);
+
+  function renderLinkedText(text: string): React.ReactNode {
+    const parts = text.split(/(NIA\s*-?\s*\d{3})/gi);
+    return parts.map((part, idx) => {
+      const normalized = normalizeNormaToken(part);
+      if (normaCodigoSet.has(normalized)) {
+        return (
+          <button
+            key={`${part}-${idx}`}
+            type="button"
+            onClick={() => setSelectedCodigo(normalized)}
+            className="font-semibold text-[#002f30] underline underline-offset-2 hover:text-[#041627]"
+          >
+            {part}
+          </button>
+        );
+      }
+      return <span key={`${part}-${idx}`}>{part}</span>;
     });
-  }, [query]);
-
-  const grouped = useMemo(() => {
-    const categories: Array<NormaEntry["categoria"]> = ["NIA", "NIIF_PYMES", "NIC"];
-    return categories.map((categoria) => ({
-      categoria,
-      items: filteredNormas.filter((n) => n.categoria === categoria),
-    }));
-  }, [filteredNormas]);
-
-  const selectedNorma = useMemo(
-    () => filteredNormas.find((n) => n.codigo === selectedCodigo) ?? filteredNormas[0] ?? null,
-    [filteredNormas, selectedCodigo],
-  );
+  }
 
   const rolePanelClass = useMemo(() => {
     if (role === "junior") return "bg-[#a5eff0]/15 border border-[#89d3d4] text-[#041627]";
-    if (role === "semi") return "bg-slate-50 border border-slate-200 text-slate-700";
+    if (role === "semi") return "bg-white border border-[#89d3d4]/35 text-[#041627]";
     if (role === "senior") return "bg-[#041627]/5 border border-[#041627]/20 text-[#041627]";
-    return "bg-[#001919] text-white border border-[#89d3d4]/20";
+    return "bg-[#041627] text-white border border-[#89d3d4]/25";
   }, [role]);
 
   return (
@@ -66,114 +141,87 @@ export default function BibliotecaPage() {
         <p className="text-sm text-slate-600 mt-2">
           Consulta rápida de NIAs y NIIF para PYMES con explicación adaptada por rol.
         </p>
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] font-semibold">
+          <span className={`rounded-full px-2.5 py-1 border ${role === "junior" ? "bg-[#89d3d4]/20 border-[#89d3d4] text-[#041627]" : "border-[#041627]/15 text-slate-500"}`}>Junior</span>
+          <span className={`rounded-full px-2.5 py-1 border ${role === "semi" ? "bg-[#a5eff0]/20 border-[#89d3d4] text-[#041627]" : "border-[#041627]/15 text-slate-500"}`}>Semi</span>
+          <span className={`rounded-full px-2.5 py-1 border ${role === "senior" ? "bg-[#041627]/10 border-[#041627]/30 text-[#041627]" : "border-[#041627]/15 text-slate-500"}`}>Senior</span>
+          <span className={`rounded-full px-2.5 py-1 border ${role === "socio" ? "bg-[#041627] border-[#89d3d4]/35 text-[#89d3d4]" : "border-[#041627]/15 text-slate-500"}`}>Socio</span>
+        </div>
       </header>
 
-      <div className="md:hidden sovereign-card space-y-3">
-        <label className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
-          Buscar norma
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ej: 315, inventarios, materialidad"
-            className="mt-2 w-full rounded-lg border border-[#041627]/15 bg-[#f1f4f6] px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#89d3d4] focus:outline-none"
-          />
-        </label>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-[320px_minmax(0,1fr)] gap-6">
-        <aside className="hidden md:block sovereign-card max-h-[calc(100vh-180px)] overflow-auto">
-          <label className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold block mb-3">
-            Buscar norma
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ej: 315, inventarios, materialidad"
-              className="mt-2 w-full rounded-lg border border-[#041627]/15 bg-[#f1f4f6] px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#89d3d4] focus:outline-none"
-            />
-          </label>
-
-          <div className="space-y-5">
-            {grouped.map((group) => (
-              <div key={group.categoria}>
-                <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold mb-2">
-                  {categoriaLabel(group.categoria)}
-                </p>
-                <div className="space-y-2">
-                  {group.items.length === 0 ? (
-                    <p className="text-xs text-slate-400">Sin resultados en esta categoría.</p>
-                  ) : (
-                    group.items.map((norma) => (
-                      <button
-                        key={norma.codigo}
-                        type="button"
-                        onClick={() => setSelectedCodigo(norma.codigo)}
-                        className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
-                          selectedNorma?.codigo === norma.codigo
-                            ? "border-[#89d3d4] bg-[#a5eff0]/10"
-                            : "border-black/10 bg-white hover:bg-slate-50"
-                        }`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <span className="mt-0.5 rounded-full bg-[#041627]/10 px-2 py-0.5 text-[10px] font-bold text-[#041627]">
-                            {norma.codigo}
-                          </span>
-                          <span className="text-xs text-slate-700 line-clamp-2">{norma.titulo}</span>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </div>
+        <aside className="sovereign-card md:max-h-[calc(100vh-180px)] md:overflow-auto">
+          <div className="space-y-3">
+            <label className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold block">
+              Buscar norma
+              <div className="mt-2 relative">
+                <span className="material-symbols-outlined pointer-events-none absolute left-3 top-2.5 text-base text-slate-400">search</span>
+                <input
+                  type="text"
+                  value={queryInput}
+                  onChange={(e) => setQueryInput(e.target.value)}
+                  placeholder="Busca por código, título o tag (ej: NIA 315, inventarios)"
+                  className="w-full rounded-lg border border-[#041627]/15 bg-[#f1f4f6] pl-10 pr-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#89d3d4] focus:outline-none"
+                />
               </div>
-            ))}
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setMobileListOpen((prev) => !prev)}
+              className="md:hidden inline-flex items-center gap-2 rounded-lg border border-[#041627]/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#041627]"
+            >
+              <span className="material-symbols-outlined text-base">{mobileListOpen ? "expand_less" : "expand_more"}</span>
+              {mobileListOpen ? "Ocultar listado" : "Mostrar listado"}
+            </button>
+          </div>
+
+          <div className={`mt-4 space-y-5 ${mobileListOpen ? "block" : "hidden"} md:block`}>
+            {loadingNormas ? (
+              <p className="text-sm text-slate-500">Cargando biblioteca...</p>
+            ) : (
+              CATEGORIAS_ORDEN.map((categoria) => (
+                <div key={categoria}>
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold mb-2">
+                    {categoriaLabel(categoria)}
+                  </p>
+                  <div className="space-y-2">
+                    {filteredGrouped[categoria].length === 0 ? (
+                      <p className="text-xs text-slate-400">Sin resultados en esta categoría.</p>
+                    ) : (
+                      filteredGrouped[categoria].map((norma) => (
+                        <button
+                          key={norma.codigo}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCodigo(norma.codigo);
+                            setMobileListOpen(false);
+                          }}
+                          className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
+                            selectedNorma?.codigo === norma.codigo
+                              ? "border-[#89d3d4] bg-[#a5eff0]/10"
+                              : "border-black/10 bg-white hover:bg-slate-50"
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="mt-0.5 rounded-full bg-[#041627]/10 px-2 py-0.5 text-[10px] font-bold text-[#041627]">
+                              {norma.codigo}
+                            </span>
+                            <span className="text-xs text-slate-700 line-clamp-2">{norma.titulo}</span>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </aside>
 
         <section className="space-y-4">
-          <div className="md:hidden sovereign-card space-y-3">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold">Normas</p>
-            <div className="space-y-2 max-h-80 overflow-auto">
-              {filteredNormas.map((norma) => (
-                <button
-                  key={norma.codigo}
-                  type="button"
-                  onClick={() => {
-                    setSelectedCodigo(norma.codigo);
-                    setMobileDetailOpen(true);
-                  }}
-                  className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
-                    selectedNorma?.codigo === norma.codigo
-                      ? "border-[#89d3d4] bg-[#a5eff0]/10"
-                      : "border-black/10 bg-white hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 rounded-full bg-[#041627]/10 px-2 py-0.5 text-[10px] font-bold text-[#041627]">
-                      {norma.codigo}
-                    </span>
-                    <span className="text-xs text-slate-700">{norma.titulo}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {selectedNorma ? (
-            <article className={`sovereign-card space-y-5 ${mobileDetailOpen ? "block" : "hidden"} md:block`}>
-              <div className="md:hidden">
-                {mobileDetailOpen ? (
-                  <button
-                    type="button"
-                    onClick={() => setMobileDetailOpen(false)}
-                    className="inline-flex items-center gap-2 rounded-lg border border-[#041627]/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#041627]"
-                  >
-                    <span className="material-symbols-outlined text-base">arrow_back</span>
-                    Volver a la lista
-                  </button>
-                ) : null}
-              </div>
-
+            <article className="sovereign-card space-y-5">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-[#041627] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-white">
                   {selectedNorma.codigo}
@@ -188,26 +236,26 @@ export default function BibliotecaPage() {
 
               <div>
                 <h2 className="font-headline text-3xl text-[#041627]">{selectedNorma.titulo}</h2>
-                <p className="text-sm text-slate-700 mt-3 leading-relaxed">{selectedNorma.objetivo}</p>
+                <p className="text-sm text-slate-700 mt-3 leading-relaxed">{renderLinkedText(selectedNorma.objetivo)}</p>
               </div>
 
               <div>
                 <h3 className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold mb-2">Requisitos clave</h3>
                 <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700">
                   {selectedNorma.requisitos_clave.map((item) => (
-                    <li key={item}>{item}</li>
+                    <li key={item}>{renderLinkedText(item)}</li>
                   ))}
                 </ul>
               </div>
 
               <div className={`rounded-xl p-5 ${rolePanelClass}`}>
                 <p className="text-[11px] uppercase tracking-[0.14em] font-bold mb-2">Vista por rol: {roleLabel}</p>
-                <p className="text-sm leading-relaxed">{selectedNorma.vista[role]}</p>
+                <p className="text-sm leading-relaxed">{renderLinkedText(selectedNorma.vista[role])}</p>
               </div>
             </article>
           ) : (
             <article className="sovereign-card text-sm text-slate-600">
-              Selecciona una norma para ver su detalle.
+              No hay normas para mostrar con el filtro actual.
             </article>
           )}
         </section>

@@ -117,8 +117,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-body">
-      <main className="min-h-screen grid grid-cols-1 md:grid-cols-2">
-        <section className="hidden md:flex bg-gradient-to-br from-[#041627] to-[#0d2a3f] text-white p-12 lg:p-16 flex-col justify-between">
+      <main className="min-h-screen grid grid-cols-1 md:grid-cols-[1.15fr_1fr]">
+        <section className="hidden md:flex bg-gradient-to-br from-[#041627] to-[#0d2a3f] text-white p-10 lg:p-16 flex-col justify-between">
           <div className="space-y-8">
             <div>
               <h1 className="font-headline text-6xl leading-none">Socio AI</h1>
@@ -146,7 +146,7 @@ export default function LoginPage() {
           <p className="text-xs uppercase tracking-[0.16em] text-[#a5eff0]">Para firmas de auditoría externa</p>
         </section>
 
-        <section className="flex items-center justify-center p-6 md:p-12">
+        <section className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-12">
           <div className="w-full max-w-lg">
             <div className="mb-8">
               <p className="text-xs uppercase tracking-[0.16em] text-slate-500 font-semibold mb-2">Iniciar sesión</p>
@@ -167,7 +167,7 @@ export default function LoginPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="joaosalas123@gmail.com"
-                    className="w-full bg-[#f1f4f6] border border-[rgba(196,198,205,0.35)] rounded-xl px-4 py-4 focus:ring-0 focus:border-[#89d3d4] transition-all outline-none text-slate-900 placeholder:text-slate-400"
+                    className="w-full bg-[#f1f4f6] border border-[rgba(196,198,205,0.35)] rounded-xl px-4 py-4 focus:ring-0 focus:border-[#89d3d4] focus-visible:ring-2 focus-visible:ring-[#89d3d4]/60 transition-all outline-none text-slate-900 placeholder:text-slate-400"
                     autoComplete="username"
                   />
                 </div>
@@ -179,10 +179,10 @@ export default function LoginPage() {
                     </label>
                     <button
                       type="button"
-                      className="text-[11px] uppercase tracking-widest font-semibold text-[#002f30] hover:text-[#001919] transition-colors"
-                      onClick={() => setShowPassword((v) => !v)}
-                    >
-                      {showPassword ? "Ocultar" : "Mostrar"}
+                    className="text-[11px] uppercase tracking-widest font-semibold text-[#002f30] hover:text-[#001919] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#89d3d4]/70 rounded-md transition-colors"
+                    onClick={() => setShowPassword((v) => !v)}
+                  >
+                    {showPassword ? "Ocultar" : "Mostrar"}
                     </button>
                   </div>
                   <input
@@ -192,7 +192,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="1234"
-                    className="w-full bg-[#f1f4f6] border border-[rgba(196,198,205,0.35)] rounded-xl px-4 py-4 focus:ring-0 focus:border-[#89d3d4] transition-all outline-none text-slate-900 placeholder:text-slate-400"
+                    className="w-full bg-[#f1f4f6] border border-[rgba(196,198,205,0.35)] rounded-xl px-4 py-4 focus:ring-0 focus:border-[#89d3d4] focus-visible:ring-2 focus-visible:ring-[#89d3d4]/60 transition-all outline-none text-slate-900 placeholder:text-slate-400"
                     autoComplete="current-password"
                   />
                 </div>
@@ -220,13 +220,19 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={isDisabled}
-                  className="w-full text-white py-5 rounded-full font-label font-semibold tracking-wide shadow-lg shadow-[#041627]/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full text-white py-5 rounded-full font-label font-semibold tracking-wide shadow-lg shadow-[#041627]/20 hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#89d3d4] focus-visible:ring-offset-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}
                 >
                   {isLoading ? "Validando credenciales..." : "Iniciar Sesión en Socio AI"}
                 </button>
               </form>
             </div>
+
+            <p className="mt-6 text-center text-sm text-[#002f30]">
+              <a className="underline underline-offset-4 hover:text-[#041627]" href="/landing">
+                ¿Conoces Socio AI? Ver qué hacemos →
+              </a>
+            </p>
           </div>
         </section>
       </main>

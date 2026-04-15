@@ -14,6 +14,8 @@ export type NormaEntry = {
   };
 };
 
+export const NORMA_CATEGORIAS: Array<NormaEntry["categoria"]> = ["NIA", "NIIF_PYMES", "NIC", "NIIF"];
+
 export const NORMAS: NormaEntry[] = [
   {
     codigo: "NIA-200",
@@ -376,3 +378,14 @@ export const NORMAS: NormaEntry[] = [
     },
   },
 ];
+
+export const NORMAS_GROUPED_BY_CATEGORIA: Record<NormaEntry["categoria"], NormaEntry[]> = {
+  NIA: [],
+  NIIF_PYMES: [],
+  NIC: [],
+  NIIF: [],
+};
+
+for (const norma of NORMAS) {
+  NORMAS_GROUPED_BY_CATEGORIA[norma.categoria].push(norma);
+}
