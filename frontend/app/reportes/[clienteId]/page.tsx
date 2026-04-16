@@ -419,7 +419,7 @@ export default function ReportesPage() {
       open: true,
       onConfirm: (sourceType, sourceId, label) => {
         void (async () => {
-          if (!sourceId.trim() || !label.trim()) {
+          if (!sourceId?.trim() || !label?.trim()) {
             setReportMsg("Completa ID de la fuente y etiqueta para vincular la evidencia.");
             return;
           }
@@ -427,8 +427,8 @@ export default function ReportesPage() {
           try {
             await linkDocumentSectionEvidence(clienteId, documentType, sectionId, {
               source_type: sourceType,
-              source_id: sourceId.trim(),
-              label: label.trim(),
+              source_id: (sourceId || "").trim(),
+              label: (label || "").trim(),
             });
             setReportMsg(`Evidencia vinculada en ${documentType} / ${sectionId}`);
             await refreshHistory();
