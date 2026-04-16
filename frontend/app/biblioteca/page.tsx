@@ -27,7 +27,8 @@ function faseLabel(fase: NormaEntry["cuando_aplica"]): string {
   return "Todo el encargo";
 }
 
-function normalizeNormaToken(token: string): string {
+function normalizeNormaToken(token: string | undefined | null): string {
+  if (!token) return "";
   const trimmed = token.trim().toUpperCase();
   const nia = trimmed.match(/NIA\s*-?\s*(\d{3})/);
   if (nia) return `NIA-${nia[1]}`;
@@ -183,11 +184,13 @@ export default function BibliotecaPage() {
 
   const normaCodigoSet = useMemo(() => new Set(normas.map((n) => n.codigo)), [normas]);
 
-  function renderLinkedText(text: string): React.ReactNode {
+  function renderLinkedText(text: string | undefined | null): React.ReactNode {
+    if (!text) return null;
     const parts = text.split(/(NIIF\s*PYMES\s*-?\s*(SECCION\s*)?\d+|NIA\s*-?\s*\d{3}|NIC\s*-?\s*\d+|NIIF\s*-?\s*\d+)/gi);
     return parts.map((part, idx) => {
+      if (!part) return null;
       const normalized = normalizeNormaToken(part);
-      if (normaCodigoSet.has(normalized)) {
+      if (normalized && normaCodigoSet.has(normalized)) {
         return (
           <button
             key={`${part}-${idx}`}
