@@ -16,3 +16,4 @@ requests>=2.31.0
 redis>=5.0.0
 tavily-python>=0.3.0
 weasyprint>=60.0
+Jinja2>=3.0.0

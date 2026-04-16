@@ -88,18 +88,18 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-20 bg-white px-4 md:px-8 py-4 border-b border-[#041627]/10">
+    <header className="sticky top-0 z-20 bg-white px-4 md:px-8 py-4 border-b border-[#041627]/10" role="banner">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="font-body text-xs uppercase tracking-[0.16em] text-slate-500">Ruta</p>
           <h1 className="font-headline text-3xl text-navy-900 leading-tight">
-            {clienteName} <span className="text-slate-400">/</span> {moduleLabel}
+            {clienteName} <span className="text-slate-400 aria-hidden='true'">/</span> {moduleLabel}
           </h1>
-          <div className="mt-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.13em] text-slate-500">
+          <div className="mt-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.13em] text-slate-500" aria-label="Progreso de fases del encargo">
             <span className={phaseIndex >= 1 ? "text-emerald-700 font-semibold" : ""}>Planificación</span>
-            <span>•</span>
+            <span aria-hidden="true">•</span>
             <span className={phaseIndex >= 2 ? "text-emerald-700 font-semibold" : ""}>Ejecución</span>
-            <span>•</span>
+            <span aria-hidden="true">•</span>
             <span className={phaseIndex >= 3 ? "text-emerald-700 font-semibold" : ""}>Informe</span>
           </div>
           <p className="mt-2 text-xs text-slate-600 max-w-2xl">{moduleHint}</p>
@@ -110,31 +110,36 @@ export default function Header() {
           ) : null}
         </div>
 
-        <div className="flex items-center gap-3 md:gap-4">
+        <div className="flex items-center gap-3 md:gap-4" role="toolbar" aria-label="Controles de header">
           {showRealtimeBadge ? (
             <div
-              className="sovereign-card !p-1.5 !px-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-slate-500"
+              className="sovereign-card !p-1.5 !px-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-slate-500 min-h-[44px]"
               title={onlineTooltip}
+              role="status"
+              aria-live="polite"
+              aria-label={`Estado de conexión: ${connected ? "En línea" : reconnecting ? "Reconectando" : "Sin conexión"}. ${onlineCount} miembros en equipo.`}
             >
               <span
                 className={`h-2.5 w-2.5 rounded-full ${
                   connected ? "bg-emerald-500" : reconnecting ? "bg-amber-500" : "bg-slate-400"
                 }`}
+                aria-hidden="true"
               />
               <span>{connected ? "En línea" : reconnecting ? "Reconectando" : "Sin conexión"}</span>
-              <span>•</span>
+              <span aria-hidden="true">•</span>
               <span>{onlineCount} en equipo</span>
             </div>
           ) : null}
           <div data-tour="header-client-switcher">
             <ClientSwitcher clienteId={clienteId} />
           </div>
-          <label className="sovereign-card !p-1.5 !px-2 flex items-center gap-2">
+          <label className="sovereign-card !p-1.5 !px-2 flex items-center gap-2 min-h-[44px]">
             <span className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Nivel</span>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as LearningRole)}
-              className="bg-transparent text-[11px] text-slate-700 outline-none"
+              className="bg-transparent text-[11px] text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 rounded px-1"
+              aria-label="Cambiar nivel de aprendizaje"
             >
               <option value="junior">Junior</option>
               <option value="semi">Semi Senior</option>
@@ -147,14 +152,16 @@ export default function Header() {
             onClick={() => startTour()}
             disabled={!activeModule}
             data-tour="btn-ver-tutorial"
-            className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627] disabled:opacity-55 disabled:cursor-not-allowed"
+            className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627] disabled:opacity-55 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 rounded min-h-[44px]"
+            aria-label="Ver tutorial del módulo actual"
           >
             Ver tutorial
           </button>
           <button
             type="button"
             onClick={resetTours}
-            className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
+            className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627] focus:outline-none focus:ring-2 focus:ring-blue-500 rounded min-h-[44px]"
+            aria-label="Reiniciar todos los tutoriales"
           >
             Reiniciar tutoriales
           </button>
@@ -162,18 +169,20 @@ export default function Header() {
             <button
               type="button"
               onClick={() => router.push("/admin")}
-              className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
+              className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627] focus:outline-none focus:ring-2 focus:ring-blue-500 rounded min-h-[44px]"
+              aria-label="Ir a panel de administración"
             >
               Admin
             </button>
           ) : null}
-          <div className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500">
+          <div className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 aria-label='Atajo de búsqueda global'">
             Ctrl + K
           </div>
           <button
             type="button"
             onClick={() => void handleLogout()}
-            className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627]"
+            className="sovereign-card !p-2 !px-3 text-[11px] font-body uppercase tracking-[0.14em] text-slate-500 hover:text-[#041627] focus:outline-none focus:ring-2 focus:ring-blue-500 rounded min-h-[44px]"
+            aria-label="Cerrar sesión"
           >
             Cerrar sesión
           </button>

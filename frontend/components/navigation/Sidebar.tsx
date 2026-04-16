@@ -90,15 +90,20 @@ export default function Sidebar() {
     <>
       <button
         type="button"
-        className="lg:hidden fixed left-4 top-4 z-50 sovereign-card !p-2"
+        className="lg:hidden fixed left-4 top-4 z-50 sovereign-card !p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded min-h-[44px] min-w-[44px] flex items-center justify-center"
         onClick={() => setOpenMobile((v) => !v)}
         aria-label="Abrir navegacion"
+        aria-expanded={openMobile}
+        aria-controls="sidebar-nav"
       >
-        <span className="material-symbols-outlined">menu</span>
+        <span className="material-symbols-outlined" aria-hidden="true">menu</span>
       </button>
 
       <aside
+        id="sidebar-nav"
         className={`fixed inset-y-0 left-0 z-40 w-72 bg-[#edf3fa] border-r border-[#041627]/8 transition-transform duration-200 ${openMobile ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+        role="navigation"
+        aria-label="Navegación principal"
       >
         <div className="h-full p-5 flex flex-col min-h-0">
           <div className="mb-8 pt-2 px-2">
@@ -106,7 +111,7 @@ export default function Sidebar() {
             <p className="font-body text-[11px] tracking-[0.16em] uppercase text-slate-500 mt-1">Sovereign Intelligence</p>
           </div>
 
-          <nav className="space-y-2 flex-1 overflow-y-auto pr-1 min-h-0">
+          <nav className="space-y-2 flex-1 overflow-y-auto pr-1 min-h-0" role="menubar">
             {items.map((item) => {
               const active =
                 item.key === "biblioteca" || item.key === "procedimientos"
@@ -163,13 +168,15 @@ export default function Sidebar() {
                                             ? "sidebar-procedimientos"
                                           : undefined
                   }
-                  className={`flex items-center gap-3 rounded-editorial px-4 py-3 transition-colors ${itemClass(active)}`}
+                  className={`flex items-center gap-3 rounded-editorial px-4 py-3 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${itemClass(active)}`}
                   onClick={() => {
                     stopTour();
                     setOpenMobile(false);
                   }}
+                  role="menuitem"
+                  aria-current={active ? "page" : undefined}
                 >
-                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                  <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{item.icon}</span>
                   <span className="font-body text-sm">{item.label}</span>
                 </Link>
               );
@@ -182,9 +189,10 @@ export default function Sidebar() {
               onClick={() => {
                 void logoutSession().finally(() => router.push("/"));
               }}
-            className="w-full flex items-center gap-3 rounded-editorial px-4 py-3 text-slate-600 hover:bg-white/75 transition-colors"
-          >
-              <span className="material-symbols-outlined text-[20px]">logout</span>
+              className="w-full flex items-center gap-3 rounded-editorial px-4 py-3 text-slate-600 hover:bg-white/75 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+              aria-label="Cerrar sesión y volver al login"
+            >
+              <span className="material-symbols-outlined text-[20px]" aria-hidden="true">logout</span>
               <span className="font-body text-sm">Volver al login</span>
             </button>
           </div>

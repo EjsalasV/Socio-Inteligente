@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -25,6 +25,9 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const [inputValue, setInputValue] = useState('');
   const [isMounted, setIsMounted] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = 'confirm-dialog-title';
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -33,6 +36,20 @@ export function ConfirmDialog({
   useEffect(() => {
     if (!isOpen) {
       setInputValue('');
+      // Restore previous focus when dialog closes
+      if (previousFocusRef.current) {
+        previousFocusRef.current.focus();
+      }
+    } else {
+      // Store previous focus when dialog opens
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      // Focus first interactive element in dialog
+      setTimeout(() => {
+        const confirmBtn = dialogRef.current?.querySelector('input, [type="button"]:not([disabled])') as HTMLElement;
+        if (confirmBtn) {
+          confirmBtn.focus();
+        }
+      }, 0);
     }
   }, [isOpen]);
 
@@ -60,17 +77,30 @@ export function ConfirmDialog({
     ? inputValue !== 'CONFIRMAR' || isLoading
     : isLoading;
 
+  if (!isOpen || !isMounted) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="presentation"
+    >
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onCancel}
         aria-hidden="true"
       />
 
-      <div className="relative z-10 w-full max-w-md rounded-lg bg-white shadow-2xl">
+      <div
+        ref={dialogRef}
+        role="alertdialog"
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="relative z-10 w-full max-w-md rounded-lg bg-white shadow-2xl"
+      >
         <div className="border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <h2 id={titleId} className="text-lg font-semibold text-gray-900">
+            {title}
+          </h2>
         </div>
 
         <div className="px-6 py-4">
@@ -79,21 +109,23 @@ export function ConfirmDialog({
           </p>
 
           {isDangerous && (
-            <div className="mb-4 rounded-lg bg-red-50 p-4">
+            <div className="mb-4 rounded-lg bg-red-50 p-4 border border-red-200">
               <p className="mb-2 text-xs font-semibold text-red-900">
-                Esta accion no se puede deshacer.
+                Esta acción no se puede deshacer.
               </p>
-              <p className="mb-3 text-xs text-red-800">
+              <label htmlFor="confirm-input" className="mb-3 block text-xs text-red-800">
                 Escribe "CONFIRMAR" para continuar:
-              </p>
+              </label>
               <input
+                id="confirm-input"
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Escribe CONFIRMAR"
-                className="w-full rounded border border-red-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200"
+                className="w-full rounded border border-red-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 min-h-[44px]"
                 autoFocus
                 disabled={isLoading}
+                aria-describedby="danger-warning"
               />
             </div>
           )}
@@ -103,18 +135,18 @@ export function ConfirmDialog({
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="flex-1 rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1 rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
             disabled={isConfirmDisabled}
-            className={`flex-1 rounded px-4 py-2 text-sm font-medium text-white transition-colors ${
+            className={`flex-1 rounded px-4 py-2 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 ${
               isDangerous
-                ? 'bg-red-600 hover:bg-red-700 disabled:bg-red-300'
-                : 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300'
-            } disabled:cursor-not-allowed`}
+                ? 'bg-red-600 hover:bg-red-700 focus:ring-red-400 disabled:bg-red-300'
+                : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-400 disabled:bg-blue-300'
+            } disabled:cursor-not-allowed min-h-[44px]`}
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
@@ -126,9 +158,9 @@ export function ConfirmDialog({
           </button>
         </div>
 
-        <div className="border-t border-gray-200 bg-gray-50 px-6 py-3">
+        <div id="danger-warning" className="border-t border-gray-200 bg-gray-50 px-6 py-3">
           <p className="text-xs text-gray-500">
-            {isDangerous ? 'Presiona ESC para cancelar' : 'Presiona ESC para cancelar'}
+            Presiona ESC para cancelar
           </p>
         </div>
       </div>
