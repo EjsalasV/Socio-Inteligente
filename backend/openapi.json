@@ -972,6 +972,73 @@
         }
       }
     },
+    "/areas/{cliente_id}/{area_code}/finalize": {
+      "post": {
+        "tags": [
+          "areas"
+        ],
+        "summary": "Finalize Area",
+        "description": "Finaliza/cierra un área con validación cruzada.\n\nQuery params:\n    force_close: Si True, permite cerrar aún con procedimientos faltantes\n\nResponse:\n    {\n        \"status\": \"ok\" | \"warning\",\n        \"data\": {\n            \"area_code\": \"...\",\n            \"closed\": true,\n            \"missing_procedures\": [...],\n            \"audit_logged\": true\n        }\n    }",
+        "operationId": "finalize_area_areas__cliente_id___area_code__finalize_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "area_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Area Code"
+            }
+          },
+          {
+            "name": "force_close",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Force Close"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/chat/{cliente_id}": {
       "post": {
         "tags": [
@@ -4146,6 +4213,602 @@
         }
       }
     },
+    "/api/clientes/{cliente_id}/historicos": {
+      "get": {
+        "tags": [
+          "historicos"
+        ],
+        "summary": "Get Historicos",
+        "description": "Obtiene lista de períodos disponibles con snapshots.\n\nResponse:\n    {\n        \"status\": \"ok\",\n        \"data\": {\n            \"periodos\": [\n                {\"periodo\": \"202501\", \"fecha\": \"2025-01-31T...\", \"snapshot_exists\": true},\n                ...\n            ]\n        }\n    }",
+        "operationId": "get_historicos_api_clientes__cliente_id__historicos_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clientes/{cliente_id}/load-previous-period": {
+      "post": {
+        "tags": [
+          "historicos"
+        ],
+        "summary": "Load Previous Period",
+        "description": "Carga snapshot del período anterior si existe.\n\nResponse:\n    {\n        \"status\": \"ok\",\n        \"data\": {\n            \"periodo_anterior\": \"202412\",\n            \"snapshot_creado\": true,\n            \"mensaje\": \"...\"\n        }\n    }",
+        "operationId": "load_previous_period_api_clientes__cliente_id__load_previous_period_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clientes/{cliente_id}/create-period-snapshot": {
+      "post": {
+        "tags": [
+          "historicos"
+        ],
+        "summary": "Create Period Snapshot",
+        "description": "Crea un snapshot completo de un período.\n\nBody:\n    {\n        \"periodo\": \"202501\",\n        \"activo\": 1000000.0,\n        \"pasivo\": 500000.0,\n        ...\n    }\n\nResponse:\n    {\n        \"status\": \"ok\",\n        \"data\": {\n            \"id\": \"...\",\n            \"periodo\": \"202501\",\n            \"fecha_snapshot\": \"...\"\n        }\n    }",
+        "operationId": "create_period_snapshot_api_clientes__cliente_id__create_period_snapshot_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "periodo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Periodo"
+            }
+          },
+          {
+            "name": "activo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 0.0,
+              "title": "Activo"
+            }
+          },
+          {
+            "name": "pasivo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 0.0,
+              "title": "Pasivo"
+            }
+          },
+          {
+            "name": "patrimonio",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 0.0,
+              "title": "Patrimonio"
+            }
+          },
+          {
+            "name": "ingresos",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 0.0,
+              "title": "Ingresos"
+            }
+          },
+          {
+            "name": "resultado_periodo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 0.0,
+              "title": "Resultado Periodo"
+            }
+          },
+          {
+            "name": "hallazgos_count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Hallazgos Count"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_period_snapshot_api_clientes__cliente_id__create_period_snapshot_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alertas/{cliente_id}": {
+      "get": {
+        "tags": [
+          "alertas"
+        ],
+        "summary": "Get Alertas",
+        "description": "Obtiene todas las alertas activas de un cliente.\n\nResponse:\n    {\n        \"status\": \"ok\",\n        \"data\": {\n            \"alertas\": [\n                {\n                    \"id\": \"...\",\n                    \"tipo\": \"MATERIALIDAD_EXCEDIDA\",\n                    \"severidad\": \"CRITICO\",\n                    \"mensaje\": \"...\",\n                    \"fecha_creada\": \"...\"\n                },\n                ...\n            ],\n            \"total_criticos\": 1,\n            \"total_altos\": 2\n        }\n    }",
+        "operationId": "get_alertas_api_alertas__cliente_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alertas/{alert_id}/resolve": {
+      "post": {
+        "tags": [
+          "alertas"
+        ],
+        "summary": "Resolve Alerta",
+        "description": "Marca una alerta como resuelta.\n\nResponse:\n    {\n        \"status\": \"ok\",\n        \"data\": {\n            \"id\": \"...\",\n            \"resuelto\": true\n        }\n    }",
+        "operationId": "resolve_alerta_api_alertas__alert_id__resolve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "alert_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Alert Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/search": {
+      "get": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Get Search",
+        "description": "Global search endpoint.\n\nQuery Parameters:\n- q: Search query (required)\n- cliente_id: Optional filter by cliente_id\n- filters: Optional JSON-encoded filters dict\n    Example: {\"tipo\": \"hallazgo\", \"severidad\": \"alto\"}\n\nReturns:\n{\n    \"results\": [\n        {\n            \"type\": \"hallazgo\" | \"area\" | \"reporte\" | \"norma\" | \"procedimiento\",\n            \"title\": str,\n            \"id\": str,\n            \"excerpt\": str,\n            \"href\": str,\n            \"metadata\": {...}\n        }\n    ],\n    \"total\": int\n}",
+        "operationId": "get_search_api_search_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "title": "Q"
+            }
+          },
+          {
+            "name": "cliente_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filters"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/search/suggestions": {
+      "get": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Get Search Suggestions",
+        "description": "Get autocomplete suggestions for search input.\n\nQuery Parameters:\n- q: Query prefix (min 2 chars)\n- cliente_id: Optional filter by cliente_id\n- limit: Max suggestions to return (1-20, default 5)\n\nReturns:\n{\n    \"suggestions\": [\n        {\n            \"text\": str,\n            \"type\": \"hallazgo\" | \"area\" | \"reporte\" | \"norma\" | \"procedimiento\",\n            \"id\": str\n        }\n    ]\n}",
+        "operationId": "get_search_suggestions_api_search_suggestions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100,
+              "title": "Q"
+            }
+          },
+          {
+            "name": "cliente_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 5,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reportes/{cliente_id}/export": {
+      "post": {
+        "tags": [
+          "export"
+        ],
+        "summary": "Post Export Reporte",
+        "description": "Export/generate a PDF report.\n\nDEPRECATED: Use POST /api/reportes/{cliente_id}/export/stream instead for direct download.\n\nRequest body:\n{\n    \"report_type\": \"resumen_ejecutivo\" | \"informe_completo\" | \"hallazgos\",\n    \"role\": \"junior\" | \"semi\" | \"senior\" | \"socio\",\n    \"incluir_comparativa\": true | false,\n    \"fecha_periodo\": \"2025-01\" (optional)\n}\n\nReturns:\n{\n    \"url\": \"https://s3.../Reporte_Socio_202501.pdf\",\n    \"nombre\": \"Reporte_Socio_202501.pdf\",\n    \"tamanio_kb\": 125,\n    \"generado_en_ms\": 1500\n}",
+        "operationId": "post_export_reporte_api_reportes__cliente_id__export_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Request Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reportes/{cliente_id}/export/stream": {
+      "post": {
+        "tags": [
+          "export"
+        ],
+        "summary": "Post Export Reporte Stream",
+        "description": "Export/generate a PDF report and return as downloadable file.\n\nRequest body:\n{\n    \"report_type\": \"resumen_ejecutivo\" | \"informe_completo\" | \"hallazgos\",\n    \"role\": \"junior\" | \"semi\" | \"senior\" | \"socio\",\n    \"incluir_comparativa\": true | false,\n    \"fecha_periodo\": \"2025-01\" (optional)\n}\n\nReturns: PDF file stream (application/pdf)",
+        "operationId": "post_export_reporte_stream_api_reportes__cliente_id__export_stream_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Request Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -4633,6 +5296,22 @@
           "request"
         ],
         "title": "Body_analyze_holdings_cascade_endpoint_api_audit_holdings_cascade_analyze_post"
+      },
+      "Body_create_period_snapshot_api_clientes__cliente_id__create_period_snapshot_post": {
+        "properties": {
+          "ratio_values": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Ratio Values"
+          },
+          "top_areas": {
+            "items": {},
+            "type": "array",
+            "title": "Top Areas"
+          }
+        },
+        "type": "object",
+        "title": "Body_create_period_snapshot_api_clientes__cliente_id__create_period_snapshot_post"
       },
       "Body_upload_cliente_documento_clientes__cliente_id__documentos_upload_post": {
         "properties": {

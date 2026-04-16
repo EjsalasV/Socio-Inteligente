@@ -277,10 +277,45 @@ def _generate_html(
         return _template_ejecutivo(context, role)  # Default
 
 
+def _build_indices_html(indices: list[dict[str, Any]], limit: int = 6) -> str:
+    """Build HTML for financial indices."""
+    parts = []
+    for idx in indices[:limit]:
+        parts.append(f"""                <div class="indice-box">
+                    <div class="indice-valor">{idx['valor']}</div>
+                    <div class="indice-nombre">{idx['nombre']}</div>
+                </div>""")
+    return "\n".join(parts)
+
+
+def _build_hallazgos_html(hallazgos: list[dict[str, Any]], limit: int = 3) -> str:
+    """Build HTML for hallazgos section."""
+    if not hallazgos:
+        return ""
+
+    parts = []
+    for h in hallazgos[:limit]:
+        desc = h.get('descripcion', '')[:100]
+        parts.append(f"""                <div class="hallazgo">
+                    <strong>{h['area_codigo']} - {h['area_nombre']}</strong><br>
+                    {desc}...
+                </div>""")
+
+    hallazgos_content = "\n".join(parts)
+    return f"""        <div class="section">
+            <div class="section-title">Hallazgos Significativos ({len(hallazgos)})</div>
+            <div class="hallazgos">
+{hallazgos_content}
+            </div>
+        </div>"""
+
+
 def _template_ejecutivo(context: dict[str, Any], role: str) -> str:
     """Template for executive summary."""
-    return f"""
-    <!DOCTYPE html>
+    indices_html = _build_indices_html(context['indices'], limit=6)
+    hallazgos_html = _build_hallazgos_html(context['hallazgos'], limit=3)
+
+    return f"""    <!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
@@ -348,28 +383,11 @@ def _template_ejecutivo(context: dict[str, Any], role: str) -> str:
         <div class="section">
             <div class="section-title">Índices Financieros</div>
             <div class="indices">
-                {"".join([f'''
-                <div class="indice-box">
-                    <div class="indice-valor">{idx['valor']}</div>
-                    <div class="indice-nombre">{idx['nombre']}</div>
-                </div>
-                ''' for idx in context['indices'][:6]])}
+{indices_html}
             </div>
         </div>
 
-        {"" if not context['hallazgos'] else f'''
-        <div class="section">
-            <div class="section-title">Hallazgos Significativos ({len(context['hallazgos'])})</div>
-            <div class="hallazgos">
-                {"".join([f'''
-                <div class="hallazgo">
-                    <strong>{h['area_codigo']} - {h['area_nombre']}</strong><br>
-                    {h['descripcion'][:100]}...
-                </div>
-                ''' for h in context['hallazgos'][:3]])}
-            </div>
-        </div>
-        '''}
+{hallazgos_html}
 
         <div class="footer">
             <p>Este reporte fue generado automáticamente por Socio AI - Auditoría Inteligente</p>
@@ -380,10 +398,48 @@ def _template_ejecutivo(context: dict[str, Any], role: str) -> str:
     """
 
 
+def _build_indices_table(indices: list[dict[str, Any]]) -> str:
+    """Build HTML table rows for indices."""
+    parts = []
+    for idx in indices:
+        parts.append(f"""                <tr>
+                    <td>{idx['nombre']}</td>
+                    <td>{idx['valor']}</td>
+                    <td>{idx['interpretacion']}</td>
+                </tr>""")
+    return "\n".join(parts)
+
+
+def _build_all_hallazgos_html(hallazgos: list[dict[str, Any]]) -> str:
+    """Build HTML for all hallazgos."""
+    parts = []
+    for h in hallazgos:
+        parts.append(f"""                <div class="hallazgo">
+                    <strong>Área: {h['area_codigo']} - {h['area_nombre']}</strong><br>
+                    <p>{h['descripcion']}</p>
+                </div>""")
+    return "\n".join(parts)
+
+
+def _build_areas_html(areas: list[dict[str, Any]]) -> str:
+    """Build HTML for areas."""
+    parts = []
+    for a in areas:
+        desc = a.get('descripcion', '')[:150]
+        parts.append(f"""            <div class="area-box">
+                <strong>{a['codigo']} - {a['nombre']}</strong><br>
+                {desc}...
+            </div>""")
+    return "\n".join(parts)
+
+
 def _template_completo(context: dict[str, Any], role: str) -> str:
     """Template for complete audit report."""
-    return f"""
-    <!DOCTYPE html>
+    indices_table = _build_indices_table(context['indices'])
+    hallazgos_html = _build_all_hallazgos_html(context['hallazgos'])
+    areas_html = _build_areas_html(context['areas'])
+
+    return f"""    <!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
@@ -457,13 +513,7 @@ def _template_completo(context: dict[str, Any], role: str) -> str:
                     <th>Valor</th>
                     <th>Interpretación</th>
                 </tr>
-                {"".join([f'''
-                <tr>
-                    <td>{idx['nombre']}</td>
-                    <td>{idx['valor']}</td>
-                    <td>{idx['interpretacion']}</td>
-                </tr>
-                ''' for idx in context['indices']])}
+{indices_table}
             </table>
         </div>
 
@@ -471,23 +521,13 @@ def _template_completo(context: dict[str, Any], role: str) -> str:
             <div class="section-title">4. Hallazgos de Auditoría</div>
             <p>Se identificaron <strong>{len(context['hallazgos'])}</strong> hallazgos durante la ejecución de la auditoría.</p>
             <div>
-                {"".join([f'''
-                <div class="hallazgo">
-                    <strong>Área: {h['area_codigo']} - {h['area_nombre']}</strong><br>
-                    <p>{h['descripcion']}</p>
-                </div>
-                ''' for h in context['hallazgos']])}
+{hallazgos_html}
             </div>
         </div>
 
         <div class="section">
             <div class="section-title">5. Áreas Evaluadas</div>
-            {"".join([f'''
-            <div class="area-box">
-                <strong>{a['codigo']} - {a['nombre']}</strong><br>
-                {a['descripcion'][:150]}...
-            </div>
-            ''' for a in context['areas']])}
+{areas_html}
         </div>
 
         <div class="footer">
@@ -500,10 +540,22 @@ def _template_completo(context: dict[str, Any], role: str) -> str:
     """
 
 
+def _build_hallazgos_enumerated(hallazgos: list[dict[str, Any]]) -> str:
+    """Build HTML for enumerated hallazgos."""
+    parts = []
+    for i, h in enumerate(hallazgos):
+        parts.append(f"""        <div class="hallazgo">
+            <strong>{i+1}. {h['area_codigo']} - {h['area_nombre']}</strong><br>
+            <p>{h['descripcion']}</p>
+        </div>""")
+    return "\n".join(parts)
+
+
 def _template_hallazgos(context: dict[str, Any], role: str) -> str:
     """Template for findings-only report."""
-    return f"""
-    <!DOCTYPE html>
+    hallazgos_html = _build_hallazgos_enumerated(context['hallazgos'])
+
+    return f"""    <!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
@@ -544,12 +596,7 @@ def _template_hallazgos(context: dict[str, Any], role: str) -> str:
         </div>
 
         <div class="section-title">Listado de Hallazgos</div>
-        {"".join([f'''
-        <div class="hallazgo">
-            <strong>{i+1}. {h['area_codigo']} - {h['area_nombre']}</strong><br>
-            <p>{h['descripcion']}</p>
-        </div>
-        ''' for i, h in enumerate(context['hallazgos'])])}
+{hallazgos_html}
 
         <div class="footer">
             <p>Reporte de Hallazgos - Socio AI Auditoría Inteligente</p>
