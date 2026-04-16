@@ -236,3 +236,30 @@ export async function getChatHistory(
 ): Promise<ApiEnvelope<{ messages: ChatHistoryItem[] }>> {
   return apiFetch<ApiEnvelope<{ messages: ChatHistoryItem[] }>>(`/chat/${clienteId}/history`);
 }
+
+export type NormativeCatalogEntry = {
+  codigo: string;
+  titulo: string;
+  categoria: "NIA" | "NIIF_PYMES" | "NIC" | "NIIF";
+  cuando_aplica: "planificacion" | "ejecucion" | "informe" | "todo";
+  objetivo: string;
+  requisitos_clave: string[];
+  tags: string[];
+  vista: {
+    junior: string;
+    semi: string;
+    senior: string;
+    socio: string;
+  };
+  source_path?: string;
+};
+
+export async function getNormativaCatalogo(): Promise<NormativeCatalogEntry[]> {
+  const response = await apiFetch<ApiEnvelope<{ normas?: unknown[] }>>("/api/normativa/catalogo");
+  const rows = Array.isArray(response?.data?.normas) ? response.data.normas : [];
+  return rows.filter((item): item is NormativeCatalogEntry => {
+    if (!item || typeof item !== "object") return false;
+    const row = item as Record<string, unknown>;
+    return typeof row.codigo === "string" && typeof row.titulo === "string";
+  });
+}

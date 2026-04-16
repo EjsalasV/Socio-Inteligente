@@ -59,6 +59,7 @@ export default function Header() {
     const profileRole = String(session?.role || "").toLowerCase();
     return profileRole === "admin" || profileRole === "socio";
   }, [session?.role]);
+  const showRealtimeBadge = moduleKey !== "biblioteca" && moduleKey !== "procedimientos";
   const moduleHint = useMemo(() => {
     const hints: Record<string, string> = {
       perfil: "Completa marco, materialidad y responsable para habilitar un flujo consistente.",
@@ -72,6 +73,7 @@ export default function Header() {
       "client-memory": "Consolida documentos e historial para mantener contexto del cliente.",
       "estados-financieros": "Liquidez, solvencia y rentabilidad — señales de riesgo financiero para el encargo.",
       biblioteca: "Consulta NIAs y NIIF PYMES resumidas por rol — criterio de referencia rápida.",
+      procedimientos: "Procedimientos, riesgos tipicos y alertas tributarias por area para ejecucion guiada.",
     };
     const base = hints[moduleKey] ?? "Avanza por fases para mantener trazabilidad del encargo.";
     if (role === "junior") return `${base} Si algo no cuadra, pide soporte y registra evidencia minima.`;
@@ -109,19 +111,21 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-3 md:gap-4">
-          <div
-            className="sovereign-card !p-1.5 !px-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-slate-500"
-            title={onlineTooltip}
-          >
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${
-                connected ? "bg-emerald-500" : reconnecting ? "bg-amber-500" : "bg-slate-400"
-              }`}
-            />
-            <span>{connected ? "En línea" : reconnecting ? "Reconectando" : "Sin conexión"}</span>
-            <span>•</span>
-            <span>{onlineCount} en equipo</span>
-          </div>
+          {showRealtimeBadge ? (
+            <div
+              className="sovereign-card !p-1.5 !px-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-slate-500"
+              title={onlineTooltip}
+            >
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  connected ? "bg-emerald-500" : reconnecting ? "bg-amber-500" : "bg-slate-400"
+                }`}
+              />
+              <span>{connected ? "En línea" : reconnecting ? "Reconectando" : "Sin conexión"}</span>
+              <span>•</span>
+              <span>{onlineCount} en equipo</span>
+            </div>
+          ) : null}
           <div data-tour="header-client-switcher">
             <ClientSwitcher clienteId={clienteId} />
           </div>

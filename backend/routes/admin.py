@@ -39,6 +39,18 @@ def _ensure_admin_access(user: UserContext) -> None:
     )
 
 
+def _ensure_role_change_admin_only(user: UserContext) -> None:
+    if _role_norm(user) == "admin":
+        return
+    raise_api_error(
+        status_code=status.HTTP_403_FORBIDDEN,
+        code="ADMIN_ROLE_CHANGE_DENIED",
+        message="Solo perfiles admin pueden crear o modificar roles de usuario.",
+        action_hint="Solicita a un admin que realice el cambio de rol.",
+        retryable=False,
+    )
+
+
 def _admin_write_limit_per_minute() -> int:
     cfg = RUNTIME_CFG.get("rate_limit", {}) if isinstance(RUNTIME_CFG, dict) else {}
     raw = cfg.get("admin_writes_per_minute", 20) if isinstance(cfg, dict) else 20
@@ -106,6 +118,7 @@ def get_users(user: UserContext = Depends(get_current_user)) -> ApiResponse:
 @router.post("/users", response_model=ApiResponse)
 def post_user(payload: AdminUserCreateRequest, user: UserContext = Depends(get_current_user)) -> ApiResponse:
     _ensure_admin_access(user)
+    _ensure_role_change_admin_only(user)
     _enforce_admin_write_rate_limit(user, "create_user")
     try:
         created = identity_store.create_user(
@@ -155,6 +168,8 @@ def patch_user(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     _ensure_admin_access(user)
+    if payload.role is not None:
+        _ensure_role_change_admin_only(user)
     _enforce_admin_write_rate_limit(user, "patch_user")
     patch = payload.model_dump(exclude_none=True)
     try:

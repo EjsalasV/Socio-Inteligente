@@ -67,6 +67,15 @@ export default function RiskEnginePage() {
         <h1 data-tour="risk-title" className="font-headline text-4xl font-bold text-[#041627] tracking-tight">
           Motor de Riesgos - Mapa de Calor de Auditoría
         </h1>
+        <div className="mt-3">
+          <Link
+            href="/procedimientos"
+            className="inline-flex items-center gap-2 rounded-lg border border-[#041627]/20 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#041627] hover:bg-slate-50"
+          >
+            <span className="material-symbols-outlined text-base">fact_check</span>
+            Ver catalogo de procedimientos
+          </Link>
+        </div>
       </header>
 
       <ContextualHelp

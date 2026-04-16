@@ -11,6 +11,8 @@ from typing import Any
 
 import yaml
 from backend.repositories.file_repository import list_documentos, read_hallazgos, read_perfil, read_workflow
+from backend.services.area_procedures_service import get_procedures_by_area, list_areas_with_procedure_count
+from backend.services.expert_criteria_service import get_expert_criteria_by_area, get_expert_criteria_by_sector
 from backend.services.rag_cache_service import build_rag_cache_key, get_cached_chunks, set_cached_chunks
 from backend.services.normativa_monitor_service import get_pending_normative_changes
 from backend.services.prompt_service import render_prompt, validate_minimum_output
@@ -614,6 +616,134 @@ def _query_normalized(text: str) -> str:
     return "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
 
 
+def _detect_area_from_query(query: str) -> dict[str, str] | None:
+    q_norm = _query_normalized(query)
+    if not q_norm:
+        return None
+
+    manual_aliases = {
+        "cxc": "130.1",
+        "cuentas por cobrar": "130.1",
+        "efectivo": "140",
+        "bancos": "140",
+        "inventarios": "110",
+        "cuentas por pagar": "425",
+        "patrimonio": "200",
+        "ingresos": "1500",
+    }
+    for alias, area_code in manual_aliases.items():
+        if alias in q_norm:
+            return {"area_codigo": area_code, "area_nombre": ""}
+
+    areas = list_areas_with_procedure_count()
+    for area in areas:
+        code = str(area.get("area_codigo") or "").strip()
+        name = _query_normalized(str(area.get("area_nombre") or ""))
+        if not code:
+            continue
+        if re.search(rf"(?<!\d){re.escape(code)}(?!\d)", q_norm):
+            return {"area_codigo": code, "area_nombre": str(area.get("area_nombre") or "")}
+        if name and len(name) >= 6 and name in q_norm:
+            return {"area_codigo": code, "area_nombre": str(area.get("area_nombre") or "")}
+    return None
+
+
+def _build_area_procedures_block(area_payload: dict[str, Any]) -> str:
+    area_code = str(area_payload.get("area_codigo") or "").strip()
+    area_name = str(area_payload.get("area_nombre") or "").strip() or f"Area {area_code}"
+    procedures = area_payload.get("procedimientos") if isinstance(area_payload.get("procedimientos"), list) else []
+    risks = area_payload.get("riesgos_tipicos") if isinstance(area_payload.get("riesgos_tipicos"), list) else []
+    tax_alerts = (
+        area_payload.get("alertas_tributarias")
+        if isinstance(area_payload.get("alertas_tributarias"), list)
+        else []
+    )
+
+    lines: list[str] = [f"Area: {area_code} - {area_name}"]
+
+    if procedures:
+        lines.append("Procedimientos clave:")
+        for proc in procedures[:12]:
+            if not isinstance(proc, dict):
+                continue
+            obligation = "obligatorio" if bool(proc.get("obligatorio")) else "opcional"
+            lines.append(
+                f"- [{str(proc.get('id') or '').strip()}] {str(proc.get('descripcion') or '').strip()} "
+                f"(tipo={str(proc.get('tipo') or '').strip()}, afirmacion={str(proc.get('afirmacion') or '').strip()}, "
+                f"{obligation}, ref={str(proc.get('nia_ref') or 'NIA 500').strip()})"
+            )
+
+    if risks:
+        lines.append("Riesgos tipicos por area:")
+        for risk in risks[:10]:
+            if not isinstance(risk, dict):
+                continue
+            lines.append(
+                f"- [{str(risk.get('id') or '').strip()}] {str(risk.get('descripcion') or '').strip()} "
+                f"(nivel={str(risk.get('nivel') or '').strip()}, afirmacion={str(risk.get('afirmacion') or '').strip()})"
+            )
+
+    if tax_alerts:
+        lines.append("Alertas tributarias relacionadas:")
+        for alert in tax_alerts[:10]:
+            if not isinstance(alert, dict):
+                continue
+            lines.append(
+                f"- [{str(alert.get('id') or '').strip()}] {str(alert.get('descripcion') or '').strip()} "
+                f"(nivel={str(alert.get('nivel') or '').strip()}, norma={str(alert.get('norma') or '').strip()})"
+            )
+
+    return "\n".join(lines).strip()
+
+
+def _enrich_context_with_area_procedures(area_codigo: str, context: str) -> str:
+    payload = get_procedures_by_area(area_codigo)
+    block = _build_area_procedures_block(payload)
+    if not block:
+        return context
+    base = str(context or "").strip()
+    if not base:
+        return f"[PROCEDIMIENTOS POR ÁREA]\n{block}"
+    return f"{base}\n\n[PROCEDIMIENTOS POR ÁREA]\n{block}"
+
+
+def _enrich_context_with_expert_criteria(area_codigo: str, sector: str, context: str) -> tuple[str, bool]:
+    base = str(context or "").strip()
+    used = False
+    blocks: list[str] = []
+
+    if str(area_codigo or "").strip():
+        by_area = get_expert_criteria_by_area(area_codigo)
+        area_content = str(by_area.get("content") or "").strip()
+        if area_content:
+            if bool(by_area.get("found", False)):
+                used = True
+            blocks.append(
+                "[CRITERIO EXPERTO - AREA]\n"
+                f"Fuente: {str(by_area.get('source_path') or 'template')}\n"
+                f"{area_content}"
+            )
+
+    if str(sector or "").strip():
+        by_sector = get_expert_criteria_by_sector(sector)
+        sector_content = str(by_sector.get("content") or "").strip()
+        if sector_content:
+            if bool(by_sector.get("found", False)):
+                used = True
+            blocks.append(
+                "[CRITERIO EXPERTO - SECTOR]\n"
+                f"Fuente: {str(by_sector.get('source_path') or 'template')}\n"
+                f"{sector_content}"
+            )
+
+    if not blocks:
+        return base, used
+    merged = "\n\n".join(blocks)
+    if not base:
+        return merged, used
+    return f"{base}\n\n{merged}", used
+
+
 def _procedural_fallback_hint(query: str) -> str:
     q = _query_normalized(query)
     if "efectivo" in q or "banco" in q:
@@ -1138,7 +1268,15 @@ def _append_staleness_warning(answer: str, chunks: list[RetrievedChunk]) -> str:
     return f"{answer.rstrip()}\n\n{all_warnings}"
 
 
-def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], *, mode: str = "chat") -> dict[str, Any]:
+def _fallback_answer(
+    query: str,
+    cliente_id: str,
+    chunks: list[RetrievedChunk],
+    *,
+    mode: str = "chat",
+    area_context: str = "",
+    expert_criteria_used: bool = False,
+) -> dict[str, Any]:
     sources = [c.source for c in chunks]
     first_context = chunks[0].excerpt[:240] if chunks else "Sin contexto recuperado."
     citations: list[dict[str, str]] = []
@@ -1183,11 +1321,13 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
             risk_snapshot = _risk_snapshot(cliente_id)
             provider_label = _current_provider_label()
             procedure_hint = _procedural_fallback_hint(query)
+            area_hint = area_context.strip()
             answer = (
                 "Estoy respondiendo en modo de respaldo porque no hay LLM generativo activo.\n"
                 f"Proveedor detectado: `{provider_label}`.\n\n"
                 f"Consulta: `{query}`\n\n"
                 f"{procedure_hint + chr(10) + chr(10) if procedure_hint else ''}"
+                f"{area_hint + chr(10) + chr(10) if area_hint else ''}"
                 f"Contexto actual:\n{snapshot}\n\n"
                 f"{risk_snapshot if risk_snapshot else 'Aún no tengo ranking con saldo para priorizar áreas.'}\n\n"
                 "Si configuras la API key, paso a respuesta conversacional con razonamiento completo y normativa citada."
@@ -1208,6 +1348,7 @@ def _fallback_answer(query: str, cliente_id: str, chunks: list[RetrievedChunk], 
         "confidence": confidence,
         "prompt_meta": {"prompt_id": "fallback", "prompt_version": "v1"},
         "mode_used": f"{mode}_fallback",
+        "expert_criteria_used": expert_criteria_used,
     }
 
 
@@ -1225,6 +1366,8 @@ def _llm_answer(
     memory_summary: str = "",
     recent_history: list[dict[str, str]] | None = None,
     web_results: list[dict[str, str]] | None = None,
+    area_context: str = "",
+    expert_criteria_used: bool = False,
 ) -> dict[str, Any]:
     provider, api_key = _resolved_provider()
     from openai import OpenAI
@@ -1257,6 +1400,8 @@ def _llm_answer(
         joined_context = f"[SNAPSHOT CLIENTE]\n{snapshot}\n\n{joined_context}".strip()
     if risk_snapshot:
         joined_context = f"{joined_context}\n\n[SNAPSHOT RIESGO]\n{risk_snapshot}".strip()
+    if area_context:
+        joined_context = f"{joined_context}\n\n{area_context}".strip()
     if web_results:
         web_block = "\n\n".join(
             f"[WEB: {r['title']}] {r['url']}\n{r['content']}"
@@ -1361,6 +1506,7 @@ def _llm_answer(
         "model": model,
         "prompt_meta": prompt_meta,
         "mode_used": mode,
+        "expert_criteria_used": expert_criteria_used,
     }
 
 
@@ -1381,6 +1527,33 @@ def generate_chat_response(
         return _payroll_tests_answer(cliente_id)
 
     chunks = _retrieve_chunks(cliente_id, query, top_k=6)
+    area_match = _detect_area_from_query(query)
+    area_code = str((area_match or {}).get("area_codigo") or "").strip()
+    area_context = ""
+    if area_code:
+        area_context = _enrich_context_with_area_procedures(area_code, "")
+
+    sector = ""
+    try:
+        perfil = read_perfil(cliente_id) or {}
+        cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
+        sector_candidates = [
+            cliente.get("sector"),
+            cliente.get("sector_actividad"),
+            perfil.get("sector"),
+            perfil.get("industria"),
+        ]
+        for candidate in sector_candidates:
+            value = str(candidate or "").strip()
+            if value:
+                sector = value
+                break
+    except Exception:
+        sector = ""
+
+    expert_criteria_used = False
+    if area_code or sector:
+        area_context, expert_criteria_used = _enrich_context_with_expert_criteria(area_code, sector, area_context)
 
     # Construir contexto de memoria (resúmenes + mensajes recientes)
     memory_summary: str = ""
@@ -1402,8 +1575,17 @@ def generate_chat_response(
 
     if not _has_llm_credentials():
         if _is_risk_question(query):
-            return _risk_answer(cliente_id, query)
-        return _fallback_answer(query, cliente_id, chunks, mode="chat")
+            risk_payload = _risk_answer(cliente_id, query)
+            risk_payload["expert_criteria_used"] = expert_criteria_used
+            return risk_payload
+        return _fallback_answer(
+            query,
+            cliente_id,
+            chunks,
+            mode="chat",
+            area_context=area_context,
+            expert_criteria_used=expert_criteria_used,
+        )
 
     try:
         if _is_risk_question(query):
@@ -1411,16 +1593,29 @@ def generate_chat_response(
                 query, chunks, mode="judgement_risk", cliente_id=cliente_id,
                 memory_summary=memory_summary, recent_history=recent_history,
                 web_results=web_results or None,
+                area_context=area_context,
+                expert_criteria_used=expert_criteria_used,
             )
         return _llm_answer(
             query, chunks, mode="chat", cliente_id=cliente_id,
             memory_summary=memory_summary, recent_history=recent_history,
             web_results=web_results or None,
+            area_context=area_context,
+            expert_criteria_used=expert_criteria_used,
         )
     except Exception:
         if _is_risk_question(query):
-            return _risk_answer(cliente_id, query)
-        return _fallback_answer(query, cliente_id, chunks, mode="chat")
+            risk_payload = _risk_answer(cliente_id, query)
+            risk_payload["expert_criteria_used"] = expert_criteria_used
+            return risk_payload
+        return _fallback_answer(
+            query,
+            cliente_id,
+            chunks,
+            mode="chat",
+            area_context=area_context,
+            expert_criteria_used=expert_criteria_used,
+        )
 
 
 def generate_metodologia_response(cliente_id: str, area: str) -> dict[str, Any]:

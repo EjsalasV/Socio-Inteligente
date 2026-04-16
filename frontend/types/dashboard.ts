@@ -30,6 +30,14 @@ export interface DashboardWorkflowGate {
   detail: string;
 }
 
+export interface DashboardAreaMaterialidad {
+  area_codigo: string;
+  area_nombre: string;
+  porcentaje_aplicado: number;
+  base_referencia: number;
+  materialidad_sugerida: number;
+}
+
 export interface DashboardResponse {
   cliente_id: string;
   nombre_cliente: string;
@@ -62,6 +70,7 @@ export interface DashboardResponse {
     minimum_threshold_aplicado: number;
     minimum_threshold_origen: string;
   };
+  materialidad_por_area: DashboardAreaMaterialidad[];
   top_areas_page: number;
   top_areas_page_size: number;
   top_areas_total: number;
@@ -103,6 +112,7 @@ export interface DashboardData {
     minimum_threshold_aplicado: number;
     minimum_threshold_origen: string;
   };
+  materialidad_por_area: DashboardAreaMaterialidad[];
   top_areas: AreaRiesgo[];
   top_areas_page: number;
   top_areas_page_size: number;

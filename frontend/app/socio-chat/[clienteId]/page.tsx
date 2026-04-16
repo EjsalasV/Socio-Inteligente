@@ -30,6 +30,7 @@ type ChatMessage = {
   confidence?: number;
   mode_used?: string;
   web_search_used?: boolean;
+  expert_criteria_used?: boolean;
 };
 
 type HistoryMessage = {
@@ -209,6 +210,7 @@ export default function SocioChatPage() {
         confidence: response?.data?.confidence ?? 0,
         mode_used: response?.data?.mode_used ?? "chat",
         web_search_used: response?.data?.web_search_used === true,
+        expert_criteria_used: response?.data?.expert_criteria_used === true,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
@@ -462,6 +464,12 @@ export default function SocioChatPage() {
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
                           <span className="material-symbols-outlined text-[11px]">language</span>
                           Búsqueda web activa
+                        </span>
+                      )}
+                      {msg.expert_criteria_used && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#a5eff0]/25 text-[#002f30] text-[10px] font-bold border border-[#89d3d4]/60">
+                          <span className="material-symbols-outlined text-[11px]">history_edu</span>
+                          Criterio Experto
                         </span>
                       )}
                     </div>

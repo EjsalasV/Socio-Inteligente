@@ -129,6 +129,7 @@ def post_chat(
         prompt_id=str((rag.get("prompt_meta") or {}).get("prompt_id") or ""),
         prompt_version=str((rag.get("prompt_meta") or {}).get("prompt_version") or ""),
         mode_used=str(rag.get("mode_used") or "chat"),
+        expert_criteria_used=bool(rag.get("expert_criteria_used", False)),
     )
     append_chat_message(
         cliente_id,

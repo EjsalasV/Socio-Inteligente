@@ -10,6 +10,7 @@ import ContextualHelp from "../../../../components/help/ContextualHelp";
 import { patchAreaCheck } from "../../../../lib/api/areas";
 import { postAreaBriefing } from "../../../../lib/api/briefing";
 import { postBriefingTiempo, postEstructurarHallazgo } from "../../../../lib/api/hallazgos";
+import { getAreaProcedures, type AreaProcedureDetail } from "../../../../lib/api/procedimientos";
 import { useAreaDetail } from "../../../../lib/hooks/useAreaDetail";
 import { useLearningRole } from "../../../../lib/hooks/useLearningRole";
 import { getLsName, getLsOptions, getLsShortName } from "../../../../lib/lsCatalog";
@@ -61,6 +62,9 @@ export default function AreaWorkspacePage() {
   const [tiempoManual, setTiempoManual] = useState<string>("");
   const [tiempoAI, setTiempoAI] = useState<string>("");
   const [logTiempoMsg, setLogTiempoMsg] = useState<string>("");
+  const [proceduresDetail, setProceduresDetail] = useState<AreaProcedureDetail | null>(null);
+  const [proceduresLoading, setProceduresLoading] = useState<boolean>(false);
+  const [proceduresError, setProceduresError] = useState<string>("");
   const areaNavOptions = useMemo(() => {
     const opts = getLsOptions();
     if (!areaCode) return opts;
@@ -71,6 +75,30 @@ export default function AreaWorkspacePage() {
   useEffect(() => {
     setCuentas(data?.cuentas ?? []);
   }, [data]);
+
+  useEffect(() => {
+    if (!areaCode) return;
+    let active = true;
+    const run = async () => {
+      setProceduresLoading(true);
+      setProceduresError("");
+      try {
+        const payload = await getAreaProcedures(areaCode);
+        if (!active) return;
+        setProceduresDetail(payload);
+      } catch (error: unknown) {
+        if (!active) return;
+        setProceduresError(error instanceof Error ? error.message : "No se pudieron cargar los procedimientos del area.");
+        setProceduresDetail(null);
+      } finally {
+        if (active) setProceduresLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      active = false;
+    };
+  }, [areaCode]);
 
   async function handleToggleCheck(codigo: string, checked: boolean): Promise<void> {
     setCuentas((prev) => prev.map((c) => (c.codigo === codigo ? { ...c, checked } : c)));
@@ -199,6 +227,16 @@ export default function AreaWorkspacePage() {
   const checkedCount = cuentas.filter((c) => c.checked).length;
   const pendingCount = Math.max(cuentas.length - checkedCount, 0);
   const blockingCount = data.aseveraciones.filter((a) => a.riesgo_tipico.toLowerCase().includes("alto")).length;
+  const areaProcedures = proceduresDetail?.procedimientos ?? [];
+  const mandatoryProcedures = areaProcedures.filter((proc) => proc.obligatorio).slice(0, 5);
+  const criticalAssertions = new Set(
+    data.aseveraciones
+      .filter((aseveracion) => aseveracion.riesgo_tipico.toLowerCase().includes("alto"))
+      .map((aseveracion) => normalizeAfirmacion(aseveracion.nombre)),
+  );
+  const socioKeyProcedures = areaProcedures
+    .filter((proc) => proc.obligatorio || criticalAssertions.has(normalizeAfirmacion(proc.afirmacion)))
+    .slice(0, 6);
 
   return (
     <div className="space-y-8 pt-4 pb-8">
@@ -343,6 +381,79 @@ export default function AreaWorkspacePage() {
           )}
         </section>
       )}
+
+      <section className="sovereign-card space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-bold">Procedimientos por área</p>
+            <h3 className="font-headline text-2xl text-[#041627] mt-1">
+              {role === "socio" ? "Riesgo critico → procedimientos clave" : "Panel operativo de procedimientos"}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/procedimientos")}
+            className="rounded-lg border border-[#041627]/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#041627]"
+          >
+            Ver biblioteca completa
+          </button>
+        </div>
+
+        {proceduresLoading ? <p className="text-sm text-slate-500">Cargando procedimientos del area...</p> : null}
+        {proceduresError ? <p className="text-sm text-rose-700">{proceduresError}</p> : null}
+
+        {!proceduresLoading && !proceduresError ? (
+          role === "junior" ? (
+            mandatoryProcedures.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {mandatoryProcedures.map((proc) => (
+                  <article key={proc.id} className="rounded-lg border border-rose-200 bg-rose-50 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.1em] text-rose-700 font-bold">{proc.id}</p>
+                    <p className="font-semibold text-[#041627] mt-1">{proc.descripcion}</p>
+                    <p className="text-xs text-slate-600 mt-2">{proc.afirmacion} · {proc.nia_ref}</p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600">No hay procedimientos obligatorios definidos para esta area.</p>
+            )
+          ) : role === "socio" ? (
+            socioKeyProcedures.length > 0 ? (
+              <div className="space-y-2">
+                {socioKeyProcedures.map((proc) => (
+                  <article key={proc.id} className="rounded-lg border border-[#041627]/15 bg-[#f1f4f6] p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-[#041627]">{proc.id} · {proc.descripcion}</p>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${proc.obligatorio ? "bg-rose-100 text-rose-700" : "bg-slate-200 text-slate-700"}`}>
+                        {proc.obligatorio ? "Clave" : "Complementario"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1">{proc.afirmacion} · {proc.tipo} · {proc.nia_ref}</p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600">No hay procedimientos priorizados para esta area.</p>
+            )
+          ) : areaProcedures.length > 0 ? (
+            <div className="space-y-2">
+              {areaProcedures.slice(0, 8).map((proc) => (
+                <article key={proc.id} className="rounded-lg border border-black/10 bg-white p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-[#041627]">{proc.id} · {proc.descripcion}</p>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${proc.obligatorio ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-700"}`}>
+                      {proc.obligatorio ? "Obligatorio" : "Opcional"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1">{proc.afirmacion} · {proc.tipo} · {proc.nia_ref}</p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-600">No hay procedimientos definidos para esta area en el catalogo.</p>
+          )
+        ) : null}
+      </section>
 
       <section className={`rounded-[2rem] p-1 shadow-editorial ${highRisk ? "bg-gradient-to-br from-[#ba1a1a] to-[#93000a]" : "bg-gradient-to-br from-[#041627] to-[#1a2b3c]"}`}>
         <div className={`rounded-[1.9rem] p-8 border ${highRisk ? "bg-[#ba1a1a] border-white/10" : "bg-[#1a2b3c] border-white/10"} text-white`}>

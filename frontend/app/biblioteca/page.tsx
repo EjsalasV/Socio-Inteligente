@@ -1,20 +1,19 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
+import { getNormativaCatalogo } from "../../lib/api";
 import { useLearningRole } from "../../lib/hooks/useLearningRole";
 import type { NormaEntry } from "../../data/normas";
 
 type CategoriaMap = Record<NormaEntry["categoria"], NormaEntry[]>;
 
-const EMPTY_GROUPS: CategoriaMap = {
-  NIA: [],
-  NIIF_PYMES: [],
-  NIC: [],
-  NIIF: [],
-};
-
 const CATEGORIAS_ORDEN: Array<NormaEntry["categoria"]> = ["NIA", "NIIF_PYMES", "NIC", "NIIF"];
+
+function isKnownCategoria(value: unknown): value is NormaEntry["categoria"] {
+  return value === "NIA" || value === "NIIF_PYMES" || value === "NIC" || value === "NIIF";
+}
 
 function categoriaLabel(categoria: NormaEntry["categoria"]): string {
   if (categoria === "NIIF_PYMES") return "NIIF PYMES";
@@ -32,15 +31,22 @@ function normalizeNormaToken(token: string): string {
   const trimmed = token.trim().toUpperCase();
   const nia = trimmed.match(/NIA\s*-?\s*(\d{3})/);
   if (nia) return `NIA-${nia[1]}`;
+  const nic = trimmed.match(/NIC\s*-?\s*(\d+)/);
+  if (nic) return `NIC-${nic[1]}`;
+  const niifPymes = trimmed.match(/NIIF\s*PYMES\s*-?\s*(SECCION\s*)?(\d+)/);
+  if (niifPymes) return `NIIF-PYMES-${niifPymes[2]}`;
+  const niif = trimmed.match(/NIIF\s*-?\s*(\d+)/);
+  if (niif) return `NIIF-${niif[1]}`;
   return trimmed;
 }
 
 export default function BibliotecaPage() {
   const { role, roleLabel } = useLearningRole();
+  const searchParams = useSearchParams();
 
   const [loadingNormas, setLoadingNormas] = useState<boolean>(true);
   const [normas, setNormas] = useState<NormaEntry[]>([]);
-  const [groupedBase, setGroupedBase] = useState<CategoriaMap>(EMPTY_GROUPS);
+  const [catalogMode, setCatalogMode] = useState<"integrated" | "static">("integrated");
   const [queryInput, setQueryInput] = useState<string>("");
   const [debouncedQuery, setDebouncedQuery] = useState<string>("");
   const [selectedCodigo, setSelectedCodigo] = useState<string>("");
@@ -48,17 +54,61 @@ export default function BibliotecaPage() {
 
   useEffect(() => {
     let active = true;
-    void import("../../data/normas")
-      .then((mod) => {
+    const run = async () => {
+      try {
+        const mod = await import("../../data/normas");
+        const baseNormas = [...mod.NORMAS];
+        let merged = baseNormas;
+
+        try {
+          const dynamicNormas = await getNormativaCatalogo();
+          if (!active) return;
+          const byCode = new Map<string, NormaEntry>();
+
+          // Prioridad 1: catálogo dinámico construido desde data/conocimiento_normativo.
+          for (const raw of dynamicNormas) {
+            const codigo = normalizeNormaToken(String(raw.codigo || ""));
+            if (!codigo) continue;
+            if (!isKnownCategoria(raw.categoria)) continue;
+            const fromApi: NormaEntry = {
+              codigo,
+              titulo: String(raw.titulo || codigo),
+              categoria: raw.categoria,
+              cuando_aplica: raw.cuando_aplica,
+              objetivo: String(raw.objetivo || "Referencia normativa disponible para consulta."),
+              requisitos_clave: Array.isArray(raw.requisitos_clave) ? raw.requisitos_clave.slice(0, 6) : [],
+              tags: Array.isArray(raw.tags) ? raw.tags : [],
+              vista: raw.vista,
+            };
+            byCode.set(codigo, fromApi);
+          }
+
+          // Prioridad 2: completar huecos con la biblioteca estática.
+          for (const norma of baseNormas) {
+            if (!byCode.has(norma.codigo)) {
+              byCode.set(norma.codigo, norma);
+            }
+          }
+
+          merged = Array.from(byCode.values()).sort((a, b) => {
+            const catDelta = CATEGORIAS_ORDEN.indexOf(a.categoria) - CATEGORIAS_ORDEN.indexOf(b.categoria);
+            if (catDelta !== 0) return catDelta;
+            return a.codigo.localeCompare(b.codigo, "es");
+          });
+        } catch {
+          if (active) setCatalogMode("static");
+        }
+
         if (!active) return;
-        setNormas(mod.NORMAS);
-        setGroupedBase(mod.NORMAS_GROUPED_BY_CATEGORIA as CategoriaMap);
-        const defaultNorma = mod.NORMAS.find((n) => n.categoria === "NIA") ?? mod.NORMAS[0];
+        setNormas(merged);
+        const defaultNorma = merged.find((n) => n.categoria === "NIA") ?? merged[0];
         setSelectedCodigo((prev) => prev || defaultNorma?.codigo || "");
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoadingNormas(false);
-      });
+      }
+    };
+
+    void run();
 
     return () => {
       active = false;
@@ -66,11 +116,29 @@ export default function BibliotecaPage() {
   }, []);
 
   useEffect(() => {
+    const rawNorma = String(searchParams.get("norma") || "").trim().toUpperCase();
+    if (!rawNorma) return;
+    const normalized = normalizeNormaToken(rawNorma);
+    if (!normalized) return;
+    setSelectedCodigo(normalized);
+    setMobileListOpen(false);
+  }, [searchParams]);
+
+  useEffect(() => {
     const timeout = window.setTimeout(() => {
       setDebouncedQuery(queryInput.trim().toLowerCase());
     }, 300);
     return () => window.clearTimeout(timeout);
   }, [queryInput]);
+
+  const groupedBase = useMemo(() => {
+    const grouped: CategoriaMap = { NIA: [], NIIF_PYMES: [], NIC: [], NIIF: [] };
+    for (const norma of normas) {
+      if (!grouped[norma.categoria]) continue;
+      grouped[norma.categoria].push(norma);
+    }
+    return grouped;
+  }, [normas]);
 
   const filteredGrouped = useMemo(() => {
     if (!debouncedQuery) return groupedBase;
@@ -107,7 +175,7 @@ export default function BibliotecaPage() {
   const normaCodigoSet = useMemo(() => new Set(normas.map((n) => n.codigo)), [normas]);
 
   function renderLinkedText(text: string): React.ReactNode {
-    const parts = text.split(/(NIA\s*-?\s*\d{3})/gi);
+    const parts = text.split(/(NIIF\s*PYMES\s*-?\s*(SECCION\s*)?\d+|NIA\s*-?\s*\d{3}|NIC\s*-?\s*\d+|NIIF\s*-?\s*\d+)/gi);
     return parts.map((part, idx) => {
       const normalized = normalizeNormaToken(part);
       if (normaCodigoSet.has(normalized)) {
@@ -141,6 +209,11 @@ export default function BibliotecaPage() {
         <p className="text-sm text-slate-600 mt-2">
           Consulta rápida de NIAs y NIIF para PYMES con explicación adaptada por rol.
         </p>
+        {catalogMode === "static" ? (
+          <p className="mt-2 text-xs text-slate-500">
+            Modo local activo: mostrando biblioteca base sin sincronizacion dinamica.
+          </p>
+        ) : null}
         <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] font-semibold">
           <span className={`rounded-full px-2.5 py-1 border ${role === "junior" ? "bg-[#89d3d4]/20 border-[#89d3d4] text-[#041627]" : "border-[#041627]/15 text-slate-500"}`}>Junior</span>
           <span className={`rounded-full px-2.5 py-1 border ${role === "semi" ? "bg-[#a5eff0]/20 border-[#89d3d4] text-[#041627]" : "border-[#041627]/15 text-slate-500"}`}>Semi</span>

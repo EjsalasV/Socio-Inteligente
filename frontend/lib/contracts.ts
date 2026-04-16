@@ -17,6 +17,8 @@ export type ChatResponse = {
   citations?: Array<Record<string, unknown>>;
   confidence?: number;
   mode_used?: string;
+  web_search_used?: boolean;
+  expert_criteria_used?: boolean;
   [key: string]: unknown;
 };
 

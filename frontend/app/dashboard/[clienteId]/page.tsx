@@ -33,6 +33,7 @@ export default function DashboardClientePage() {
 
   // Mostrar la guía de flujo cuando el setup aún no está completo
   const setupIncomplete = data.tb_stage === "sin_saldos" || data.materialidad_global === 0;
+  const materialidadPorArea = (data.materialidad_por_area ?? []).slice(0, 6);
 
   const view =
     role === "socio" ? <DashboardSocio data={data} /> :
@@ -44,10 +45,46 @@ export default function DashboardClientePage() {
     return (
       <div className="space-y-8 pb-8">
         <FlowGuide data={data} clienteId={clienteId} />
+        {materialidadPorArea.length > 0 ? (
+          <section className="sovereign-card">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold mb-2">Materialidad por area</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {materialidadPorArea.map((item) => (
+                <article key={item.area_codigo} className="rounded-lg border border-[#041627]/12 bg-[#f1f4f6] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.1em] text-slate-500 font-bold">{item.area_codigo}</p>
+                  <p className="text-sm font-semibold text-[#041627] mt-1">{item.area_nombre}</p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    {item.porcentaje_aplicado.toFixed(2)}% · ${item.materialidad_sugerida.toLocaleString("es-CO")}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
         {view}
       </div>
     );
   }
 
-  return view;
+  return (
+    <div className="space-y-8 pb-8">
+      {materialidadPorArea.length > 0 ? (
+        <section className="sovereign-card">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold mb-2">Materialidad por area</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {materialidadPorArea.map((item) => (
+              <article key={item.area_codigo} className="rounded-lg border border-[#041627]/12 bg-[#f1f4f6] p-3">
+                <p className="text-[10px] uppercase tracking-[0.1em] text-slate-500 font-bold">{item.area_codigo}</p>
+                <p className="text-sm font-semibold text-[#041627] mt-1">{item.area_nombre}</p>
+                <p className="text-xs text-slate-600 mt-1">
+                  {item.porcentaje_aplicado.toFixed(2)}% · ${item.materialidad_sugerida.toLocaleString("es-CO")}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+      {view}
+    </div>
+  );
 }

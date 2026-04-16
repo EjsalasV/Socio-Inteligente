@@ -84,6 +84,20 @@ function normalizeDashboardPayload(clienteId: string, raw: UnknownRecord): Dashb
             minimum_threshold_aplicado: 0,
             minimum_threshold_origen: "",
           },
+    materialidad_por_area: Array.isArray(raw.materialidad_por_area)
+      ? raw.materialidad_por_area
+          .map((item) => {
+            if (!isRecord(item)) return null;
+            return {
+              area_codigo: asString(item.area_codigo, ""),
+              area_nombre: asString(item.area_nombre, ""),
+              porcentaje_aplicado: asNumber(item.porcentaje_aplicado, 0),
+              base_referencia: asNumber(item.base_referencia, 0),
+              materialidad_sugerida: asNumber(item.materialidad_sugerida, 0),
+            };
+          })
+          .filter((item): item is DashboardData["materialidad_por_area"][number] => item !== null)
+      : [],
     top_areas: topAreasRaw
       .map((item) => {
         if (!isRecord(item)) return null;

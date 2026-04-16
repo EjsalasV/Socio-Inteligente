@@ -24,7 +24,8 @@ type NavItem = {
     | "admin"
     | "socio-chat"
     | "client-memory"
-    | "biblioteca";
+    | "biblioteca"
+    | "procedimientos";
   label: string;
   icon: string;
   href: string;
@@ -79,6 +80,7 @@ export default function Sidebar() {
       { id: "socio-chat", key: "socio-chat", label: "Socio Chat", icon: "forum", href: withCliente("socio-chat") },
       { id: "client-memory", key: "client-memory", label: "Client Memory", icon: "folder_shared", href: withCliente("client-memory") },
       { id: "biblioteca", key: "biblioteca", label: "Biblioteca", icon: "menu_book", href: "/biblioteca" },
+      { id: "procedimientos", key: "procedimientos", label: "Procedimientos", icon: "fact_check", href: "/procedimientos" },
       { id: "reportes", key: "reportes", label: "Reportes", icon: "description", href: withCliente("reportes") },
     ],
     [baseCliente, canManageUsers],
@@ -107,8 +109,8 @@ export default function Sidebar() {
           <nav className="space-y-2 flex-1 overflow-y-auto pr-1 min-h-0">
             {items.map((item) => {
               const active =
-                item.key === "biblioteca"
-                  ? pathname.startsWith("/biblioteca")
+                item.key === "biblioteca" || item.key === "procedimientos"
+                  ? pathname.startsWith(`/${item.key}`)
                   : !baseCliente || item.key === "clientes"
                   ? pathname.startsWith("/clientes") || pathname.startsWith("/onboarding/")
                   : item.key === "areas"
@@ -156,7 +158,9 @@ export default function Sidebar() {
                                         : item.key === "client-memory"
                                           ? "sidebar-client-memory"
                                           : item.key === "biblioteca"
-                                            ? "sidebar-biblioteca"
+                                          ? "sidebar-biblioteca"
+                                          : item.key === "procedimientos"
+                                            ? "sidebar-procedimientos"
                                           : undefined
                   }
                   className={`flex items-center gap-3 rounded-editorial px-4 py-3 transition-colors ${itemClass(active)}`}

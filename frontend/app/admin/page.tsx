@@ -21,6 +21,10 @@ function canManageUsers(role: string): boolean {
   return normalized === "admin" || normalized === "socio";
 }
 
+function canEditRoles(role: string): boolean {
+  return String(role || "").trim().toLowerCase() === "admin";
+}
+
 export default function AdminUsersPage() {
   const router = useRouter();
   const { session, loading: sessionLoading } = useUserPreferences();
@@ -52,6 +56,7 @@ export default function AdminUsersPage() {
   );
 
   const isAuthorized = canManageUsers(session?.role || "");
+  const canManageRoles = canEditRoles(session?.role || "");
 
   useEffect(() => {
     if (!hasSessionState()) {
@@ -125,10 +130,11 @@ export default function AdminUsersPage() {
     setError("");
     setOkMessage("");
     try {
+      const safeRole = canManageRoles ? newRole : "auditor";
       const created = await createAdminUser({
         username: newUsername.trim(),
         password: newPassword,
-        role: newRole,
+        role: safeRole,
         display_name: newDisplayName.trim(),
         active: newActive,
         cliente_ids: newClienteIds,
@@ -157,7 +163,7 @@ export default function AdminUsersPage() {
     try {
       const patchPayload: Record<string, unknown> = {};
       if (editDisplayName.trim() !== selectedUser.display_name) patchPayload.display_name = editDisplayName.trim();
-      if (editRole !== selectedUser.role) patchPayload.role = editRole;
+      if (canManageRoles && editRole !== selectedUser.role) patchPayload.role = editRole;
       if (editActive !== selectedUser.active) patchPayload.active = editActive;
       if (editPassword.trim()) patchPayload.password = editPassword;
       const updated = await patchAdminUser(selectedUser.user_id, patchPayload);
@@ -233,6 +239,12 @@ export default function AdminUsersPage() {
         </button>
       </header>
 
+      {!canManageRoles ? (
+        <div className="max-w-[1600px] mx-auto mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Tu perfil puede gestionar usuarios y asignaciones, pero solo <b>admin</b> puede cambiar roles.
+        </div>
+      ) : null}
+
       <main className="max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6">
         <section className="xl:col-span-4 sovereign-card">
           <h2 className="font-headline text-3xl text-[#041627] mb-4">Crear Usuario</h2>
@@ -257,7 +269,12 @@ export default function AdminUsersPage() {
               placeholder="Contrasena inicial"
             />
             <div className="grid grid-cols-2 gap-3">
-              <select className="ghost-input" value={newRole} onChange={(event) => setNewRole(event.target.value)}>
+              <select
+                className="ghost-input disabled:opacity-60"
+                value={canManageRoles ? newRole : "auditor"}
+                onChange={(event) => setNewRole(event.target.value)}
+                disabled={!canManageRoles}
+              >
                 {ROLE_OPTIONS.map((role) => (
                   <option key={role} value={role}>
                     {role}
@@ -357,7 +374,12 @@ export default function AdminUsersPage() {
                 </label>
                 <label className="space-y-2">
                   <span className="text-xs uppercase tracking-[0.12em] text-slate-500 font-semibold">Rol</span>
-                  <select className="ghost-input" value={editRole} onChange={(event) => setEditRole(event.target.value)}>
+                  <select
+                    className="ghost-input disabled:opacity-60"
+                    value={editRole}
+                    onChange={(event) => setEditRole(event.target.value)}
+                    disabled={!canManageRoles}
+                  >
                     {ROLE_OPTIONS.map((role) => (
                       <option key={role} value={role}>
                         {role}

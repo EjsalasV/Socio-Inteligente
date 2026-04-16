@@ -11,7 +11,19 @@
       "Bash(ls *.md *.json)",
       "Bash(ls *.py)",
       "Bash(rm -f diagnostico_normativo_resultado.json diagnostico_normativo_resultado.txt .coverage)",
-      "Bash(rm -rf deploy/ app/)"
+      "Bash(rm -rf deploy/ app/)",
+      "Bash(find \"C:\\\\Users\\\\echoe\\\\Desktop\\\\Nuevo Socio AI\\\\frontend\\\\app\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\) -exec grep -l \"learning_role\\\\|role==\\\\|role===\\\\|role\\\\?\" {} \\\\;)",
+      "Bash(python -m py_compile backend/services/memory_service.py)",
+      "Bash(python -m py_compile backend/repositories/file_repository.py)",
+      "Bash(python -m py_compile backend/services/rag_chat_service.py)",
+      "Bash(python -m py_compile backend/routes/chat.py)",
+      "Bash(python -m pytest tests/test_api_light_load.py tests/test_api_robustness.py tests/test_rag.py -q)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(python -c ':*)",
+      "Bash(ls -1 data/conocimiento_normativo/*/)",
+      "Bash(python -m compileall backend)"
     ]
   }
 }
