@@ -59,7 +59,7 @@ export class FileHandler {
 
       // Create form data
       const formData = new FormData();
-      const blob = new Blob([compressed], { type: 'application/octet-stream' });
+      const blob = new Blob([compressed as BlobPart], { type: 'application/octet-stream' });
       formData.append('file', blob, data.fileName);
       formData.append('area_code', data.areaCode);
       formData.append('area_name', data.areaName);

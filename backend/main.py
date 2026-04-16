@@ -6,6 +6,10 @@ import time
 from typing import Awaitable, Callable
 from uuid import uuid4
 
+# ⚠️ IMPORTANTE: Cargar .env PRIMERO, antes de cualquier otro import
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
