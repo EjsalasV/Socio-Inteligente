@@ -20,6 +20,15 @@ type QaState = {
   ingresos_complejos: boolean;
   partes_relacionadas: boolean;
   multi_moneda: boolean;
+  auditado_anteriormente: boolean;
+  opinion_anterior_calificada: boolean;
+  cambios_management: boolean;
+  presion_resultados: boolean;
+  regulado: boolean;
+  subsidiarias: boolean;
+  litigios: boolean;
+  estimaciones_complejas: boolean;
+  erp_implementado: boolean;
 };
 
 function toClienteId(raw: string | string[] | undefined): string {
@@ -63,6 +72,15 @@ export default function OnboardingClientePage() {
     ingresos_complejos: true,
     partes_relacionadas: true,
     multi_moneda: false,
+    auditado_anteriormente: false,
+    opinion_anterior_calificada: false,
+    cambios_management: false,
+    presion_resultados: false,
+    regulado: false,
+    subsidiarias: false,
+    litigios: false,
+    estimaciones_complejas: false,
+    erp_implementado: false,
   });
 
   useEffect(() => {
@@ -103,6 +121,15 @@ export default function OnboardingClientePage() {
           ingresos_complejos: toBool(cuestionario.ingresos_complejos),
           partes_relacionadas: toBool(cuestionario.partes_relacionadas),
           multi_moneda: toBool(cuestionario.multi_moneda),
+          auditado_anteriormente: toBool(cuestionario.auditado_anteriormente),
+          opinion_anterior_calificada: toBool(cuestionario.opinion_anterior_calificada),
+          cambios_management: toBool(cuestionario.cambios_management),
+          presion_resultados: toBool(cuestionario.presion_resultados),
+          regulado: toBool(cuestionario.regulado),
+          subsidiarias: toBool(cuestionario.subsidiarias),
+          litigios: toBool(cuestionario.litigios),
+          estimaciones_complejas: toBool(cuestionario.estimaciones_complejas),
+          erp_implementado: toBool(cuestionario.erp_implementado),
         });
       } catch {
         if (!active) return;
@@ -305,6 +332,37 @@ export default function OnboardingClientePage() {
                       type="button"
                       onClick={() => updateQa(item.key as keyof QaState)}
                       className={`text-left rounded-xl p-4 border transition-colors ${checked ? "bg-[#002f30] text-white border-[#002f30]" : "bg-white text-slate-700 border-black/10"}`}
+                    >
+                      <p className="text-sm font-semibold">{item.label}</p>
+                    </button>
+                  );
+                })}
+
+                <div className="md:col-span-2 mt-2 mb-1 flex items-center gap-3">
+                  <span className="text-xs uppercase tracking-[0.16em] text-slate-500 font-bold whitespace-nowrap">Factores de Riesgo y Entorno</span>
+                  <div className="flex-1 h-px bg-black/10" />
+                </div>
+
+                {[
+                  { key: "auditado_anteriormente", label: "Cliente auditado en ejercicios anteriores" },
+                  { key: "opinion_anterior_calificada", label: "Opinión anterior con salvedades o adversa", disabled: !qa.auditado_anteriormente },
+                  { key: "cambios_management", label: "Cambios recientes en alta dirección o gerencia" },
+                  { key: "presion_resultados", label: "Existe presión de resultados (deuda, cotización, bonos)" },
+                  { key: "regulado", label: "Entidad regulada (superintendencia, bolsa, gobierno)" },
+                  { key: "subsidiarias", label: "Tiene subsidiarias o estructura holding" },
+                  { key: "litigios", label: "Litigios o contingencias significativas" },
+                  { key: "estimaciones_complejas", label: "Estimaciones contables complejas (deterioro, provisiones, VR)" },
+                  { key: "erp_implementado", label: "Tiene sistema ERP implementado (SAP, Oracle, etc.)" },
+                ].map((item) => {
+                  const checked = qa[item.key as keyof QaState];
+                  const isDisabled = item.disabled === true;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => !isDisabled && updateQa(item.key as keyof QaState)}
+                      disabled={isDisabled}
+                      className={`text-left rounded-xl p-4 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${checked ? "bg-[#002f30] text-white border-[#002f30]" : "bg-white text-slate-700 border-black/10"}`}
                     >
                       <p className="text-sm font-semibold">{item.label}</p>
                     </button>

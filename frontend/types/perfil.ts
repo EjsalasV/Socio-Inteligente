@@ -17,6 +17,7 @@ export interface PerfilFormData {
   riesgo_global: string;
   materialidad_preliminar: string;
   materialidad_preliminar_proyectada: string;
+  materialidad_preliminar_trivial: string;
   materialidad_final_planeacion: string;
   materialidad_final_ejecucion: string;
   umbral_trivialidad_final: string;

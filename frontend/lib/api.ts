@@ -254,6 +254,70 @@ export type NormativeCatalogEntry = {
   source_path?: string;
 };
 
+// ─── Historicos y Snapshots ────────────────────────────────────────────────
+
+export type PeriodInfo = {
+  periodo: string;      // YYYYMM e.g. "202412"
+  fecha: string;        // ISO datetime
+  snapshot_exists: boolean;
+};
+
+export type PeriodSnapshotData = {
+  activo: number;
+  pasivo: number;
+  patrimonio: number;
+  ingresos: number;
+  resultado_periodo: number;
+  hallazgos_count?: number;
+};
+
+export async function getHistoricos(clienteId: string): Promise<PeriodInfo[]> {
+  const response = await apiFetch<ApiEnvelope<{ periodos?: unknown[] }>>(
+    `/api/clientes/${clienteId}/historicos`,
+  );
+  const rows = Array.isArray(response?.data?.periodos) ? response.data.periodos : [];
+  return rows.filter((item): item is PeriodInfo => {
+    if (!item || typeof item !== "object") return false;
+    const r = item as Record<string, unknown>;
+    return typeof r.periodo === "string";
+  });
+}
+
+export async function createPeriodSnapshot(
+  clienteId: string,
+  periodo: string,
+  data: PeriodSnapshotData,
+): Promise<{ id: string; periodo: string }> {
+  const params = new URLSearchParams({
+    periodo,
+    activo: String(data.activo),
+    pasivo: String(data.pasivo),
+    patrimonio: String(data.patrimonio),
+    ingresos: String(data.ingresos),
+    resultado_periodo: String(data.resultado_periodo),
+    hallazgos_count: String(data.hallazgos_count ?? 0),
+  });
+  const response = await apiFetch<ApiEnvelope<{ id: string; periodo: string }>>(
+    `/api/clientes/${clienteId}/create-period-snapshot?${params.toString()}`,
+    { method: "POST" },
+  );
+  return response?.data ?? { id: "", periodo };
+}
+
+export async function getHistoricoSnapshot(
+  clienteId: string,
+  periodo: string,
+): Promise<PeriodSnapshotData | null> {
+  try {
+    const response = await apiFetch<ApiEnvelope<PeriodSnapshotData & { periodo: string }>>(
+      `/api/clientes/${clienteId}/historicos/${periodo}`,
+    );
+    return response?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getNormativaCatalogo(): Promise<NormativeCatalogEntry[]> {
   const response = await apiFetch<ApiEnvelope<{ normas?: unknown[] }>>("/api/normativa/catalogo");
   const rows = Array.isArray(response?.data?.normas) ? response.data.normas : [];

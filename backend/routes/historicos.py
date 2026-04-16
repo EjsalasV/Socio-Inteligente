@@ -197,3 +197,31 @@ def create_period_snapshot(
             message=f"Error creando snapshot: {str(e)}",
             data={},
         )
+
+
+@router.get("/{cliente_id}/historicos/{periodo}", response_model=ApiResponse)
+def get_historico_periodo(
+    cliente_id: str,
+    periodo: str,
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
+    """
+    Obtiene el snapshot de un período específico.
+
+    Response:
+        {
+            "status": "ok",
+            "data": { ...snapshot fields... }
+        }
+    """
+    authorize_cliente_access(cliente_id, user)
+
+    snapshot = get_period_snapshot(cliente_id, periodo)
+    if not snapshot:
+        return ApiResponse(
+            status="error",
+            message=f"No existe snapshot para el período {periodo}.",
+            data={},
+        )
+
+    return ApiResponse(status="ok", data=snapshot)

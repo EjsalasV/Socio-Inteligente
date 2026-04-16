@@ -1537,6 +1537,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/clientes/{cliente_id}/historicos/{periodo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Historico Periodo
+         * @description Obtiene el snapshot de un período específico.
+         *
+         *     Response:
+         *         {
+         *             "status": "ok",
+         *             "data": { ...snapshot fields... }
+         *         }
+         */
+        get: operations["get_historico_periodo_api_clientes__cliente_id__historicos__periodo__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/alertas/{cliente_id}": {
         parameters: {
             query?: never;
@@ -5430,6 +5456,38 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["Body_create_period_snapshot_api_clientes__cliente_id__create_period_snapshot_post"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_historico_periodo_api_clientes__cliente_id__historicos__periodo__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+                periodo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

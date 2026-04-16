@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
@@ -9,6 +9,7 @@ import EstadosFinancierosSemi from "../../../components/estados-financieros/Esta
 import EstadosFinancierosSenior from "../../../components/estados-financieros/EstadosFinancierosSenior";
 import EstadosFinancierosSocio from "../../../components/estados-financieros/EstadosFinancierosSocio";
 import type { FinancialRatio, RatioStatus } from "../../../components/estados-financieros/types";
+import { createPeriodSnapshot, getHistoricos, type PeriodInfo } from "../../../lib/api";
 import { formatMoney } from "../../../lib/formatters";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
@@ -195,11 +196,62 @@ function statusChipTone(status: RatioStatus): string {
   return "bg-rose-100 text-rose-800";
 }
 
+function formatPeriodo(periodo: string): string {
+  // "202412" → "Dic 2024"  |  "202501" → "Ene 2025"
+  if (periodo.length !== 6) return periodo;
+  const months = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  const y = periodo.slice(0, 4);
+  const m = parseInt(periodo.slice(4, 6), 10);
+  return `${months[m - 1] ?? m} ${y}`;
+}
+
 export default function IndicesFinancierosPage() {
   const { clienteId } = useAuditContext();
   const { data, isLoading, error } = useDashboard(clienteId);
   const { role } = useLearningRole();
   const activeRole = normalizeRole(role);
+
+  // ── Gestión de períodos ──────────────────────────────────────
+  const [historicos, setHistoricos] = useState<PeriodInfo[]>([]);
+  const [savingSnapshot, setSavingSnapshot] = useState(false);
+  const [snapshotMsg, setSnapshotMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [showSnapshotForm, setShowSnapshotForm] = useState(false);
+  const [snapshotPeriodo, setSnapshotPeriodo] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+
+  useEffect(() => {
+    if (!clienteId) return;
+    getHistoricos(clienteId)
+      .then((list) => setHistoricos(list))
+      .catch(() => setHistoricos([]));
+  }, [clienteId]);
+
+  async function handleSaveSnapshot(): Promise<void> {
+    if (!clienteId || !data) return;
+    setSavingSnapshot(true);
+    setSnapshotMsg(null);
+    try {
+      await createPeriodSnapshot(clienteId, snapshotPeriodo, {
+        activo: data.activo,
+        pasivo: data.pasivo,
+        patrimonio: data.patrimonio,
+        ingresos: data.ingresos,
+        resultado_periodo: data.resultado_periodo,
+        hallazgos_count: 0,
+      });
+      setSnapshotMsg({ type: "ok", text: `Período ${formatPeriodo(snapshotPeriodo)} guardado correctamente.` });
+      setShowSnapshotForm(false);
+      // Refresh list
+      const updated = await getHistoricos(clienteId);
+      setHistoricos(updated);
+    } catch (e) {
+      setSnapshotMsg({ type: "err", text: e instanceof Error ? e.message : "Error al guardar período." });
+    } finally {
+      setSavingSnapshot(false);
+    }
+  }
 
   const { ac, pc, inventarios } = useMemo(() => {
     let acTotal = 0;
@@ -239,6 +291,75 @@ export default function IndicesFinancierosPage() {
 
   return (
     <div className="pt-4 pb-10 space-y-8 max-w-screen-2xl">
+
+      {/* ── Panel de períodos históricos ── */}
+      <section className="rounded-xl border border-slate-200/60 bg-white shadow-sm p-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Períodos guardados</p>
+            <p className="text-sm text-slate-600 mt-0.5">
+              {historicos.length === 0
+                ? "Aún no hay períodos guardados. Guarda el estado actual para comparar entre años."
+                : `${historicos.length} período${historicos.length > 1 ? "s" : ""} guardado${historicos.length > 1 ? "s" : ""}: ${historicos.map((h) => formatPeriodo(h.periodo)).join(" · ")}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setShowSnapshotForm((v) => !v); setSnapshotMsg(null); }}
+            className="inline-flex items-center gap-2 rounded-lg border border-[#041627]/20 bg-[#041627] text-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] hover:opacity-90"
+          >
+            <span className="material-symbols-outlined text-sm">bookmark_add</span>
+            Guardar período actual
+          </button>
+        </div>
+
+        {showSnapshotForm && data ? (
+          <div className="mt-4 pt-4 border-t border-slate-200 flex flex-wrap items-end gap-4">
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">Período (YYYYMM)</span>
+              <input
+                type="text"
+                value={snapshotPeriodo}
+                onChange={(e) => setSnapshotPeriodo(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="202412"
+                maxLength={6}
+                className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-[#89d3d4] focus:outline-none"
+              />
+              <span className="text-[10px] text-slate-400">Ej: 202412 = Dic 2024</span>
+            </label>
+            <div className="flex flex-col gap-1 text-xs text-slate-600">
+              <span>Se guardará el estado actual:</span>
+              <span>Activo <b>{formatMoney(data.activo, "USD", 0)}</b> · Pasivo <b>{formatMoney(data.pasivo, "USD", 0)}</b> · Ingresos <b>{formatMoney(data.ingresos, "USD", 0)}</b></span>
+            </div>
+            <button
+              type="button"
+              disabled={savingSnapshot || snapshotPeriodo.length !== 6}
+              onClick={() => { void handleSaveSnapshot(); }}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 text-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] disabled:opacity-50 hover:bg-emerald-800"
+            >
+              {savingSnapshot ? "Guardando..." : "Confirmar"}
+            </button>
+          </div>
+        ) : null}
+
+        {snapshotMsg ? (
+          <p className={`mt-3 text-xs font-medium ${snapshotMsg.type === "ok" ? "text-emerald-700" : "text-rose-700"}`}>
+            {snapshotMsg.type === "ok" ? "✓" : "✗"} {snapshotMsg.text}
+          </p>
+        ) : null}
+
+        {historicos.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {historicos.map((h) => (
+              <span key={h.periodo} className="inline-flex items-center gap-1.5 rounded-full border border-[#89d3d4]/50 bg-[#a5eff0]/10 px-3 py-1 text-[11px] font-semibold text-[#041627]">
+                <span className="material-symbols-outlined text-xs">check_circle</span>
+                {formatPeriodo(h.periodo)}
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
+
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Análisis Financiero</p>

@@ -4435,6 +4435,63 @@
         }
       }
     },
+    "/api/clientes/{cliente_id}/historicos/{periodo}": {
+      "get": {
+        "tags": [
+          "historicos"
+        ],
+        "summary": "Get Historico Periodo",
+        "description": "Obtiene el snapshot de un período específico.\n\nResponse:\n    {\n        \"status\": \"ok\",\n        \"data\": { ...snapshot fields... }\n    }",
+        "operationId": "get_historico_periodo_api_clientes__cliente_id__historicos__periodo__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "periodo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Periodo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/alertas/{cliente_id}": {
       "get": {
         "tags": [

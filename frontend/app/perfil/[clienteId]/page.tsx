@@ -68,6 +68,7 @@ function toFormData(perfil: PerfilPayload): PerfilFormData {
     riesgo_global: asString(riesgoGlobal.nivel, "MEDIO").toUpperCase(),
     materialidad_preliminar: toNumberInput(preliminar.materialidad_global),
     materialidad_preliminar_proyectada: toNumberInput(preliminar.materialidad_desempeno),
+    materialidad_preliminar_trivial: toNumberInput(preliminar.error_trivial),
     materialidad_final_planeacion: toNumberInput(final.materialidad_planeacion),
     materialidad_final_ejecucion: toNumberInput(final.materialidad_ejecucion),
     umbral_trivialidad_final: toNumberInput(final.umbral_trivialidad),
@@ -89,15 +90,17 @@ function toPerfilPayload(base: PerfilPayload, form: PerfilFormData): PerfilPaylo
   setNested(next, ["encargo", "norma_auditoria"], form.norma_auditoria);
 
   setNested(next, ["riesgo_global", "nivel"], form.riesgo_global);
+
   const matPreliminar = parseInputNumber(form.materialidad_preliminar);
   const matProyectada = parseInputNumber(form.materialidad_preliminar_proyectada);
+  const matPreliminarTrivial = parseInputNumber(form.materialidad_preliminar_trivial);
   const matFinalPlaneacion = parseInputNumber(form.materialidad_final_planeacion);
   const matFinalEjecucion = parseInputNumber(form.materialidad_final_ejecucion);
   const matFinalTrivial = parseInputNumber(form.umbral_trivialidad_final);
 
   setNested(next, ["materialidad", "preliminar", "materialidad_global"], matPreliminar);
   setNested(next, ["materialidad", "preliminar", "materialidad_desempeno"], matProyectada);
-  setNested(next, ["materialidad", "preliminar", "error_trivial"], matFinalTrivial);
+  setNested(next, ["materialidad", "preliminar", "error_trivial"], matPreliminarTrivial);
   setNested(next, ["materialidad", "final", "materialidad_planeacion"], matFinalPlaneacion);
   setNested(next, ["materialidad", "final", "materialidad_ejecucion"], matFinalEjecucion);
   setNested(next, ["materialidad", "final", "umbral_trivialidad"], matFinalTrivial);
@@ -109,6 +112,13 @@ function toPerfilPayload(base: PerfilPayload, form: PerfilFormData): PerfilPaylo
   setNested(next, ["materialidad", "preliminar", "comentario_base"], form.comentario_materialidad);
 
   return next;
+}
+
+/** Round to 2 decimal places and return as string, or "" if base is empty */
+function autoCalc(globalValue: string, pct: number): string {
+  const base = parseInputNumber(globalValue);
+  if (!base) return "";
+  return String(Math.round(base * pct * 100) / 100);
 }
 
 const MARCOS = ["NIIF para PYMES", "NIIF Plenas", "US GAAP", "Norma local"];
@@ -162,6 +172,26 @@ export default function PerfilClientePage() {
   function updateField<K extends keyof PerfilFormData>(key: K, value: PerfilFormData[K]): void {
     if (!form) return;
     setForm({ ...form, [key]: value });
+  }
+
+  function handlePreliminarGlobalChange(value: string): void {
+    if (!form) return;
+    setForm({
+      ...form,
+      materialidad_preliminar: value,
+      materialidad_preliminar_proyectada: autoCalc(value, 0.75),
+      materialidad_preliminar_trivial: autoCalc(value, 0.05),
+    });
+  }
+
+  function handleFinalGlobalChange(value: string): void {
+    if (!form) return;
+    setForm({
+      ...form,
+      materialidad_final_planeacion: value,
+      materialidad_final_ejecucion: autoCalc(value, 0.75),
+      umbral_trivialidad_final: autoCalc(value, 0.05),
+    });
   }
 
   async function handleSave(): Promise<void> {
@@ -345,6 +375,133 @@ export default function PerfilClientePage() {
               </div>
             </div>
           </article>
+
+          {/* ── Materialidad card ─────────────────────────────────────────── */}
+          <article className="sovereign-card">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="h-px w-8 bg-[#041627]/20" />
+              <h2 className="font-headline text-2xl font-semibold text-[#041627]">Materialidad</h2>
+            </div>
+
+            {/* PRELIMINAR */}
+            <div className="mb-8">
+              <p className="text-xs font-bold tracking-widest uppercase text-slate-500 mb-4">Preliminar</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Global */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold tracking-wider uppercase text-slate-500">Global</span>
+                  <div className="flex items-end gap-2">
+                    <input
+                      type="number"
+                      className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
+                      value={form.materialidad_preliminar}
+                      placeholder="0"
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => handlePreliminarGlobalChange(e.target.value)}
+                    />
+                    <span className="text-sm font-medium text-slate-500 pb-1 shrink-0">USD</span>
+                  </div>
+                </div>
+                {/* Desempeño */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold tracking-wider uppercase text-slate-500">Desempeño <span className="normal-case font-normal text-slate-400">(75%)</span></span>
+                  <div className="flex items-end gap-2">
+                    <input
+                      type="number"
+                      className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
+                      value={form.materialidad_preliminar_proyectada}
+                      placeholder="0"
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_preliminar_proyectada", e.target.value)}
+                    />
+                    <span className="text-sm font-medium text-slate-500 pb-1 shrink-0">USD</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Auto-calculado · editable</p>
+                </div>
+                {/* Trivial */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold tracking-wider uppercase text-slate-500">Trivial <span className="normal-case font-normal text-slate-400">(5%)</span></span>
+                  <div className="flex items-end gap-2">
+                    <input
+                      type="number"
+                      className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
+                      value={form.materialidad_preliminar_trivial}
+                      placeholder="0"
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_preliminar_trivial", e.target.value)}
+                    />
+                    <span className="text-sm font-medium text-slate-500 pb-1 shrink-0">USD</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Auto-calculado · editable</p>
+                </div>
+              </div>
+            </div>
+
+            {/* divider */}
+            <div className="border-t border-slate-100 mb-8" />
+
+            {/* FINAL */}
+            <div className="mb-8">
+              <p className="text-xs font-bold tracking-widest uppercase text-slate-500 mb-4">Final</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Global */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold tracking-wider uppercase text-slate-500">Global</span>
+                  <div className="flex items-end gap-2">
+                    <input
+                      type="number"
+                      className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
+                      value={form.materialidad_final_planeacion}
+                      placeholder="0"
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => handleFinalGlobalChange(e.target.value)}
+                    />
+                    <span className="text-sm font-medium text-slate-500 pb-1 shrink-0">USD</span>
+                  </div>
+                </div>
+                {/* Desempeño */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold tracking-wider uppercase text-slate-500">Desempeño <span className="normal-case font-normal text-slate-400">(75%)</span></span>
+                  <div className="flex items-end gap-2">
+                    <input
+                      type="number"
+                      className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
+                      value={form.materialidad_final_ejecucion}
+                      placeholder="0"
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_final_ejecucion", e.target.value)}
+                    />
+                    <span className="text-sm font-medium text-slate-500 pb-1 shrink-0">USD</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Auto-calculado · editable</p>
+                </div>
+                {/* Trivial */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold tracking-wider uppercase text-slate-500">Trivial <span className="normal-case font-normal text-slate-400">(5%)</span></span>
+                  <div className="flex items-end gap-2">
+                    <input
+                      type="number"
+                      className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
+                      value={form.umbral_trivialidad_final}
+                      placeholder="0"
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("umbral_trivialidad_final", e.target.value)}
+                    />
+                    <span className="text-sm font-medium text-slate-500 pb-1 shrink-0">USD</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Auto-calculado · editable</p>
+                </div>
+              </div>
+            </div>
+
+            {/* divider */}
+            <div className="border-t border-slate-100 mb-6" />
+
+            {/* Comment */}
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-bold tracking-wider uppercase text-slate-500">Comentario de base de materialidad</span>
+              <textarea
+                rows={3}
+                className="ghost-input w-full"
+                value={form.comentario_materialidad}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateField("comentario_materialidad", e.target.value)}
+              />
+            </div>
+          </article>
         </div>
 
         <aside className="lg:col-span-4 space-y-8">
@@ -371,87 +528,16 @@ export default function PerfilClientePage() {
 
           <article className="sovereign-card">
             <h3 className="font-headline text-xl font-semibold text-[#041627] mb-8 italic">Parámetros críticos</h3>
-            <div className="space-y-10">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Riesgo global</span>
-                  <span className="text-xs font-bold text-[#002f30] px-2 py-1 bg-[#a5eff0] rounded-md uppercase">{form.riesgo_global}</span>
-                </div>
-                <div className="relative w-full h-1.5 bg-[#e5e9eb] rounded-full overflow-hidden">
-                  <div className="absolute top-0 left-0 h-full bg-[#002f30]" style={{ width: `${riskBar}%` }} />
-                </div>
-                <div className="flex justify-between text-[10px] text-slate-400 font-medium">
-                  <span>BAJO</span><span>MEDIO</span><span>ALTO</span>
-                </div>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Riesgo global</span>
+                <span className="text-xs font-bold text-[#002f30] px-2 py-1 bg-[#a5eff0] rounded-md uppercase">{form.riesgo_global}</span>
               </div>
-
-              <div className="space-y-4">
-                <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Materialidad preliminar</label>
-                <div className="flex items-end gap-2">
-                  <input
-                    type="number"
-                    className="ghost-input w-full py-3 text-lg font-semibold text-[#041627]"
-                    value={form.materialidad_preliminar}
-                    placeholder="0"
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_preliminar", e.target.value)}
-                  />
-                  <span className="text-sm font-medium text-slate-500 pb-1">USD</span>
-                </div>
-
-                <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Preliminar proyectada (desempeño)</label>
-                <div className="flex items-end gap-2">
-                  <input
-                    type="number"
-                    className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
-                    value={form.materialidad_preliminar_proyectada}
-                    placeholder="0"
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_preliminar_proyectada", e.target.value)}
-                  />
-                  <span className="text-sm font-medium text-slate-500 pb-1">USD</span>
-                </div>
-
-                <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Materialidad final (planeación)</label>
-                <div className="flex items-end gap-2">
-                  <input
-                    type="number"
-                    className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
-                    value={form.materialidad_final_planeacion}
-                    placeholder="0"
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_final_planeacion", e.target.value)}
-                  />
-                  <span className="text-sm font-medium text-slate-500 pb-1">USD</span>
-                </div>
-
-                <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Materialidad final (ejecución)</label>
-                <div className="flex items-end gap-2">
-                  <input
-                    type="number"
-                    className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
-                    value={form.materialidad_final_ejecucion}
-                    placeholder="0"
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("materialidad_final_ejecucion", e.target.value)}
-                  />
-                  <span className="text-sm font-medium text-slate-500 pb-1">USD</span>
-                </div>
-
-                <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Umbral de trivialidad final</label>
-                <div className="flex items-end gap-2">
-                  <input
-                    type="number"
-                    className="ghost-input w-full py-3 text-base font-semibold text-[#041627]"
-                    value={form.umbral_trivialidad_final}
-                    placeholder="0"
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateField("umbral_trivialidad_final", e.target.value)}
-                  />
-                  <span className="text-sm font-medium text-slate-500 pb-1">USD</span>
-                </div>
-
-                <textarea
-                  rows={3}
-                  className="ghost-input w-full"
-                  value={form.comentario_materialidad}
-                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateField("comentario_materialidad", e.target.value)}
-                />
+              <div className="relative w-full h-1.5 bg-[#e5e9eb] rounded-full overflow-hidden">
+                <div className="absolute top-0 left-0 h-full bg-[#002f30]" style={{ width: `${riskBar}%` }} />
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-400 font-medium">
+                <span>BAJO</span><span>MEDIO</span><span>ALTO</span>
               </div>
             </div>
           </article>
