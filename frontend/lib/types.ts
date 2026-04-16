@@ -312,6 +312,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/areas/{cliente_id}/{area_code}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finalize Area
+         * @description Finaliza/cierra un área con validación cruzada.
+         *
+         *     Query params:
+         *         force_close: Si True, permite cerrar aún con procedimientos faltantes
+         *
+         *     Response:
+         *         {
+         *             "status": "ok" | "warning",
+         *             "data": {
+         *                 "area_code": "...",
+         *                 "closed": true,
+         *                 "missing_procedures": [...],
+         *                 "audit_logged": true
+         *             }
+         *         }
+         */
+        post: operations["finalize_area_areas__cliente_id___area_code__finalize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chat/{cliente_id}": {
         parameters: {
             query?: never;
@@ -1404,6 +1438,318 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/clientes/{cliente_id}/historicos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Historicos
+         * @description Obtiene lista de períodos disponibles con snapshots.
+         *
+         *     Response:
+         *         {
+         *             "status": "ok",
+         *             "data": {
+         *                 "periodos": [
+         *                     {"periodo": "202501", "fecha": "2025-01-31T...", "snapshot_exists": true},
+         *                     ...
+         *                 ]
+         *             }
+         *         }
+         */
+        get: operations["get_historicos_api_clientes__cliente_id__historicos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/clientes/{cliente_id}/load-previous-period": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Load Previous Period
+         * @description Carga snapshot del período anterior si existe.
+         *
+         *     Response:
+         *         {
+         *             "status": "ok",
+         *             "data": {
+         *                 "periodo_anterior": "202412",
+         *                 "snapshot_creado": true,
+         *                 "mensaje": "..."
+         *             }
+         *         }
+         */
+        post: operations["load_previous_period_api_clientes__cliente_id__load_previous_period_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/clientes/{cliente_id}/create-period-snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Period Snapshot
+         * @description Crea un snapshot completo de un período.
+         *
+         *     Body:
+         *         {
+         *             "periodo": "202501",
+         *             "activo": 1000000.0,
+         *             "pasivo": 500000.0,
+         *             ...
+         *         }
+         *
+         *     Response:
+         *         {
+         *             "status": "ok",
+         *             "data": {
+         *                 "id": "...",
+         *                 "periodo": "202501",
+         *                 "fecha_snapshot": "..."
+         *             }
+         *         }
+         */
+        post: operations["create_period_snapshot_api_clientes__cliente_id__create_period_snapshot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/alertas/{cliente_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Alertas
+         * @description Obtiene todas las alertas activas de un cliente.
+         *
+         *     Response:
+         *         {
+         *             "status": "ok",
+         *             "data": {
+         *                 "alertas": [
+         *                     {
+         *                         "id": "...",
+         *                         "tipo": "MATERIALIDAD_EXCEDIDA",
+         *                         "severidad": "CRITICO",
+         *                         "mensaje": "...",
+         *                         "fecha_creada": "..."
+         *                     },
+         *                     ...
+         *                 ],
+         *                 "total_criticos": 1,
+         *                 "total_altos": 2
+         *             }
+         *         }
+         */
+        get: operations["get_alertas_api_alertas__cliente_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/alertas/{alert_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve Alerta
+         * @description Marca una alerta como resuelta.
+         *
+         *     Response:
+         *         {
+         *             "status": "ok",
+         *             "data": {
+         *                 "id": "...",
+         *                 "resuelto": true
+         *             }
+         *         }
+         */
+        post: operations["resolve_alerta_api_alertas__alert_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Search
+         * @description Global search endpoint.
+         *
+         *     Query Parameters:
+         *     - q: Search query (required)
+         *     - cliente_id: Optional filter by cliente_id
+         *     - filters: Optional JSON-encoded filters dict
+         *         Example: {"tipo": "hallazgo", "severidad": "alto"}
+         *
+         *     Returns:
+         *     {
+         *         "results": [
+         *             {
+         *                 "type": "hallazgo" | "area" | "reporte" | "norma" | "procedimiento",
+         *                 "title": str,
+         *                 "id": str,
+         *                 "excerpt": str,
+         *                 "href": str,
+         *                 "metadata": {...}
+         *             }
+         *         ],
+         *         "total": int
+         *     }
+         */
+        get: operations["get_search_api_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/search/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Search Suggestions
+         * @description Get autocomplete suggestions for search input.
+         *
+         *     Query Parameters:
+         *     - q: Query prefix (min 2 chars)
+         *     - cliente_id: Optional filter by cliente_id
+         *     - limit: Max suggestions to return (1-20, default 5)
+         *
+         *     Returns:
+         *     {
+         *         "suggestions": [
+         *             {
+         *                 "text": str,
+         *                 "type": "hallazgo" | "area" | "reporte" | "norma" | "procedimiento",
+         *                 "id": str
+         *             }
+         *         ]
+         *     }
+         */
+        get: operations["get_search_suggestions_api_search_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reportes/{cliente_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Export Reporte
+         * @description Export/generate a PDF report.
+         *
+         *     DEPRECATED: Use POST /api/reportes/{cliente_id}/export/stream instead for direct download.
+         *
+         *     Request body:
+         *     {
+         *         "report_type": "resumen_ejecutivo" | "informe_completo" | "hallazgos",
+         *         "role": "junior" | "semi" | "senior" | "socio",
+         *         "incluir_comparativa": true | false,
+         *         "fecha_periodo": "2025-01" (optional)
+         *     }
+         *
+         *     Returns:
+         *     {
+         *         "url": "https://s3.../Reporte_Socio_202501.pdf",
+         *         "nombre": "Reporte_Socio_202501.pdf",
+         *         "tamanio_kb": 125,
+         *         "generado_en_ms": 1500
+         *     }
+         */
+        post: operations["post_export_reporte_api_reportes__cliente_id__export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reportes/{cliente_id}/export/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Export Reporte Stream
+         * @description Export/generate a PDF report and return as downloadable file.
+         *
+         *     Request body:
+         *     {
+         *         "report_type": "resumen_ejecutivo" | "informe_completo" | "hallazgos",
+         *         "role": "junior" | "semi" | "senior" | "socio",
+         *         "incluir_comparativa": true | false,
+         *         "fecha_periodo": "2025-01" (optional)
+         *     }
+         *
+         *     Returns: PDF file stream (application/pdf)
+         */
+        post: operations["post_export_reporte_stream_api_reportes__cliente_id__export_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1708,6 +2054,15 @@ export interface components {
         Body_analyze_holdings_cascade_endpoint_api_audit_holdings_cascade_analyze_post: {
             request: components["schemas"]["HoldingsCascadeAnalysisRequest"];
             current_user?: components["schemas"]["UserContext"];
+        };
+        /** Body_create_period_snapshot_api_clientes__cliente_id__create_period_snapshot_post */
+        Body_create_period_snapshot_api_clientes__cliente_id__create_period_snapshot_post: {
+            /** Ratio Values */
+            ratio_values?: {
+                [key: string]: unknown;
+            };
+            /** Top Areas */
+            top_areas?: unknown[];
         };
         /** Body_upload_cliente_documento_clientes__cliente_id__documentos_upload_post */
         Body_upload_cliente_documento_clientes__cliente_id__documentos_upload_post: {
@@ -2971,6 +3326,40 @@ export interface operations {
                 "application/json": components["schemas"]["AreaConclusionRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finalize_area_areas__cliente_id___area_code__finalize_post: {
+        parameters: {
+            query?: {
+                force_close?: boolean;
+            };
+            header?: never;
+            path: {
+                cliente_id: string;
+                area_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -4944,6 +5333,313 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_historicos_api_clientes__cliente_id__historicos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    load_previous_period_api_clientes__cliente_id__load_previous_period_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_period_snapshot_api_clientes__cliente_id__create_period_snapshot_post: {
+        parameters: {
+            query: {
+                periodo: string;
+                activo?: number;
+                pasivo?: number;
+                patrimonio?: number;
+                ingresos?: number;
+                resultado_periodo?: number;
+                hallazgos_count?: number;
+            };
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_create_period_snapshot_api_clientes__cliente_id__create_period_snapshot_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_alertas_api_alertas__cliente_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_alerta_api_alertas__alert_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_search_api_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                cliente_id?: string | null;
+                filters?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_search_suggestions_api_search_suggestions_get: {
+        parameters: {
+            query: {
+                q: string;
+                cliente_id?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_export_reporte_api_reportes__cliente_id__export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_export_reporte_stream_api_reportes__cliente_id__export_stream_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
