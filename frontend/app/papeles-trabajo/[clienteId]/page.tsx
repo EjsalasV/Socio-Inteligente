@@ -23,6 +23,11 @@ function priorityColor(priority: string): string {
   return "bg-slate-50 text-slate-600 border-slate-200";
 }
 
+function areaProgressPercent(tasks: { done: boolean }[]): number {
+  if (tasks.length === 0) return 0;
+  return Math.round((tasks.filter((t) => t.done).length / tasks.length) * 100);
+}
+
 export default function PapelesTrabajoPage() {
   const { clienteId } = useAuditContext();
   const { role } = useLearningRole();
@@ -31,6 +36,7 @@ export default function PapelesTrabajoPage() {
   const [workflowMsg, setWorkflowMsg] = useState<string>("");
   const [areaFilter, setAreaFilter] = useState<string>("todas");
   const [taskQuery, setTaskQuery] = useState<string>("");
+  const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set());
 
   const groupedTasks = useMemo(() => {
     if (!data) return [];
@@ -320,70 +326,108 @@ export default function PapelesTrabajoPage() {
         </p>
       </section>
 
-      <section data-tour="papeles-tareas" className="space-y-6">
-        {filteredGroups.map((group) => (
-          <article key={`${group.areaCode}-${group.areaName}`} className="sovereign-card">
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <h3 className="font-headline text-3xl text-[#041627]">
-                {group.areaCode} · {group.areaName}
-              </h3>
-              <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">
-                {group.tasks.filter((t) => t.done).length}/{group.tasks.length} completados
-              </span>
-            </div>
+      <section data-tour="papeles-tareas" className="space-y-3">
+        {filteredGroups.map((group) => {
+          const areaKey = `${group.areaCode}-${group.areaName}`;
+          const isExpanded = expandedAreas.has(areaKey);
+          const progress = areaProgressPercent(group.tasks);
+          const completedCount = group.tasks.filter((t) => t.done).length;
 
-            <div className="space-y-4">
-              {group.tasks.map((task) => {
-                const evidenceValue = evidenceDrafts[task.id] ?? task.evidence_note ?? "";
-                return (
-                  <div key={task.id} className="rounded-editorial border border-[#041627]/10 p-4 bg-white">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={task.done}
-                          onChange={(event) => {
-                            void updateTask(task.id, event.target.checked, evidenceValue);
-                          }}
-                          disabled={savingTaskId === task.id}
-                          className="mt-1 h-4 w-4 rounded border-slate-300 text-[#041627] focus:ring-[#041627]"
+          return (
+            <article key={areaKey} className="sovereign-card">
+              <button
+                type="button"
+                onClick={() => {
+                  setExpandedAreas((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(areaKey)) {
+                      next.delete(areaKey);
+                    } else {
+                      next.add(areaKey);
+                    }
+                    return next;
+                  });
+                }}
+                className="w-full flex items-center justify-between gap-4 hover:opacity-75 transition-opacity"
+              >
+                <div className="flex items-center gap-4 flex-1 text-left">
+                  <span className="material-symbols-outlined text-slate-600 transition-transform" style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+                    expand_more
+                  </span>
+                  <div className="flex-1">
+                    <h3 className="font-headline text-xl text-[#041627]">
+                      {group.areaCode} · {group.areaName}
+                    </h3>
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#041627] to-[#1a2b3c] transition-all"
+                          style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
                         />
-                        <span>
-                          <span className="block text-sm font-semibold text-[#041627]">{task.title}</span>
-                          <span className="block text-xs text-slate-500 mt-1">{task.nia_ref}</span>
-                        </span>
-                      </label>
-
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.12em] font-bold border ${priorityColor(task.prioridad)}`}>
-                        {task.prioridad}
+                      </div>
+                      <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">
+                        {completedCount}/{group.tasks.length} ({progress}%)
                       </span>
                     </div>
-
-                    <div className="mt-4">
-                      <label htmlFor={`evidence-${task.id}`} className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
-                        Evidencia
-                      </label>
-                      <textarea
-                        id={`evidence-${task.id}`}
-                        value={evidenceValue}
-                        onChange={(event) => {
-                          setEvidenceDrafts((prev) => ({ ...prev, [task.id]: event.target.value }));
-                        }}
-                        onBlur={() => {
-                          if (evidenceValue !== (task.evidence_note ?? "")) {
-                            void updateTask(task.id, task.done, evidenceValue);
-                          }
-                        }}
-                        placeholder="Soporte del procedimiento, referencia WP, conclusion breve..."
-                        className="mt-2 w-full min-h-[74px] rounded-editorial border border-[#041627]/10 bg-[#f8fbff] px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#041627]/35"
-                      />
-                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </article>
-        ))}
+                </div>
+              </button>
+
+              {isExpanded && (
+                <div className="mt-4 space-y-4 border-t border-[#041627]/10 pt-4">
+                  {group.tasks.map((task) => {
+                    const evidenceValue = evidenceDrafts[task.id] ?? task.evidence_note ?? "";
+                    return (
+                      <div key={task.id} className="rounded-editorial border border-[#041627]/10 p-4 bg-white">
+                        <div className="flex items-start justify-between gap-4 flex-wrap">
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={task.done}
+                              onChange={(event) => {
+                                void updateTask(task.id, event.target.checked, evidenceValue);
+                              }}
+                              disabled={savingTaskId === task.id}
+                              className="mt-1 h-4 w-4 rounded border-slate-300 text-[#041627] focus:ring-[#041627]"
+                            />
+                            <span>
+                              <span className="block text-sm font-semibold text-[#041627]">{task.title}</span>
+                              <span className="block text-xs text-slate-500 mt-1">{task.nia_ref}</span>
+                            </span>
+                          </label>
+
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[0.12em] font-bold border ${priorityColor(task.prioridad)}`}>
+                            {task.prioridad}
+                          </span>
+                        </div>
+
+                        <div className="mt-4">
+                          <label htmlFor={`evidence-${task.id}`} className="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-bold">
+                            Evidencia
+                          </label>
+                          <textarea
+                            id={`evidence-${task.id}`}
+                            value={evidenceValue}
+                            onChange={(event) => {
+                              setEvidenceDrafts((prev) => ({ ...prev, [task.id]: event.target.value }));
+                            }}
+                            onBlur={() => {
+                              if (evidenceValue !== (task.evidence_note ?? "")) {
+                                void updateTask(task.id, task.done, evidenceValue);
+                              }
+                            }}
+                            placeholder="Soporte del procedimiento, referencia WP, conclusion breve..."
+                            className="mt-2 w-full min-h-[74px] rounded-editorial border border-[#041627]/10 bg-[#f8fbff] px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#041627]/35"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </article>
+          );
+        })}
         {filteredGroups.length === 0 ? (
           <article className="sovereign-card text-sm text-slate-600">
             No hay tareas que coincidan con los filtros actuales.

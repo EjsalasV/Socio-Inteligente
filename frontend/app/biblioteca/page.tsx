@@ -47,6 +47,7 @@ export default function BibliotecaPage() {
   const [loadingNormas, setLoadingNormas] = useState<boolean>(true);
   const [normas, setNormas] = useState<NormaEntry[]>([]);
   const [catalogMode, setCatalogMode] = useState<"integrated" | "static">("integrated");
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [queryInput, setQueryInput] = useState<string>("");
   const [debouncedQuery, setDebouncedQuery] = useState<string>("");
   const [selectedCodigo, setSelectedCodigo] = useState<string>("");
@@ -95,8 +96,16 @@ export default function BibliotecaPage() {
             if (catDelta !== 0) return catDelta;
             return a.codigo.localeCompare(b.codigo, "es");
           });
-        } catch {
-          if (active) setCatalogMode("static");
+          if (active) setCatalogError(null);
+        } catch (error) {
+          if (active) {
+            setCatalogMode("static");
+            setCatalogError(
+              error instanceof Error
+                ? `Error al cargar catálogo dinámico: ${error.message}. Usando biblioteca local.`
+                : "Error al cargar catálogo dinámico. Usando biblioteca local."
+            );
+          }
         }
 
         if (!active) return;
@@ -209,7 +218,14 @@ export default function BibliotecaPage() {
         <p className="text-sm text-slate-600 mt-2">
           Consulta rápida de NIAs y NIIF para PYMES con explicación adaptada por rol.
         </p>
-        {catalogMode === "static" ? (
+        {catalogError ? (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs text-amber-800">
+              <span className="font-semibold">⚠️ Advertencia:</span> {catalogError}
+            </p>
+          </div>
+        ) : null}
+        {catalogMode === "static" && !catalogError ? (
           <p className="mt-2 text-xs text-slate-500">
             Modo local activo: mostrando biblioteca base sin sincronizacion dinamica.
           </p>

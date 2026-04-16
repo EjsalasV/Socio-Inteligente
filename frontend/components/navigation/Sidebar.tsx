@@ -50,7 +50,11 @@ export default function Sidebar() {
   }, [session?.role]);
 
   const baseCliente = clienteId || "";
-  const withCliente = (route: string): string => (baseCliente ? `/${route}/${baseCliente}` : "/clientes");
+  const withCliente = (route: string): string => {
+    // Only use clienteId if available, otherwise keep the route without cliente parameter
+    // This prevents unexpected redirects when context is temporarily lost
+    return baseCliente ? `/${route}/${baseCliente}` : `/${route}`;
+  };
 
   const items = useMemo<NavItem[]>(
     () => [

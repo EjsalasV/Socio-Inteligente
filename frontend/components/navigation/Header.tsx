@@ -133,19 +133,22 @@ export default function Header() {
           <div data-tour="header-client-switcher">
             <ClientSwitcher clienteId={clienteId} />
           </div>
-          <label className="sovereign-card !p-1.5 !px-2 flex items-center gap-2 min-h-[44px]">
+          <label className="sovereign-card !p-1.5 !px-2 flex items-center gap-2 min-h-[44px] group relative" title="Cambiar nivel de aprendizaje - Para ver contenido adaptado. No cambia permisos reales.">
             <span className="text-[10px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Nivel</span>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as LearningRole)}
               className="bg-transparent text-[11px] text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 rounded px-1"
-              aria-label="Cambiar nivel de aprendizaje"
+              aria-label="Cambiar nivel de aprendizaje - Solo cambia la visualización del contenido, no los permisos reales"
             >
               <option value="junior">Junior</option>
               <option value="semi">Semi Senior</option>
               <option value="senior">Senior</option>
               <option value="socio">Socio</option>
             </select>
+            <span className="hidden group-hover:block absolute -top-10 left-0 bg-slate-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50">
+              Solo cambiar visualización. Permisos del backend sin cambios.
+            </span>
           </label>
           <button
             type="button"
