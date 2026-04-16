@@ -12,6 +12,7 @@ from typing import Any
 import yaml
 from backend.repositories.file_repository import list_documentos, read_hallazgos, read_perfil, read_workflow
 from backend.services.area_procedures_service import get_procedures_by_area, list_areas_with_procedure_count
+from backend.services.chat_response_cache_service import build_response_cache_key, get_cached_response, set_cached_response
 from backend.services.expert_criteria_service import get_expert_criteria_by_area, get_expert_criteria_by_sector
 from backend.services.rag_cache_service import build_rag_cache_key, get_cached_chunks, set_cached_chunks
 from backend.services.normativa_monitor_service import get_pending_normative_changes
@@ -1510,6 +1511,15 @@ def _llm_answer(
     }
 
 
+def _cache_response_with_ttl(response: dict[str, Any], cache_key: str, ttl_only_success: bool = True) -> dict[str, Any]:
+    """Guarda respuesta en caché si es exitosa (sin cached flag)."""
+    if response and not response.get("cached"):
+        # Solo cachear si fue exitosa (tiene answer o text)
+        if response.get("answer") or response.get("text"):
+            set_cached_response(cache_key, response)
+    return response
+
+
 def generate_chat_response(
     cliente_id: str,
     query: str,
@@ -1519,6 +1529,13 @@ def generate_chat_response(
     user_role: str = "",
 ) -> dict[str, Any]:
     # Respuestas de alto valor y baja latencia, siempre contextuales.
+    # Verificar caché de respuesta (FASE 5: Caché RAG)
+    response_cache_key = build_response_cache_key(cliente_id, query, mode="chat")
+    cached_response = get_cached_response(response_cache_key)
+    if cached_response is not None:
+        cached_response["cached"] = True
+        return cached_response
+
     if _is_data_inventory_question(query):
         return _inventory_answer(cliente_id)
     if _is_next_steps_question(query):
@@ -1575,47 +1592,54 @@ def generate_chat_response(
 
     if not _has_llm_credentials():
         if _is_risk_question(query):
-            risk_payload = _risk_answer(cliente_id, query)
-            risk_payload["expert_criteria_used"] = expert_criteria_used
-            return risk_payload
-        return _fallback_answer(
-            query,
-            cliente_id,
-            chunks,
-            mode="chat",
-            area_context=area_context,
-            expert_criteria_used=expert_criteria_used,
-        )
+            result = _risk_answer(cliente_id, query)
+            result["expert_criteria_used"] = expert_criteria_used
+        else:
+            result = _fallback_answer(
+                query,
+                cliente_id,
+                chunks,
+                mode="chat",
+                area_context=area_context,
+                expert_criteria_used=expert_criteria_used,
+            )
+        set_cached_response(response_cache_key, result)
+        return result
 
     try:
         if _is_risk_question(query):
-            return _llm_answer(
+            result = _llm_answer(
                 query, chunks, mode="judgement_risk", cliente_id=cliente_id,
                 memory_summary=memory_summary, recent_history=recent_history,
                 web_results=web_results or None,
                 area_context=area_context,
                 expert_criteria_used=expert_criteria_used,
             )
-        return _llm_answer(
-            query, chunks, mode="chat", cliente_id=cliente_id,
-            memory_summary=memory_summary, recent_history=recent_history,
-            web_results=web_results or None,
-            area_context=area_context,
-            expert_criteria_used=expert_criteria_used,
-        )
+        else:
+            result = _llm_answer(
+                query, chunks, mode="chat", cliente_id=cliente_id,
+                memory_summary=memory_summary, recent_history=recent_history,
+                web_results=web_results or None,
+                area_context=area_context,
+                expert_criteria_used=expert_criteria_used,
+            )
+        set_cached_response(response_cache_key, result)
+        return result
     except Exception:
         if _is_risk_question(query):
-            risk_payload = _risk_answer(cliente_id, query)
-            risk_payload["expert_criteria_used"] = expert_criteria_used
-            return risk_payload
-        return _fallback_answer(
-            query,
-            cliente_id,
-            chunks,
-            mode="chat",
-            area_context=area_context,
-            expert_criteria_used=expert_criteria_used,
-        )
+            result = _risk_answer(cliente_id, query)
+            result["expert_criteria_used"] = expert_criteria_used
+        else:
+            result = _fallback_answer(
+                query,
+                cliente_id,
+                chunks,
+                mode="chat",
+                area_context=area_context,
+                expert_criteria_used=expert_criteria_used,
+            )
+        set_cached_response(response_cache_key, result)
+        return result
 
 
 def generate_metodologia_response(cliente_id: str, area: str) -> dict[str, Any]:
@@ -1637,3 +1661,4 @@ def generate_judgement_response(cliente_id: str, query: str, *, mode: str = "jud
     except Exception:
         pass
     return _fallback_answer(query, cliente_id, chunks, mode=mode)
+
