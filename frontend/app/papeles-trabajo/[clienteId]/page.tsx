@@ -259,36 +259,47 @@ export default function PapelesTrabajoPage() {
               style={{ width: `${Math.max(0, Math.min(100, data.completion_pct))}%` }}
             />
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const next = await advanceWorkflow(clienteId, "ejecucion");
-                  setWorkflowMsg(`Fase actual: ${next.current_phase.toUpperCase()}.`);
-                } catch (err) {
-                  setWorkflowMsg(err instanceof Error ? err.message : "No se pudo avanzar a ejecucion.");
-                }
-              }}
-              className="px-3 py-2 rounded-xl text-xs font-semibold border border-[#041627]/15 text-[#041627] hover:bg-[#f1f4f6]"
-            >
-              Pasar a Ejecucion
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const next = await advanceWorkflow(clienteId, "informe");
-                  setWorkflowMsg(`Fase actual: ${next.current_phase.toUpperCase()}.`);
-                } catch (err) {
-                  setWorkflowMsg(err instanceof Error ? err.message : "No se pudo avanzar a informe.");
-                }
-              }}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-[#041627] text-white hover:opacity-90"
-            >
-              Pasar a Informe
-            </button>
-          </div>
+          {(role === "senior" || role === "socio") && (
+            <div className="flex items-center gap-2">
+              {role === "senior" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const next = await advanceWorkflow(clienteId, "ejecucion");
+                        setWorkflowMsg(`Fase actual: ${next.current_phase.toUpperCase()}.`);
+                      } catch (err) {
+                        setWorkflowMsg(err instanceof Error ? err.message : "No se pudo avanzar a ejecucion.");
+                      }
+                    }}
+                    className="px-3 py-2 rounded-xl text-xs font-semibold border border-[#041627]/15 text-[#041627] hover:bg-[#f1f4f6]"
+                  >
+                    Pasar a Ejecucion
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const next = await advanceWorkflow(clienteId, "informe");
+                        setWorkflowMsg(`Fase actual: ${next.current_phase.toUpperCase()}.`);
+                      } catch (err) {
+                        setWorkflowMsg(err instanceof Error ? err.message : "No se pudo avanzar a informe.");
+                      }
+                    }}
+                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-[#041627] text-white hover:opacity-90"
+                  >
+                    Pasar a Informe
+                  </button>
+                </>
+              )}
+              {role === "socio" && (
+                <p className="text-xs text-slate-600">
+                  ℹ️ Control de fases solo disponible para Senior
+                </p>
+              )}
+            </div>
+          )}
         </div>
         {workflowMsg ? <p className="mt-3 text-xs text-slate-600">{workflowMsg}</p> : null}
       </section>
