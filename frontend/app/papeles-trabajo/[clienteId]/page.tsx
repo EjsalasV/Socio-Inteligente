@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
@@ -9,8 +9,27 @@ import { advanceWorkflow } from "../../../lib/api/workflow";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useLearningRole } from "../../../lib/hooks/useLearningRole";
 import { useWorkpapers } from "../../../lib/hooks/useWorkpapers";
+import { PapelesTrabajoUpload } from "../../../components/papeles-trabajo/PapelesTrabajoUpload";
+import { FirmasPanel } from "../../../components/papeles-trabajo/FirmasPanel";
+import { ModificacionesHistorial } from "../../../components/papeles-trabajo/ModificacionesHistorial";
 
 type EvidenceDraftMap = Record<string, string>;
+
+interface WorkpaperFile {
+  id: number;
+  area_code: string;
+  area_name: string;
+  version: number;
+  uploaded_by: string;
+  uploaded_at: string;
+  status: string;
+  signatures: {
+    junior: { signed: boolean; signed_at: string | null; signed_by: string | null };
+    senior: { signed: boolean; signed_at: string | null; signed_by: string | null };
+    socio: { signed: boolean; signed_at: string | null; signed_by: string | null };
+  };
+  has_backup: boolean;
+}
 
 function gateColor(status: "ok" | "blocked"): string {
   return status === "ok" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200";
@@ -37,6 +56,34 @@ export default function PapelesTrabajoPage() {
   const [areaFilter, setAreaFilter] = useState<string>("todas");
   const [taskQuery, setTaskQuery] = useState<string>("");
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<"v1" | "v2">("v1");
+  const [v2Files, setV2Files] = useState<WorkpaperFile[]>([]);
+  const [selectedV2File, setSelectedV2File] = useState<WorkpaperFile | null>(null);
+  const [v2Loading, setV2Loading] = useState(false);
+
+  // Load v2 files
+  const loadV2Files = async () => {
+    try {
+      setV2Loading(true);
+      const response = await fetch(`/api/papeles-trabajo/${clienteId}/files`);
+      if (response.ok) {
+        const data = await response.json();
+        setV2Files(data.data.files || []);
+        if (data.data.files && data.data.files.length > 0) {
+          setSelectedV2File(data.data.files[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading v2 files:", err);
+    } finally {
+      setV2Loading(false);
+    }
+  };
+
+  // Load v2 files on mount
+  useEffect(() => {
+    loadV2Files();
+  }, [clienteId]);
 
   const groupedTasks = useMemo(() => {
     if (!data) return [];
@@ -137,8 +184,38 @@ export default function PapelesTrabajoPage() {
         ]}
       />
 
-      {/* Panel de rol */}
-      {role === "junior" && (
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-[#041627]/20">
+        <button
+          onClick={() => setActiveTab("v1")}
+          className={`px-4 py-3 font-semibold text-sm transition-colors ${
+            activeTab === "v1"
+              ? "text-[#041627] border-b-2 border-[#041627]"
+              : "text-slate-600 hover:text-[#041627]"
+          }`}
+        >
+          Tareas en línea (v1)
+        </button>
+        <button
+          onClick={() => setActiveTab("v2")}
+          className={`px-4 py-3 font-semibold text-sm transition-colors flex items-center gap-2 ${
+            activeTab === "v2"
+              ? "text-[#041627] border-b-2 border-[#041627]"
+              : "text-slate-600 hover:text-[#041627]"
+          }`}
+        >
+          Papeles Excel (v2)
+          <span className="inline-block bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+            NUEVO
+          </span>
+        </button>
+      </div>
+
+      {/* V1 Content */}
+      {activeTab === "v1" && (
+        <>
+          {/* Panel de rol */}
+          {role === "junior" && (
         <section className="bg-[#a5eff0]/10 border border-[#a5eff0]/30 rounded-xl p-6 space-y-4">
           <div className="flex items-start gap-4">
             <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#041627] text-[#a5eff0] text-xs font-bold mt-0.5">NIA</span>
@@ -459,6 +536,119 @@ export default function PapelesTrabajoPage() {
           </button>
         </section>
       ) : null}
+        </>
+      )}
+
+      {/* V2 Content: Excel Upload System */}
+      {activeTab === "v2" && (
+        <div className="space-y-6">
+          <section className="rounded-editorial p-7 text-white border border-[#041627]/20 bg-gradient-to-br from-[#041627] to-[#1a2b3c]">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#a5eff0] font-body">Sistema Excel</p>
+            <h2 className="font-headline text-4xl text-white mt-2">Papeles de Trabajo v2 — Carga Excel</h2>
+            <p className="font-body text-slate-200 mt-3 leading-relaxed text-base">
+              Descarga plantillas, completa offline, sube versiones y firma por rol. Sistema de versionamiento automático con historial de cambios.
+            </p>
+          </section>
+
+          {/* V2 Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Sidebar: File List */}
+            <div className="lg:col-span-1">
+              <div className="sovereign-card sticky top-4">
+                <h3 className="font-headline text-xl text-[#041627] mb-4">
+                  Archivos ({v2Files.length})
+                </h3>
+                {v2Loading ? (
+                  <p className="text-sm text-slate-500">Cargando...</p>
+                ) : v2Files.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    No hay archivos. Descarga una plantilla y complétala.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {v2Files.map((file) => (
+                      <button
+                        key={file.id}
+                        onClick={() => setSelectedV2File(file)}
+                        className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                          selectedV2File?.id === file.id
+                            ? "border-[#041627] bg-[#041627]/5"
+                            : "border-[#041627]/20 hover:border-[#041627]/40"
+                        }`}
+                      >
+                        <p className="font-semibold text-sm text-[#041627]">
+                          {file.area_name}
+                        </p>
+                        <p className="text-xs text-slate-600 mt-1">
+                          v{file.version} • {file.status}
+                        </p>
+                        <div className="mt-2 flex gap-1 flex-wrap">
+                          {file.signatures.junior.signed && (
+                            <span className="inline-block bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded font-semibold">
+                              JR ✓
+                            </span>
+                          )}
+                          {file.signatures.senior.signed && (
+                            <span className="inline-block bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded font-semibold">
+                              SR ✓
+                            </span>
+                          )}
+                          {file.signatures.socio.signed && (
+                            <span className="inline-block bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded font-semibold">
+                              SC ✓
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Upload Section */}
+              <PapelesTrabajoUpload
+                clienteId={clienteId}
+                areaCode={selectedV2File?.area_code || ""}
+                areaName={selectedV2File?.area_name || ""}
+                role={role as "junior" | "semi" | "senior" | "socio"}
+                onUploadSuccess={() => loadV2Files()}
+              />
+
+              {/* Signatures Panel */}
+              {selectedV2File && (
+                <FirmasPanel
+                  fileId={selectedV2File.id}
+                  clienteId={clienteId}
+                  areaCode={selectedV2File.area_code}
+                  role={role as "junior" | "semi" | "senior" | "socio"}
+                  signatures={selectedV2File.signatures}
+                  onSignSuccess={() => loadV2Files()}
+                />
+              )}
+
+              {/* Modifications History */}
+              {selectedV2File && (
+                <ModificacionesHistorial
+                  fileId={selectedV2File.id}
+                  modifications={[]}
+                />
+              )}
+
+              {/* Empty State */}
+              {!selectedV2File && v2Files.length > 0 && (
+                <div className="sovereign-card text-center py-8">
+                  <p className="text-slate-600 text-sm">
+                    Selecciona un archivo de la lista para ver detalles y firmar
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
