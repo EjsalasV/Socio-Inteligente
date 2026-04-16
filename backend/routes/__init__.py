@@ -1,4 +1,4 @@
-from . import admin, auth, clientes, perfil, dashboard, risk_engine, areas, chat, metodologia, reportes, workpapers, workflow, briefing, hallazgos, quality, normativa, user_preferences, realtime, audit_validator, audit_programs_dashboard, holdings_cascade_route
+from . import admin, auth, clientes, perfil, dashboard, risk_engine, areas, chat, metodologia, reportes, workpapers, workflow, briefing, hallazgos, quality, normativa, user_preferences, realtime, audit_validator, audit_programs_dashboard, holdings_cascade_route, search, export
 
 __all__ = [
     "admin",
@@ -22,4 +22,6 @@ __all__ = [
     "audit_validator",
     "audit_programs_dashboard",
     "holdings_cascade_route",
+    "search",
+    "export",
 ]

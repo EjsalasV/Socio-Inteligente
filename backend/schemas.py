@@ -633,3 +633,45 @@ class WorkpaperPlanResponse(BaseModel):
     tasks_total: int = 0
     tasks_total_all: int = 0
     tasks_has_more: bool = False
+
+
+# ============================================================================
+# PAGINATION SCHEMAS
+# ============================================================================
+
+class PaginatedResponse(BaseModel):
+    """Generic paginated response wrapper"""
+    data: list[Any]
+    total: int = 0
+    page: int = 1
+    limit: int = 20
+    has_next: bool = False
+    has_prev: bool = False
+
+
+class SearchResult(BaseModel):
+    """Individual search result"""
+    type: Literal["hallazgo", "area", "reporte", "norma", "procedimiento"]
+    title: str
+    id: str
+    excerpt: str
+    href: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SearchResponse(BaseModel):
+    """Search results response"""
+    results: list[SearchResult] = Field(default_factory=list)
+    total: int = 0
+
+
+class SearchSuggestion(BaseModel):
+    """Autocomplete suggestion"""
+    text: str
+    type: Literal["hallazgo", "area", "reporte", "norma", "procedimiento"]
+    id: str
+
+
+class SearchSuggestionsResponse(BaseModel):
+    """Search suggestions response"""
+    suggestions: list[SearchSuggestion] = Field(default_factory=list)

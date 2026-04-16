@@ -79,6 +79,7 @@ def _register_routes_once() -> None:
         clientes,
         dashboard,
         expert_criteria,
+        export,
         hallazgos,
         historicos,
         holdings_cascade_route,
@@ -89,6 +90,7 @@ def _register_routes_once() -> None:
         realtime,
         reportes,
         risk_engine,
+        search,
         user_preferences,
         workpapers,
         workflow,
@@ -120,6 +122,8 @@ def _register_routes_once() -> None:
     app.include_router(expert_criteria.router)
     app.include_router(historicos.router)
     app.include_router(alertas.router)
+    app.include_router(search.router)
+    app.include_router(export.router)
     _routes_registered = True
 
 
