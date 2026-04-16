@@ -68,6 +68,7 @@ def _register_routes_once() -> None:
     if _routes_registered:
         return
     from backend.routes import (
+        alertas,
         area_catalog,
         admin,
         areas,
@@ -79,6 +80,7 @@ def _register_routes_once() -> None:
         dashboard,
         expert_criteria,
         hallazgos,
+        historicos,
         holdings_cascade_route,
         metodologia,
         normativa,
@@ -116,6 +118,8 @@ def _register_routes_once() -> None:
     app.include_router(holdings_cascade_route.router)
     app.include_router(area_catalog.router)
     app.include_router(expert_criteria.router)
+    app.include_router(historicos.router)
+    app.include_router(alertas.router)
     _routes_registered = True
 
 

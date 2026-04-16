@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.auth import authorize_cliente_access, get_current_user
@@ -11,8 +13,12 @@ from backend.schemas import (
     AreaWorkspaceResponse,
     UserContext,
 )
+from backend.services.audit_logger_service import log_change
 from backend.services.realtime_collab_service import hub
+from backend.services.validation_service import validate_area_closure
 from backend.validation import normalize_area_doc_v1, validate_area_doc_v1
+
+LOGGER = logging.getLogger("socio_ai.areas")
 
 router = APIRouter(prefix="/areas", tags=["areas"])
 
@@ -103,3 +109,105 @@ def put_conclusion(
     )
     append_hallazgo(cliente_id, f"## Area {area_code}\n\n{payload.conclusion.strip()}")
     return ApiResponse(data={"saved": True, "cliente_id": cliente_id, "area_code": area_code})
+
+
+@router.post("/{cliente_id}/{area_code}/finalize", response_model=ApiResponse)
+def finalize_area(
+    cliente_id: str,
+    area_code: str,
+    force_close: bool = False,
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
+    """
+    Finaliza/cierra un área con validación cruzada.
+
+    Query params:
+        force_close: Si True, permite cerrar aún con procedimientos faltantes
+
+    Response:
+        {
+            "status": "ok" | "warning",
+            "data": {
+                "area_code": "...",
+                "closed": true,
+                "missing_procedures": [...],
+                "audit_logged": true
+            }
+        }
+    """
+    authorize_cliente_access(cliente_id, user)
+
+    try:
+        # Validar cierre del área
+        validation = validate_area_closure(cliente_id, area_code)
+        missing_procedures = validation.get("missing_procedures", [])
+
+        # Log en audit
+        diff_data = {
+            "area_code": area_code,
+            "closed": True,
+            "force_close": force_close,
+            "missing_procedures_count": len(missing_procedures),
+        }
+
+        log_change(
+            cliente_id=cliente_id,
+            tabla="areas",
+            accion="UPDATE",
+            usuario=user.display_name or user.sub,
+            diff_data=diff_data,
+        )
+
+        # Marcar área como cerrada en YAML
+        area_doc = repo.read_area_yaml(cliente_id, area_code)
+        normalized = normalize_area_doc_v1(area_doc, area_code=area_code)
+        normalized["status"] = "cerrada"
+        normalized["fecha_cierre"] = str(__import__("datetime").datetime.now().isoformat())
+
+        is_valid, errors = validate_area_doc_v1(normalized, area_code=area_code)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"message": "Area invalida para schema v1.", "errors": errors},
+            )
+
+        repo.write_area_yaml(cliente_id, area_code, normalized)
+
+        # Publicar evento
+        hub.publish_event_sync(
+            cliente_id=cliente_id,
+            event_name="area_finalized",
+            actor=user.display_name or user.sub,
+            payload={
+                "area_code": area_code,
+                "force_close": force_close,
+                "missing_procedures": missing_procedures,
+            },
+        )
+
+        LOGGER.info(f"area_finalized: {cliente_id} {area_code} force={force_close}")
+
+        response_status = "ok"
+        if missing_procedures and not force_close:
+            response_status = "warning"
+
+        return ApiResponse(
+            status=response_status,
+            data={
+                "area_code": area_code,
+                "closed": True,
+                "missing_procedures": missing_procedures,
+                "audit_logged": True,
+                "force_close": force_close,
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        LOGGER.error(f"Error finalizing area: {e}")
+        return ApiResponse(
+            status="error",
+            message=f"Error cerrando área: {str(e)}",
+            data={},
+        )
