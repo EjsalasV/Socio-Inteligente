@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { hasSessionState, logoutSession } from "../../../lib/auth-session";
-import { uploadClienteArchivo } from "../../../lib/api/clientes";
+// uploadClienteArchivo removed - file upload endpoint deprecated, only filename is stored in perfil
 import { getPerfil, savePerfil } from "../../../lib/api/perfil";
 import { useAppState } from "../../../components/providers/AppStateProvider";
 import { SECTOR_OPTIONS } from "../../../lib/sectorCatalog";
@@ -155,21 +155,12 @@ export default function OnboardingClientePage() {
     setSaving(true);
 
     try {
-      let trialBalanceNombre = tbFile;
-      let libroMayorNombre = mayorFile;
-
-      if (tbSelectedFile) {
-        const uploadedTb = await uploadClienteArchivo(clienteId, "tb", tbSelectedFile);
-        trialBalanceNombre = uploadedTb.original_name || tbSelectedFile.name;
-      }
-
-      if (mayorSelectedFile) {
-        const uploadedMayor = await uploadClienteArchivo(clienteId, "mayor", mayorSelectedFile);
-        libroMayorNombre = uploadedMayor.original_name || mayorSelectedFile.name;
-      }
+      // Store filenames directly (file upload endpoint deprecated - files are managed separately)
+      const trialBalanceNombre = tbSelectedFile ? tbSelectedFile.name : tbFile;
+      const libroMayorNombre = mayorSelectedFile ? mayorSelectedFile.name : mayorFile;
 
       if (!trialBalanceNombre.trim()) {
-        throw new Error("Debes cargar el Trial Balance para continuar.");
+        throw new Error("Debes seleccionar un archivo de Trial Balance para continuar.");
       }
 
       const payload: PerfilPayload = {
