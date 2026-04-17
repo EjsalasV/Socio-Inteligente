@@ -2339,6 +2339,150 @@
         }
       }
     },
+    "/api/reportes/papeles-trabajo/{cliente_id}/carta-control": {
+      "get": {
+        "tags": [
+          "reportes-papeles"
+        ],
+        "summary": "Get Carta Control",
+        "description": "CARTA DE CONTROL - Observaciones aprobadas por Socio\n\nRetorna SOLO las observaciones que fueron FINALIZADAS por Socio\nSin historial, solo conclusión final\n\nEstructura:\n- Por cada observación: Código papel, Nombre, Motivo, Observación Final, Efecto",
+        "operationId": "get_carta_control_api_reportes_papeles_trabajo__cliente_id__carta_control_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reportes/papeles-trabajo/{cliente_id}/hallazgos-por-ls": {
+      "get": {
+        "tags": [
+          "reportes-papeles"
+        ],
+        "summary": "Get Hallazgos Por Ls",
+        "description": "HALLAZGOS POR LÍNEA DE CUENTA\n\nAgrupa observaciones finalizadas por L/S\nÚtil para ver qué líneas tuvieron problemas",
+        "operationId": "get_hallazgos_por_ls_api_reportes_papeles_trabajo__cliente_id__hallazgos_por_ls_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reportes/papeles-trabajo/{cliente_id}/resumen-ejecutivo": {
+      "get": {
+        "tags": [
+          "reportes-papeles"
+        ],
+        "summary": "Get Resumen Ejecutivo",
+        "description": "RESUMEN EJECUTIVO - Hallazgos principales\n\nMuestra:\n- Total de papeles auditados\n- Total de hallazgos identificados\n- Clasificación por efecto financiero\n- Papeles con hallazgos significativos",
+        "operationId": "get_resumen_ejecutivo_api_reportes_papeles_trabajo__cliente_id__resumen_ejecutivo_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/papeles-trabajo/{cliente_id}": {
       "get": {
         "tags": [

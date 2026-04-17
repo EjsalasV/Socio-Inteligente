@@ -705,6 +705,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reportes/papeles-trabajo/{cliente_id}/carta-control": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Carta Control
+         * @description CARTA DE CONTROL - Observaciones aprobadas por Socio
+         *
+         *     Retorna SOLO las observaciones que fueron FINALIZADAS por Socio
+         *     Sin historial, solo conclusión final
+         *
+         *     Estructura:
+         *     - Por cada observación: Código papel, Nombre, Motivo, Observación Final, Efecto
+         */
+        get: operations["get_carta_control_api_reportes_papeles_trabajo__cliente_id__carta_control_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reportes/papeles-trabajo/{cliente_id}/hallazgos-por-ls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Hallazgos Por Ls
+         * @description HALLAZGOS POR LÍNEA DE CUENTA
+         *
+         *     Agrupa observaciones finalizadas por L/S
+         *     Útil para ver qué líneas tuvieron problemas
+         */
+        get: operations["get_hallazgos_por_ls_api_reportes_papeles_trabajo__cliente_id__hallazgos_por_ls_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reportes/papeles-trabajo/{cliente_id}/resumen-ejecutivo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Resumen Ejecutivo
+         * @description RESUMEN EJECUTIVO - Hallazgos principales
+         *
+         *     Muestra:
+         *     - Total de papeles auditados
+         *     - Total de hallazgos identificados
+         *     - Clasificación por efecto financiero
+         *     - Papeles con hallazgos significativos
+         */
+        get: operations["get_resumen_ejecutivo_api_reportes_papeles_trabajo__cliente_id__resumen_ejecutivo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/papeles-trabajo/{cliente_id}": {
         parameters: {
             query?: never;
@@ -4160,6 +4235,99 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_carta_control_api_reportes_papeles_trabajo__cliente_id__carta_control_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_hallazgos_por_ls_api_reportes_papeles_trabajo__cliente_id__hallazgos_por_ls_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_resumen_ejecutivo_api_reportes_papeles_trabajo__cliente_id__resumen_ejecutivo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
