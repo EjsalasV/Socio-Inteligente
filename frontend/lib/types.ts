@@ -72,33 +72,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/clientes": {
+    "/api/clientes": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Clientes */
-        get: operations["get_clientes_clientes_get"];
+        /**
+         * Listar Clientes
+         * @description Listar todos los clientes con información básica
+         */
+        get: operations["listar_clientes_api_clientes_get"];
         put?: never;
-        /** Post Cliente */
-        post: operations["post_cliente_clientes_post"];
+        /**
+         * Crear Cliente
+         * @description Crear un nuevo cliente en la base de datos (PERSISTENCIA)
+         *
+         *     Body:
+         *     - nombre: Nombre del cliente (requerido)
+         *     - cliente_id: ID único (ej: bustamante_fabara_ip_cl) - si no se proporciona, se genera
+         *     - sector: Sector económico (opcional)
+         */
+        post: operations["crear_cliente_api_clientes_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/clientes/{cliente_id}/tb-status": {
+    "/api/clientes/{cliente_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Cliente Tb Status */
-        get: operations["get_cliente_tb_status_clientes__cliente_id__tb_status_get"];
+        /**
+         * Obtener Cliente
+         * @description Obtener información detallada de un cliente
+         */
+        get: operations["obtener_cliente_api_clientes__cliente_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -107,7 +121,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/clientes/{cliente_id}": {
+    "/api/clientes/{cliente_id}/auditorias": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Auditorias
+         * @description Listar todas las auditorías de un cliente (historial de períodos)
+         */
+        get: operations["listar_auditorias_api_clientes__cliente_id__auditorias_get"];
+        put?: never;
+        /**
+         * Crear Auditoria
+         * @description Crear una nueva auditoría para un cliente y período
+         *
+         *     Parámetros:
+         *     - cliente_id: ID del cliente
+         *     - periodo: Período a auditar (ej: 2025)
+         *     - socio_asignado: Socio responsable (opcional)
+         *     - senior_asignado: Senior responsable (opcional)
+         */
+        post: operations["crear_auditoria_api_clientes__cliente_id__auditorias_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/clientes/{cliente_id}/auditorias/{audit_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -115,93 +159,11 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
-        post?: never;
-        /** Remove Cliente */
-        delete: operations["remove_cliente_clientes__cliente_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/clientes/{cliente_id}/upload/{kind}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Cliente File */
-        post: operations["upload_cliente_file_clientes__cliente_id__upload__kind__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/clientes/{cliente_id}/documentos": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Cliente Documentos */
-        get: operations["get_cliente_documentos_clientes__cliente_id__documentos_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/clientes/{cliente_id}/documentos/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Cliente Documento */
-        post: operations["upload_cliente_documento_clientes__cliente_id__documentos_upload_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/clientes/{cliente_id}/hallazgos": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Cliente Hallazgos */
-        get: operations["get_cliente_hallazgos_clientes__cliente_id__hallazgos_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/clientes/{cliente_id}/documentos/file": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Cliente Documento File */
-        get: operations["get_cliente_documento_file_clientes__cliente_id__documentos_file_get"];
-        put?: never;
+        /**
+         * Actualizar Auditoria Estado
+         * @description Actualizar estado de una auditoría
+         */
+        put: operations["actualizar_auditoria_estado_api_clientes__cliente_id__auditorias__audit_id__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2237,16 +2199,6 @@ export interface components {
             /** Top Areas */
             top_areas?: unknown[];
         };
-        /** Body_upload_cliente_documento_clientes__cliente_id__documentos_upload_post */
-        Body_upload_cliente_documento_clientes__cliente_id__documentos_upload_post: {
-            /** File */
-            file: string;
-        };
-        /** Body_upload_cliente_file_clientes__cliente_id__upload__kind__post */
-        Body_upload_cliente_file_clientes__cliente_id__upload__kind__post: {
-            /** File */
-            file: string;
-        };
         /** BriefingAreaRequest */
         BriefingAreaRequest: {
             /** Cliente Id */
@@ -3001,7 +2953,7 @@ export interface operations {
             };
         };
     };
-    get_clientes_clientes_get: {
+    listar_clientes_api_clientes_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3021,7 +2973,7 @@ export interface operations {
             };
         };
     };
-    post_cliente_clientes_post: {
+    crear_cliente_api_clientes_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3054,7 +3006,7 @@ export interface operations {
             };
         };
     };
-    get_cliente_tb_status_clientes__cliente_id__tb_status_get: {
+    obtener_cliente_api_clientes__cliente_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3085,7 +3037,7 @@ export interface operations {
             };
         };
     };
-    remove_cliente_clientes__cliente_id__delete: {
+    listar_auditorias_api_clientes__cliente_id__auditorias_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -3116,143 +3068,13 @@ export interface operations {
             };
         };
     };
-    upload_cliente_file_clientes__cliente_id__upload__kind__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cliente_id: string;
-                kind: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_cliente_file_clientes__cliente_id__upload__kind__post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_cliente_documentos_clientes__cliente_id__documentos_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cliente_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_cliente_documento_clientes__cliente_id__documentos_upload_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cliente_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_cliente_documento_clientes__cliente_id__documentos_upload_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_cliente_hallazgos_clientes__cliente_id__hallazgos_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cliente_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_cliente_documento_file_clientes__cliente_id__documentos_file_get: {
+    crear_auditoria_api_clientes__cliente_id__auditorias_post: {
         parameters: {
             query: {
-                name: string;
+                /** @description Ej: 2025 */
+                periodo: string;
+                socio_asignado?: string | null;
+                senior_asignado?: string | null;
             };
             header?: never;
             path: {
@@ -3268,7 +3090,42 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    actualizar_auditoria_estado_api_clientes__cliente_id__auditorias__audit_id__put: {
+        parameters: {
+            query: {
+                /** @description PLANEACIÓN, EJECUCIÓN, REPORTE, FINALIZADO */
+                estado: string;
+            };
+            header?: never;
+            path: {
+                cliente_id: string;
+                audit_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
                 };
             };
             /** @description Validation Error */
