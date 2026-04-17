@@ -89,7 +89,7 @@ def _register_routes_once() -> None:
         holdings_cascade_route,
         metodologia,
         normativa,
-        papeles_trabajo_v2,
+        # papeles_trabajo_v2,  # TODO: Enable in FASE 0 when dependencies are complete
         perfil,
         quality,
         realtime,
@@ -114,7 +114,7 @@ def _register_routes_once() -> None:
     app.include_router(reportes.router)
     app.include_router(reportes_papeles.router)
     app.include_router(workpapers.router)
-    app.include_router(papeles_trabajo_v2.router)
+    # app.include_router(papeles_trabajo_v2.router)  # TODO: Enable in FASE 0 when dependencies are complete
     app.include_router(workflow.router)
     app.include_router(briefing.router)
     app.include_router(hallazgos.router)
