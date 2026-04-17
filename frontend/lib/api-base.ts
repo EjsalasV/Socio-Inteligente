@@ -26,15 +26,15 @@ function isLocalBrowserHost(): boolean {
 export function getApiBase(): string {
   if (typeof window !== "undefined") {
     const configured = PUBLIC_API_BASE.trim();
-    // Relative base (/api) is preferred in browser to keep auth first-party.
+    // Absolute URL configured (e.g., http://localhost:8000)
+    if (configured && !isRelativePath(configured)) {
+      return stripTrailingSlash(configured);
+    }
+    // Relative base (/api) is preferred for production (Vercel)
     if (configured && isRelativePath(configured)) {
       return stripTrailingSlash(configured);
     }
-    // Local browser can still use explicit localhost backend for developer workflows.
-    if (configured && isLocalBrowserHost() && isLoopbackHost(configured)) {
-      return stripTrailingSlash(configured);
-    }
-    // Remote browsers should always use Next proxy to avoid cross-site cookie/CORS issues.
+    // Default to relative /api for production
     return "/api";
   }
   const configured = PUBLIC_API_BASE.trim();
