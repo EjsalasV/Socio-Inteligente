@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { hasSessionState, logoutSession } from "../../../lib/auth-session";
-// uploadClienteArchivo removed - file upload endpoint deprecated, only filename is stored in perfil
 import { getPerfil, savePerfil } from "../../../lib/api/perfil";
+import { authFetchJson } from "../../../lib/api";
 import { useAppState } from "../../../components/providers/AppStateProvider";
 import { SECTOR_OPTIONS } from "../../../lib/sectorCatalog";
 import type { PerfilPayload } from "../../../types/perfil";
@@ -155,9 +155,29 @@ export default function OnboardingClientePage() {
     setSaving(true);
 
     try {
-      // Store filenames directly (file upload endpoint deprecated - files are managed separately)
-      const trialBalanceNombre = tbSelectedFile ? tbSelectedFile.name : tbFile;
-      const libroMayorNombre = mayorSelectedFile ? mayorSelectedFile.name : mayorFile;
+      // Upload files to backend if selected
+      let trialBalanceNombre = tbFile;
+      let libroMayorNombre = mayorFile;
+
+      if (tbSelectedFile) {
+        const formData = new FormData();
+        formData.append("file", tbSelectedFile);
+        const result = await authFetchJson<{ data: { original_name: string; stored_as: string } }>(
+          `/api/trial-balance/${clienteId}/upload?kind=tb`,
+          { method: "POST", body: formData }
+        );
+        trialBalanceNombre = result?.data?.original_name || tbSelectedFile.name;
+      }
+
+      if (mayorSelectedFile) {
+        const formData = new FormData();
+        formData.append("file", mayorSelectedFile);
+        const result = await authFetchJson<{ data: { original_name: string; stored_as: string } }>(
+          `/api/trial-balance/${clienteId}/upload?kind=mayor`,
+          { method: "POST", body: formData }
+        );
+        libroMayorNombre = result?.data?.original_name || mayorSelectedFile.name;
+      }
 
       if (!trialBalanceNombre.trim()) {
         throw new Error("Debes seleccionar un archivo de Trial Balance para continuar.");
