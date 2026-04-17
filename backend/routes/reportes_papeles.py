@@ -4,8 +4,9 @@ Rutas para Reportes de Papeles de Trabajo
 - Hallazgos por L/S
 - Resumen ejecutivo
 """
+from typing import Any
+
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
 
 from backend.auth import get_current_user
 from backend.models.workpapers_observation import WorkpapersObservation
@@ -21,7 +22,7 @@ router = APIRouter(prefix="/api/reportes/papeles-trabajo", tags=["reportes-papel
 def get_carta_control(
     cliente_id: str,
     user: UserContext = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: Any = Depends(get_session),
 ) -> ApiResponse:
     """
     CARTA DE CONTROL - Observaciones aprobadas por Socio
@@ -114,7 +115,7 @@ def get_carta_control(
 def get_hallazgos_por_ls(
     cliente_id: str,
     user: UserContext = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: Any = Depends(get_session),
 ) -> ApiResponse:
     """
     HALLAZGOS POR LÍNEA DE CUENTA
@@ -183,7 +184,7 @@ def get_hallazgos_por_ls(
 def get_resumen_ejecutivo(
     cliente_id: str,
     user: UserContext = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: Any = Depends(get_session),
 ) -> ApiResponse:
     """
     RESUMEN EJECUTIVO - Hallazgos principales
