@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { CheckCircleIcon, ClockIcon, PencilIcon } from "lucide-react";
 
 interface Signature {
   signed: boolean;
@@ -181,9 +179,9 @@ export function FirmasPanel({
             {/* Role Title */}
             <div className="flex items-center gap-2 mb-3">
               {signature.signed ? (
-                <CheckCircleIcon size={24} className="text-green-600" />
+                <span className="text-green-600 text-xl">✓</span>
               ) : (
-                <ClockIcon size={24} className="text-gray-400" />
+                <span className="text-gray-400 text-xl">⏳</span>
               )}
               <div>
                 <h3 className="font-bold text-gray-900 capitalize">
@@ -217,18 +215,17 @@ export function FirmasPanel({
 
             {/* Sign Button */}
             {!signature.signed && canSign && (
-              <Button
+              <button
                 onClick={() => handleSign(signRole)}
                 disabled={isLoading || role !== signRole}
-                className={`w-full mt-3 flex items-center justify-center gap-2 ${
+                className={`w-full mt-3 py-2 px-4 rounded font-medium flex items-center justify-center gap-2 ${
                   role === signRole
                     ? "bg-blue-600 hover:bg-blue-700 text-white"
                     : "bg-gray-300 text-gray-600 cursor-not-allowed"
                 }`}
               >
-                <PencilIcon size={16} />
-                {role === signRole ? `Firmar como ${signRole.toUpperCase()}` : `No tienes permisos`}
-              </Button>
+                ✏️ {role === signRole ? `Firmar como ${signRole.toUpperCase()}` : `No tienes permisos`}
+              </button>
             )}
 
             {signature.signed && (

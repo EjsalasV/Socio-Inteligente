@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { FileIcon, DownloadIcon, UploadIcon, CheckCircleIcon, AlertCircleIcon } from "lucide-react";
 
 interface PapelesTrabajoUploadProps {
   clienteId: string;
@@ -176,14 +174,13 @@ export function PapelesTrabajoUpload({
 
       {/* Download Template Button */}
       <div className="mb-6">
-        <Button
+        <button
           onClick={handleDownloadTemplate}
           disabled={isLoading}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium disabled:opacity-50"
         >
-          <DownloadIcon size={18} />
-          Descargar Plantilla Excel
-        </Button>
+          ⬇️ Descargar Plantilla Excel
+        </button>
         <p className="text-xs text-gray-500 mt-2">
           Descarga la plantilla Excel vacía con estructura correcta para llenarla offline
         </p>
@@ -201,10 +198,7 @@ export function PapelesTrabajoUpload({
               : "border-gray-300 bg-gray-50"
           }`}
         >
-          <UploadIcon
-            size={48}
-            className="mx-auto mb-4 text-gray-400"
-          />
+          <div className="mx-auto mb-4 text-5xl text-gray-400">⬆️</div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Sube tu archivo Excel rellenado
           </h3>
@@ -220,14 +214,8 @@ export function PapelesTrabajoUpload({
             className="hidden"
             id="file-input"
           />
-          <label htmlFor="file-input">
-            <Button
-              asChild
-              disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
-            >
-              <span>Seleccionar archivo</span>
-            </Button>
+          <label htmlFor="file-input" className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium cursor-pointer">
+            Seleccionar archivo
           </label>
 
           <p className="text-xs text-gray-500 mt-4">
@@ -236,7 +224,7 @@ export function PapelesTrabajoUpload({
         </div>
       ) : (
         <div className="border border-blue-200 bg-blue-50 rounded-lg p-6 text-center">
-          <FileIcon size={36} className="mx-auto mb-3 text-blue-600" />
+          <div className="mx-auto mb-3 text-4xl">📄</div>
           <p className="text-gray-700 font-medium">
             Solo Junior y Semi pueden subir archivos.
           </p>
@@ -257,12 +245,8 @@ export function PapelesTrabajoUpload({
               : "bg-yellow-50 border border-yellow-200"
           }`}
         >
-          {uploadStatus.type === "success" && (
-            <CheckCircleIcon size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
-          )}
-          {uploadStatus.type === "error" && (
-            <AlertCircleIcon size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
-          )}
+          {uploadStatus.type === "success" && <span className="text-green-600 flex-shrink-0 mt-0.5">✓</span>}
+          {uploadStatus.type === "error" && <span className="text-red-600 flex-shrink-0 mt-0.5">✗</span>}
           {uploadStatus.type === "pending" && (
             <div className="w-5 h-5 flex-shrink-0 mt-0.5">
               <div className="animate-spin h-5 w-5 border-2 border-yellow-500 border-t-transparent rounded-full" />

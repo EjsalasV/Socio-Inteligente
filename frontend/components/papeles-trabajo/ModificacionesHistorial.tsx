@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { HistoryIcon, UserIcon, CalendarIcon } from "lucide-react";
 
 interface Modification {
   timestamp: string;
@@ -72,7 +71,7 @@ export function ModificacionesHistorial({
     return (
       <div className="w-full max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
         <div className="flex items-center gap-2 mb-4">
-          <HistoryIcon size={24} className="text-gray-600" />
+          <span className="text-gray-600 text-xl">📋</span>
           <h2 className="text-xl font-bold text-gray-900">Historial de Modificaciones</h2>
         </div>
         <p className="text-gray-500 text-center py-8">
@@ -85,7 +84,7 @@ export function ModificacionesHistorial({
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
       <div className="flex items-center gap-2 mb-6">
-        <HistoryIcon size={24} className="text-gray-600" />
+        <span className="text-gray-600 text-xl">📋</span>
         <h2 className="text-xl font-bold text-gray-900">Historial de Modificaciones</h2>
         <span className="ml-auto bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
           {sortedMods.length} cambios
@@ -110,8 +109,7 @@ export function ModificacionesHistorial({
               </div>
 
               <div className="flex items-center gap-1 text-xs text-gray-500">
-                <CalendarIcon size={14} />
-                {formatTimestamp(mod.timestamp)}
+                🗓️ {formatTimestamp(mod.timestamp)}
               </div>
             </div>
 
