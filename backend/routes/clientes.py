@@ -1,294 +1,321 @@
-from __future__ import annotations
+"""
+API endpoints para gestionar clientes y auditorías
+"""
+from typing import Any, Optional, List
+from datetime import datetime, date
 
-import re
-from io import BytesIO
-from pathlib import Path
+from fastapi import APIRouter, Depends, status, Query
+from sqlalchemy import func
 
-import pandas as pd
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
-from fastapi.responses import FileResponse
+from backend.auth import get_current_user
+from backend.models.client import Client
+from backend.models.audit import Audit
+from backend.schemas import UserContext, ApiResponse
+from backend.utils.database import get_session
+from backend.utils.api_errors import raise_api_error
 
-from backend.auth import authorize_cliente_access, get_current_user
-from backend.middleware.rate_limit import limiter, LIMITS
-from backend.repositories.file_repository import create_cliente, delete_cliente, list_clientes, list_documentos, read_hallazgos, read_perfil
-from backend.repositories.identity_repository import store as identity_store
-from backend.schemas import ApiResponse, ClienteCreateRequest, ClienteDocumento, ClienteSummary, UserContext
-from backend.services.document_ingest_service import ingest_document_for_rag
-from backend.services.rag_cache_service import invalidate_rag_cache_for_cliente
-from backend.services.realtime_collab_service import hub
-from backend.services.view_cache_service import invalidate_view_cache_for_cliente
+router = APIRouter(prefix="/api/clientes", tags=["clientes"])
 
-router = APIRouter(prefix="/clientes", tags=["clientes"])
 
-# Validar formato de cliente_id para evitar path traversal
-_CLIENTE_ID_REGEX = re.compile(r"^[a-zA-Z0-9_\-]+$")
+# ============= CLIENTES =============
 
-def _validate_cliente_id(cliente_id: str) -> None:
-    """Validar cliente_id contra path traversal."""
-    if not cliente_id or not _CLIENTE_ID_REGEX.match(cliente_id):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="cliente_id debe contener solo letras, números, guiones y guiones bajos.",
+@router.get("", response_model=ApiResponse)
+async def listar_clientes(
+    user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
+) -> ApiResponse:
+    """
+    Listar todos los clientes con información básica
+    """
+    try:
+        clientes = session.query(Client).order_by(Client.nombre).all()
+        clientes_data = [c.to_dict() for c in clientes]
+
+        return ApiResponse(
+            status="success",
+            data={
+                "total": len(clientes_data),
+                "clientes": clientes_data,
+            },
+        )
+    except Exception as e:
+        raise_api_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="ERROR_LISTING_CLIENTS",
+            message=str(e),
         )
 
 
-@router.get("", response_model=ApiResponse)
-def get_clientes(user: UserContext = Depends(get_current_user)) -> ApiResponse:
-    out: list[dict] = []
-    for cid in list_clientes():
-        if "*" not in user.allowed_clientes and cid not in user.allowed_clientes:
-            continue
-        perfil = read_perfil(cid)
-        nombre = str(perfil.get("cliente", {}).get("nombre_legal") or cid)
-        sector = perfil.get("cliente", {}).get("sector")
-        out.append(ClienteSummary(cliente_id=cid, nombre=nombre, sector=sector).model_dump())
-    return ApiResponse(data=out)
+@router.get("/{cliente_id}", response_model=ApiResponse)
+async def obtener_cliente(
+    cliente_id: str,
+    user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
+) -> ApiResponse:
+    """
+    Obtener información detallada de un cliente
+    """
+    try:
+        cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
 
+        if not cliente:
+            raise_api_error(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="CLIENT_NOT_FOUND",
+                message=f"Cliente {cliente_id} no encontrado",
+            )
 
-@router.get("/{cliente_id}/tb-status", response_model=ApiResponse)
-def get_cliente_tb_status(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
-    _validate_cliente_id(cliente_id)
-    authorize_cliente_access(cliente_id, user)
-    base = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id
-    tb_path = base / "tb.xlsx"
-    mayor_path = base / "mayor.xlsx"
-    tb_cache_path = base / ".tb_cache.pkl"
-    return ApiResponse(
-        data={
-            "cliente_id": cliente_id,
-            "has_tb": tb_path.exists(),
-            "has_mayor": mayor_path.exists(),
-            "has_tb_cache": tb_cache_path.exists(),
-            "tb_size_bytes": int(tb_path.stat().st_size) if tb_path.exists() else 0,
-            "tb_mtime_ns": int(tb_path.stat().st_mtime_ns) if tb_path.exists() else 0,
-        }
-    )
+        return ApiResponse(status="success", data=cliente.to_dict())
+
+    except Exception as e:
+        if hasattr(e, "status_code"):
+            raise
+        raise_api_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="ERROR_FETCHING_CLIENT",
+            message=str(e),
+        )
 
 
 @router.post("", response_model=ApiResponse)
-def post_cliente(payload: ClienteCreateRequest, user: UserContext = Depends(get_current_user)) -> ApiResponse:
-    if user.role.lower() not in {"admin", "manager", "socio"}:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo perfiles administradores pueden crear clientes.",
-        )
-    nombre = payload.nombre.strip()
-    if not nombre:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="nombre es obligatorio")
+async def crear_cliente(
+    client_id: str = Query(...),
+    nombre: str = Query(...),
+    ruc: Optional[str] = Query(None),
+    sector: Optional[str] = Query(None),
+    tipo_entidad: Optional[str] = Query(None),
+    contacto_nombre: Optional[str] = Query(None),
+    contacto_email: Optional[str] = Query(None),
+    periodo_actual: Optional[str] = Query(None),
+    materialidad_general: Optional[float] = Query(None),
+    user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
+) -> ApiResponse:
+    """
+    Crear un nuevo cliente en la base de datos (PERSISTENCIA)
 
+    Parámetros:
+    - client_id: ID único (ej: bustamante_fabara_ip_cl)
+    - nombre: Nombre del cliente
+    - ruc: RUC/NIT (opcional)
+    - sector: Sector económico (opcional)
+    - tipo_entidad: Tipo de entidad (opcional)
+    - contacto_nombre: Nombre del contacto (opcional)
+    - contacto_email: Email de contacto (opcional)
+    - periodo_actual: Período a auditar (ej: 2025)
+    - materialidad_general: Materialidad general (opcional)
+    """
     try:
-        created = create_cliente(
-            cliente_id=(payload.cliente_id or "").strip(),
+        # Verificar si cliente ya existe
+        existing = session.query(Client).filter(Client.client_id == client_id).first()
+        if existing:
+            raise_api_error(
+                status_code=status.HTTP_409_CONFLICT,
+                code="CLIENT_ALREADY_EXISTS",
+                message=f"Cliente {client_id} ya existe",
+            )
+
+        # Crear cliente
+        nuevo_cliente = Client(
+            client_id=client_id,
             nombre=nombre,
-            sector=(payload.sector or "").strip() or None,
-        )
-    except FileExistsError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
-
-    # Multiusuario: el creador obtiene acceso inmediato al cliente nuevo (si no usa wildcard).
-    if user.user_id and "*" not in user.allowed_clientes:
-        try:
-            assigned = identity_store.get_user_clientes(user.user_id)
-            if created.get("cliente_id") and created["cliente_id"] not in assigned:
-                identity_store.set_user_clientes(user.user_id, [*assigned, str(created["cliente_id"])])
-        except Exception:
-            # No bloqueamos la creación por fallos de asignación secundaria.
-            pass
-
-    return ApiResponse(data=created)
-
-
-@router.delete("/{cliente_id}", response_model=ApiResponse)
-def remove_cliente(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
-    authorize_cliente_access(cliente_id, user)
-    deleted = delete_cliente(cliente_id)
-    if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Cliente no encontrado: {cliente_id}",
-        )
-    return ApiResponse(data={"cliente_id": cliente_id, "deleted": True})
-
-
-@router.post("/{cliente_id}/upload/{kind}", response_model=ApiResponse)
-@limiter.limit(LIMITS["uploads"])  # 3 uploads por minuto por IP
-async def upload_cliente_file(
-    request: Request,
-    cliente_id: str,
-    kind: str,
-    file: UploadFile = File(...),
-    user: UserContext = Depends(get_current_user),
-) -> ApiResponse:
-    # Validar cliente_id format antes de usar en path
-    _validate_cliente_id(cliente_id)
-    authorize_cliente_access(cliente_id, user)
-
-    kind_norm = kind.strip().lower()
-    if kind_norm not in {"tb", "trial_balance", "mayor", "libro_mayor"}:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tipo de archivo invalido. Usa tb|trial_balance|mayor|libro_mayor.",
+            ruc=ruc,
+            sector=sector,
+            tipo_entidad=tipo_entidad,
+            contacto_nombre=contacto_nombre,
+            contacto_email=contacto_email,
+            periodo_actual=periodo_actual,
+            materialidad_general=materialidad_general,
+            created_by=user.username if user else "SYSTEM",
+            estado="ACTIVO",
         )
 
-    raw_name = (file.filename or "").strip()
-    if not raw_name:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Archivo sin nombre.")
+        session.add(nuevo_cliente)
+        session.commit()
 
-    ext = Path(raw_name).suffix.lower()
-    if ext not in {".xlsx", ".xls", ".csv"}:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Formato no soportado. Usa .xlsx, .xls o .csv.",
+        return ApiResponse(
+            status="success",
+            message=f"Cliente {nombre} creado exitosamente",
+            data=nuevo_cliente.to_dict(),
         )
 
-    # Validar tamaño ANTES de leer completo
-    MAX_FILE_SIZE_MB = 50
-    if file.size and file.size > MAX_FILE_SIZE_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"Archivo excede límite de {MAX_FILE_SIZE_MB}MB.",
-        )
-
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Archivo vacio.")
-    
-    # Double-check tamaño real (en caso que file.size sea None)
-    if len(content) > MAX_FILE_SIZE_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"Archivo excede límite de {MAX_FILE_SIZE_MB}MB.",
-        )
-
-    try:
-        if ext == ".csv":
-            df = pd.read_csv(BytesIO(content))
-        else:
-            df = pd.read_excel(BytesIO(content))
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No se pudo leer el archivo: {exc}",
-        ) from exc
-
-    target_name = "tb.xlsx" if kind_norm in {"tb", "trial_balance"} else "mayor.xlsx"
-    target_dir = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id
-    target_dir.mkdir(parents=True, exist_ok=True)
-    target_path = target_dir / target_name
-
-    try:
-        df.to_excel(target_path, index=False)
-    except Exception as exc:
-        raise HTTPException(
+    except Exception as e:
+        session.rollback()
+        if hasattr(e, "status_code"):
+            raise
+        raise_api_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"No se pudo guardar el archivo: {exc}",
-        ) from exc
-
-    event_name = "tb_uploaded" if target_name == "tb.xlsx" else "mayor_uploaded"
-    view_cache_invalidated = invalidate_view_cache_for_cliente(cliente_id)
-    hub.publish_event_sync(
-        cliente_id=cliente_id,
-        event_name=event_name,
-        actor=user.display_name or user.sub,
-        payload={"rows": int(len(df)), "filename": raw_name},
-    )
-
-    return ApiResponse(
-        data={
-            "cliente_id": cliente_id,
-            "kind": "trial_balance" if target_name == "tb.xlsx" else "libro_mayor",
-            "original_name": raw_name,
-            "stored_as": target_name,
-            "rows": int(len(df)),
-            "columns": list(df.columns),
-            "view_cache_invalidated": int(view_cache_invalidated),
-        }
-    )
+            code="ERROR_CREATING_CLIENT",
+            message=str(e),
+        )
 
 
-@router.get("/{cliente_id}/documentos", response_model=ApiResponse)
-def get_cliente_documentos(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
-    authorize_cliente_access(cliente_id, user)
-    docs = [ClienteDocumento(**doc).model_dump() for doc in list_documentos(cliente_id)]
-    return ApiResponse(data=docs)
+# ============= AUDITORÍAS =============
 
-
-@router.post("/{cliente_id}/documentos/upload", response_model=ApiResponse)
-async def upload_cliente_documento(
+@router.get("/{cliente_id}/auditorias", response_model=ApiResponse)
+async def listar_auditorias(
     cliente_id: str,
-    file: UploadFile = File(...),
     user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
 ) -> ApiResponse:
-    _validate_cliente_id(cliente_id)
-    authorize_cliente_access(cliente_id, user)
-
-    raw_name = (file.filename or "").strip()
-    if not raw_name:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Archivo sin nombre.")
-
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Archivo vacio.")
-
-    docs_dir = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id / "documentos"
-    docs_dir.mkdir(parents=True, exist_ok=True)
-    target = docs_dir / raw_name
-    target.write_bytes(content)
-    ingestion: dict[str, object] = {"indexed": False, "text_chars": 0}
+    """
+    Listar todas las auditorías de un cliente (historial de períodos)
+    """
     try:
-        ingestion = ingest_document_for_rag(cliente_id, target)
-    except Exception:
-        ingestion = {"indexed": False, "text_chars": 0}
-    cache_invalidated = invalidate_rag_cache_for_cliente(cliente_id)
+        cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
+        if not cliente:
+            raise_api_error(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="CLIENT_NOT_FOUND",
+                message=f"Cliente {cliente_id} no encontrado",
+            )
 
-    docs = [ClienteDocumento(**doc).model_dump() for doc in list_documentos(cliente_id)]
-    return ApiResponse(
-        data={
-            "uploaded": True,
-            "documento": raw_name,
-            "documentos": docs,
-            "ingestion": ingestion,
-            "rag_cache_invalidated": int(cache_invalidated),
-        }
-    )
+        auditorias = (
+            session.query(Audit)
+            .filter(Audit.client_id == cliente.id)
+            .order_by(Audit.periodo.desc())
+            .all()
+        )
 
+        auditorias_data = [a.to_dict() for a in auditorias]
 
-@router.get("/{cliente_id}/hallazgos", response_model=ApiResponse)
-def get_cliente_hallazgos(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
-    authorize_cliente_access(cliente_id, user)
-    raw = read_hallazgos(cliente_id)
-    items: list[dict[str, str]] = []
-    current_title = ""
-    current_body: list[str] = []
+        return ApiResponse(
+            status="success",
+            data={
+                "cliente_id": cliente_id,
+                "total_auditorias": len(auditorias_data),
+                "auditorias": auditorias_data,
+            },
+        )
 
-    for line in raw.splitlines():
-        if line.startswith("## "):
-            if current_title or current_body:
-                items.append({"title": current_title or "Hallazgo", "body": "\n".join(current_body).strip()})
-            current_title = line.replace("## ", "", 1).strip()
-            current_body = []
-        else:
-            current_body.append(line)
-    if current_title or current_body:
-        items.append({"title": current_title or "Hallazgo", "body": "\n".join(current_body).strip()})
-
-    items = [x for x in items if x.get("title") or x.get("body")]
-    return ApiResponse(data=items[-20:])
+    except Exception as e:
+        if hasattr(e, "status_code"):
+            raise
+        raise_api_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="ERROR_LISTING_AUDITS",
+            message=str(e),
+        )
 
 
-@router.get("/{cliente_id}/documentos/file")
-def get_cliente_documento_file(
+@router.post("/{cliente_id}/auditorias", response_model=ApiResponse)
+async def crear_auditoria(
     cliente_id: str,
-    name: str = Query(...),
+    periodo: str = Query(..., description="Ej: 2025"),
+    socio_asignado: Optional[str] = Query(None),
+    senior_asignado: Optional[str] = Query(None),
     user: UserContext = Depends(get_current_user),
-) -> FileResponse:
-    authorize_cliente_access(cliente_id, user)
-    base = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id
-    safe_name = Path(name).name
-    candidates = [base / "documentos" / safe_name, base / safe_name]
-    for path in candidates:
-        if path.exists() and path.is_file():
-            return FileResponse(path=path.resolve(), filename=safe_name)
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento no encontrado.")
+    session: Any = Depends(get_session),
+) -> ApiResponse:
+    """
+    Crear una nueva auditoría para un cliente y período
+
+    Parámetros:
+    - cliente_id: ID del cliente
+    - periodo: Período a auditar (ej: 2025)
+    - socio_asignado: Socio responsable (opcional)
+    - senior_asignado: Senior responsable (opcional)
+    """
+    try:
+        cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
+        if not cliente:
+            raise_api_error(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="CLIENT_NOT_FOUND",
+                message=f"Cliente {cliente_id} no encontrado",
+            )
+
+        # Verificar si auditoría para período ya existe
+        existing = (
+            session.query(Audit)
+            .filter(Audit.client_id == cliente.id, Audit.periodo == periodo)
+            .first()
+        )
+        if existing:
+            raise_api_error(
+                status_code=status.HTTP_409_CONFLICT,
+                code="AUDIT_ALREADY_EXISTS",
+                message=f"Auditoría para período {periodo} ya existe",
+            )
+
+        codigo_auditoria = f"{cliente_id.upper()}_{periodo}"
+
+        nueva_auditoria = Audit(
+            client_id=cliente.id,
+            codigo_auditoria=codigo_auditoria,
+            periodo=periodo,
+            socio_asignado=socio_asignado,
+            senior_asignado=senior_asignado,
+            estado="PLANEACIÓN",
+            fecha_inicio=datetime.now().date(),
+        )
+
+        session.add(nueva_auditoria)
+        session.commit()
+
+        return ApiResponse(
+            status="success",
+            message=f"Auditoría creada para período {periodo}",
+            data=nueva_auditoria.to_dict(),
+        )
+
+    except Exception as e:
+        session.rollback()
+        if hasattr(e, "status_code"):
+            raise
+        raise_api_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="ERROR_CREATING_AUDIT",
+            message=str(e),
+        )
+
+
+@router.put("/{cliente_id}/auditorias/{audit_id}", response_model=ApiResponse)
+async def actualizar_auditoria_estado(
+    cliente_id: str,
+    audit_id: int,
+    estado: str = Query(..., description="PLANEACIÓN, EJECUCIÓN, REPORTE, FINALIZADO"),
+    user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
+) -> ApiResponse:
+    """
+    Actualizar estado de una auditoría
+    """
+    try:
+        auditoria = session.query(Audit).filter(Audit.id == audit_id).first()
+        if not auditoria:
+            raise_api_error(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="AUDIT_NOT_FOUND",
+                message=f"Auditoría {audit_id} no encontrada",
+            )
+
+        # Validar estado
+        estados_validos = ["PLANEACIÓN", "EJECUCIÓN", "REPORTE", "FINALIZADO", "ARCHIVADO"]
+        if estado not in estados_validos:
+            raise_api_error(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="INVALID_STATE",
+                message=f"Estado inválido. Valores válidos: {', '.join(estados_validos)}",
+            )
+
+        auditoria.estado = estado
+        auditoria.updated_at = datetime.utcnow()
+
+        session.commit()
+
+        return ApiResponse(
+            status="success",
+            message=f"Auditoría actualizada a estado {estado}",
+            data=auditoria.to_dict(),
+        )
+
+    except Exception as e:
+        session.rollback()
+        if hasattr(e, "status_code"):
+            raise
+        raise_api_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="ERROR_UPDATING_AUDIT",
+            message=str(e),
+        )

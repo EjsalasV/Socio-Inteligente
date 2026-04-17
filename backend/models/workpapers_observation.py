@@ -9,7 +9,8 @@ class WorkpapersObservation(Base):
     __tablename__ = "workpapers_observations"
 
     id = Column(Integer, primary_key=True)
-    file_id = Column(Integer, ForeignKey("workpapers_files.id", ondelete="CASCADE"), nullable=False)
+    audit_id = Column(Integer, ForeignKey("audits.id", ondelete="CASCADE"), nullable=True)  # Vinculación a auditoría
+    file_id = Column(Integer, ForeignKey("workpapers_files.id", ondelete="CASCADE"), nullable=True)  # FK para V2 (upload)
     codigo_papel = Column(String(10), nullable=False)  # ej: 130.03
 
     # OBSERVACIÓN JUNIOR
@@ -48,6 +49,7 @@ class WorkpapersObservation(Base):
     history = relationship("WorkpapersObservationHistory", back_populates="observation", cascade="all, delete-orphan")
 
     __table_args__ = (
+        Index('idx_audit_id', 'audit_id'),
         Index('idx_file_id', 'file_id'),
         Index('idx_codigo_papel', 'codigo_papel'),
         Index('idx_status', 'status'),
@@ -56,6 +58,7 @@ class WorkpapersObservation(Base):
     def to_dict(self):
         return {
             "id": self.id,
+            "audit_id": self.audit_id,
             "file_id": self.file_id,
             "codigo_papel": self.codigo_papel,
             "junior": {

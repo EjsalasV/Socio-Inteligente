@@ -22,6 +22,18 @@ LOGGER = logging.getLogger("socio_ai.api")
 if not LOGGER.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
+
+# ============= DATABASE INITIALIZATION =============
+@app.on_event("startup")
+async def startup_event():
+    """Inicializar base de datos al startup"""
+    try:
+        from backend.utils.database import init_db
+        init_db()
+        LOGGER.info("✅ Database initialized at startup")
+    except Exception as e:
+        LOGGER.error(f"❌ Failed to initialize database: {e}")
+
 _csrf_enforcer: Callable[[Request, Callable[[Request], Awaitable[Response]]], Awaitable[Response]] | None = None
 _observed_prefixes: tuple[str, ...] | None = None
 _csrf_header_name: str | None = None
