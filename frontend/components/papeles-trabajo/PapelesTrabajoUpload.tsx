@@ -19,39 +19,58 @@ export function PapelesTrabajoUpload({
 }: PapelesTrabajoUploadProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedLS, setSelectedLS] = useState<string>("");
   const [uploadStatus, setUploadStatus] = useState<{
     type: "success" | "error" | "pending";
     message: string;
     details?: any;
   } | null>(null);
 
-  const handleDownloadTemplate = async () => {
+  const handleDownloadTemplate = async (ls?: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `/api/papeles-trabajo/${clienteId}/plantilla`,
-        {
-          method: "GET",
+      let url = `/api/papeles-trabajo/${clienteId}/plantilla`;
+      // Only add ls parameter if it's a valid number
+      if (ls && ls.trim() !== "") {
+        const lsNum = parseInt(ls, 10);
+        if (!isNaN(lsNum)) {
+          url += `?ls=${lsNum}`;
         }
-      );
+      }
+
+      const response = await fetch(url, {
+        method: "GET",
+      });
 
       if (!response.ok) {
-        throw new Error("Error descargando plantilla");
+        let errorMessage = "Error descargando plantilla";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData?.message || errorData?.detail?.message || errorMessage;
+        } catch {
+          // Si no es JSON, usar mensaje por defecto
+        }
+        throw new Error(errorMessage);
       }
 
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = url;
-      link.download = `plantilla_papeles_trabajo_${clienteId}.xlsx`;
+      link.href = downloadUrl;
+      const lsNum = ls && ls.trim() !== "" ? parseInt(ls, 10) : null;
+      link.download = lsNum
+        ? `plantilla_papeles_trabajo_LS${lsNum}.xlsx`
+        : `plantilla_papeles_trabajo_completa.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(downloadUrl);
 
       setUploadStatus({
         type: "success",
-        message: "Plantilla descargada correctamente",
+        message: lsNum
+          ? `Plantilla descargada correctamente (L/S ${lsNum})`
+          : "Plantilla descargada correctamente",
       });
     } catch (error) {
       setUploadStatus({
@@ -172,18 +191,43 @@ export function PapelesTrabajoUpload({
         </p>
       </div>
 
-      {/* Download Template Button */}
-      <div className="mb-6">
-        <button
-          onClick={handleDownloadTemplate}
-          disabled={isLoading}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium disabled:opacity-50"
-        >
-          ⬇️ Descargar Plantilla Excel
-        </button>
-        <p className="text-xs text-gray-500 mt-2">
-          Descarga la plantilla Excel vacía con estructura correcta para llenarla offline
+      {/* Download Template Section */}
+      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Descargar Plantilla Excel</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Descarga la plantilla Excel vacía con estructura correcta para llenarla offline. Puedes descargar la plantilla completa o solo para una línea de cuenta específica.
         </p>
+
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
+          {/* L/S Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Línea de Cuenta (L/S) - Opcional
+            </label>
+            <input
+              type="number"
+              min="100"
+              max="999"
+              placeholder="ej: 130, 140"
+              value={selectedLS}
+              onChange={(e) => setSelectedLS(e.target.value)}
+              disabled={isLoading}
+              className="px-3 py-2 border border-gray-300 rounded font-medium text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">Déjalo vacío para descargar todas las líneas</p>
+          </div>
+
+          {/* Download Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleDownloadTemplate(selectedLS)}
+              disabled={isLoading}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium disabled:opacity-50"
+            >
+              ⬇️ Descargar {selectedLS ? `L/S ${selectedLS}` : "Todas"}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Upload Area */}
