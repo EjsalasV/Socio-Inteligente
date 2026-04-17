@@ -89,8 +89,12 @@ function isHeavyPath(path: string): boolean {
 
 function getSessionAuthToken(): string {
   if (typeof window === "undefined") return "";
+  // Check sessionStorage first (current session)
   const fromSession = String(window.sessionStorage?.getItem("socio_auth_token") || "").trim();
   if (fromSession) return fromSession;
+  // Fallback to localStorage for persistence across tabs/browser restarts
+  const fromLocal = String(window.localStorage?.getItem("socio_auth_token") || "").trim();
+  if (fromLocal) return fromLocal;
   // Compat with previous storage key used by older builds.
   const fromLegacy = String(window.localStorage?.getItem("socio_token") || "").trim();
   return fromLegacy;

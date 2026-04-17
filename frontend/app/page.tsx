@@ -93,9 +93,13 @@ export default function LoginPage() {
         return;
       }
 
-      // Store token in sessionStorage so WebSocket can retrieve it (it's in httpOnly cookie but inaccessible to JS)
-      if (typeof window !== "undefined" && window.sessionStorage) {
-        window.sessionStorage.setItem("socio_auth_token", token);
+      // Store token in sessionStorage (current session) AND localStorage (persistence across tabs/restarts)
+      if (typeof window !== "undefined") {
+        if (window.sessionStorage) {
+          window.sessionStorage.setItem("socio_auth_token", token);
+        }
+        // localStorage ensures token survives browser restarts (JWT has its own expiry)
+        window.localStorage.setItem("socio_auth_token", token);
       }
 
       setSessionState(csrfToken);

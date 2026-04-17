@@ -24,7 +24,8 @@ export function clearSessionState(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(SESSION_ACTIVE_KEY);
   window.localStorage.removeItem(CSRF_TOKEN_KEY);
-  // Also clear token from sessionStorage (used by WebSocket)
+  // Clear token from both storages
+  window.localStorage.removeItem("socio_auth_token");
   if (window.sessionStorage) {
     window.sessionStorage.removeItem("socio_auth_token");
   }
