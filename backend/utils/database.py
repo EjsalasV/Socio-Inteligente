@@ -15,13 +15,14 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    raise ValueError(
-        "❌ DATABASE_URL no está configurada. "
-        "Configura la variable de entorno en Vercel o en .env local"
-    )
-
-# Mostrar conexión (sin exponer password)
-print(f"📡 DATABASE_URL configurada: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else DATABASE_URL}")
+    print("⚠️  DATABASE_URL no está configurada.")
+    print("    Configúrala en Vercel → Settings → Environment Variables")
+    print("    Copia de Railway → Postgres → Connect")
+    DATABASE_URL = "sqlite:///./test.db"  # Fallback a SQLite local para testing
+    print(f"    Usando fallback: {DATABASE_URL}")
+else:
+    # Mostrar conexión (sin exponer password)
+    print(f"📡 DATABASE_URL configurada: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else DATABASE_URL}")
 
 # Crear engine SQLAlchemy
 # Para PostgreSQL (Railway), usar conexión directa
