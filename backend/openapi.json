@@ -2483,6 +2483,70 @@
         }
       }
     },
+    "/api/papeles-trabajo/{cliente_id}/plantilla": {
+      "get": {
+        "tags": [
+          "papeles-plantilla"
+        ],
+        "summary": "Descargar Plantilla",
+        "description": "Descargar plantilla Excel para papeles de trabajo\n\nParámetros:\n- cliente_id: ID del cliente\n- ls (opcional): Línea de Cuenta (ej: 130) para descargar solo esos papeles\n\nRetorna: Excel con estructura de papeles de trabajo",
+        "operationId": "descargar_plantilla_api_papeles_trabajo__cliente_id__plantilla_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "ls",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Línea de Cuenta (ej: 130, 140) - opcional",
+              "title": "Ls"
+            },
+            "description": "Línea de Cuenta (ej: 130, 140) - opcional"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/papeles-trabajo/{cliente_id}": {
       "get": {
         "tags": [
