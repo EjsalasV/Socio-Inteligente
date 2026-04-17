@@ -50,8 +50,8 @@ function asClienteOption(value: unknown): ClienteOption | null {
 
 export async function getClientes(): Promise<ClienteOption[]> {
   const response = await authFetchJson<ApiEnvelope<unknown>>("/api/clientes");
-  const raw = response?.data?.clientes;
-  if (!Array.isArray(raw)) return [];
+  const data = isRecord(response?.data) ? response.data : {};
+  const raw = Array.isArray(data.clientes) ? data.clientes : [];
   return raw.map(asClienteOption).filter((item): item is ClienteOption => item !== null);
 }
 
