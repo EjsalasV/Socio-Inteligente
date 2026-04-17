@@ -32,11 +32,12 @@ CREATE TABLE IF NOT EXISTS workpapers_observations (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (file_id) REFERENCES workpapers_files(id) ON DELETE CASCADE,
-    INDEX idx_file_id (file_id),
-    INDEX idx_codigo_papel (codigo_papel),
-    INDEX idx_status (status)
+    FOREIGN KEY (file_id) REFERENCES workpapers_files(id) ON DELETE CASCADE
 );
+
+CREATE INDEX IF NOT EXISTS idx_file_id ON workpapers_observations(file_id);
+CREATE INDEX IF NOT EXISTS idx_codigo_papel ON workpapers_observations(codigo_papel);
+CREATE INDEX IF NOT EXISTS idx_status ON workpapers_observations(status);
 
 -- Historial de cambios de observaciones
 CREATE TABLE IF NOT EXISTS workpapers_observation_history (

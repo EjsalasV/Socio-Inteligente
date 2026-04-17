@@ -4,24 +4,20 @@
 
 CREATE TABLE IF NOT EXISTS workpapers_templates (
     id SERIAL PRIMARY KEY,
-    codigo VARCHAR(10) UNIQUE NOT NULL,  -- ej: 130.03
-    numero VARCHAR(5) NOT NULL,           -- ej: 03
-    ls INTEGER NOT NULL,                  -- ej: 130 (línea de cuenta)
-    nombre VARCHAR(255) NOT NULL,         -- ej: "Conciliación cuentas por cobrar"
-    aseveracion VARCHAR(50) NOT NULL,     -- ej: EXISTENCIA, INTEGRIDAD, VALORACION, etc.
-    importancia VARCHAR(20) NOT NULL,     -- ej: CRITICO, ALTO, MEDIO, BAJO
-    obligatorio VARCHAR(20) NOT NULL,     -- ej: SÍ, NO, CONDICIONAL
-    descripcion TEXT,                     -- POR QUÉ se realiza (para Junior)
-    archivo_original VARCHAR(500),        -- Ruta original del Excel
-
+    codigo VARCHAR(10) UNIQUE NOT NULL,
+    numero VARCHAR(5) NOT NULL,
+    ls INTEGER NOT NULL,
+    nombre VARCHAR(255) NOT NULL,
+    aseveracion VARCHAR(50) NOT NULL,
+    importancia VARCHAR(20) NOT NULL,
+    obligatorio VARCHAR(20) NOT NULL,
+    descripcion TEXT,
+    archivo_original VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    INDEX idx_ls (ls),
-    INDEX idx_aseveracion (aseveracion),
-    INDEX idx_importancia (importancia)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insertar índice compuesto para búsquedas por LS + importancia
-CREATE INDEX IF NOT EXISTS idx_ls_importancia
-ON workpapers_templates(ls, importancia DESC, codigo);
+CREATE INDEX IF NOT EXISTS idx_ls ON workpapers_templates(ls);
+CREATE INDEX IF NOT EXISTS idx_aseveracion ON workpapers_templates(aseveracion);
+CREATE INDEX IF NOT EXISTS idx_importancia ON workpapers_templates(importancia);
+CREATE INDEX IF NOT EXISTS idx_ls_importancia ON workpapers_templates(ls, importancia, codigo);
