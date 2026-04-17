@@ -2,6 +2,7 @@
 Rutas para descargar plantillas de Papeles de Trabajo (V1 - Simple)
 - Descargar plantilla de todos los papeles
 - Descargar plantilla por Línea de Cuenta (L/S)
+- Obtener papeles por L/S como JSON
 """
 from typing import Any, Optional
 from io import BytesIO
@@ -11,7 +12,7 @@ from fastapi.responses import StreamingResponse
 
 from backend.auth import get_current_user
 from backend.models.workpapers_template import WorkpapersTemplate
-from backend.schemas import UserContext
+from backend.schemas import UserContext, ApiResponse
 from backend.utils.database import get_session
 from backend.utils.api_errors import raise_api_error
 
@@ -22,6 +23,67 @@ except ImportError:
     raise ImportError("openpyxl is required for Excel generation")
 
 router = APIRouter(prefix="/api/papeles-trabajo", tags=["papeles-plantilla"])
+
+
+@router.get("/{cliente_id}/papeles-por-ls", response_model=ApiResponse)
+async def obtener_papeles_por_ls(
+    cliente_id: str,
+    ls: Optional[int] = Query(None, description="Línea de Cuenta (ej: 130, 140)"),
+    user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
+) -> ApiResponse:
+    """
+    Obtener papeles de trabajo por Línea de Cuenta (L/S)
+
+    Retorna lista de papeles con toda su información para visualización y gestión de observaciones.
+
+    Parámetros:
+    - cliente_id: ID del cliente
+    - ls: Línea de Cuenta (ej: 130) - Requerido
+    """
+    try:
+        if ls is None:
+            raise_api_error(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="LS_REQUIRED",
+                message="El parámetro 'ls' (Línea de Cuenta) es requerido",
+            )
+
+        # Obtener papeles para la L/S
+        papeles = (
+            session.query(WorkpapersTemplate)
+            .filter(WorkpapersTemplate.ls == ls)
+            .order_by(WorkpapersTemplate.numero)
+            .all()
+        )
+
+        if not papeles:
+            raise_api_error(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="NO_PAPELES_FOUND",
+                message=f"No se encontraron papeles de trabajo para L/S {ls}",
+            )
+
+        # Convertir a diccionarios
+        papeles_data = [papel.to_dict() for papel in papeles]
+
+        return ApiResponse(
+            status="success",
+            data={
+                "ls": ls,
+                "total": len(papeles_data),
+                "papeles": papeles_data,
+            },
+        )
+
+    except Exception as e:
+        if hasattr(e, "status_code"):
+            raise
+        raise_api_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="ERROR_FETCHING_PAPELES",
+            message=f"Error obteniendo papeles: {str(e)}",
+        )
 
 
 def _create_template_workbook(papeles: list[WorkpapersTemplate]) -> BytesIO:

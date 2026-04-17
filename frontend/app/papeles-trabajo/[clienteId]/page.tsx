@@ -10,6 +10,7 @@ import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useLearningRole } from "../../../lib/hooks/useLearningRole";
 import { useWorkpapers } from "../../../lib/hooks/useWorkpapers";
 import { PapelesTrabajoUpload } from "../../../components/papeles-trabajo/PapelesTrabajoUpload";
+import { PapelesTrabajoV1Viewer } from "../../../components/papeles-trabajo/PapelesTrabajoV1Viewer";
 import { FirmasPanel } from "../../../components/papeles-trabajo/FirmasPanel";
 import { ModificacionesHistorial } from "../../../components/papeles-trabajo/ModificacionesHistorial";
 
@@ -536,6 +537,15 @@ export default function PapelesTrabajoPage() {
           </button>
         </section>
       ) : null}
+
+          {/* V1 Viewer: Papeles por L/S con observaciones */}
+          <section className="rounded-editorial p-7">
+            <PapelesTrabajoV1Viewer
+              clienteId={clienteId}
+              areaName="Área de Auditoría"
+              role={role as "junior" | "semi" | "senior" | "socio"}
+            />
+          </section>
         </>
       )}
 
