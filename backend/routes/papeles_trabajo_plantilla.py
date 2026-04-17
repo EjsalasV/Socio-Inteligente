@@ -9,6 +9,7 @@ from io import BytesIO
 
 from fastapi import APIRouter, Depends, status, Query
 from fastapi.responses import StreamingResponse
+from sqlalchemy import func
 
 from backend.auth import get_current_user
 from backend.models.workpapers_template import WorkpapersTemplate
@@ -23,6 +24,41 @@ except ImportError:
     raise ImportError("openpyxl is required for Excel generation")
 
 router = APIRouter(prefix="/api/papeles-trabajo", tags=["papeles-plantilla"])
+
+
+@router.get("/{cliente_id}/papeles-count", response_model=ApiResponse)
+async def contar_papeles(
+    cliente_id: str,
+    user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
+) -> ApiResponse:
+    """
+    Contar papeles por L/S para debug
+    """
+    try:
+        # Contar papeles por L/S
+        papeles_count = (
+            session.query(WorkpapersTemplate.ls)
+            .group_by(WorkpapersTemplate.ls)
+            .with_entities(WorkpapersTemplate.ls, func.count(WorkpapersTemplate.id))
+            .all()
+        )
+
+        total = session.query(func.count(WorkpapersTemplate.id)).scalar()
+
+        data = {
+            "total": total,
+            "por_ls": [{"ls": ls, "count": count} for ls, count in papeles_count],
+        }
+
+        return ApiResponse(status="success", data=data)
+
+    except Exception as e:
+        raise_api_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="ERROR",
+            message=str(e),
+        )
 
 
 @router.get("/{cliente_id}/papeles-por-ls", response_model=ApiResponse)
