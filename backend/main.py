@@ -94,6 +94,7 @@ def _register_routes_once() -> None:
         quality,
         realtime,
         reportes,
+        reportes_papeles,
         risk_engine,
         search,
         user_preferences,
@@ -111,6 +112,7 @@ def _register_routes_once() -> None:
     app.include_router(chat.router)
     app.include_router(metodologia.router)
     app.include_router(reportes.router)
+    app.include_router(reportes_papeles.router)
     app.include_router(workpapers.router)
     app.include_router(papeles_trabajo_v2.router)
     app.include_router(workflow.router)
