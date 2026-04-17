@@ -538,8 +538,12 @@ export default function PapelesTrabajoPage() {
         </section>
       ) : null}
 
-          {/* V1 Viewer: Papeles por L/S con observaciones */}
-          <section className="rounded-editorial p-7">
+          {/* V1 Viewer: Descarga de plantillas por L/S */}
+          <section className="rounded-editorial p-7 bg-blue-50 border border-blue-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">📥 Descargar Plantillas por L/S</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Selecciona una Línea de Cuenta (L/S) para descargar la plantilla de papeles de trabajo
+            </p>
             <PapelesTrabajoV1Viewer
               clienteId={clienteId}
               areaName="Área de Auditoría"
