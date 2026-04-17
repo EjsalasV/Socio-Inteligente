@@ -41,7 +41,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function asClienteOption(value: unknown): ClienteOption | null {
   if (!isRecord(value)) return null;
-  const cliente_id = typeof value.cliente_id === "string" ? value.cliente_id : "";
+  // Backend may return "client_id" (SQLAlchemy model) or "cliente_id" (legacy)
+  const cliente_id =
+    (typeof value.cliente_id === "string" ? value.cliente_id : "") ||
+    (typeof value.client_id === "string" ? value.client_id : "");
   if (!cliente_id) return null;
   const nombre = typeof value.nombre === "string" && value.nombre.trim() ? value.nombre : cliente_id;
   const sector = typeof value.sector === "string" && value.sector.trim() ? value.sector : null;
