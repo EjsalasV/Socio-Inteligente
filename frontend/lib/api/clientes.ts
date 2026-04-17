@@ -49,19 +49,19 @@ function asClienteOption(value: unknown): ClienteOption | null {
 }
 
 export async function getClientes(): Promise<ClienteOption[]> {
-  const response = await authFetchJson<ApiEnvelope<unknown>>("/clientes");
-  const raw = response?.data;
+  const response = await authFetchJson<ApiEnvelope<unknown>>("/api/clientes");
+  const raw = response?.data?.clientes;
   if (!Array.isArray(raw)) return [];
   return raw.map(asClienteOption).filter((item): item is ClienteOption => item !== null);
 }
 
 export async function createCliente(input: CreateClienteInput): Promise<ClienteOption> {
   const payload = {
-    cliente_id: input.cliente_id.trim(),
+    cliente_id: input.cliente_id.trim() || undefined,
     nombre: input.nombre.trim(),
     sector: input.sector?.trim() || null,
   };
-  const response = await authFetchJson<ApiEnvelope<unknown>>("/clientes", {
+  const response = await authFetchJson<ApiEnvelope<unknown>>("/api/clientes", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -73,9 +73,9 @@ export async function createCliente(input: CreateClienteInput): Promise<ClienteO
 }
 
 export async function deleteCliente(clienteId: string): Promise<void> {
-  await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}`, {
-    method: "DELETE",
-  });
+  // Note: DELETE endpoint not available in new API
+  // This function is deprecated
+  console.warn("deleteCliente: DELETE endpoint not available in new API");
 }
 
 export async function uploadClienteArchivo(
@@ -83,40 +83,14 @@ export async function uploadClienteArchivo(
   kind: "tb" | "mayor",
   file: File,
 ): Promise<{ stored_as: string; original_name: string; rows: number }> {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const response = await authFetchJson<ApiEnvelope<unknown>>(
-    `/clientes/${clienteId}/upload/${kind}`,
-    {
-      method: "POST",
-      body: formData,
-    },
-  );
-
-  const data = isRecord(response?.data) ? response.data : {};
-  return {
-    stored_as: typeof data.stored_as === "string" ? data.stored_as : "",
-    original_name: typeof data.original_name === "string" ? data.original_name : file.name,
-    rows: typeof data.rows === "number" ? data.rows : 0,
-  };
+  // Note: Upload endpoint not available in new API
+  throw new Error("uploadClienteArchivo: Endpoint not available in new API. Use database persistence instead.");
 }
 
 export async function getClienteDocumentos(clienteId: string): Promise<ClienteDocumento[]> {
-  const response = await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}/documentos`);
-  const raw: unknown[] = Array.isArray(response?.data) ? response.data : [];
-  return raw
-    .map((item: unknown) => {
-      if (!isRecord(item)) return null;
-      return {
-        id: typeof item.id === "string" ? item.id : "",
-        name: typeof item.name === "string" ? item.name : "",
-        kind: typeof item.kind === "string" ? item.kind : "documento",
-        uploaded_at: typeof item.uploaded_at === "string" ? item.uploaded_at : "",
-        path: typeof item.path === "string" ? item.path : "",
-      };
-    })
-    .filter((item: ClienteDocumento | null): item is ClienteDocumento => item !== null && Boolean(item.id));
+  // Note: Document endpoints not available in new API
+  console.warn("getClienteDocumentos: Endpoint not available in new API");
+  return [];
 }
 
 export interface DocumentoIngestionResult {
@@ -128,59 +102,25 @@ export async function uploadClienteDocumento(
   clienteId: string,
   file: File,
 ): Promise<{ documentos: ClienteDocumento[]; ingestion: DocumentoIngestionResult }> {
-  const formData = new FormData();
-  formData.append("file", file);
-  const response = await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}/documentos/upload`, {
-    method: "POST",
-    body: formData,
-  });
-  const data = isRecord(response?.data) ? response.data : {};
-  const docs: unknown[] = Array.isArray(data.documentos) ? data.documentos : [];
-  const documentos = docs
-    .map((item: unknown) => {
-      if (!isRecord(item)) return null;
-      return {
-        id: typeof item.id === "string" ? item.id : "",
-        name: typeof item.name === "string" ? item.name : "",
-        kind: typeof item.kind === "string" ? item.kind : "documento",
-        uploaded_at: typeof item.uploaded_at === "string" ? item.uploaded_at : "",
-        path: typeof item.path === "string" ? item.path : "",
-      };
-    })
-    .filter((item: ClienteDocumento | null): item is ClienteDocumento => item !== null && Boolean(item.id));
-  const ingestionRaw = isRecord(data.ingestion) ? data.ingestion : {};
-  return {
-    documentos,
-    ingestion: {
-      indexed: Boolean(ingestionRaw.indexed),
-      text_chars: typeof ingestionRaw.text_chars === "number" ? ingestionRaw.text_chars : 0,
-    },
-  };
+  // Note: Document upload endpoint not available in new API
+  throw new Error("uploadClienteDocumento: Endpoint not available in new API. Use database persistence instead.");
 }
 
 export async function getClienteHallazgos(clienteId: string): Promise<ClienteHallazgo[]> {
-  const response = await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}/hallazgos`);
-  const raw: unknown[] = Array.isArray(response?.data) ? response.data : [];
-  return raw
-    .map((item: unknown) => {
-      if (!isRecord(item)) return null;
-      return {
-        title: typeof item.title === "string" ? item.title : "Hallazgo",
-        body: typeof item.body === "string" ? item.body : "",
-      };
-    })
-    .filter((item: ClienteHallazgo | null): item is ClienteHallazgo => item !== null);
+  // Note: Hallazgos endpoint moved to separate API
+  console.warn("getClienteHallazgos: Endpoint deprecated. Use /api/hallazgos instead");
+  return [];
 }
 
 export async function getClienteTbStatus(clienteId: string): Promise<ClienteTbStatus> {
-  const response = await authFetchJson<ApiEnvelope<unknown>>(`/clientes/${clienteId}/tb-status`);
-  const data = isRecord(response?.data) ? response.data : {};
+  // Note: TB status endpoint not available in new API
+  console.warn("getClienteTbStatus: Endpoint not available in new API");
   return {
-    cliente_id: typeof data.cliente_id === "string" ? data.cliente_id : clienteId,
-    has_tb: Boolean(data.has_tb),
-    has_mayor: Boolean(data.has_mayor),
-    has_tb_cache: Boolean(data.has_tb_cache),
-    tb_size_bytes: typeof data.tb_size_bytes === "number" ? data.tb_size_bytes : 0,
-    tb_mtime_ns: typeof data.tb_mtime_ns === "number" ? data.tb_mtime_ns : 0,
+    cliente_id: clienteId,
+    has_tb: false,
+    has_mayor: false,
+    has_tb_cache: false,
+    tb_size_bytes: 0,
+    tb_mtime_ns: 0,
   };
 }

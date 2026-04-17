@@ -2,10 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://socio-ai-backend.vercel.app";
+
     return [
       {
         source: "/api/:path*",
-        destination: "https://socio-inteligente-production.up.railway.app/:path*",
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },
