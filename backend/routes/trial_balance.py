@@ -101,6 +101,23 @@ async def upload_trial_balance(
     )
 
 
+@router.get("/{cliente_id}/diagnostico", response_model=ApiResponse)
+def get_tb_diagnostico(
+    cliente_id: str,
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
+    """
+    Diagnóstico del TB cargado: columnas detectadas, filas, stage
+    """
+    authorize_cliente_access(cliente_id, user)
+    try:
+        from analysis.lector_tb import obtener_diagnostico_tb
+        diag = obtener_diagnostico_tb(cliente_id)
+        return ApiResponse(data=diag)
+    except Exception as e:
+        return ApiResponse(data={"error": str(e), "cliente_id": cliente_id})
+
+
 @router.get("/{cliente_id}/status", response_model=ApiResponse)
 def get_tb_status(
     cliente_id: str,
