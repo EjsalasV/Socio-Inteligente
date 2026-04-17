@@ -1,0 +1,338 @@
+================================================================================
+  GUÍA DE PRUEBA: Papeles-Trabajo v2 - Sistema Excel con Versioning & Firmas
+================================================================================
+
+✅ SISTEMAS ACTIVOS:
+  • Backend (FastAPI):    http://127.0.0.1:8000/docs
+  • Frontend (Next.js):   http://localhost:3000
+  • Desktop (Electron):   En desarrollo (requiere npm run dev en desktop-sync-manager)
+
+================================================================================
+  PARTE 1: VERIFICACIÓN RÁPIDA (5 minutos)
+================================================================================
+
+1. Abre en el navegador:
+   http://localhost:3000/papeles-trabajo/test-cliente-123
+
+2. Deberías ver:
+   ✓ Dos tabs: "v1" (Papeles Trabajo Clásicos) y "v2" (Excel)
+   ✓ Tab "v2" muestra componentes nuevos
+
+3. Si el navegador no carga:
+   - Abre Developer Tools (F12)
+   - Revisa Console por errores
+   - Espera a que Next.js compile (puede tomar 30s)
+
+================================================================================
+  PARTE 2: FLUJO COMPLETO PAPELES-TRABAJO v2 (20 minutos)
+================================================================================
+
+ESCENARIO: Prueba el flujo completo descarga → edición → subida → firmas
+
+PRE-REQUISITOS:
+  - 3 navegadores o ventanas abiertas (o pestañas en incógnito para diferentes roles)
+  - Rol JUNIOR, SENIOR y SOCIO para simular el flujo
+
+PASO 1: JUNIOR - Descargar Plantilla
+─────────────────────────────────────
+1. En http://localhost:3000/papeles-trabajo/test-cliente-123
+2. Asegúrate estés en tab "v2 (Excel)"
+3. Simula rol JUNIOR (puedes cambiar tu rol en el selector de rol)
+4. Click botón: "Descargar Plantilla Excel"
+   → Deberías descargar: plantilla_papeles_trabajo_test-cliente-123.xlsx
+
+5. Verifica el contenido del Excel:
+   - Debe tener estructura con columnas estándar
+   - Debe estar vacío (listo para llenar)
+   - No debe tener errores de lectura
+
+PASO 2: JUNIOR - Rellenar Excel Offline
+────────────────────────────────────────
+1. Abre el Excel descargado
+2. Llena algunos datos de prueba:
+   - Fila 1 (encabezados): Procedimiento | Hallazgo | Riesgo | Estado
+   - Fila 2 (datos):        Cierre Cajas  | Saldo -$500 | Alto | Pendiente
+   - Fila 3 (datos):        Cobranzas     | Error calc | Bajo | Resuelto
+
+3. Guarda el archivo: plantilla_test_RELLENADO.xlsx
+
+PASO 3: JUNIOR - Subir Archivo (Drag & Drop o Click)
+──────────────────────────────────────────────────────
+1. En la página v2, verás zona de upload con:
+   "Sube tu archivo Excel rellenado"
+   "Arrastra y suelta tu archivo Excel aquí, o haz clic para seleccionar"
+
+2. OPCIÓN A - Drag & Drop:
+   - Arrastra plantilla_test_RELLENADO.xlsx a la zona
+   - Verás animación de "drag over" (fondo azul)
+
+3. OPCIÓN B - Click:
+   - Click en botón "Seleccionar archivo"
+   - Navega a plantilla_test_RELLENADO.xlsx
+   - Selecciona
+
+4. El sistema inicia upload:
+   ✓ Verás mensaje "Subiendo archivo..." (spinner)
+   ✓ Verás progreso (compression ~75% = 8.5 MB → 2.1 MB)
+   ✓ Backend calcula SHA256 hash
+
+5. Después de 5-10 segundos:
+   ✓ Mensaje success: "Archivo subido correctamente"
+   ✓ Detalles visibles:
+     - ID Archivo: [número]
+     - Versión: 1
+     - Filas parseadas: 3 (incluye encabezados)
+     - Completadas: 2/3
+
+PASO 4: SENIOR - Revisar Tabla Parseada
+───────────────────────────────────────
+1. En la misma página (como SENIOR), bajo el componente de upload:
+   Deberías ver tabla con datos parseados:
+
+   | Procedimiento | Hallazgo        | Riesgo | Estado    |
+   |───────────────|─────────────────|────────|───────────|
+   | Cierre Cajas  | Saldo -$500     | Alto   | Pendiente |
+   | Cobranzas     | Error calc      | Bajo   | Resuelto  |
+
+2. Verificar:
+   ✓ Datos correctos (coinciden con lo que subiste)
+   ✓ Formato limpio y legible
+   ✓ No hay errores de parseo
+
+3. BONUS - Edición (si está implementada):
+   - Click en una celda
+   - Modifica valor: "Pendiente" → "En Revisión"
+   - Sistema registra cambio en historial
+
+PASO 5: VER HISTORIAL DE MODIFICACIONES
+────────────────────────────────────────
+1. Desplazate en la página hasta encontrar: "Historial de Modificaciones"
+
+2. Verás:
+   ✓ Tabla con cambios (si hay algunos):
+     Rol | Campo | Antes | Después | Fecha/Hora
+
+   ✓ Si aún no hay cambios:
+     "No hay modificaciones registradas para este archivo"
+
+3. Hacer un cambio como SENIOR y verificar:
+   - Edita un campo (si posible)
+   - Historial debe actualizar mostrando:
+     "SENIOR | Campo | Valor_viejo | Valor_nuevo | 2026-04-16 22:55:30"
+
+PASO 6: PANEL DE FIRMAS - Flujo 3 Roles
+─────────────────────────────────────────
+1. En la página v2, desplazate a: "Panel de Firmas"
+
+2. Verás 3 tarjetas:
+   ┌─────────────────────────────────────┐
+   │ Completado por Junior      [⏳]      │ ← Pendiente
+   │ Fecha/Hora: No firmado              │
+   │ [Firmar como JUNIOR]                │
+   └─────────────────────────────────────┘
+
+   ┌─────────────────────────────────────┐
+   │ Revisado por Senior        [⏳]      │ ← Pendiente
+   │ Fecha/Hora: No firmado              │
+   │ (Senior solo puede firmar cuando sea Senior)
+   └─────────────────────────────────────┘
+
+   ┌─────────────────────────────────────┐
+   │ Finalizado por Socio       [⏳]      │ ← Pendiente
+   │ Fecha/Hora: No firmado              │
+   │ (Socio solo puede firmar cuando sea Socio)
+   └─────────────────────────────────────┘
+
+3. JUNIOR firma:
+   - Cambia rol a JUNIOR (en selector del navegador)
+   - Recarga página (F5) para aplicar cambio de rol
+   - Click botón: [Firmar como JUNIOR]
+   - Verás spinner, luego:
+     ✓ Mensaje success: "Firmado correctamente como JUNIOR"
+     ✓ Tarjeta cambia a VERDE con ✓ "Firmado"
+     ✓ Muestra: "Fecha/Hora: 2026-04-16 22:56:15"
+     ✓ Muestra: "Firmado por: echoe (tu usuario)"
+
+4. SENIOR firma:
+   - Cambia rol a SENIOR
+   - Recarga página
+   - Click: [Firmar como SENIOR]
+   - Verás: ✓ tarjeta Senior ahora VERDE con ✓ "Firmado"
+
+5. SOCIO firma:
+   - Cambia rol a SOCIO
+   - Recarga página
+   - Click: [Firmar como SOCIO]
+   - Verás: ✓ tarjeta Socio ahora VERDE con ✓ "Firmado"
+
+6. Panel completo:
+   - Verás botón arriba que dice: "Estado: ✅ COMPLETADO" (en lugar de "⏳ PENDIENTE")
+   - Las 3 tarjetas están verdes
+
+PASO 7: DESCARGAR VERSIONES & RESPALDOS
+────────────────────────────────────────
+(Si implementado en backend)
+
+1. Busca botón: "Descargar Excel Actual (v2)" o "Descargar con Historial"
+   - Descargará el Excel con:
+     a) Datos parseados
+     b) Historial de cambios en hoja separada
+     c) Firmas en última fila
+
+2. Busca botón: "Ver Respaldo (v_anterior)" o "Download Backup"
+   - Descargará versión anterior (si existe)
+   - Aparece como "read-only" (no editable)
+
+3. Verifica:
+   ✓ Excel tiene 2-3 hojas: [Datos] [Historial] [Firmas]
+   ✓ Formato profesional (sin errores)
+
+================================================================================
+  PARTE 3: PRUEBAS DE VALIDACIÓN & PERMISOS
+================================================================================
+
+TEST 1: Validación de Rol - JUNIOR No Puede Firmar como SENIOR
+───────────────────────────────────────────────────────────────
+1. Como JUNIOR, en panel de firmas
+2. Intenta hacer click en botón "Firmar como SENIOR" (debe estar deshabilitado)
+3. Esperado:
+   ✓ Botón gris/deshabilitado
+   ✓ Tooltip: "No tienes permisos"
+
+TEST 2: Solo JUNIOR y SEMI Pueden Subir
+──────────────────────────────────────────
+1. Como SENIOR:
+   - En componente PapelesTrabajoUpload
+   - Zona de upload debe mostrar:
+     "Solo Junior y Semi pueden subir archivos"
+   - Sin opción de subir
+
+2. Como JUNIOR:
+   - Zona de upload presente y activa
+   - Puedes subir
+
+TEST 3: Rechazo de Archivos No-Excel
+──────────────────────────────────────
+1. Intenta subir archivo .txt o .pdf
+2. Sistema muestra error:
+   "Por favor selecciona un archivo Excel (.xlsx o .xls)"
+
+TEST 4: Validación de Estructura Excel
+────────────────────────────────────────
+1. Crea Excel con estructura INCORRECTA:
+   - Faltan columnas obligatorias
+   - Errores de formato
+2. Intenta subir
+3. Sistema debe mostrar error especificando qué falta
+
+================================================================================
+  PARTE 4: DESKTOP SYNC MANAGER (Electron) - Opcional
+================================================================================
+
+(Skip si aún no está compilado)
+
+1. Abre terminal en desktop-sync-manager/:
+   npm run dev
+
+2. Deberías ver ventana Electron con:
+   - Campo: URL Backend (http://127.0.0.1:8000)
+   - Campo: Cliente ID (test-cliente-123)
+   - Campo: Token (obtener del login)
+   - Botones: [Descargar Plantilla] [Seleccionar Excel] [Subir]
+
+3. Prueba:
+   ✓ Descargar plantilla sin login → error?
+   ✓ Descargar plantilla CON token → éxito
+   ✓ Seleccionar Excel local
+   ✓ Subir → compresión automática → hash calculado
+
+================================================================================
+  PARTE 5: DEBUGGING & TROUBLESHOOTING
+================================================================================
+
+ERRORES COMUNES:
+
+Problema: "Error al cargar papeles-trabajo"
+Solución:
+  1. Verifica que useAuditContext() funciona (obtiene clienteId)
+  2. Abre DevTools → Network, busca requests a /api/papeles-trabajo/*
+  3. Backend responde con 200? O error?
+  4. Si 404, asegúrate que endpoints existen en backend/routes/papeles_trabajo_v2.py
+
+Problema: "No tienes permisos para subir"
+Solución:
+  1. Verifica que tu rol es JUNIOR o SEMI (no SENIOR/SOCIO)
+  2. Rol se obtiene de useLearningRole()
+  3. Si rol es incorrecto, revisa mock data en frontend/lib/hooks/useLearningRole.ts
+
+Problema: "Archivo subido pero no aparece en tabla"
+Solución:
+  1. Check Console (F12) por errores JavaScript
+  2. Verifica response /api/papeles-trabajo/{clienteId}/upload
+     - Debe tener: { status: "success", data: { file_id, version, parsed_rows } }
+  3. Si respuesta está bien pero tabla no actualiza, issue en UI renderizado
+
+Problema: "Firmas no guardan"
+Solución:
+  1. Endpoint: POST /api/papeles-trabajo/{clienteId}/{areaCode}/{fileId}/sign
+  2. Body: { "role": "junior" }
+  3. Debe retornar: { status: "success", data: { signed_at, signed_by } }
+  4. Si falla, backend no implementó endpoint
+
+================================================================================
+  CHECKLISTA FINAL
+================================================================================
+
+Básicos:
+  ☐ Frontend carga sin errores
+  ☐ Backend responde en http://127.0.0.1:8000/health → {"status":"ok"}
+  ☐ Página /papeles-trabajo/[clienteId] carga sin SSR errors
+
+Descarga & Subida:
+  ☐ JUNIOR puede descargar plantilla Excel
+  ☐ JUNIOR puede subir Excel relleno
+  ☐ Sistema parsea correctamente
+  ☐ Tabla muestra datos parseados
+  ☐ SENIOR ve cambios sin poder subir
+
+Firmas:
+  ☐ JUNIOR firma "Completado"
+  ☐ SENIOR firma "Revisado"
+  ☐ SOCIO firma "Finalizado"
+  ☐ Cada firma registra timestamp + usuario
+  ☐ Panel muestra estado "✅ COMPLETADO" cuando todas firman
+
+Historial:
+  ☐ Cambios registrados con quién, cuándo, qué
+  ☐ Sorteo por fecha (más reciente primero)
+  ☐ Colores por rol (junior=azul, senior=naranja, socio=rojo)
+
+Validación:
+  ☐ Rechaza archivos no-Excel
+  ☐ Rechaza uploads desde SENIOR/SOCIO
+  ☐ Rechaza firmas fuera de permisos
+
+================================================================================
+  PRÓXIMOS PASOS
+================================================================================
+
+1. Si todo funciona:
+   ✅ ÉXITO - Papeles-Trabajo v2 está operativo
+   → Siguiente: implementar persistencia en BD + almacenamiento de archivos
+
+2. Si hay errores:
+   → Documenta error + stack trace
+   → Revisa backend logs en terminal de Backend
+   → Revisa frontend Console (F12)
+   → Post en repositorio o comparte logs
+
+3. Optimizaciones futuras:
+   - Validación cruzada de datos antes de subida
+   - Compresión automática en descarga
+   - Thumbnails de Excel en vista previa
+   - Sincronización real-time entre usuarios
+   - Exportación PDF con datos + firmas
+
+================================================================================
+¿LISTO? Abre http://localhost:3000/papeles-trabajo/test-cliente-123 y comienza!
+================================================================================

@@ -1,0 +1,326 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║            PAPELES-TRABAJO v2: Flujo de Observaciones por Rol              ║
+║                         Basado en tu visión                                ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════
+1. JUNIOR: Realiza Procedimiento + Observación
+═══════════════════════════════════════════════════════════════════════════════
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│ PAPELES-TRABAJO → Selecciona L/S: 130 (Cuentas por Cobrar)                │
+├────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  PAPELES DE LA LÍNEA 130:                                                  │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│                                                                             │
+│  [CRÍTICO] 130.07 Confirmación de saldos                                   │
+│            Aseveración: EXISTENCIA                                         │
+│            Obligatorio: SÍ                                                 │
+│            Descripción: Por qué se realizan confirmaciones en rol Junior   │
+│            [Descargar] [+ Observación] [Firmar]                            │
+│                                                                             │
+│  [ALTO]    130.03 Conciliación cuentas por cobrar                          │
+│            Aseveración: INTEGRIDAD                                         │
+│            Obligatorio: SÍ                                                 │
+│            Descripción: Por qué se realiza conciliación de CXC...          │
+│            [Descargar] [+ Observación] [Firmar]                            │
+│                                                                             │
+│  [ALTO]    130.04 Resumen de antigüedad CXC                                │
+│            Aseveración: INTEGRIDAD                                         │
+│            Obligatorio: SÍ                                                 │
+│            [Descargar] [+ Observación] [Firmar]                            │
+│                                                                             │
+│  [MEDIO]   130.05 Concentración de cartera                                 │
+│            Aseveración: PROCEDIMIENTO                                      │
+│            Obligatorio: CONDICIONAL                                        │
+│            [Descargar] [+ Observación] [Firmar]                            │
+│                                                                             │
+└────────────────────────────────────────────────────────────────────────────┘
+
+JUNIOR HACE:
+  1. Click [Descargar] → Descarga 130.03.xlsx (plantilla vacía)
+  2. Rellena con datos offline
+  3. Sube Excel
+  4. Click [+ Observación] → MODAL:
+
+     ┌──────────────────────────────────────────┐
+     │ + OBSERVACIÓN - 130.03                   │
+     ├──────────────────────────────────────────┤
+     │                                          │
+     │ [Textarea grande]                        │
+     │ ┌────────────────────────────────────┐   │
+     │ │ Encontré diferencia de $2,500      │   │
+     │ │ en saldo CXC vs Mayor.             │   │
+     │ │ Investigué y encontré factura      │   │
+     │ │ duplicada #4521.                   │   │
+     │ │ Ajuste: revertir duplicado.        │   │
+     │ └────────────────────────────────────┘   │
+     │                                          │
+     │ [Cancelar]         [Guardar]             │
+     └──────────────────────────────────────────┘
+
+  5. Guarda → Sistema registra:
+
+     OBSERVACIONES - 130.03:
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     JUNIOR (echoe) - 16-04-2026 10:30 ✓
+       "Encontré diferencia de $2,500 en saldo CXC vs Mayor.
+        Investigué y encontré factura duplicada #4521.
+        Ajuste: revertir duplicado."
+
+     SENIOR (juanperez) - ⏳ PENDIENTE
+       (No ha revisado aún)
+
+     SOCIO (jcarlos) - ⏳ PENDIENTE
+       (No ha revisado aún)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+2. SENIOR: Revisa Observación + Comenta/Aprueba
+═══════════════════════════════════════════════════════════════════════════════
+
+SENIOR VE:
+  Same papel 130.03, pero ahora como SENIOR. Ve observación de Junior:
+
+     ┌──────────────────────────────────────────┐
+     │ OBSERVACIONES - 130.03                   │
+     ├──────────────────────────────────────────┤
+     │                                          │
+     │ JUNIOR (echoe) - 16-04-2026 10:30 ✓      │
+     │   "Encontré diferencia de $2,500...      │
+     │    ...Ajuste: revertir duplicado."       │
+     │                                          │
+     │ SENIOR (juanperez) - ⏳ PENDIENTE        │
+     │                                          │
+     │   [Textarea para comentar]               │
+     │   ┌────────────────────────────────────┐ │
+     │   │ Correcto, encontré el mismo error. │ │
+     │   │ Ya está cancelada en SII.          │ │
+     │   └────────────────────────────────────┘ │
+     │                                          │
+     │   ✅ APROBAR                             │
+     │   ❌ RECHAZAR                            │
+     │   ❓ PENDIENTE ACLARACIÓN                │
+     │   ⊗ NO APLICA                            │
+     │                                          │
+     └──────────────────────────────────────────┘
+
+SENIOR ELIGE:
+  [✅ APROBAR]
+
+SISTEMA REGISTRA:
+     JUNIOR (echoe) - 16-04-2026 10:30
+       "Encontré diferencia de $2,500..."
+
+     SENIOR (juanperez) - 16-04-2026 14:15 ✅ APROBADO
+       "Correcto, encontré el mismo error.
+        Ya está cancelada en SII."
+
+     SOCIO (jcarlos) - ⏳ PENDIENTE
+       (Esperando revisión final)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+3. SOCIO: Revisa Todo + Finaliza o Rechaza
+═══════════════════════════════════════════════════════════════════════════════
+
+SOCIO VE HISTORIAL COMPLETO:
+
+     ┌──────────────────────────────────────────┐
+     │ OBSERVACIONES - 130.03                   │
+     ├──────────────────────────────────────────┤
+     │                                          │
+     │ JUNIOR (echoe) - 16-04-2026 10:30 ✓      │
+     │   "Encontré diferencia de $2,500..."     │
+     │                                          │
+     │ SENIOR (juanperez) - 16-04-2026 14:15    │
+     │ ✅ APROBADO                              │
+     │   "Correcto, encontré el mismo error.    │
+     │    Ya está cancelada en SII."            │
+     │                                          │
+     │ SOCIO (jcarlos) - ⏳ PENDIENTE           │
+     │                                          │
+     │   [Textarea para comentario final]       │
+     │   ┌────────────────────────────────────┐ │
+     │   │ Listo. Documentado en hallazgo #7. │ │
+     │   │ Sin efectos para EE.FF.            │ │
+     │   └────────────────────────────────────┘ │
+     │                                          │
+     │   ✅ FINALIZADO                          │
+     │   ❌ REVISAR (falta algo)                │
+     │   ⊗ NO APLICA (para esta empresa)       │
+     │                                          │
+     └──────────────────────────────────────────┘
+
+SOCIO ELIGE:
+  [✅ FINALIZADO]
+
+ESTADO FINAL DEL PAPEL:
+     ✅ 130.03 COMPLETADO
+
+HISTORIAL FINAL:
+     ┌──────────────────────────────────────────┐
+     │ OBSERVACIONES - 130.03 [FINALIZADO]      │
+     ├──────────────────────────────────────────┤
+     │                                          │
+     │ JUNIOR (echoe) - 16-04-2026 10:30 ✓      │
+     │   "Encontré diferencia de $2,500..."     │
+     │   ACCIÓN: Escribió observación           │
+     │                                          │
+     │ SENIOR (juanperez) - 16-04-2026 14:15    │
+     │ ✅ APROBADO                              │
+     │   "Correcto, encontré el mismo error.    │
+     │    Ya está cancelada en SII."            │
+     │   ACCIÓN: Aprobó observación             │
+     │                                          │
+     │ SOCIO (jcarlos) - 16-04-2026 15:45       │
+     │ ✅ FINALIZADO                            │
+     │   "Listo. Documentado en hallazgo #7.    │
+     │    Sin efectos para EE.FF."              │
+     │   ACCIÓN: Finalizó observación           │
+     │                                          │
+     │ STATUS: FINALIZADO                       │
+     │ IMPACTO: Sin efectos para EE.FF.         │
+     │                                          │
+     └──────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+CASOS ALTERNATIVOS:
+═══════════════════════════════════════════════════════════════════════════════
+
+CASO 1: SENIOR RECHAZA
+━━━━━━━━━━━━━━━━━━━━━
+SENIOR VE OBSERVACIÓN DE JUNIOR y dice:
+  [❌ RECHAZAR]
+
+  Comentario:
+  "No me cuadra. CXC sigue a $50,000.
+   Revisar nuevamente vs SII."
+
+RESULTADO:
+  Status: RECHAZADO
+  → Junior debe revisar nuevamente
+
+
+CASO 2: SENIOR PIDE ACLARACIÓN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SENIOR VE OBSERVACIÓN y dice:
+  [❓ PENDIENTE ACLARACIÓN]
+
+  Comentario:
+  "¿Cuál es el impacto de la duplicada?
+   ¿Afecta EE.FF. o reversión?
+   Aclarar antes de proceder."
+
+RESULTADO:
+  Status: PENDIENTE_ACLARACION
+  → Junior debe aclarar
+
+
+CASO 3: SOCIO DICE NO APLICA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SOCIO VE OBSERVACIÓN APROBADA y dice:
+  [⊗ NO APLICA]
+
+  Comentario:
+  "Para esta empresa (PYME), CXC
+   es bajo. Documentar pero no es
+   control crítico este año."
+
+RESULTADO:
+  Status: NO_APLICA
+  → Se documenta pero no impacta
+
+
+═══════════════════════════════════════════════════════════════════════════════
+REPORTES: Cómo se verá en Reportes Finales
+═══════════════════════════════════════════════════════════════════════════════
+
+PAPELES DE TRABAJO - REPORTE EJECUTIVO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Línea 130: Cuentas por Cobrar
+├─ 130.07 Confirmación saldos     [✅ FINALIZADO]
+├─ 130.03 Conciliación CXC        [✅ FINALIZADO]
+│         Observación: Diferencia $2,500 por duplicada
+│         Junior: echoe (10:30)
+│         Senior: juanperez aprobó (14:15)
+│         Socio: jcarlos finalizó sin efectos (15:45)
+│
+├─ 130.04 Antigüedad             [✅ FINALIZADO]
+└─ 130.05 Concentración cartera  [⏳ PENDIENTE JUNIOR]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+COMPARATIVA: ANTES vs DESPUÉS
+═══════════════════════════════════════════════════════════════════════════════
+
+ANTES:
+  ❌ Plantilla genérica (6 columnas)
+  ❌ Sin clasificación por aseveración
+  ❌ Sin importancia/obligatorio
+  ❌ "Evidencia" genérica
+  ❌ Observaciones EN EXCEL (difícil seguimiento)
+  ❌ Sin historial
+  ❌ Sin trazabilidad (quién dijo qué/cuándo)
+  ❌ Sin base para reportes
+
+AHORA:
+  ✅ 78 papeles clasificados
+  ✅ Por aseveración NIA (Existencia, Integridad, Valoración)
+  ✅ Por importancia (Crítico, Alto, Medio, Bajo)
+  ✅ Obligatorio/Condicional
+  ✅ Descripción POR QUÉ (para Junior)
+  ✅ Observaciones EN EL SISTEMA (con modal)
+  ✅ Historial completo (Junior → Senior → Socio)
+  ✅ Trazabilidad total (quién, cuándo, qué, por qué)
+  ✅ Base profesional para reportes
+
+
+═══════════════════════════════════════════════════════════════════════════════
+INTEGRACIÓN CON REPORTES FUTUROS
+═══════════════════════════════════════════════════════════════════════════════
+
+Reportes puede extraer:
+  • Qué observaciones tuvo cada L/S
+  • Quién las hizo y cuándo
+  • Cuál fue el resultado (aprobado/rechazado/sin efecto)
+  • Impactos en EE.FF.
+  • Controles que fallaron
+  • Hallazgos no resueltos
+
+Ejemplo:
+  HALLAZGOS FINALES:
+  ├─ Duplicada en CXC #4521 → Sin efecto (reversión en SII)
+  ├─ Cartera vencida no depreciada → Sin efecto (bajo saldo)
+  └─ Falta confirmación de cliente X → PENDIENTE RESOLVER
+
+
+═══════════════════════════════════════════════════════════════════════════════
+SEGURIDAD Y PERMISOS
+═══════════════════════════════════════════════════════════════════════════════
+
+JUNIOR:
+  ✅ Descargar papeles
+  ✅ Subir archivos
+  ✅ Escribir observaciones
+  ❌ Aprobar observaciones
+
+SENIOR:
+  ✅ Ver todo
+  ✅ Revisar observaciones de Junior
+  ✅ Aprobar/Rechazar/Comentar
+  ❌ Finalizar (solo Socio)
+
+SOCIO:
+  ✅ Ver todo
+  ✅ Ver historial completo
+  ✅ Finalizar papeles
+  ✅ Documento como AUDITADO
+
+
+═══════════════════════════════════════════════════════════════════════════════
+¡LISTO! Este es el flujo que propusiste, implementado profesionalmente.
+═══════════════════════════════════════════════════════════════════════════════

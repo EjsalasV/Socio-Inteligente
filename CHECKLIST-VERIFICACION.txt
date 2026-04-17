@@ -1,0 +1,123 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║         CHECKLIST DE VERIFICACIÓN - Papeles-Trabajo v2 Completado         ║
+║                     Marca lo que ya hayas confirmado                       ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════
+DOCUMENTACIÓN GENERADA - Marca cuando hayas LEÍDO
+═══════════════════════════════════════════════════════════════════════════════
+
+TIER 1 - Lee primero (orden):
+☐ RESUMEN-SESION-2.md
+  Qué se hizo, estadísticas, próximos pasos
+
+☐ FLUJO-PAPELES-OBSERVACIONES.txt
+  Flujo visual: Junior → Senior → Socio
+
+☐ IMPLEMENTACION-PAPELES-OBSERVACIONES.md
+  Paso a paso para implementar
+
+☐ INDICE-GENERADO-SESION-2.txt
+  Índice de todo lo generado
+
+TIER 2 - Referencia:
+☐ CHECKLIST-VERIFICACION.txt (este archivo)
+  Qué revisar antes de implementar
+
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHIVOS GENERADOS - Marca cuando hayas ENCONTRADO
+═══════════════════════════════════════════════════════════════════════════════
+
+DATA:
+☐ data/papeles_clasificados.json
+  - 78 papeles clasificados
+  - 17 líneas de cuenta
+
+BACKEND SQL:
+☐ backend/migrations/002_create_papeles_templates.sql
+☐ backend/migrations/003_create_papeles_observations.sql
+
+BACKEND PYTHON:
+☐ backend/models/workpapers_template.py
+☐ backend/models/workpapers_observation.py
+☐ backend/routes/papeles_templates.py
+☐ backend/scripts/seed_workpapers_templates.py
+
+SCRIPTS:
+☐ scripts/extract_papeles.py
+
+
+═══════════════════════════════════════════════════════════════════════════════
+PASOS DE IMPLEMENTACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+PASO 1: DATABASE - Ejecutar Migraciones
+☐ Ejecutar: 002_create_papeles_templates.sql
+☐ Ejecutar: 003_create_papeles_observations.sql
+
+PASO 2: CARGAR DATOS
+☐ python backend/scripts/seed_workpapers_templates.py
+☐ Verificar: 78 papeles insertados
+
+PASO 3: BACKEND - Registrar Rutas
+☐ Editar: backend/main.py
+☐ Agregar import papeles_templates router
+☐ app.include_router(papeles_router)
+☐ Reiniciar backend
+
+PASO 4: FRONTEND - Crear Componente
+☐ Crear: frontend/components/papeles-trabajo/PapelesObservaciones.tsx
+☐ Copiar código de IMPLEMENTACION-PAPELES-OBSERVACIONES.md
+
+PASO 5: FRONTEND - Usar Componente
+☐ Importar en papeles-trabajo/[clienteId]/page.tsx
+☐ Usar: <PapelesObservaciones ... />
+
+PASO 6: TESTING
+☐ Escribir observación como Junior
+☐ Revisar como Senior
+☐ Finalizar como Socio
+☐ Verificar historial
+
+
+═══════════════════════════════════════════════════════════════════════════════
+VALIDACIÓN FINAL
+═══════════════════════════════════════════════════════════════════════════════
+
+BASES DE DATOS:
+☐ workpapers_templates: 78 papeles
+☐ workpapers_observations: tabla vacía (se llena con observaciones)
+☐ workpapers_observation_history: tabla vacía (se llena con historial)
+
+BACKEND API:
+☐ GET /api/papeles-trabajo/templates → 78 papeles
+☐ GET /api/papeles-trabajo/{cliente}/templates/ls/{ls} → papeles de LS
+☐ POST /api/papeles-trabajo/{cliente}/observations → guarda observación
+
+FRONTEND:
+☐ Componente PapelesObservaciones.tsx cargado
+☐ Modal [+ Observación] funciona
+☐ Junior puede escribir
+☐ Senior puede revisar
+☐ Socio puede finalizar
+☐ Historial visible
+
+FLUJO COMPLETO:
+☐ Junior escribe observación
+☐ Senior aprueba/rechaza
+☐ Socio finaliza
+☐ Historial registra todo (quién, cuándo, qué)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+CUANDO ESTO ESTÉ COMPLETO
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Sistema de observaciones OPERATIVO
+✅ Historial de cambios COMPLETO
+✅ Flujo Junior → Senior → Socio FUNCIONA
+✅ Base para Reportes LISTA
+
+Creado: 16-04-2026
+Estado: LISTO PARA IMPLEMENTAR

@@ -1,0 +1,133 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                   PAPELES-TRABAJO v2 - TESTING RÁPIDO                      ║
+║                         Abierto 16-04-2026 22:56 UTC                       ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+✅ SISTEMAS LISTOS:
+   Backend:    http://127.0.0.1:8000    → /health ✅
+   Frontend:   http://localhost:3000    → Landing page ✅
+
+───────────────────────────────────────────────────────────────────────────
+🚀 COMIENZA AQUÍ (30 segundos):
+───────────────────────────────────────────────────────────────────────────
+
+1. Abre este enlace en el navegador:
+   http://localhost:3000/papeles-trabajo/test-cliente-123
+
+2. Deberías ver:
+   ✓ Panel principal con tabs: "v1" (Classic) y "v2 (Excel)"
+   ✓ Tab "v2 (Excel)" con 3 componentes nuevos
+
+3. Si carga sin errores de JavaScript:
+   ✅ El sistema está operativo para testing
+
+───────────────────────────────────────────────────────────────────────────
+📋 TESTING POR COMPONENTE (20 minutos):
+───────────────────────────────────────────────────────────────────────────
+
+COMPONENTE 1: PapelesTrabajoUpload
+┌─────────────────────────────────────────────────────────────────┐
+│ ① Click "Descargar Plantilla Excel"                             │
+│    → Descarga: plantilla_papeles_trabajo_test-cliente-123.xlsx  │
+│                                                                  │
+│ ② Edita Excel relleno con datos de prueba                       │
+│                                                                  │
+│ ③ Arrastra Excel a zona de upload                               │
+│    → Ver animación azul (drag over)                             │
+│    → Sistema sube (spinner)                                     │
+│    → Message: "Archivo subido correctamente"                    │
+│    → Detalles: ID, Versión, Filas parseadas                     │
+└─────────────────────────────────────────────────────────────────┘
+
+COMPONENTE 2: ModificacionesHistorial
+┌─────────────────────────────────────────────────────────────────┐
+│ Después de subida exitosa, deberías ver tabla:                  │
+│                                                                  │
+│ Rol     | Campo  | Antes  | Después | Fecha/Hora               │
+│─────────────────────────────────────────────────────────────────│
+│ JUNIOR  | Status | (vacio)| Pending | 2026-04-16 22:58:30     │
+│                                                                  │
+│ • Si editaste valores: mostrarán cambios con timestamps         │
+│ • Sorted por fecha (más reciente primero)                       │
+│ • Colores por rol (azul=junior, naranja=senior, rojo=socio)     │
+└─────────────────────────────────────────────────────────────────┘
+
+COMPONENTE 3: FirmasPanel
+┌─────────────────────────────────────────────────────────────────┐
+│ 3 tarjetas de firmas (Junior, Senior, Socio)                    │
+│                                                                  │
+│ Antes:                          Después de firmar:              │
+│ ┌──────────────────────┐       ┌──────────────────────┐        │
+│ │ Junior    [⏳]        │       │ Junior    [✓]        │        │
+│ │ No firmado           │  →    │ ✓ Firmado            │        │
+│ │ [Firmar como JUNIOR] │       │ Fecha: 22:58:30      │        │
+│ └──────────────────────┘       └──────────────────────┘        │
+│                                                                  │
+│ FLUJO:                                                           │
+│ • Rol JUNIOR → Click [Firmar como JUNIOR]                      │
+│ • Rol SENIOR → Click [Firmar como SENIOR]                      │
+│ • Rol SOCIO → Click [Firmar como SOCIO]                        │
+│                                                                  │
+│ Cuando todos firman:                                            │
+│ Estado arriba cambia de "⏳ PENDIENTE" → "✅ COMPLETADO"       │
+└─────────────────────────────────────────────────────────────────┘
+
+───────────────────────────────────────────────────────────────────────────
+🔧 SIMULACIÓN DE ROLES (opcional):
+───────────────────────────────────────────────────────────────────────────
+
+Si el sitio tiene selector de rol:
+  • Busca menú con opciones: Junior | Semi | Senior | Socio
+  • Cambia rol y F5 (reload)
+  • El sistema ahora piensa que eres ese rol
+  • Botones se habilitan/deshabilitan según permisos
+
+Permisos:
+  ✓ JUNIOR/SEMI:  Pueden subir archivos
+  ✓ SENIOR/SOCIO: Solo pueden revisar y firmar
+  ✓ JUNIOR:       Firma como "Completado"
+  ✓ SENIOR:       Firma como "Revisado"
+  ✓ SOCIO:        Firma como "Finalizado"
+
+───────────────────────────────────────────────────────────────────────────
+❌ SI VES ERRORES:
+───────────────────────────────────────────────────────────────────────────
+
+Error: "Failed to fetch /api/papeles-trabajo..."
+  → NORMAL - Backend endpoints no están implementados todavía
+  → Frontend está listo, backend viene después
+
+Error JavaScript en Console (F12):
+  → Screenshot + comparte en grupo
+  → Revisar Status-Actual.md para arquitectura
+
+Page no carga:
+  → Verifica http://127.0.0.1:8000/health (Backend ✅?)
+  → Verifica http://localhost:3000 (Frontend ✅?)
+  → Si alguno falla, inicia con RUN-PAPELES-TRABAJO-V2.bat
+
+───────────────────────────────────────────────────────────────────────────
+📚 DOCUMENTACIÓN COMPLETA:
+───────────────────────────────────────────────────────────────────────────
+
+Este archivo:
+  INICIO-RAPIDO-TESTING.txt       ← Estás aquí (quick start)
+
+Completo (30 min):
+  PRUEBA-PAPELES-TRABAJO-V2.txt   ← Test plan detallado
+
+Técnico:
+  STATUS-ACTUAL.md                ← Arquitectura + próximos pasos
+
+───────────────────────────────────────────────────────────────────────────
+💡 TIPS:
+───────────────────────────────────────────────────────────────────────────
+
+• F12 para ver Console y Network requests
+• Devtools Network tab muestra llamadas a /api/papeles-trabajo/*
+• Próxima sesión implementaremos backend endpoints
+• Por ahora: UI testing ✅ | Backend integration ⏳
+
+───────────────────────────────────────────────────────────────────────────
+✨ ¡LISTO! Abre http://localhost:3000/papeles-trabajo/test-cliente-123
+───────────────────────────────────────────────────────────────────────────
