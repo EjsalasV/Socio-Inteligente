@@ -27,7 +27,7 @@ def test_light_concurrent_load_health_and_protected_routes() -> None:
 
     jobs: list[tuple[str, str, dict[str, str] | None]] = []
     jobs.extend([("GET", "/health", None) for _ in range(25)])
-    jobs.extend([("GET", "/clientes", headers) for _ in range(25)])
+    jobs.extend([("GET", "/api/clientes", headers) for _ in range(25)])
 
     def _request(method: str, path: str, req_headers: dict[str, str] | None) -> tuple[int, str]:
         if method == "GET":
@@ -46,6 +46,6 @@ def test_light_concurrent_load_health_and_protected_routes() -> None:
     assert all(code < 500 for code, _ in statuses), f"Se detectaron 5xx bajo carga ligera: {statuses}"
 
     health_codes = [code for code, path in statuses if path == "/health"]
-    clientes_codes = [code for code, path in statuses if path == "/clientes"]
+    clientes_codes = [code for code, path in statuses if path == "/api/clientes"]
     assert len(health_codes) == 25 and all(code == 200 for code in health_codes)
     assert len(clientes_codes) == 25 and all(code == 200 for code in clientes_codes)

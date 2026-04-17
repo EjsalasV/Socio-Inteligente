@@ -22,14 +22,14 @@ def _bearer(*, role: str = "staff", allowed_clientes: list[str] | None = None) -
 
 def test_protected_endpoint_requires_bearer_token() -> None:
     client = TestClient(app)
-    res = client.get("/clientes")
+    res = client.get("/api/clientes")
     assert res.status_code == 401
     assert "Falta token bearer o cookie de sesion" in res.text
 
 
 def test_invalid_token_is_rejected() -> None:
     client = TestClient(app)
-    res = client.get("/clientes", headers={"Authorization": "Bearer invalid.token.value"})
+    res = client.get("/api/clientes", headers={"Authorization": "Bearer invalid.token.value"})
     assert res.status_code == 401
 
 
@@ -45,7 +45,7 @@ def test_role_escalation_in_payload_is_ignored() -> None:
     client = TestClient(app)
     headers = _bearer(role="staff", allowed_clientes=["*"])
     payload = {"nombre": "Cliente X", "sector": "Retail", "role": "admin"}
-    res = client.post("/clientes", headers=headers, json=payload)
+    res = client.post("/api/clientes", headers=headers, json=payload)
     assert res.status_code == 403
     assert "Solo perfiles administradores" in res.text
 
@@ -102,7 +102,7 @@ def test_cookie_auth_requires_csrf_for_mutation() -> None:
         csrf_token="csrf-123",
     )
     res = client.post(
-        "/clientes",
+        "/api/clientes",
         cookies={"socio-auth": token},
         json={"nombre": "Cliente CSRF", "sector": "Retail"},
     )
@@ -120,7 +120,7 @@ def test_cookie_auth_rejects_invalid_csrf_for_mutation() -> None:
         csrf_token="csrf-123",
     )
     res = client.post(
-        "/clientes",
+        "/api/clientes",
         cookies={"socio-auth": token},
         headers={"X-CSRF-Token": "invalid"},
         json={"nombre": "Cliente CSRF", "sector": "Retail"},
@@ -139,7 +139,7 @@ def test_cookie_auth_accepts_valid_csrf_and_reaches_authorization_layer() -> Non
         csrf_token="csrf-ok",
     )
     res = client.post(
-        "/clientes",
+        "/api/clientes",
         cookies={"socio-auth": token},
         headers={"X-CSRF-Token": "csrf-ok"},
         json={"nombre": "Cliente CSRF", "sector": "Retail"},
