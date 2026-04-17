@@ -1,0 +1,424 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                    ARQUITECTURA: Persistencia de Base de Datos                 ║
+║                                                                                 ║
+║                  🎯 ANTES vs DESPUÉS (Visual)                                  ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════════
+                                   ❌ ANTES
+═══════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              Vercel (Frontend + Backend)                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Frontend (React/Next.js)              Backend (FastAPI)                   │
+│  ┌─────────────────────────┐          ┌──────────────────────────┐         │
+│  │                         │          │                          │         │
+│  │  PapelesTrabajoV1       │◄────────►│  routes/clientes.py      │         │
+│  │  Viewer                 │          │                          │         │
+│  │  - Papeles             │          │  list_clientes()         │         │
+│  │  - Observaciones       │          │  create_cliente()        │         │
+│  │  (estado local)        │          │                          │         │
+│  │                         │          │  Basado en ARCHIVOS: ❌  │         │
+│  └─────────────────────────┘          │  - Lee JSON              │         │
+│                                       │  - Guarda en /data/      │         │
+│                                       │  - NO es persistente     │         │
+│                                       └──────────────────────────┘         │
+│                                                                              │
+│  Cuando se hace REDEPLOY en Vercel:                                         │
+│  ┌──────────────────────────────────────────────────────────────┐         │
+│  │  Vercel elimina /data/ y archivos JSON                       │         │
+│  │  ❌ TODOS LOS CLIENTES SE PIERDEN ❌                         │         │
+│  └──────────────────────────────────────────────────────────────┘         │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Railway (Donde estaban los datos, pero ignorados)                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  PostgreSQL:                                                                 │
+│  - workpapers_templates (datos estáticos, OK)                              │
+│  - workpapers_observations (vacío, no se usaba)                           │
+│  ❌ Clientes NO guardados en BD                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════
+                                   ✅ DESPUÉS
+═══════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              Vercel (Frontend + Backend)                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Frontend (React/Next.js)              Backend (FastAPI)                   │
+│  ┌─────────────────────────┐          ┌──────────────────────────┐         │
+│  │                         │          │                          │         │
+│  │  PapelesTrabajoV1       │          │  routes/clientes.py      │         │
+│  │  Viewer                 │          │  (REESCRITO)             │         │
+│  │  - Papeles             │◄────────►│                          │         │
+│  │  - Observaciones       │          │  list_clientes()         │         │
+│  │  (carga desde API)     │          │  create_cliente()        │         │
+│  │                         │          │  get_audit()            │         │
+│  │                         │          │                          │         │
+│  └─────────────────────────┘          │  Basado en BD: ✅        │         │
+│            │                          │  - Conecta a Railway     │         │
+│            │                          │  - Usa SQLAlchemy ORM    │         │
+│            │                          │  - PERSISTENTE           │         │
+│            │                          └──────────────────────────┘         │
+│            │                                     │                          │
+│            │ GET /api/clientes                   │                          │
+│            │ POST /api/clientes                  │                          │
+│            │ POST /api/clientes/.../auditorias   │                          │
+│            │                                     │                          │
+│            └─────────────────────────────────────┘                          │
+│                                                                              │
+│  Cuando se hace REDEPLOY en Vercel:                                         │
+│  ┌──────────────────────────────────────────────────────────────┐         │
+│  │  Vercel backend reinicia, conecta a Railway BD               │         │
+│  │  ✅ TODOS LOS CLIENTES EN BD SIGUEN AHÍN ✅                 │         │
+│  └──────────────────────────────────────────────────────────────┘         │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Railway PostgreSQL (Ahora SÍ conectado y persistente)                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  TABLA: clients (🆕 NUEVA)                                                 │
+│  ┌─────────────────────────────────────────────────┐                       │
+│  │ id │ client_id  │ nombre  │ sector │ estado │   │                       │
+│  ├─────────────────────────────────────────────────┤                       │
+│  │ 1  │ bustam...  │ Bustam. │ Mfg    │ ACTIVO │   │                       │
+│  │ 2  │ otra...    │ Otra    │ Retail │ ACTIVO │   │                       │
+│  └─────────────────────────────────────────────────┘                       │
+│          ↑ PERSISTEN SIEMPRE ↑                                             │
+│          ↑ No se pierden en redeploy ↑                                     │
+│                                                                              │
+│  TABLA: audits (🆕 NUEVA)                                                  │
+│  ┌───────────────────────────────────────────────────┐                     │
+│  │ id │ client_id │ periodo │ estado      │ usuario │ │                     │
+│  ├───────────────────────────────────────────────────┤                     │
+│  │ 1  │ 1         │ 2025    │ EJECUCIÓN   │ Junior  │ │                     │
+│  │ 2  │ 1         │ 2026    │ PLANEACIÓN  │ Senior  │ │                     │
+│  └───────────────────────────────────────────────────┘                     │
+│          ↑ Historial por período ↑                                         │
+│                                                                              │
+│  TABLA: workpapers_templates (YA EXISTÍA)                                  │
+│  - 78 papeles de trabajo (estructura)                                      │
+│                                                                              │
+│  TABLA: workpapers_observations (ACTUALIZADA)                              │
+│  - Ahora vinculada con audit_id (era solo file_id)                        │
+│  - Observaciones del cliente persisten                                     │
+│                                                                              │
+│  TABLA: workpapers_observation_history (YA EXISTÍA)                        │
+│  - Historial de cambios de observaciones                                   │
+│                                                                              │
+│  ✅ TODOS LOS DATOS PERSISTENTES ✅                                        │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════
+                            FLUJO DE DATOS (Nuevos)
+═══════════════════════════════════════════════════════════════════════════════════
+
+1. CREAR CLIENTE
+────────────────────────────────────────────────────────────────────────────
+
+Frontend                    Backend                     Railway
+   │                           │                           │
+   ├─POST /api/clientes───────►│                           │
+   │  {                         │                           │
+   │    client_id: "bust"       │                           │
+   │    nombre: "Bustamante"    │                           │
+   │  }                         │                           │
+   │                            ├─ SQLAlchemy ORM ────────►│
+   │                            │  INSERT INTO clients...  │
+   │                            │                           │
+   │                            │◄─────── id = 1 ──────────┤
+   │                            │                           │
+   │◄─── {id: 1, status: ok}────┤                           │
+   │                            │                           │
+   ✓ GUARDADO EN BD             │                           │
+
+
+2. LISTAR CLIENTES
+────────────────────────────────────────────────────────────────────────────
+
+Frontend                    Backend                     Railway
+   │                           │                           │
+   ├─GET /api/clientes────────►│                           │
+   │                            │                           │
+   │                            ├─ SELECT * FROM clients──►│
+   │                            │                           │
+   │                            │◄─ [Bustamante, ...]─────┤
+   │                            │                           │
+   │◄──── [{id:1, ...}, ...]────┤                           │
+   │                            │                           │
+   ✓ CARGADO DESDE BD           │                           │
+
+
+3. DESPUÉS DE REDEPLOY
+────────────────────────────────────────────────────────────────────────────
+
+Vercel redeploy              Backend reinicia           Railway
+   │                              │                       │
+   ├─ Elimina archivos /data  │                       │
+   │  PERO NO toca BD          │                       │
+   │                           │                       │
+   ├─ git fetch & build ──────────────────────────────►│
+   │                           │                       │
+   ├─ FastAPI inicia ──────────┤                       │
+   │                           ├─ init_db() ────────►│
+   │                           │  CREATE TABLE IF    │
+   │                           │  NOT EXISTS...      │
+   │                           │                       │
+   │                           ├─ test connection ──►│
+   │                           │                       │
+   │                           │ ✅ Ready ◄──────────┤
+   │                           │                       │
+   ├─ Deployment: Ready        │                       │
+   │                           │                       │
+   │ GET /api/clientes ────────┤                       │
+   │                           ├─ SELECT * FROM     │
+   │                           │  clients ──────────►│
+   │                           │                       │
+   │                           │ ◄─ Clientes OK ─────┤
+   │◄─ Mismo cliente que antes ┤                       │
+   │                           │                       │
+   ✅ DATOS PERSISTEN!         │                       │
+
+═══════════════════════════════════════════════════════════════════════════════════
+                            MODELOS (Nuevos)
+═══════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  models/client.py (🆕 NUEVO)                                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  class Client(Base):                                                        │
+│    __tablename__ = "clients"                                               │
+│                                                                              │
+│    id: int                          # PK                                    │
+│    client_id: str                   # "bustamante_fabara_ip_cl" (UNIQUE)  │
+│    nombre: str                      # "Bustamante Fábara IP"               │
+│    ruc: str                         # RUC del cliente                       │
+│    sector: str                      # "Manufactura", "Retail", etc         │
+│    tipo_entidad: str                # "SOCIEDAD COMERCIAL", "ONG", etc    │
+│    materialidad_general: Decimal    # Para auditoría                        │
+│    periodo_actual: str              # "2025", "2026"                      │
+│    estado: str                      # "ACTIVO", "EN_AUDITORÍA", etc       │
+│    created_at: DateTime             # Cuándo se creó                        │
+│    updated_at: DateTime             # Última actualización                  │
+│    created_by: str                  # Quién lo creó                        │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  models/audit.py (🆕 NUEVO)                                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  class Audit(Base):                                                         │
+│    __tablename__ = "audits"                                                │
+│                                                                              │
+│    id: int                          # PK                                    │
+│    client_id: int                   # FK → Client (auditoría para qué cte)│
+│    codigo_auditoria: str            # "BUSTAMANTE_2025" (UNIQUE)          │
+│    periodo: str                     # "2025", "2026"                      │
+│    estado: str                      # "PLANEACIÓN", "EJECUCIÓN", etc      │
+│    socio_asignado: str              # Responsable Socio                    │
+│    senior_asignado: str             # Responsable Senior                   │
+│    hallazgos_total: int             # Conteo de hallazgos                  │
+│    hallazgos_criticos: int          # Críticos identificados                │
+│    fecha_inicio: Date               # Inicio auditoría                      │
+│    fecha_fin: Date                  # Fin auditoría                         │
+│    fecha_emision: Date              # Emisión reporte                       │
+│    created_at: DateTime             # Cuándo se creó                        │
+│    updated_at: DateTime             # Última actualización                  │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  models/workpapers_observation.py (ACTUALIZADO)                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  class WorkpapersObservation(Base):                                         │
+│    __tablename__ = "workpapers_observations"                               │
+│                                                                              │
+│    id: int                          # PK                                    │
+│    audit_id: int                    # 🆕 FK → Audit (vinculación)         │
+│    file_id: int                     # FK → WorkpapersFiles (V2 upload)    │
+│    codigo_papel: str                # "130.03"                             │
+│    junior_observation: str          # Lo que encontró Junior              │
+│    junior_by: str                   # Usuario Junior                      │
+│    junior_at: DateTime              # Cuándo escribió                     │
+│    senior_review: str               # "APROBADO", "RECHAZADO"            │
+│    senior_comment: str              # Comentario Senior                   │
+│    senior_by: str                   # Usuario Senior                      │
+│    senior_at: DateTime              # Cuándo revisó                       │
+│    socio_review: str                # "FINALIZADO", "REVISAR"            │
+│    socio_comment: str               # Comentario Socio                    │
+│    socio_by: str                    # Usuario Socio                       │
+│    socio_at: DateTime               # Cuándo finalizó                     │
+│    observacion_final: str           # Observación final (para reporte)    │
+│    efecto_financiero: str           # "SIN_EFECTO", "CON_EFECTO"        │
+│    impacto: str                     # Descripción impacto                 │
+│    status: str                      # "PENDIENTE", "APROBADO", etc       │
+│    created_at: DateTime             # Cuándo se creó                        │
+│    updated_at: DateTime             # Última actualización                  │
+│                                                                              │
+│    history: List[History]           # Relación a historial de cambios      │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════
+                        ENDPOINTS API (Nuevos/Actualizados)
+═══════════════════════════════════════════════════════════════════════════════════
+
+GET /api/clientes
+  Listar todos los clientes
+  Respuesta: {total: 1, clientes: [{id, client_id, nombre, estado, ...}]}
+
+POST /api/clientes
+  Crear nuevo cliente (PERSISTENTE)
+  Params:
+    client_id: str (unique)
+    nombre: str
+    ruc: str (optional)
+    sector: str (optional)
+    periodo_actual: str (optional)
+    materialidad_general: float (optional)
+  Respuesta: {id, client_id, nombre, estado, created_at, ...}
+
+GET /api/clientes/{cliente_id}
+  Obtener cliente específico
+  Respuesta: {id, client_id, nombre, ruc, sector, periodo_actual, ...}
+
+GET /api/clientes/{cliente_id}/auditorias
+  Listar auditorías de un cliente
+  Respuesta: {total_auditorias: 2, auditorias: [{id, codigo, periodo, estado}]}
+
+POST /api/clientes/{cliente_id}/auditorias
+  Crear auditoría para cliente y período
+  Params:
+    periodo: str (ej: "2025")
+    socio_asignado: str (optional)
+    senior_asignado: str (optional)
+  Respuesta: {id, codigo_auditoria, periodo, estado, ...}
+
+PUT /api/clientes/{cliente_id}/auditorias/{audit_id}
+  Cambiar estado de auditoría
+  Params: estado: str (PLANEACIÓN, EJECUCIÓN, REPORTE, FINALIZADO)
+  Respuesta: {id, estado, updated_at, ...}
+
+═══════════════════════════════════════════════════════════════════════════════════
+                              RELACIONES EN BD
+═══════════════════════════════════════════════════════════════════════════════════
+
+Diagrama de relaciones:
+
+┌─────────────────────────────────┐
+│         clients                 │
+├─────────────────────────────────┤
+│ id          (PK)                │
+│ client_id   (UNIQUE, INDEX)    │
+│ nombre                          │
+│ ruc                             │
+│ sector                          │
+│ estado                          │
+│ created_at                      │
+│ updated_at                      │
+└──────────────┬──────────────────┘
+               │ 1
+               │
+               │ FK
+               │
+               ▼ N
+┌─────────────────────────────────┐
+│        audits                   │
+├─────────────────────────────────┤
+│ id          (PK)                │
+│ client_id   (FK) ←──────────────│
+│ codigo_auditoria (UNIQUE)       │
+│ periodo                         │
+│ estado                          │
+│ socio_asignado                  │
+│ senior_asignado                 │
+│ hallazgos_total                 │
+│ created_at                      │
+└──────────────┬──────────────────┘
+               │ 1
+               │
+               │ FK
+               │
+               ▼ N
+┌─────────────────────────────────┐
+│ workpapers_observations         │
+├─────────────────────────────────┤
+│ id          (PK)                │
+│ audit_id    (FK) ←──────────────│ (NUEVO)
+│ file_id     (FK) ─► files       │ (V2)
+│ codigo_papel                    │
+│ junior_observation              │
+│ junior_by, junior_at            │
+│ senior_review, senior_comment   │
+│ socio_review, socio_comment     │
+│ observacion_final               │
+│ status                          │
+│ created_at                      │
+└────────────┬─────────────────────┘
+             │ 1
+             │
+             │ FK
+             │
+             ▼ N
+┌─────────────────────────────────┐
+│ workpapers_observation_history  │
+├─────────────────────────────────┤
+│ id          (PK)                │
+│ observation_id (FK) ←───────────│
+│ rol (junior, senior, socio)     │
+│ accion (escribió, aprobó, etc)  │
+│ contenido_anterior              │
+│ contenido_nuevo                 │
+│ usuario                         │
+│ changed_at                      │
+└─────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════
+                              ¿CÓMO FUNCIONA?
+═══════════════════════════════════════════════════════════════════════════════════
+
+STARTUP DE LA APP:
+  1. Vercel inicia backend
+  2. @app.on_event("startup") ──► init_db()
+  3. init_db() importa todos los modelos
+  4. Base.metadata.create_all(engine) ─► Crea tablas si no existen
+  5. Conexión a Railway verificada ✅
+
+CREAR CLIENTE:
+  1. Frontend: POST /api/clientes {client_id, nombre, ...}
+  2. Backend: get_session() retorna SQLAlchemy session
+  3. ORM: nuevo_cliente = Client(...) / session.add()
+  4. BD: INSERT INTO clients VALUES (...)
+  5. Respuesta: {id, client_id, estado: "ACTIVO", ...}
+
+LISTAR CLIENTES:
+  1. Frontend: GET /api/clientes
+  2. Backend: session.query(Client).all()
+  3. ORM: mapea filas a objetos Client
+  4. BD: SELECT * FROM clients
+  5. Respuesta: [{...}, {...}]
+
+REDEPLOY:
+  1. Vercel: git fetch & build
+  2. Backend: inicia, llama init_db()
+  3. BD: CREATE TABLE IF NOT EXISTS ... (no re-crea si existen)
+  4. Datos en BD: SIGUEN INTACTOS ✅
+  5. Cliente puede continuar donde dejó
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+¡BIENVENIDO A LA BD PERSISTENTE!
+
+═══════════════════════════════════════════════════════════════════════════════════

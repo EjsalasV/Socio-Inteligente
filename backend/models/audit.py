@@ -3,9 +3,8 @@ Modelo para Auditorías - asociadas a clientes, una por período
 """
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, DateTime, Date, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+from backend.models import Base
 
 
 class Audit(Base):

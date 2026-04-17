@@ -6,7 +6,7 @@ import time
 from typing import Awaitable, Callable
 from uuid import uuid4
 
-# ⚠️ IMPORTANTE: Cargar .env PRIMERO, antes de cualquier otro import
+# [IMPORTANT] Load .env FIRST, before any other imports
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -30,9 +30,9 @@ async def startup_event():
     try:
         from backend.utils.database import init_db
         init_db()
-        LOGGER.info("✅ Database initialized at startup")
+        LOGGER.info("[OK] Database initialized at startup")
     except Exception as e:
-        LOGGER.error(f"❌ Failed to initialize database: {e}")
+        LOGGER.error(f"[ERROR] Failed to initialize database: {e}")
 
 _csrf_enforcer: Callable[[Request, Callable[[Request], Awaitable[Response]]], Awaitable[Response]] | None = None
 _observed_prefixes: tuple[str, ...] | None = None

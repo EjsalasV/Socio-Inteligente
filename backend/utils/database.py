@@ -15,14 +15,14 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    print("⚠️  DATABASE_URL no está configurada.")
-    print("    Configúrala en Vercel → Settings → Environment Variables")
-    print("    Copia de Railway → Postgres → Connect")
+    print("[WARNING] DATABASE_URL not configured.")
+    print("    Configure in Vercel -> Settings -> Environment Variables")
+    print("    Copy from Railway -> Postgres -> Connect")
     DATABASE_URL = "sqlite:///./test.db"  # Fallback a SQLite local para testing
-    print(f"    Usando fallback: {DATABASE_URL}")
+    print(f"    Using fallback: {DATABASE_URL}")
 else:
     # Mostrar conexión (sin exponer password)
-    print(f"📡 DATABASE_URL configurada: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else DATABASE_URL}")
+    print(f"[INFO] DATABASE_URL configured: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else DATABASE_URL}")
 
 # Crear engine SQLAlchemy
 # Para PostgreSQL (Railway), usar conexión directa
@@ -60,7 +60,7 @@ def get_session() -> Generator[Session, None, None]:
         yield db
     except Exception as e:
         db.rollback()
-        print(f"❌ Database error: {e}")
+        print(f"[ERROR] Database error: {e}")
         raise
     finally:
         db.close()
@@ -77,22 +77,17 @@ def init_db():
         from backend.models.audit import Audit
         from backend.models.workpapers_template import WorkpapersTemplate
         from backend.models.workpapers_observation import WorkpapersObservation
-        from backend.models.audit_history import AuditHistory
-        from backend.models.operational_alert import OperationalAlert
-        from backend.models.period_snapshot import PeriodSnapshot
-        from backend.models.report_template import ReportTemplate
-        from backend.models.webhook import Webhook
-        from backend.models.workpapers_files import WorkpapersFiles
+        from backend.models.workpapers_files import WorkpapersFile
 
-        # Importar Base de cualquiera de los modelos
-        from backend.models.client import Base
+        # Importar Base de la localización compartida
+        from backend.models import Base
 
         # Crear todas las tablas
         Base.metadata.create_all(bind=engine)
-        print("✅ Base de datos inicializada (tablas creadas si no existen)")
+        print("[OK] Database initialized (tables created if they did not exist)")
 
     except Exception as e:
-        print(f"⚠️  Error inicializando BD: {e}")
+        print(f"[ERROR] Error initializing database: {e}")
         raise
 
 
@@ -104,6 +99,6 @@ def receive_connect(dbapi_conn, connection_record):
         cursor = dbapi_conn.cursor()
         cursor.execute("SELECT 1")
         cursor.close()
-        print("✅ Conexión a base de datos verificada")
+        print("[OK] Database connection verified")
     except Exception as e:
-        print(f"❌ Error verificando conexión: {e}")
+        print(f"[ERROR] Error verifying connection: {e}")

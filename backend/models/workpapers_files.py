@@ -4,9 +4,8 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
-from sqlalchemy.orm import declarative_base
 
-Base = declarative_base()
+from backend.models import Base
 
 
 class WorkpapersFile(Base):

@@ -3,9 +3,8 @@ Modelo para Clientes - memoria persistente del sistema
 """
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, Numeric, DateTime, Date
-from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+from backend.models import Base
 
 
 class Client(Base):

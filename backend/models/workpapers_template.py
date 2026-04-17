@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Index
-from sqlalchemy.orm import declarative_base
 from datetime import datetime
 
-Base = declarative_base()
+from backend.models import Base
 
 class WorkpapersTemplate(Base):
     """Plantilla de papeles de trabajo clasificados"""

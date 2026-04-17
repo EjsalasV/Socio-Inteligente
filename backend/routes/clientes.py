@@ -10,7 +10,7 @@ from sqlalchemy import func
 from backend.auth import get_current_user
 from backend.models.client import Client
 from backend.models.audit import Audit
-from backend.schemas import UserContext, ApiResponse
+from backend.schemas import UserContext, ApiResponse, ClienteCreateRequest
 from backend.utils.database import get_session
 from backend.utils.api_errors import raise_api_error
 
@@ -32,7 +32,6 @@ async def listar_clientes(
         clientes_data = [c.to_dict() for c in clientes]
 
         return ApiResponse(
-            status="success",
             data={
                 "total": len(clientes_data),
                 "clientes": clientes_data,
@@ -65,7 +64,7 @@ async def obtener_cliente(
                 message=f"Cliente {cliente_id} no encontrado",
             )
 
-        return ApiResponse(status="success", data=cliente.to_dict())
+        return ApiResponse(data=cliente.to_dict())
 
     except Exception as e:
         if hasattr(e, "status_code"):
@@ -79,33 +78,30 @@ async def obtener_cliente(
 
 @router.post("", response_model=ApiResponse)
 async def crear_cliente(
-    client_id: str = Query(...),
-    nombre: str = Query(...),
-    ruc: Optional[str] = Query(None),
-    sector: Optional[str] = Query(None),
-    tipo_entidad: Optional[str] = Query(None),
-    contacto_nombre: Optional[str] = Query(None),
-    contacto_email: Optional[str] = Query(None),
-    periodo_actual: Optional[str] = Query(None),
-    materialidad_general: Optional[float] = Query(None),
+    body: ClienteCreateRequest,
     user: UserContext = Depends(get_current_user),
     session: Any = Depends(get_session),
 ) -> ApiResponse:
     """
     Crear un nuevo cliente en la base de datos (PERSISTENCIA)
 
-    Parámetros:
-    - client_id: ID único (ej: bustamante_fabara_ip_cl)
-    - nombre: Nombre del cliente
-    - ruc: RUC/NIT (opcional)
+    Body:
+    - nombre: Nombre del cliente (requerido)
+    - cliente_id: ID único (ej: bustamante_fabara_ip_cl) - si no se proporciona, se genera
     - sector: Sector económico (opcional)
-    - tipo_entidad: Tipo de entidad (opcional)
-    - contacto_nombre: Nombre del contacto (opcional)
-    - contacto_email: Email de contacto (opcional)
-    - periodo_actual: Período a auditar (ej: 2025)
-    - materialidad_general: Materialidad general (opcional)
     """
     try:
+        # Verificar rol - solo admin, manager, y socio pueden crear clientes
+        if user.role.lower() not in {"admin", "manager", "socio"}:
+            raise_api_error(
+                status_code=status.HTTP_403_FORBIDDEN,
+                code="INSUFFICIENT_ROLE",
+                message="Solo perfiles administradores pueden crear clientes.",
+            )
+
+        # Usar client_id del body o generar uno
+        client_id = body.cliente_id or body.nombre.lower().replace(" ", "_")
+
         # Verificar si cliente ya existe
         existing = session.query(Client).filter(Client.client_id == client_id).first()
         if existing:
@@ -118,15 +114,9 @@ async def crear_cliente(
         # Crear cliente
         nuevo_cliente = Client(
             client_id=client_id,
-            nombre=nombre,
-            ruc=ruc,
-            sector=sector,
-            tipo_entidad=tipo_entidad,
-            contacto_nombre=contacto_nombre,
-            contacto_email=contacto_email,
-            periodo_actual=periodo_actual,
-            materialidad_general=materialidad_general,
-            created_by=user.username if user else "SYSTEM",
+            nombre=body.nombre,
+            sector=body.sector,
+            created_by=user.sub if user else "SYSTEM",
             estado="ACTIVO",
         )
 
@@ -134,8 +124,6 @@ async def crear_cliente(
         session.commit()
 
         return ApiResponse(
-            status="success",
-            message=f"Cliente {nombre} creado exitosamente",
             data=nuevo_cliente.to_dict(),
         )
 
@@ -180,7 +168,6 @@ async def listar_auditorias(
         auditorias_data = [a.to_dict() for a in auditorias]
 
         return ApiResponse(
-            status="success",
             data={
                 "cliente_id": cliente_id,
                 "total_auditorias": len(auditorias_data),
@@ -254,8 +241,6 @@ async def crear_auditoria(
         session.commit()
 
         return ApiResponse(
-            status="success",
-            message=f"Auditoría creada para período {periodo}",
             data=nueva_auditoria.to_dict(),
         )
 
@@ -305,8 +290,6 @@ async def actualizar_auditoria_estado(
         session.commit()
 
         return ApiResponse(
-            status="success",
-            message=f"Auditoría actualizada a estado {estado}",
             data=auditoria.to_dict(),
         )
 

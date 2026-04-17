@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Index
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import relationship
 from datetime import datetime
 
-Base = declarative_base()
+from backend.models import Base
 
 class WorkpapersObservation(Base):
     """Observaciones de papeles de trabajo (Junior, Senior, Socio)"""
