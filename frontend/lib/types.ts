@@ -780,6 +780,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/papeles-trabajo/{cliente_id}/papeles-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contar Papeles
+         * @description Contar papeles por L/S para debug
+         */
+        get: operations["contar_papeles_api_papeles_trabajo__cliente_id__papeles_count_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/papeles-trabajo/{cliente_id}/papeles-por-ls": {
         parameters: {
             query?: never;
@@ -4371,6 +4391,37 @@ export interface operations {
         };
     };
     get_resumen_ejecutivo_api_reportes_papeles_trabajo__cliente_id__resumen_ejecutivo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contar_papeles_api_papeles_trabajo__cliente_id__papeles_count_get: {
         parameters: {
             query?: never;
             header?: never;

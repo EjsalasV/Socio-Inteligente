@@ -2483,6 +2483,54 @@
         }
       }
     },
+    "/api/papeles-trabajo/{cliente_id}/papeles-count": {
+      "get": {
+        "tags": [
+          "papeles-plantilla"
+        ],
+        "summary": "Contar Papeles",
+        "description": "Contar papeles por L/S para debug",
+        "operationId": "contar_papeles_api_papeles_trabajo__cliente_id__papeles_count_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/papeles-trabajo/{cliente_id}/papeles-por-ls": {
       "get": {
         "tags": [
