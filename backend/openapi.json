@@ -2483,6 +2483,72 @@
         }
       }
     },
+    "/api/papeles-trabajo/{cliente_id}/papeles-por-ls": {
+      "get": {
+        "tags": [
+          "papeles-plantilla"
+        ],
+        "summary": "Obtener Papeles Por Ls",
+        "description": "Obtener papeles de trabajo por Línea de Cuenta (L/S)\n\nRetorna lista de papeles con toda su información para visualización y gestión de observaciones.\n\nParámetros:\n- cliente_id: ID del cliente\n- ls: Línea de Cuenta (ej: 130) - Requerido",
+        "operationId": "obtener_papeles_por_ls_api_papeles_trabajo__cliente_id__papeles_por_ls_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "ls",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Línea de Cuenta (ej: 130, 140)",
+              "title": "Ls"
+            },
+            "description": "Línea de Cuenta (ej: 130, 140)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/papeles-trabajo/{cliente_id}/plantilla": {
       "get": {
         "tags": [

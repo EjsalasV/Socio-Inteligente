@@ -780,6 +780,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/papeles-trabajo/{cliente_id}/papeles-por-ls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener Papeles Por Ls
+         * @description Obtener papeles de trabajo por Línea de Cuenta (L/S)
+         *
+         *     Retorna lista de papeles con toda su información para visualización y gestión de observaciones.
+         *
+         *     Parámetros:
+         *     - cliente_id: ID del cliente
+         *     - ls: Línea de Cuenta (ej: 130) - Requerido
+         */
+        get: operations["obtener_papeles_por_ls_api_papeles_trabajo__cliente_id__papeles_por_ls_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/papeles-trabajo/{cliente_id}/plantilla": {
         parameters: {
             query?: never;
@@ -4347,6 +4373,40 @@ export interface operations {
     get_resumen_ejecutivo_api_reportes_papeles_trabajo__cliente_id__resumen_ejecutivo_get: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obtener_papeles_por_ls_api_papeles_trabajo__cliente_id__papeles_por_ls_get: {
+        parameters: {
+            query?: {
+                /** @description Línea de Cuenta (ej: 130, 140) */
+                ls?: number | null;
+            };
             header?: never;
             path: {
                 cliente_id: string;
