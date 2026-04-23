@@ -129,8 +129,13 @@ def get_tb_status(
     authorize_cliente_access(cliente_id, user)
 
     cliente_dir = _cliente_dir(cliente_id)
-    tb_path = cliente_dir / "tb.xlsx"
-    mayor_path = cliente_dir / "mayor.xlsx"
+    tb_xlsx_path = cliente_dir / "tb.xlsx"
+    tb_csv_path = cliente_dir / "tb.csv"
+    mayor_xlsx_path = cliente_dir / "mayor.xlsx"
+    mayor_csv_path = cliente_dir / "mayor.csv"
+
+    tb_path = tb_xlsx_path if tb_xlsx_path.exists() else tb_csv_path
+    mayor_path = mayor_xlsx_path if mayor_xlsx_path.exists() else mayor_csv_path
 
     has_tb = tb_path.exists() and tb_path.stat().st_size > 0
     has_mayor = mayor_path.exists() and mayor_path.stat().st_size > 0

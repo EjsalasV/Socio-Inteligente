@@ -23,7 +23,10 @@ _TB_CACHE: dict[str, tuple[str, "pd.DataFrame"]] = {}
 
 def _tb_file_signature(cliente: str) -> str:
     try:
-        tb_path = _resolve_cliente_dir(cliente) / "tb.xlsx"
+        cliente_dir = _resolve_cliente_dir(cliente)
+        tb_path = cliente_dir / "tb.xlsx"
+        if not tb_path.exists():
+            tb_path = cliente_dir / "tb.csv"
         if not tb_path.exists():
             return "missing"
         stat = tb_path.stat()

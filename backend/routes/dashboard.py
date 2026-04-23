@@ -60,10 +60,16 @@ def _areas_signature(cliente_root: Path) -> str:
 
 def _dashboard_input_signature(cliente_id: str) -> str:
     root = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id
+    tb_signature = _safe_stat_signature(root / "tb.xlsx")
+    if tb_signature == "missing":
+        tb_signature = _safe_stat_signature(root / "tb.csv")
+    mayor_signature = _safe_stat_signature(root / "mayor.xlsx")
+    if mayor_signature == "missing":
+        mayor_signature = _safe_stat_signature(root / "mayor.csv")
     parts = [
         _safe_stat_signature(root / "perfil.yaml"),
-        _safe_stat_signature(root / "tb.xlsx"),
-        _safe_stat_signature(root / "mayor.xlsx"),
+        tb_signature,
+        mayor_signature,
         _safe_stat_signature(root / "workflow.yaml"),
         _safe_stat_signature(root / "hallazgos.md"),
         _areas_signature(root),

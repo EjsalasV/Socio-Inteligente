@@ -113,19 +113,31 @@ save = guardar_cliente
 
 def cargar_tb(cliente: str) -> pd.DataFrame:
     """
-    Carga el trial balance desde tb.xlsx
+    Carga el trial balance desde tb.xlsx o tb.csv
     """
     try:
-        path = _resolve_cliente_dir(cliente) / "tb.xlsx"
-        if not path.exists():
+        cliente_dir = _resolve_cliente_dir(cliente)
+        xlsx_path = cliente_dir / "tb.xlsx"
+        csv_path = cliente_dir / "tb.csv"
+
+        path: Path | None = None
+        if xlsx_path.exists():
+            path = xlsx_path
+        elif csv_path.exists():
+            path = csv_path
+
+        if path is None:
             return pd.DataFrame()
 
         try:
-            df = pd.read_excel(
-                path,
-                sheet_name=0,
-                engine="openpyxl",
-            )
+            if path.suffix.lower() == ".csv":
+                df = pd.read_csv(path)
+            else:
+                df = pd.read_excel(
+                    path,
+                    sheet_name=0,
+                    engine="openpyxl",
+                )
         except Exception as e:
             print(f"[ERROR] Error cargando TB de {cliente}: {e}")
             return pd.DataFrame()
