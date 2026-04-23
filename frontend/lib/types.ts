@@ -1817,6 +1817,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trial-balance/{cliente_id}/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Trial Balance
+         * @description Subir Trial Balance (kind=tb) o Libro Mayor (kind=mayor) para un cliente.
+         *     El archivo se guarda en data/clientes/{cliente_id}/tb.xlsx o mayor.xlsx
+         */
+        post: operations["upload_trial_balance_api_trial_balance__cliente_id__upload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trial-balance/{cliente_id}/diagnostico": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tb Diagnostico
+         * @description Diagnóstico del TB cargado: columnas detectadas, filas, stage
+         */
+        get: operations["get_tb_diagnostico_api_trial_balance__cliente_id__diagnostico_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trial-balance/{cliente_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tb Status
+         * @description Verificar si el cliente tiene TB y Mayor cargados
+         */
+        get: operations["get_tb_status_api_trial_balance__cliente_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reportes/{cliente_id}/export": {
         parameters: {
             query?: never;
@@ -2198,6 +2259,11 @@ export interface components {
             };
             /** Top Areas */
             top_areas?: unknown[];
+        };
+        /** Body_upload_trial_balance_api_trial_balance__cliente_id__upload_post */
+        Body_upload_trial_balance_api_trial_balance__cliente_id__upload_post: {
+            /** File */
+            file: string;
         };
         /** BriefingAreaRequest */
         BriefingAreaRequest: {
@@ -5809,6 +5875,105 @@ export interface operations {
             };
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_trial_balance_api_trial_balance__cliente_id__upload_post: {
+        parameters: {
+            query?: {
+                kind?: string;
+            };
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_trial_balance_api_trial_balance__cliente_id__upload_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tb_diagnostico_api_trial_balance__cliente_id__diagnostico_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tb_status_api_trial_balance__cliente_id__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
