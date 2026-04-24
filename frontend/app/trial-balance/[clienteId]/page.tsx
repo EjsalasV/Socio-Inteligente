@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
@@ -23,6 +24,7 @@ function variationPct(actual: number, previous: number): number {
 
 export default function TrialBalancePage() {
   const { clienteId } = useAuditContext();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { data: dashboard, isLoading, error } = useDashboard(clienteId);
   const requiredTb = searchParams?.get("required_tb") === "1";
@@ -63,6 +65,12 @@ export default function TrialBalancePage() {
         : tbStage === "inicial"
           ? "Corte Inicial"
           : "Sin saldos";
+
+  useEffect(() => {
+    if (!requiredTb) return;
+    if (tbStage === "sin_saldos") return;
+    router.replace(`/trial-balance/${clienteId}`);
+  }, [clienteId, requiredTb, router, tbStage]);
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;

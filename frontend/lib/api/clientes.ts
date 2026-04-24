@@ -116,14 +116,14 @@ export async function getClienteHallazgos(clienteId: string): Promise<ClienteHal
 }
 
 export async function getClienteTbStatus(clienteId: string): Promise<ClienteTbStatus> {
-  // Note: TB status endpoint not available in new API
-  console.warn("getClienteTbStatus: Endpoint not available in new API");
+  const response = await authFetchJson<ApiEnvelope<unknown>>(`/api/trial-balance/${clienteId}/status`);
+  const data = isRecord(response?.data) ? response.data : {};
   return {
-    cliente_id: clienteId,
-    has_tb: false,
-    has_mayor: false,
-    has_tb_cache: false,
-    tb_size_bytes: 0,
-    tb_mtime_ns: 0,
+    cliente_id: typeof data.cliente_id === "string" ? data.cliente_id : clienteId,
+    has_tb: Boolean(data.has_tb),
+    has_mayor: Boolean(data.has_mayor),
+    has_tb_cache: Boolean(data.has_tb_cache),
+    tb_size_bytes: typeof data.tb_size_bytes === "number" ? data.tb_size_bytes : 0,
+    tb_mtime_ns: typeof data.tb_mtime_ns === "number" ? data.tb_mtime_ns : 0,
   };
 }
