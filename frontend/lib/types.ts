@@ -1878,6 +1878,176 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mayor/{cliente_id}/movimientos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Mayor Movimientos */
+        get: operations["get_mayor_movimientos_api_mayor__cliente_id__movimientos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mayor/{cliente_id}/resumen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Mayor Resumen */
+        get: operations["get_mayor_resumen_api_mayor__cliente_id__resumen_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mayor/{cliente_id}/validaciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Mayor Validaciones */
+        get: operations["get_mayor_validaciones_api_mayor__cliente_id__validaciones_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mayor/{cliente_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Mayor Export */
+        get: operations["get_mayor_export_api_mayor__cliente_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Knowledge Entity */
+        post: operations["post_knowledge_entity_api_knowledge_entities_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/{cliente_id}/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Knowledge Entities */
+        get: operations["get_knowledge_entities_api_knowledge__cliente_id__entities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/relations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Knowledge Relation */
+        post: operations["post_knowledge_relation_api_knowledge_relations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/{cliente_id}/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Knowledge Graph */
+        get: operations["get_knowledge_graph_api_knowledge__cliente_id__graph_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/{cliente_id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Knowledge Timeline */
+        get: operations["get_knowledge_timeline_api_knowledge__cliente_id__timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/{cliente_id}/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Knowledge Ask */
+        post: operations["post_knowledge_ask_api_knowledge__cliente_id__ask_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reportes/{cliente_id}/export": {
         parameters: {
             query?: never;
@@ -2687,6 +2857,91 @@ export interface components {
              * @default 10
              */
             max_findings: number;
+        };
+        /** KnowledgeAskRequest */
+        KnowledgeAskRequest: {
+            /** Query */
+            query: string;
+            /**
+             * Top K
+             * @default 5
+             */
+            top_k: number;
+        };
+        /** KnowledgeEntityUpsertRequest */
+        KnowledgeEntityUpsertRequest: {
+            /** Cliente Id */
+            cliente_id: string;
+            /**
+             * Entity Type
+             * @enum {string}
+             */
+            entity_type: "client" | "area" | "risk" | "finding" | "working_paper" | "evidence" | "document" | "ledger_movement" | "trial_balance_account" | "note" | "decision" | "standard" | "report_section" | "chat_insight";
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /**
+             * Content
+             * @default
+             */
+            content: string;
+            /**
+             * Status
+             * @default active
+             */
+            status: string;
+            /** Source Module */
+            source_module: string;
+            /** Source Id */
+            source_id: string;
+            /**
+             * Source Ref
+             * @default
+             */
+            source_ref: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** Tags */
+            tags?: string[];
+            /** Confidence */
+            confidence?: number | null;
+        };
+        /** KnowledgeRelationUpsertRequest */
+        KnowledgeRelationUpsertRequest: {
+            /** Cliente Id */
+            cliente_id: string;
+            /**
+             * Relation Type
+             * @enum {string}
+             */
+            relation_type: "supports" | "contradicts" | "explains" | "belongs_to" | "evidences" | "references" | "derived_from" | "related_to" | "impacts" | "mitigates" | "requires_followup";
+            /** From Entity Id */
+            from_entity_id: number;
+            /** To Entity Id */
+            to_entity_id: number;
+            /**
+             * Weight
+             * @default 1
+             */
+            weight: number;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Source Module
+             * @default
+             */
+            source_module: string;
+            /**
+             * Source Id
+             * @default
+             */
+            source_id: string;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -5977,6 +6232,356 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_mayor_movimientos_api_mayor__cliente_id__movimientos_get: {
+        parameters: {
+            query?: {
+                fecha_desde?: string | null;
+                fecha_hasta?: string | null;
+                cuenta?: string | null;
+                ls?: string | null;
+                referencia?: string | null;
+                texto?: string | null;
+                monto_min?: number | null;
+                monto_max?: number | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_mayor_resumen_api_mayor__cliente_id__resumen_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_mayor_validaciones_api_mayor__cliente_id__validaciones_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_mayor_export_api_mayor__cliente_id__export_get: {
+        parameters: {
+            query?: {
+                format?: string;
+                fecha_desde?: string | null;
+                fecha_hasta?: string | null;
+                cuenta?: string | null;
+                ls?: string | null;
+                referencia?: string | null;
+                texto?: string | null;
+                monto_min?: number | null;
+                monto_max?: number | null;
+            };
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_knowledge_entity_api_knowledge_entities_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KnowledgeEntityUpsertRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_knowledge_entities_api_knowledge__cliente_id__entities_get: {
+        parameters: {
+            query?: {
+                entity_type?: string | null;
+                source_module?: string | null;
+                q?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_knowledge_relation_api_knowledge_relations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KnowledgeRelationUpsertRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_knowledge_graph_api_knowledge__cliente_id__graph_get: {
+        parameters: {
+            query?: {
+                max_entities?: number;
+                max_relations?: number;
+            };
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_knowledge_timeline_api_knowledge__cliente_id__timeline_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_knowledge_ask_api_knowledge__cliente_id__ask_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cliente_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KnowledgeAskRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

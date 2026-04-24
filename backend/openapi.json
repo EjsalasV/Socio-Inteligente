@@ -5124,6 +5124,882 @@
         }
       }
     },
+    "/api/mayor/{cliente_id}/movimientos": {
+      "get": {
+        "tags": [
+          "mayor"
+        ],
+        "summary": "Get Mayor Movimientos",
+        "operationId": "get_mayor_movimientos_api_mayor__cliente_id__movimientos_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fecha Desde"
+            }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fecha Hasta"
+            }
+          },
+          {
+            "name": "cuenta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cuenta"
+            }
+          },
+          {
+            "name": "ls",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ls"
+            }
+          },
+          {
+            "name": "referencia",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Referencia"
+            }
+          },
+          {
+            "name": "texto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Texto"
+            }
+          },
+          {
+            "name": "monto_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Monto Min"
+            }
+          },
+          {
+            "name": "monto_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Monto Max"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mayor/{cliente_id}/resumen": {
+      "get": {
+        "tags": [
+          "mayor"
+        ],
+        "summary": "Get Mayor Resumen",
+        "operationId": "get_mayor_resumen_api_mayor__cliente_id__resumen_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mayor/{cliente_id}/validaciones": {
+      "get": {
+        "tags": [
+          "mayor"
+        ],
+        "summary": "Get Mayor Validaciones",
+        "operationId": "get_mayor_validaciones_api_mayor__cliente_id__validaciones_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mayor/{cliente_id}/export": {
+      "get": {
+        "tags": [
+          "mayor"
+        ],
+        "summary": "Get Mayor Export",
+        "operationId": "get_mayor_export_api_mayor__cliente_id__export_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "xlsx",
+              "title": "Format"
+            }
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fecha Desde"
+            }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fecha Hasta"
+            }
+          },
+          {
+            "name": "cuenta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cuenta"
+            }
+          },
+          {
+            "name": "ls",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ls"
+            }
+          },
+          {
+            "name": "referencia",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Referencia"
+            }
+          },
+          {
+            "name": "texto",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Texto"
+            }
+          },
+          {
+            "name": "monto_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Monto Min"
+            }
+          },
+          {
+            "name": "monto_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Monto Max"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge/entities": {
+      "post": {
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "Post Knowledge Entity",
+        "operationId": "post_knowledge_entity_api_knowledge_entities_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeEntityUpsertRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/knowledge/{cliente_id}/entities": {
+      "get": {
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "Get Knowledge Entities",
+        "operationId": "get_knowledge_entities_api_knowledge__cliente_id__entities_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "entity_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity Type"
+            }
+          },
+          {
+            "name": "source_module",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Module"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge/relations": {
+      "post": {
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "Post Knowledge Relation",
+        "operationId": "post_knowledge_relation_api_knowledge_relations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeRelationUpsertRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/knowledge/{cliente_id}/graph": {
+      "get": {
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "Get Knowledge Graph",
+        "operationId": "get_knowledge_graph_api_knowledge__cliente_id__graph_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "max_entities",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 2000,
+              "minimum": 1,
+              "default": 500,
+              "title": "Max Entities"
+            }
+          },
+          {
+            "name": "max_relations",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 5000,
+              "minimum": 1,
+              "default": 1000,
+              "title": "Max Relations"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge/{cliente_id}/timeline": {
+      "get": {
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "Get Knowledge Timeline",
+        "operationId": "get_knowledge_timeline_api_knowledge__cliente_id__timeline_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge/{cliente_id}/ask": {
+      "post": {
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "Post Knowledge Ask",
+        "operationId": "post_knowledge_ask_api_knowledge__cliente_id__ask_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeAskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reportes/{cliente_id}/export": {
       "post": {
         "tags": [
@@ -6476,6 +7352,174 @@
         },
         "type": "object",
         "title": "InternalControlLetterRequest"
+      },
+      "KnowledgeAskRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "top_k": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "KnowledgeAskRequest"
+      },
+      "KnowledgeEntityUpsertRequest": {
+        "properties": {
+          "cliente_id": {
+            "type": "string",
+            "title": "Cliente Id"
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": [
+              "client",
+              "area",
+              "risk",
+              "finding",
+              "working_paper",
+              "evidence",
+              "document",
+              "ledger_movement",
+              "trial_balance_account",
+              "note",
+              "decision",
+              "standard",
+              "report_section",
+              "chat_insight"
+            ],
+            "title": "Entity Type"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "default": ""
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "default": ""
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "active"
+          },
+          "source_module": {
+            "type": "string",
+            "title": "Source Module"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "source_ref": {
+            "type": "string",
+            "title": "Source Ref",
+            "default": ""
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cliente_id",
+          "entity_type",
+          "source_module",
+          "source_id"
+        ],
+        "title": "KnowledgeEntityUpsertRequest"
+      },
+      "KnowledgeRelationUpsertRequest": {
+        "properties": {
+          "cliente_id": {
+            "type": "string",
+            "title": "Cliente Id"
+          },
+          "relation_type": {
+            "type": "string",
+            "enum": [
+              "supports",
+              "contradicts",
+              "explains",
+              "belongs_to",
+              "evidences",
+              "references",
+              "derived_from",
+              "related_to",
+              "impacts",
+              "mitigates",
+              "requires_followup"
+            ],
+            "title": "Relation Type"
+          },
+          "from_entity_id": {
+            "type": "integer",
+            "title": "From Entity Id"
+          },
+          "to_entity_id": {
+            "type": "integer",
+            "title": "To Entity Id"
+          },
+          "weight": {
+            "type": "number",
+            "title": "Weight",
+            "default": 1.0
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          },
+          "source_module": {
+            "type": "string",
+            "title": "Source Module",
+            "default": ""
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "cliente_id",
+          "relation_type",
+          "from_entity_id",
+          "to_entity_id"
+        ],
+        "title": "KnowledgeRelationUpsertRequest"
       },
       "LoginRequest": {
         "properties": {
