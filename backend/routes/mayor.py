@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import os
 from datetime import datetime, timezone
+from typing import Any
 
 import pandas as pd
 from fastapi import APIRouter, Depends, Query
@@ -11,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from backend.auth import authorize_cliente_access, get_current_user
 from backend.schemas import ApiResponse, UserContext
 from backend.utils.api_errors import raise_api_error
+from backend.utils.database import get_session
 from backend.services.mayor_service import (
     build_mayor_summary,
     filter_mayor_movements,
@@ -18,6 +20,7 @@ from backend.services.mayor_service import (
     mayor_dataframe_to_items,
     paginate_dataframe,
 )
+from backend.services.mayor_knowledge_service import safe_sync_mayor_validations_to_knowledge
 from backend.services.mayor_validations import run_mayor_validations
 
 router = APIRouter(prefix="/api/mayor", tags=["mayor"])
@@ -110,10 +113,22 @@ def get_mayor_resumen(
 def get_mayor_validaciones(
     cliente_id: str,
     user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
     canonical, meta = load_mayor_canonical(cliente_id)
     validations = run_mayor_validations(canonical)
+    summary = build_mayor_summary(canonical)
+
+    # Non-blocking integration to Knowledge Core.
+    safe_sync_mayor_validations_to_knowledge(
+        session,
+        cliente_id=cliente_id,
+        validations=validations,
+        summary=summary,
+        actor=user.display_name or user.sub,
+    )
+
     return ApiResponse(
         data={
             "validaciones": validations,

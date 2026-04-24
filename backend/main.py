@@ -112,6 +112,7 @@ def _register_routes_once() -> None:
         search,
         trial_balance,
         mayor,
+        knowledge,
         user_preferences,
         workpapers,
         workflow,
@@ -149,6 +150,7 @@ def _register_routes_once() -> None:
     app.include_router(search.router)
     app.include_router(trial_balance.router)
     app.include_router(mayor.router)
+    app.include_router(knowledge.router)
     app.include_router(export.router)
     _routes_registered = True
 

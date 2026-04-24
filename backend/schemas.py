@@ -675,3 +675,59 @@ class SearchSuggestion(BaseModel):
 class SearchSuggestionsResponse(BaseModel):
     """Search suggestions response"""
     suggestions: list[SearchSuggestion] = Field(default_factory=list)
+
+class KnowledgeEntityUpsertRequest(BaseModel):
+    cliente_id: str
+    entity_type: Literal[
+        "client",
+        "area",
+        "risk",
+        "finding",
+        "working_paper",
+        "evidence",
+        "document",
+        "ledger_movement",
+        "trial_balance_account",
+        "note",
+        "decision",
+        "standard",
+        "report_section",
+        "chat_insight",
+    ]
+    title: str = ""
+    content: str = ""
+    status: str = "active"
+    source_module: str
+    source_id: str
+    source_ref: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    tags: list[str] = Field(default_factory=list)
+    confidence: float | None = None
+
+
+class KnowledgeRelationUpsertRequest(BaseModel):
+    cliente_id: str
+    relation_type: Literal[
+        "supports",
+        "contradicts",
+        "explains",
+        "belongs_to",
+        "evidences",
+        "references",
+        "derived_from",
+        "related_to",
+        "impacts",
+        "mitigates",
+        "requires_followup",
+    ]
+    from_entity_id: int
+    to_entity_id: int
+    weight: float = 1.0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    source_module: str = ""
+    source_id: str = ""
+
+
+class KnowledgeAskRequest(BaseModel):
+    query: str
+    top_k: int = Field(default=5, ge=1, le=20)

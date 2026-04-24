@@ -78,6 +78,10 @@ def init_db():
         from backend.models.workpapers_template import WorkpapersTemplate
         from backend.models.workpapers_observation import WorkpapersObservation
         from backend.models.workpapers_files import WorkpapersFile
+        from backend.models.knowledge_entity import KnowledgeEntity
+        from backend.models.knowledge_relation import KnowledgeRelation
+        from backend.models.knowledge_event import KnowledgeEvent
+        from backend.models.knowledge_chunk import KnowledgeChunk
 
         # Importar Base de la localización compartida
         from backend.models import Base
