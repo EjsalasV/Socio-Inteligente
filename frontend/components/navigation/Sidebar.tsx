@@ -16,6 +16,7 @@ type NavItem = {
     | "risk-engine"
     | "trial-balance"
     | "mayor"
+    | "knowledge"
     | "estados-financieros"
     | "areas"
     | "papeles-trabajo"
@@ -68,6 +69,7 @@ export default function Sidebar() {
       { id: "risk-engine", key: "risk-engine", label: "Risk Engine", icon: "security", href: withCliente("risk-engine") },
       { id: "trial-balance", key: "trial-balance", label: "Trial Balance", icon: "account_balance_wallet", href: withCliente("trial-balance") },
       { id: "mayor", key: "mayor", label: "Mayor Contable", icon: "table_view", href: withCliente("mayor") },
+      { id: "knowledge", key: "knowledge", label: "Knowledge Core", icon: "hub", href: withCliente("knowledge") },
       {
         id: "estados-financieros",
         key: "estados-financieros",
@@ -156,6 +158,8 @@ export default function Sidebar() {
                               ? "sidebar-trial-balance"
                               : item.key === "mayor"
                                 ? "sidebar-mayor"
+                              : item.key === "knowledge"
+                                ? "sidebar-knowledge"
                               : item.key === "estados-financieros"
                                 ? "sidebar-estados-financieros"
                                 : item.key === "areas"

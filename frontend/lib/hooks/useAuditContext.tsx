@@ -8,6 +8,7 @@ export type AuditModule =
   | "risk-engine"
   | "trial-balance"
   | "mayor"
+  | "knowledge"
   | "estados-financieros"
   | "areas"
   | "papeles-trabajo"
@@ -38,6 +39,7 @@ function parseFromPath(pathname: string): AuditContextValue {
   if (first === "perfil") moduleKey = "perfil";
   if (first === "trial-balance") moduleKey = "trial-balance";
   if (first === "mayor") moduleKey = "mayor";
+  if (first === "knowledge") moduleKey = "knowledge";
   if (first === "estados-financieros") moduleKey = "estados-financieros";
   if (first === "reportes") moduleKey = "reportes";
   if (first === "papeles-trabajo") moduleKey = "papeles-trabajo";
@@ -51,6 +53,7 @@ function parseFromPath(pathname: string): AuditContextValue {
     "risk-engine": "Risk Engine",
     "trial-balance": "Trial Balance",
     mayor: "Mayor Contable",
+    knowledge: "Knowledge Core",
     "estados-financieros": "Estados Financieros",
     areas: "Áreas L/S",
     "papeles-trabajo": "Papeles de Trabajo",
