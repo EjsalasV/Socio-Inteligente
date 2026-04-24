@@ -65,6 +65,7 @@ export default function Header() {
       perfil: "Completa marco, materialidad y responsable para habilitar un flujo consistente.",
       dashboard: "Revisa KPIs y ranking para decidir donde iniciar trabajo de campo.",
       "trial-balance": "Confirma variaciones relevantes y marca cuentas para pruebas.",
+      mayor: "Analiza movimientos con filtros y valida hallazgos contables del libro mayor.",
       "risk-engine": "Prioriza áreas altas y agrega procedimientos recomendados a papeles.",
       areas: "Genera briefing, ejecuta pruebas y documenta hallazgos con evidencia.",
       "papeles-trabajo": "Cierra tareas requeridas y valida gates antes de informe.",

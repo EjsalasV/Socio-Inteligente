@@ -22,6 +22,7 @@ from backend.schemas import (
     UserContext,
 )
 from backend.services.judgement_service import build_risk_judgement_with_ai
+from backend.services.mayor_service import load_mayor_canonical
 from backend.services.view_cache_service import get_cached_view, set_cached_view
 
 router = APIRouter(prefix="/risk-engine", tags=["risk-engine"])
@@ -47,6 +48,7 @@ def _risk_signature(cliente_id: str) -> str:
     paths = [
         root / "tb.xlsx",
         root / "mayor.xlsx",
+        root / "mayor.csv",
         root / "perfil.yaml",
         root / "hallazgos.md",
         root / "workflow.yaml",
@@ -378,26 +380,6 @@ def _resolve_col(columns: list[str], candidates: list[str]) -> str | None:
     return None
 
 
-def _to_numeric(series: pd.Series) -> pd.Series:
-    s = series.astype(str).str.replace(",", "", regex=False).str.replace("$", "", regex=False).str.strip()
-    return pd.to_numeric(s, errors="coerce").fillna(0.0)
-
-
-def _load_mayor(cliente_id: str) -> pd.DataFrame:
-    path = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id / "mayor.xlsx"
-    if not path.exists():
-        return pd.DataFrame()
-    try:
-        df = pd.read_excel(path, engine="openpyxl")
-    except Exception:
-        return pd.DataFrame()
-    if df.empty:
-        return pd.DataFrame()
-    df = df.copy()
-    df.columns = [_norm_header(c) for c in df.columns]
-    return df
-
-
 def _build_code_to_area(cliente_id: str) -> dict[str, str]:
     try:
         from analysis.lector_tb import leer_tb
@@ -437,7 +419,7 @@ def _map_area_for_account(account_code: str, code_to_area: dict[str, str]) -> st
 
 
 def _mayor_signals_by_area(cliente_id: str, tb_totals_by_area: dict[str, float]) -> dict[str, dict[str, Any]]:
-    df = _load_mayor(cliente_id)
+    df, _meta = load_mayor_canonical(cliente_id)
     if df.empty:
         return {}
 
@@ -445,55 +427,22 @@ def _mayor_signals_by_area(cliente_id: str, tb_totals_by_area: dict[str, float])
     if not code_to_area:
         return {}
 
-    cols = df.columns.tolist()
-    account_col = _resolve_col(cols, ["codigo", "cuenta", "numero_de_cuenta", "cuenta_codigo", "cod_cuenta"])
-    if account_col is None:
+    if "numero_cuenta" not in df.columns:
         return {}
 
-    debit_col = _resolve_col(cols, ["debe", "debito", "debit"])
-    credit_col = _resolve_col(cols, ["haber", "credito", "credit"])
-    amount_col = _resolve_col(cols, ["monto", "importe", "amount", "valor"])
-    date_col = _resolve_col(cols, ["fecha", "date", "fecha_asiento", "f_contable"])
-    user_col = _resolve_col(cols, ["usuario", "user", "created_by"])
-    desc_col = _resolve_col(cols, ["descripcion", "detalle", "glosa", "concepto"])
-
     work = df.copy()
-    work["account_code"] = work[account_col].apply(_normalize_code)
+    work["account_code"] = work["numero_cuenta"].apply(_normalize_code)
     work["area_id"] = work["account_code"].apply(lambda x: _map_area_for_account(x, code_to_area))
     work = work[work["area_id"] != ""]
     if work.empty:
         return {}
 
-    if amount_col:
-        work["amount_net"] = _to_numeric(work[amount_col])
-        work["amount_abs"] = work["amount_net"].abs()
-    elif debit_col and credit_col:
-        debit = _to_numeric(work[debit_col])
-        credit = _to_numeric(work[credit_col])
-        work["amount_net"] = debit - credit
-        work["amount_abs"] = (debit.abs() + credit.abs()) / 2.0
-    elif debit_col:
-        debit = _to_numeric(work[debit_col])
-        work["amount_net"] = debit
-        work["amount_abs"] = debit.abs()
-    else:
-        work["amount_net"] = 0.0
-        work["amount_abs"] = 0.0
-
-    if date_col:
-        work["txn_date"] = pd.to_datetime(work[date_col], errors="coerce")
-    else:
-        work["txn_date"] = pd.NaT
-
-    if user_col:
-        work["txn_user"] = work[user_col].astype(str).str.strip().replace({"": "N/A"})
-    else:
-        work["txn_user"] = "N/A"
-
-    if desc_col:
-        work["txn_desc"] = work[desc_col].astype(str).str.lower()
-    else:
-        work["txn_desc"] = ""
+    work["amount_net"] = pd.to_numeric(work.get("neto"), errors="coerce").fillna(0.0)
+    work["amount_abs"] = pd.to_numeric(work.get("monto_abs"), errors="coerce").fillna(0.0)
+    work["txn_date"] = pd.to_datetime(work.get("fecha"), errors="coerce")
+    work["txn_user"] = "N/A"
+    work["txn_desc"] = work.get("descripcion", pd.Series([""] * len(work))).astype(str).str.lower()
+    has_user_data = False
 
     out: dict[str, dict[str, Any]] = {}
     risk_cfg = RUNTIME_CFG.get("risk_engine", {}) if isinstance(RUNTIME_CFG, dict) else {}
@@ -524,7 +473,7 @@ def _mayor_signals_by_area(cliente_id: str, tb_totals_by_area: dict[str, float])
             closing_count = int((closing_mask & (grp["amount_abs"] >= p90)).sum())
 
         user_share = 0.0
-        if grp["txn_user"].nunique() > 0:
+        if has_user_data and grp["txn_user"].nunique() > 0:
             user_totals = grp.groupby("txn_user")["amount_abs"].sum()
             user_share = float((user_totals.max() / total_abs) if total_abs > 0 else 0.0)
 

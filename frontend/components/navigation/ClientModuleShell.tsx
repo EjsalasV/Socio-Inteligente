@@ -72,7 +72,7 @@ export default function ClientModuleShell({ children }: { children: React.ReactN
   useEffect(() => {
     if (!ready || !isAuthenticated) return;
     if (!clienteId) return;
-    const exemptModules = new Set(["perfil", "trial-balance"]);
+    const exemptModules = new Set(["perfil", "trial-balance", "mayor"]);
     if (exemptModules.has(moduleKey)) return;
 
     let cancelled = false;

@@ -200,6 +200,70 @@ export async function authFetchJson<T>(path: string, init?: RequestInit): Promis
   return apiFetch<T>(path, init);
 }
 
+export async function authFetchBlob(path: string, init?: RequestInit): Promise<Response> {
+  const headers = new Headers(init?.headers);
+  if (!headers.has("Authorization")) {
+    const sessionToken = getSessionAuthToken();
+    if (sessionToken) {
+      headers.set("Authorization", `Bearer ${sessionToken}`);
+    }
+  }
+
+  const method = String(init?.method || "GET").toUpperCase();
+  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+    const csrfToken = getStoredCsrfToken();
+    if (!csrfToken) {
+      throw new Error("Sesion expirada (CSRF). Vuelve a iniciar sesion.");
+    }
+    headers.set("X-CSRF-Token", csrfToken);
+  }
+
+  const controller = new AbortController();
+  const timeoutMs = getRequestTimeoutMs(path);
+  const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(buildApiUrl(path), {
+      ...init,
+      headers,
+      credentials: "include",
+      signal: controller.signal,
+    });
+
+    if (res.status === 401) {
+      clearSessionState();
+      let payload: unknown = null;
+      try {
+        payload = await res.clone().json();
+      } catch {
+        payload = null;
+      }
+      const parsed = extractApiError(payload);
+      throw new TokenExpiredError(parsed.message || "Sesion expirada. Inicia sesion otra vez.");
+    }
+
+    if (!res.ok) {
+      let payload: unknown = null;
+      try {
+        payload = await res.clone().json();
+      } catch {
+        payload = null;
+      }
+      const parsed = extractApiError(payload);
+      const suffix = parsed.actionHint ? ` | ${parsed.actionHint}` : "";
+      throw new Error(`API error ${res.status} (${parsed.code}): ${parsed.message}${suffix}`);
+    }
+    return res;
+  } catch (error) {
+    const isAbort = (error as { name?: string })?.name === "AbortError";
+    if (isAbort) {
+      throw new Error(`Tiempo de espera agotado al conectar con el backend (${getApiBase()}).`);
+    }
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
+}
+
 export async function postChat(clienteId: string, payload: ChatRequest): Promise<ApiEnvelope<ChatResponse>> {
   return apiFetch<ApiEnvelope<ChatResponse>>(`/chat/${clienteId}`, {
     method: "POST",

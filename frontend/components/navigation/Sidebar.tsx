@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { logoutSession } from "../../lib/auth-session";
@@ -15,6 +15,7 @@ type NavItem = {
     | "dashboard"
     | "risk-engine"
     | "trial-balance"
+    | "mayor"
     | "estados-financieros"
     | "areas"
     | "papeles-trabajo"
@@ -50,11 +51,11 @@ export default function Sidebar() {
   }, [session?.role]);
 
   const baseCliente = clienteId || "";
-  const withCliente = (route: string): string => {
+  const withCliente = useCallback((route: string): string => {
     // Only use clienteId if available, otherwise keep the route without cliente parameter
     // This prevents unexpected redirects when context is temporarily lost
     return baseCliente ? `/${route}/${baseCliente}` : `/${route}`;
-  };
+  }, [baseCliente]);
 
   const items = useMemo<NavItem[]>(
     () => [
@@ -66,6 +67,7 @@ export default function Sidebar() {
       { id: "dashboard", key: "dashboard", label: "Dashboard", icon: "dashboard", href: withCliente("dashboard") },
       { id: "risk-engine", key: "risk-engine", label: "Risk Engine", icon: "security", href: withCliente("risk-engine") },
       { id: "trial-balance", key: "trial-balance", label: "Trial Balance", icon: "account_balance_wallet", href: withCliente("trial-balance") },
+      { id: "mayor", key: "mayor", label: "Mayor Contable", icon: "table_view", href: withCliente("mayor") },
       {
         id: "estados-financieros",
         key: "estados-financieros",
@@ -87,7 +89,7 @@ export default function Sidebar() {
       { id: "procedimientos", key: "procedimientos", label: "Procedimientos", icon: "fact_check", href: "/procedimientos" },
       { id: "reportes", key: "reportes", label: "Reportes", icon: "description", href: withCliente("reportes") },
     ],
-    [baseCliente, canManageUsers],
+    [canManageUsers, withCliente],
   );
 
   return (
@@ -152,6 +154,8 @@ export default function Sidebar() {
                             ? "sidebar-risk-engine"
                             : item.key === "trial-balance"
                               ? "sidebar-trial-balance"
+                              : item.key === "mayor"
+                                ? "sidebar-mayor"
                               : item.key === "estados-financieros"
                                 ? "sidebar-estados-financieros"
                                 : item.key === "areas"
