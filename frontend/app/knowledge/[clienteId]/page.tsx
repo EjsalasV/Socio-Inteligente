@@ -43,6 +43,7 @@ export default function KnowledgePage() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isAsking, setIsAsking] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
   const loadEntities = useCallback(async () => {
     if (!clienteId) return;
@@ -72,11 +73,17 @@ export default function KnowledgePage() {
       if (!clienteId) return;
       setIsLoading(true);
       setError("");
+      setIsDisabled(false);
       try {
         await loadEntities();
       } catch (err) {
         if (!mounted) return;
-        setError(err instanceof Error ? err.message : "No se pudo cargar Knowledge Core.");
+        const message = err instanceof Error ? err.message : "No se pudo cargar Knowledge Core.";
+        if (message.includes("KNOWLEDGE_CORE_DISABLED")) {
+          setIsDisabled(true);
+        } else {
+          setError(message);
+        }
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -97,7 +104,12 @@ export default function KnowledgePage() {
         if (activeTab === "graph" && !graph) await loadGraph();
         if (activeTab === "timeline" && !timeline) await loadTimeline();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "No se pudo actualizar la pestaña.");
+        const message = err instanceof Error ? err.message : "No se pudo actualizar la pestaña.";
+        if (message.includes("KNOWLEDGE_CORE_DISABLED")) {
+          setIsDisabled(true);
+        } else {
+          setError(message);
+        }
       } finally {
         setIsRefreshing(false);
       }
@@ -113,7 +125,12 @@ export default function KnowledgePage() {
       const response = await askKnowledge(clienteId, { query: query.trim(), top_k: 5 });
       setAskResponse(response);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo ejecutar la consulta.");
+      const message = err instanceof Error ? err.message : "No se pudo ejecutar la consulta.";
+      if (message.includes("KNOWLEDGE_CORE_DISABLED")) {
+        setIsDisabled(true);
+      } else {
+        setError(message);
+      }
     } finally {
       setIsAsking(false);
     }
@@ -130,6 +147,25 @@ export default function KnowledgePage() {
   );
 
   if (isLoading) return <DashboardSkeleton />;
+  if (isDisabled) {
+    return (
+      <div className="pt-4 pb-10 space-y-6 max-w-[1200px]">
+        <section className="space-y-2">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Knowledge Core</p>
+          <h1 className="font-headline text-5xl text-[#041627]">Nucleo Inteligente</h1>
+        </section>
+        <section className="sovereign-card p-6 border border-amber-300 bg-amber-50">
+          <h2 className="font-headline text-2xl text-amber-900">Knowledge Core deshabilitado</h2>
+          <p className="text-sm text-amber-800 mt-2">
+            Este modulo esta disponible, pero el backend lo tiene apagado en este entorno.
+          </p>
+          <p className="text-xs text-amber-700 mt-3">
+            Accion requerida en despliegue: definir <code>KNOWLEDGE_CORE_ENABLED=1</code> y reiniciar backend.
+          </p>
+        </section>
+      </div>
+    );
+  }
   if (error && !isRefreshing) return <ErrorMessage message={error} />;
 
   return (
@@ -209,4 +245,3 @@ export default function KnowledgePage() {
     </div>
   );
 }
-

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuditContext } from '@/lib/hooks/useAuditContext';
+import type { ApiEnvelope } from '@/lib/contracts';
+import { authFetchJson } from '@/lib/api';
 
 interface Alert {
   id: string;
@@ -32,8 +34,12 @@ export function AlertsBanner() {
     const fetchAlertas = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/alertas/${clienteId}`);
-        const data = await response.json();
+        const data = await authFetchJson<ApiEnvelope<{
+          alertas?: Alert[];
+          total_criticos?: number;
+          total_altos?: number;
+        }>>(`/api/alertas/${clienteId}`);
+
         if (data.status === 'ok' && data.data?.alertas) {
           setAlertas(data.data.alertas);
           setStats({
@@ -42,7 +48,14 @@ export function AlertsBanner() {
           });
         }
       } catch (err) {
-        setError(`Error cargando alertas: ${String(err)}`);
+        const raw = err instanceof Error ? err.message : String(err);
+        // When upstream/proxy returns non-JSON text (e.g. "The deploy..."),
+        // avoid crashing banner UX and show controlled message.
+        if (raw.includes("Unexpected token") || raw.includes("valid JSON")) {
+          setError("Error cargando alertas: respuesta no JSON del backend/proxy.");
+        } else {
+          setError(`Error cargando alertas: ${raw}`);
+        }
       } finally {
         setLoading(false);
       }
@@ -58,10 +71,11 @@ export function AlertsBanner() {
     try {
       const response = await fetch(`/api/alertas/${alertId}/resolve`, {
         method: 'POST',
+        credentials: 'include',
       });
       if (response.ok) {
         // Actualizar lista
-        setAlertas(alertas.filter((a) => a.id !== alertId));
+        setAlertas((prev) => prev.filter((a) => a.id !== alertId));
       }
     } catch (err) {
       setError(`Error resolviendo alerta: ${String(err)}`);
