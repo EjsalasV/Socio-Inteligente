@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuditContext } from '@/lib/hooks/useAuditContext';
+import type { ApiEnvelope } from '@/lib/contracts';
+import { authFetchJson } from '@/lib/api';
 
 interface PeriodoData {
   periodo: string;
@@ -53,8 +55,9 @@ export function PeriodoComparador() {
     const fetchPeriodos = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/clientes/${clienteId}/historicos`);
-        const data = await response.json();
+        const data = await authFetchJson<ApiEnvelope<{ periodos?: PeriodoData[] }>>(
+          `/api/clientes/${clienteId}/historicos`,
+        );
         if (data.status === 'ok' && data.data?.periodos) {
           setPeriodos(data.data.periodos);
           if (data.data.periodos.length > 0) {
@@ -62,7 +65,12 @@ export function PeriodoComparador() {
           }
         }
       } catch (err) {
-        setError(`Error cargando períodos: ${String(err)}`);
+        const raw = err instanceof Error ? err.message : String(err);
+        if (raw.includes("Unexpected token") || raw.includes("valid JSON")) {
+          setError("Error cargando períodos: respuesta no JSON del backend/proxy.");
+        } else {
+          setError(`Error cargando períodos: ${raw}`);
+        }
       } finally {
         setLoading(false);
       }
@@ -78,10 +86,10 @@ export function PeriodoComparador() {
     const loadPreviousPeriod = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/clientes/${clienteId}/load-previous-period`, {
-          method: 'POST',
-        });
-        const data = await response.json();
+        const data = await authFetchJson<ApiEnvelope<{ snapshot?: ComparisonSnapshot }>>(
+          `/api/clientes/${clienteId}/load-previous-period`,
+          { method: 'POST' },
+        );
         if (data.status === 'ok' && data.data?.snapshot) {
           setPreviousSnapshot(data.data.snapshot);
           // Calcular deltas
@@ -90,7 +98,8 @@ export function PeriodoComparador() {
           }
         }
       } catch (err) {
-        setError(`Error cargando período anterior: ${String(err)}`);
+        const raw = err instanceof Error ? err.message : String(err);
+        setError(`Error cargando período anterior: ${raw}`);
       } finally {
         setLoading(false);
       }
