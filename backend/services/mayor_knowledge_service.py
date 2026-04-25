@@ -35,9 +35,17 @@ def _safe_int(value: Any, default: int = 0) -> int:
 
 
 def _period_key(summary: dict[str, Any]) -> str:
-    start = str(summary.get("fecha_min") or "").strip() or "na"
-    end = str(summary.get("fecha_max") or "").strip() or "na"
+    start = str(summary.get("fecha_min") or "").strip()
+    end = str(summary.get("fecha_max") or "").strip()
+    if not start or not end:
+        return "periodo_no_identificado"
     return f"{start}_{end}"
+
+
+def _period_bounds(summary: dict[str, Any]) -> tuple[str, str]:
+    start = str(summary.get("fecha_min") or "").strip()
+    end = str(summary.get("fecha_max") or "").strip()
+    return start, end
 
 
 def _extract_accounts(validation_block: dict[str, Any], *, limit: int = 5) -> list[str]:
@@ -137,7 +145,8 @@ def _metrics_for(validation_type: str, validation_block: dict[str, Any]) -> dict
 def _content_for(validation_type: str, validation_block: dict[str, Any], summary: dict[str, Any]) -> str:
     metrics = _metrics_for(validation_type, validation_block)
     metrics_txt = ", ".join([f"{k}={v}" for k, v in metrics.items()])
-    period_txt = f"{summary.get('fecha_min') or 'na'} a {summary.get('fecha_max') or 'na'}"
+    start, end = _period_bounds(summary)
+    period_txt = f"{start} a {end}" if start and end else "Periodo no identificado"
     return (
         f"Resultado de validacion '{validation_type}' sobre el mayor contable. "
         f"Periodo: {period_txt}. Metricas: {metrics_txt}."
@@ -163,19 +172,22 @@ def _upsert_client_entity(session: Any, cliente_id: str, actor: str) -> dict[str
 
 
 def _upsert_period_entity(session: Any, cliente_id: str, period_key: str, summary: dict[str, Any], actor: str) -> dict[str, Any]:
+    start, end = _period_bounds(summary)
+    title = f"Periodo {start} a {end}" if start and end else "Periodo no identificado"
     return upsert_entity(
         session,
         {
             "cliente_id": cliente_id,
             "entity_type": "note",
-            "title": f"Periodo {summary.get('fecha_min') or 'na'} a {summary.get('fecha_max') or 'na'}",
+            "title": title,
             "content": "Periodo de analisis del mayor para validaciones.",
             "status": "active",
             "source_module": "mayor",
             "source_id": f"periodo:{period_key}",
             "metadata": {
-                "fecha_min": str(summary.get("fecha_min") or ""),
-                "fecha_max": str(summary.get("fecha_max") or ""),
+                "fecha_min": start,
+                "fecha_max": end,
+                "identified": bool(start and end),
             },
             "tags": ["mayor", "periodo"],
         },
@@ -216,6 +228,7 @@ def sync_mayor_validations_to_knowledge(
         return {"enabled": True, "created_or_updated": 0, "relations_created_or_updated": 0}
 
     period_key = _period_key(summary)
+    start, end = _period_bounds(summary)
     created_or_updated = 0
     relations_created_or_updated = 0
 
@@ -246,9 +259,10 @@ def sync_mayor_validations_to_knowledge(
                 "metadata": {
                     "validation_type": validation_type,
                     "periodo": {
-                        "fecha_min": str(summary.get("fecha_min") or ""),
-                        "fecha_max": str(summary.get("fecha_max") or ""),
+                        "fecha_min": start,
+                        "fecha_max": end,
                         "period_key": period_key,
+                        "identified": bool(start and end),
                     },
                     "metrics": metrics,
                     "cuentas_afectadas": affected_accounts,
