@@ -108,6 +108,7 @@ def _normalize_canonical(df: pd.DataFrame) -> pd.DataFrame:
                 "referencia",
                 "debe",
                 "haber",
+                "saldo",
                 "neto",
                 "monto_abs",
                 "row_hash",
@@ -119,21 +120,50 @@ def _normalize_canonical(df: pd.DataFrame) -> pd.DataFrame:
     work.columns = [_normalize_header(c) for c in work.columns]
     cols = work.columns.tolist()
 
-    fecha_col = _resolve_col(cols, ["fecha", "date", "fecha_mov", "fecha_asiento", "f_contable"])
-    asiento_col = _resolve_col(cols, ["asiento_ref", "asiento", "nro_asiento", "numero_asiento", "id_asiento"])
+    fecha_col = _resolve_col(
+        cols,
+        [
+            "fecha",
+            "date",
+            "fecha_mov",
+            "fecha_asiento",
+            "f_contable",
+            "fecha_de_contabilizacion",
+            "fecha_contabilizacion",
+            "fecha_de_contabilizaci_n",
+        ],
+    )
+    asiento_col = _resolve_col(
+        cols,
+        [
+            "asiento_ref",
+            "asiento",
+            "nro_asiento",
+            "numero_asiento",
+            "id_asiento",
+            "n_de_transaccion",
+            "no_de_transaccion",
+            "numero_de_transaccion",
+            "n_de_transacci_n",
+        ],
+    )
     cuenta_col = _resolve_col(cols, ["numero_cuenta", "cuenta", "codigo", "cod_cuenta", "numero_de_cuenta"])
     nombre_col = _resolve_col(cols, ["nombre_cuenta", "nombre", "descripcion_cuenta"])
     ls_col = _resolve_col(cols, ["ls", "l_s", "linea_significancia"])
-    descripcion_col = _resolve_col(cols, ["descripcion", "detalle", "concepto", "glosa"])
-    referencia_col = _resolve_col(cols, ["referencia", "comprobante", "voucher", "numero_doc", "doc"])
-    debe_col = _resolve_col(cols, ["debe", "debito", "debit"])
-    haber_col = _resolve_col(cols, ["haber", "credito", "credit"])
+    descripcion_col = _resolve_col(cols, ["descripcion", "detalle", "concepto", "glosa", "comentarios"])
+    referencia_col = _resolve_col(
+        cols,
+        ["referencia", "comprobante", "voucher", "numero_doc", "doc", "n_documento", "no_documento"],
+    )
+    debe_col = _resolve_col(cols, ["debe", "debito", "debit", "debito_ms", "debito_moneda", "d_bito_ms"])
+    haber_col = _resolve_col(cols, ["haber", "credito", "credit", "credito_ms", "credito_moneda", "cr_dito_ms"])
+    saldo_col = _resolve_col(cols, ["saldo", "balance"])
 
     out = pd.DataFrame()
     fecha_raw = _series_or_empty(work, fecha_col)
-    parsed = pd.to_datetime(fecha_raw, errors="coerce")
-    if parsed.notna().sum() == 0:
-        parsed = pd.to_datetime(fecha_raw, errors="coerce", dayfirst=True)
+    parsed = pd.to_datetime(fecha_raw, errors="coerce", format="mixed")
+    parsed_dayfirst = pd.to_datetime(fecha_raw, errors="coerce", format="mixed", dayfirst=True)
+    parsed = parsed.where(parsed.notna(), parsed_dayfirst)
     out["fecha"] = parsed
     out["asiento_ref"] = _series_or_empty(work, asiento_col).astype(str).str.strip()
     out["numero_cuenta"] = _series_or_empty(work, cuenta_col).astype(str).str.strip()
@@ -148,6 +178,7 @@ def _normalize_canonical(df: pd.DataFrame) -> pd.DataFrame:
     out["referencia"] = _series_or_empty(work, referencia_col).astype(str).str.strip()
     out["debe"] = _to_numeric(_series_or_empty(work, debe_col).fillna(0))
     out["haber"] = _to_numeric(_series_or_empty(work, haber_col).fillna(0))
+    out["saldo"] = _to_numeric(_series_or_empty(work, saldo_col).fillna(0))
 
     out["asiento_ref"] = out["asiento_ref"].replace({"nan": "", "None": ""})
     out["referencia"] = out["referencia"].replace({"nan": "", "None": ""})

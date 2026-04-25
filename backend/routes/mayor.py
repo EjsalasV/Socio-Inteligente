@@ -35,6 +35,7 @@ CANONICAL_COLUMNS = [
     "referencia",
     "debe",
     "haber",
+    "saldo",
     "neto",
     "monto_abs",
     "row_hash",
