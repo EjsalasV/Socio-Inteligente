@@ -5,6 +5,7 @@ import SovereignCommandLazy from "../components/navigation/SovereignCommandLazy"
 import AppStateProvider from "../components/providers/AppStateProvider";
 import UserPreferencesProvider from "../components/providers/UserPreferencesProvider";
 import TourProvider from "../components/tour/TourProvider";
+import LegalFooter from "../components/legal/LegalFooter";
 
 export const metadata: Metadata = {
   title: "Socio AI — Plataforma de Auditoría Inteligente",
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <TourProvider>
               <PageTransition>{children}</PageTransition>
               <SovereignCommandLazy />
+              <LegalFooter />
             </TourProvider>
           </UserPreferencesProvider>
         </AppStateProvider>
