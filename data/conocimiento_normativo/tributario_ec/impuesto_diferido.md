@@ -1,6 +1,6 @@
 ---
 norma: NIIF 16
-titulo: Ttulo pendiente de normalizar
+titulo: Impuesto diferido - Ecuador
 tipo: NIIF_COMPLETA
 version: vigente
 vigente_desde: 2023-01-01
@@ -16,6 +16,7 @@ etapas:
 - planificacion
 - ejecucion
 - cierre
+contenido_completo: true
 ---
 
 ﻿# Impuesto Diferido " Ecuador

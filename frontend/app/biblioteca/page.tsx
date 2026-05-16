@@ -41,6 +41,26 @@ function normalizeNormaToken(token: string | undefined | null): string {
   return trimmed;
 }
 
+function hasBrokenEncodingText(value: string): boolean {
+  const text = String(value || "");
+  if (!text) return false;
+  if (/Ttulo pendiente|PENDIENTE DE COMPLETAR|\[Pendiente\]/i.test(text)) return true;
+  if (/Identificaci3n|Auditora|auditor\?a|Planificaci3n|Ejecuci3n|Medici3n/.test(text)) return true;
+  if (/Ã|Â|â|�/.test(text)) return true;
+  // Detect common mojibake fallback where accent chars were replaced inside words.
+  if (/[A-Za-zÁÉÍÓÚáéíóúÑñ]\?[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(text)) return true;
+  return false;
+}
+
+function shouldFallbackToStaticNorma(entry: NormaEntry): boolean {
+  if (hasBrokenEncodingText(entry.titulo)) return true;
+  if (hasBrokenEncodingText(entry.objetivo)) return true;
+  if (entry.requisitos_clave.some((item) => hasBrokenEncodingText(item))) return true;
+  if (entry.tags.some((tag) => hasBrokenEncodingText(tag))) return true;
+  if (Object.values(entry.vista).some((text) => hasBrokenEncodingText(text))) return true;
+  return false;
+}
+
 export default function BibliotecaPage() {
   const { role, roleLabel } = useLearningRole();
   const searchParams = useSearchParams();
@@ -60,6 +80,7 @@ export default function BibliotecaPage() {
       try {
         const mod = await import("../../data/normas");
         const baseNormas = [...mod.NORMAS];
+        const staticByCode = new Map<string, NormaEntry>(baseNormas.map((n) => [n.codigo, n]));
         let merged = baseNormas;
 
         try {
@@ -82,7 +103,12 @@ export default function BibliotecaPage() {
               tags: Array.isArray(raw.tags) ? raw.tags : [],
               vista: raw.vista,
             };
-            byCode.set(codigo, fromApi);
+            const fallbackStatic = staticByCode.get(codigo);
+            if (fallbackStatic && shouldFallbackToStaticNorma(fromApi)) {
+              byCode.set(codigo, fallbackStatic);
+            } else {
+              byCode.set(codigo, fromApi);
+            }
           }
 
           // Prioridad 2: completar huecos con la biblioteca estática.

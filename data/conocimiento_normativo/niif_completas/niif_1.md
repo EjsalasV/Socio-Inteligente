@@ -1,13 +1,13 @@
 ---
 norma: NIIF 1
-titulo: NIIF 1 - Adopción por primera vez
+titulo: NIIF 1 - Adopcion por primera vez de las NIIF
 tipo: NIIF_COMPLETA
 version: vigente
 vigente_desde: 2023-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_completas
@@ -19,21 +19,25 @@ etapas:
 - cierre
 ---
 
-# NIIF 1 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# NIIF 1 - Adopcion por primera vez de las NIIF
 
 ## Objetivo
-[Pendiente]
+Establecer reglas para preparar los primeros estados financieros bajo NIIF completas.
 
 ## Requerimientos Principales
-[Pendiente]
+- Preparar estado de situaci?n financiera de apertura bajo NIIF.
+- Aplicar NIIF vigentes de forma retrospectiva salvo excepciones/exenciones.
+- Revelar conciliaciones y efectos de transici?n.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Revisar reconciliaciones entre marco anterior y NIIF.
+- Validar ajustes de apertura significativos.
+- Evaluar revelaciones de transici?n.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Ajustes de transici?n sin soporte documental.
+- Omisi?n de revelaciones de impacto inicial.
 
 ## Referencias Cruzadas
-[Pendiente]
+- NIC 8
+- NIC 1

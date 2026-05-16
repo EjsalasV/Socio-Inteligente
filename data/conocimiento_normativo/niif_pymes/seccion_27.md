@@ -1,6 +1,6 @@
 ---
 norma: NIIF_PYMES_SECCION_27
-titulo: Ttulo pendiente de normalizar
+titulo: Seccion 27 - Deterioro del valor de los activos
 tipo: NIIF_PYMES
 seccion: 27
 version: 2015
@@ -17,6 +17,7 @@ etapas:
 - planificacion
 - ejecucion
 - cierre
+contenido_completo: true
 ---
 
 ﻿# Secci3n 27 " Deterioro del Valor de los Activos (NIIF para PYMES)

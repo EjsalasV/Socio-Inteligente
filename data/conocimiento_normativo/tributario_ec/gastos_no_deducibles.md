@@ -1,11 +1,12 @@
 ---
 norma: NORMA_DESCONOCIDA
-titulo: Ttulo pendiente de normalizar
+titulo: Gastos no deducibles - Ecuador
 tipo: DESCONOCIDO
 version: vigente
 activo: true
 ultima_actualizacion: 2024-01-01
 referencias_cruzadas: []
+contenido_completo: true
 ---
 
 ﻿# Gastos No Deducibles " Ecuador

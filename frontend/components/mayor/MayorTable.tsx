@@ -96,10 +96,10 @@ export default function MayorTable({
                   <td className="px-4 py-3 text-slate-700">{row.nombre_cuenta || "-"}</td>
                   <td className="px-4 py-3 text-slate-700">{row.ls || "-"}</td>
                   <td className="px-4 py-3 text-slate-700">{row.referencia || "-"}</td>
-                  <td className="px-4 py-3 text-right text-emerald-700 font-medium">{formatMoney(row.debe, "COP", 0)}</td>
-                  <td className="px-4 py-3 text-right text-rose-700 font-medium">{formatMoney(row.haber, "COP", 0)}</td>
+                  <td className="px-4 py-3 text-right text-emerald-700 font-medium">{formatMoney(row.debe, "USD", 0)}</td>
+                  <td className="px-4 py-3 text-right text-rose-700 font-medium">{formatMoney(row.haber, "USD", 0)}</td>
                   <td className={`px-4 py-3 text-right font-semibold ${row.neto >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-                    {formatMoney(row.neto, "COP", 0)}
+                    {formatMoney(row.neto, "USD", 0)}
                   </td>
                 </tr>
               ))}

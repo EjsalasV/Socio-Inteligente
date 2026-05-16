@@ -30,9 +30,9 @@ export default function MayorSummaryPanel({ summary, globalSummary = null, isLoa
         <p className="text-xs text-slate-500 mt-1">Los valores principales se calculan sobre el resultado filtrado.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Metric label="Debe (filtrado)" value={formatMoney(summary.total_debe, "COP", 0)} />
-        <Metric label="Haber (filtrado)" value={formatMoney(summary.total_haber, "COP", 0)} />
-        <Metric label="Neto (filtrado)" value={formatMoney(summary.total_neto, "COP", 0)} />
+        <Metric label="Debe (filtrado)" value={formatMoney(summary.total_debe, "USD", 0)} />
+        <Metric label="Haber (filtrado)" value={formatMoney(summary.total_haber, "USD", 0)} />
+        <Metric label="Neto (filtrado)" value={formatMoney(summary.total_neto, "USD", 0)} />
       </div>
       <div className="sovereign-card !p-4">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
@@ -56,7 +56,7 @@ export default function MayorSummaryPanel({ summary, globalSummary = null, isLoa
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-bold">Promedio</p>
-            <p className="mt-1 font-semibold text-slate-800">{formatMoney(summary.monto_promedio, "COP", 0)}</p>
+            <p className="mt-1 font-semibold text-slate-800">{formatMoney(summary.monto_promedio, "USD", 0)}</p>
           </div>
         </div>
         {globalSummary ? (

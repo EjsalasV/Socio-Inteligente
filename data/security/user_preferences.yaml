@@ -4,6 +4,10 @@ admin_legacy:
   tour_welcome_seen: false
   onboarding_ui:
     welcome_seen: true
-    dismissed: false
-    visited_modules_ui: []
+    dismissed: true
+    visited_modules_ui:
+    - perfil
+    - risk-engine
+    - trial-balance
+    - areas
   preferences_version: v1.2.1

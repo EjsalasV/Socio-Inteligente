@@ -1,6 +1,6 @@
 ---
 norma: NIIF_PYMES_SECCION_11
-titulo: Ttulo pendiente de normalizar
+titulo: Seccion 11 - Instrumentos financieros basicos
 tipo: NIIF_PYMES
 seccion: 11
 version: 2015
@@ -17,6 +17,7 @@ etapas:
 - planificacion
 - ejecucion
 - cierre
+contenido_completo: true
 ---
 
 ---

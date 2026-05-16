@@ -1,6 +1,6 @@
 ---
 norma: NIC 16
-titulo: Ttulo pendiente de normalizar
+titulo: Seccion 17 - Propiedades, planta y equipo
 tipo: NIIF_COMPLETA
 version: vigente
 vigente_desde: 2023-01-01
@@ -16,6 +16,7 @@ etapas:
 - planificacion
 - ejecucion
 - cierre
+contenido_completo: true
 ---
 
 ﻿# Secci3n 17 " Propiedades, Planta y Equipo (NIIF para PYMES)

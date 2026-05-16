@@ -1,11 +1,12 @@
 ---
 norma: NORMA_DESCONOCIDA
-titulo: Ttulo pendiente de normalizar
+titulo: Supercias - Cumplimiento societario y reportes
 tipo: DESCONOCIDO
 version: vigente
 activo: true
 ultima_actualizacion: 2024-01-01
 referencias_cruzadas: []
+contenido_completo: true
 ---
 
 ﻿# Superintendencia de Compaas, Valores y Seguros " Ecuador

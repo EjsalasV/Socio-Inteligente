@@ -8,7 +8,7 @@ vigente_desde: 2017-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_pymes
@@ -20,21 +20,25 @@ etapas:
 - cierre
 ---
 
-# Seccion 2 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# Seccion 2 - Conceptos y principios generales
 
 ## Objetivo
-[Pendiente]
+Establecer fundamentos de reconocimiento, medici?n y presentaci?n para elaboraci?n de EEFF bajo NIIF para PYMES.
 
 ## Requerimientos Principales
-[Pendiente]
+- Reconocer partidas cuando cumplan definici?n y criterios de reconocimiento.
+- Medir de forma fiable y consistente con pol?tica contable.
+- Priorizar representaci?n fiel, relevancia y comparabilidad.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Revisar pol?ticas contables base y su aplicaci?n real.
+- Probar consistencia entre pol?tica y registro en libros.
+- Evaluar juicios cr?ticos en estimaciones.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Pol?ticas copiadas de plantillas sin ajuste al negocio.
+- Inconsistencia entre criterio contable y tratamiento fiscal.
 
 ## Referencias Cruzadas
-[Pendiente]
+- Secci?n 10
+- Secci?n 35

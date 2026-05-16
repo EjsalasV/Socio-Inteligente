@@ -37,6 +37,8 @@ def _catalog_signature() -> str:
         return "missing"
     parts: list[str] = []
     for path in sorted(KNOWLEDGE_ROOT.rglob("*.md")):
+        if "_backup" in path.parts:
+            continue
         try:
             stat = path.stat()
             parts.append(f"{path.as_posix()}:{int(stat.st_mtime_ns)}:{int(stat.st_size)}")
@@ -279,6 +281,8 @@ def list_normative_catalog() -> list[dict[str, Any]]:
     entries_by_code: dict[str, dict[str, Any]] = {}
     if KNOWLEDGE_ROOT.exists():
         for path in sorted(KNOWLEDGE_ROOT.rglob("*.md")):
+            if "_backup" in path.parts:
+                continue
             try:
                 raw = path.read_text(encoding="utf-8")
             except Exception:
@@ -302,4 +306,3 @@ def list_normative_catalog() -> list[dict[str, Any]]:
     _CACHE["signature"] = signature
     _CACHE["entries"] = entries
     return entries
-

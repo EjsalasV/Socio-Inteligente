@@ -1,6 +1,6 @@
 ---
 norma: NIIF_PYMES_SECCION_3
-titulo: Seccion 3 - Presentación de estados financieros
+titulo: Seccion 3 - Presentacion de estados financieros
 tipo: NIIF_PYMES
 seccion: 3
 version: 2015
@@ -8,7 +8,7 @@ vigente_desde: 2017-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_pymes
@@ -20,21 +20,25 @@ etapas:
 - cierre
 ---
 
-# Seccion 3 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# Seccion 3 - Presentacion de estados financieros
 
 ## Objetivo
-[Pendiente]
+Definir requerimientos generales de presentaci?n razonable y estructura de EEFF.
 
 ## Requerimientos Principales
-[Pendiente]
+- Presentar juego completo de estados financieros.
+- Mantener comparabilidad entre periodos.
+- Revelar adecuadamente pol?ticas y juicios significativos.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Checklist de presentaci?n y revelaci?n m?nima.
+- Revisi?n de notas y consistencia entre estados.
+- Validaci?n de reclasificaciones del periodo.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Notas insuficientes en contingencias y partes relacionadas.
+- Presentaci?n inadecuada de resultados integrales.
 
 ## Referencias Cruzadas
-[Pendiente]
+- Secci?n 8
+- Secci?n 35

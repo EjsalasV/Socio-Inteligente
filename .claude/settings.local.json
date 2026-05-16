@@ -23,7 +23,11 @@
       "Bash(npx next:*)",
       "Bash(python -c ':*)",
       "Bash(ls -1 data/conocimiento_normativo/*/)",
-      "Bash(python -m compileall backend)"
+      "Bash(python -m compileall backend)",
+      "Bash(python -m pip list)",
+      "Bash(python -m pytest tests/ -v --tb=short)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: update normative knowledge base and align currency to USD in ledger *)"
     ]
   }
 }

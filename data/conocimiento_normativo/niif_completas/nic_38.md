@@ -7,7 +7,7 @@ vigente_desde: 2023-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_completas
@@ -19,21 +19,25 @@ etapas:
 - cierre
 ---
 
-# NIC 38 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# NIC 38 - Activos intangibles
 
 ## Objetivo
-[Pendiente]
+Regular reconocimiento, medici?n, amortizaci?n y deterioro de activos intangibles.
 
 ## Requerimientos Principales
-[Pendiente]
+- Reconocer intangibles identificables, controlados y con beneficios futuros.
+- Distinguir investigaci?n (gasto) de desarrollo capitalizable cuando aplique.
+- Amortizar vida ?til finita y evaluar deterioro.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Revisar contratos, licencias, software y soportes de adquisici?n.
+- Verificar criterios de capitalizaci?n y amortizaci?n.
+- Evaluar deterioro o vida ?til indefinida.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Gastos operativos capitalizados como software o marca.
+- Vida ?til indefinida sin evaluaci?n anual de deterioro.
 
 ## Referencias Cruzadas
-[Pendiente]
+- NIC 36
+- NIIF PYMES Secci?n 18

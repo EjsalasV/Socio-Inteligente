@@ -1,13 +1,13 @@
 ---
 norma: NIC 40
-titulo: NIC 40 - Propiedades de inversión
+titulo: NIC 40 - Propiedades de inversion
 tipo: NIIF_COMPLETA
 version: vigente
 vigente_desde: 2023-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_completas
@@ -19,21 +19,25 @@ etapas:
 - cierre
 ---
 
-# NIC 40 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# NIC 40 - Propiedades de inversion
 
 ## Objetivo
-[Pendiente]
+Regular reconocimiento, medici?n y revelaci?n de propiedades mantenidas para renta o plusval?a.
 
 ## Requerimientos Principales
-[Pendiente]
+- Clasificar propiedades seg?n uso real.
+- Elegir modelo de costo o valor razonable seg?n pol?tica aplicable.
+- Revelar criterios y movimientos relevantes.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Confirmar uso de inmuebles y contratos de arrendamiento.
+- Revisar valuaciones o costos y depreciaci?n.
+- Validar reclasificaciones entre PPE e inversi?n inmobiliaria.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Inmuebles operativos clasificados como inversi?n para mejorar indicadores.
+- Valor razonable sin aval?o o soporte suficiente.
 
 ## Referencias Cruzadas
-[Pendiente]
+- NIC 16
+- NIIF 13

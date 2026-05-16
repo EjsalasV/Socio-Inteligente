@@ -1,6 +1,6 @@
 ---
 norma: NIIF_PYMES_SECCION_35
-titulo: Ttulo pendiente de normalizar
+titulo: Seccion 35 - Transicion a la NIIF para PYMES
 tipo: NIIF_PYMES
 seccion: 35
 version: 2015
@@ -17,6 +17,7 @@ etapas:
 - planificacion
 - ejecucion
 - cierre
+contenido_completo: true
 ---
 
 ﻿# Secci3n 35 " Transici3n a la NIIF para las PYMES

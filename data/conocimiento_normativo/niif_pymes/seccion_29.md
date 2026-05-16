@@ -1,6 +1,6 @@
 ---
 norma: NIIF 16
-titulo: Ttulo pendiente de normalizar
+titulo: Seccion 29 - Impuesto a las ganancias
 tipo: NIIF_COMPLETA
 version: vigente
 vigente_desde: 2023-01-01
@@ -16,6 +16,7 @@ etapas:
 - planificacion
 - ejecucion
 - cierre
+contenido_completo: true
 ---
 
 ﻿# Secci3n 29 " Impuesto a las Ganancias (NIIF para PYMES)

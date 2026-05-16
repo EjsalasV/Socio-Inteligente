@@ -7,7 +7,7 @@ vigente_desde: 2023-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_completas
@@ -19,21 +19,25 @@ etapas:
 - cierre
 ---
 
-# NIIF 2 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# NIIF 2 - Pagos basados en acciones
 
 ## Objetivo
-[Pendiente]
+Regular reconocimiento y medici?n de transacciones basadas en acciones con empleados o terceros.
 
 ## Requerimientos Principales
-[Pendiente]
+- Reconocer bienes/servicios recibidos y contraprestaci?n patrimonial o pasivo.
+- Medir valor razonable de instrumentos concedidos.
+- Reconocer gasto durante periodo de consolidaci?n del derecho.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Revisar planes de compensaci?n y condiciones de vesting.
+- Validar modelos de valoraci?n y supuestos.
+- Recalcular gasto reconocido.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Planes informales sin documentaci?n societaria.
+- Supuestos de valoraci?n no observables sin soporte.
 
 ## Referencias Cruzadas
-[Pendiente]
+- NIIF 13
+- NIC 19

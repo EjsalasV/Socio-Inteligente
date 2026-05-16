@@ -8,7 +8,7 @@ vigente_desde: 2017-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_pymes
@@ -20,21 +20,25 @@ etapas:
 - cierre
 ---
 
-# Seccion 8 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# Seccion 8 - Notas a los estados financieros
 
 ## Objetivo
-[Pendiente]
+Establecer contenido m?nimo de notas para explicar pol?ticas, juicios y detalles relevantes de EEFF.
 
 ## Requerimientos Principales
-[Pendiente]
+- Incluir base de preparaci?n y pol?ticas contables significativas.
+- Revelar estimaciones y juicios cr?ticos.
+- Proveer desagregaciones y contingencias relevantes.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Checklist de revelaciones por rubro material.
+- Contraste entre notas y saldos de estados principales.
+- Revisi?n de coherencia narrativa y num?rica.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Notas gen?ricas sin informaci?n espec?fica del cliente.
+- Omisi?n de contingencias tributarias/laborales.
 
 ## Referencias Cruzadas
-[Pendiente]
+- Secci?n 3
+- NIC 1

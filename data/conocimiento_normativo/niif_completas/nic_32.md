@@ -1,13 +1,13 @@
 ---
 norma: NIC 32
-titulo: NIC 32 - Instrumentos financieros presentación
+titulo: NIC 32 - Instrumentos financieros: presentacion
 tipo: NIIF_COMPLETA
 version: vigente
 vigente_desde: 2023-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_completas
@@ -19,21 +19,25 @@ etapas:
 - cierre
 ---
 
-# NIC 32 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# NIC 32 - Instrumentos financieros: presentacion
 
 ## Objetivo
-[Pendiente]
+Definir presentaci?n de instrumentos financieros como pasivo o patrimonio y reglas de compensaci?n.
 
 ## Requerimientos Principales
-[Pendiente]
+- Clasificar instrumentos seg?n sustancia contractual.
+- Separar componentes de pasivo y patrimonio cuando aplique.
+- Compensar activos y pasivos financieros solo si se cumplen criterios estrictos.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Revisar contratos de deuda, acciones preferentes y derivados.
+- Validar clasificaci?n contable vs sustancia econ?mica.
+- Probar compensaciones de saldos financieros.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Pr?stamos de socios presentados como patrimonio sin soporte.
+- Compensaciones de cuentas bancarias o financieras sin derecho legal.
 
 ## Referencias Cruzadas
-[Pendiente]
+- NIIF 7
+- NIIF 9

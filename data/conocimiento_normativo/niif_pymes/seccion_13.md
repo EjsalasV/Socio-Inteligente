@@ -1,6 +1,6 @@
 ---
 norma: NIIF_PYMES_SECCION_13
-titulo: Ttulo pendiente de normalizar
+titulo: Seccion 13 - Inventarios
 tipo: NIIF_PYMES
 seccion: 13
 version: 2015
@@ -17,6 +17,7 @@ etapas:
 - planificacion
 - ejecucion
 - cierre
+contenido_completo: true
 ---
 
 ---

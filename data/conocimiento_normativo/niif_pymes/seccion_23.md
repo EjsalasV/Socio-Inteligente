@@ -1,6 +1,6 @@
 ---
 norma: NIIF_PYMES_SECCION_23
-titulo: Ttulo pendiente de normalizar
+titulo: Seccion 23 - Ingresos de actividades ordinarias
 tipo: NIIF_PYMES
 seccion: 23
 version: 2015
@@ -17,6 +17,7 @@ etapas:
 - planificacion
 - ejecucion
 - cierre
+contenido_completo: true
 ---
 
 ﻿# Secci3n 23 " Ingresos de Actividades Ordinarias (NIIF para PYMES)

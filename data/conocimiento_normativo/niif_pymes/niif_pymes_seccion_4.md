@@ -1,6 +1,6 @@
 ---
 norma: NIIF_PYMES_SECCION_4
-titulo: Seccion 4 - Estado de situación financiera
+titulo: Seccion 4 - Estado de situacion financiera
 tipo: NIIF_PYMES
 seccion: 4
 version: 2015
@@ -8,7 +8,7 @@ vigente_desde: 2017-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_pymes
@@ -20,21 +20,25 @@ etapas:
 - cierre
 ---
 
-# Seccion 4 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# Seccion 4 - Estado de situacion financiera
 
 ## Objetivo
-[Pendiente]
+Regular contenido y clasificaci?n del estado de situaci?n financiera.
 
 ## Requerimientos Principales
-[Pendiente]
+- Clasificar activos/pasivos corrientes y no corrientes.
+- Presentar partidas materiales separadamente.
+- Evitar compensaciones improcedentes.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Probar clasificaci?n de deuda y provisiones.
+- Validar corte contable de activos/pasivos.
+- Revisar revelaciones de partidas significativas.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Deuda de corto plazo presentada como largo plazo sin sustento.
+- Compensaci?n entre cuentas por cobrar y pagar no permitida.
 
 ## Referencias Cruzadas
-[Pendiente]
+- Secci?n 3
+- Secci?n 11

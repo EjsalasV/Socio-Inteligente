@@ -1,6 +1,6 @@
 ---
 norma: NIIF_PYMES_SECCION_5
-titulo: Seccion 5 - Estado de resultado integral
+titulo: Seccion 5 - Estado del resultado integral y estado de resultados
 tipo: NIIF_PYMES
 seccion: 5
 version: 2015
@@ -8,7 +8,7 @@ vigente_desde: 2017-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_pymes
@@ -20,21 +20,25 @@ etapas:
 - cierre
 ---
 
-# Seccion 5 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# Seccion 5 - Estado del resultado integral y estado de resultados
 
 ## Objetivo
-[Pendiente]
+Definir presentaci?n del rendimiento financiero del periodo.
 
 ## Requerimientos Principales
-[Pendiente]
+- Presentar ingresos y gastos por naturaleza o funci?n.
+- Mostrar resultado integral cuando aplique.
+- Mantener consistencia de formato entre periodos.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Analizar variaciones de margen y gastos relevantes.
+- Validar reclasificaciones y partidas no recurrentes.
+- Revisar trazabilidad desde mayor a EEFF.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Reclasificar gastos para mejorar margen operativo.
+- Ingresos extraordinarios sin revelaci?n suficiente.
 
 ## Referencias Cruzadas
-[Pendiente]
+- Secci?n 23
+- Secci?n 29

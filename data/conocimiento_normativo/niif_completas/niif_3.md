@@ -7,7 +7,7 @@ vigente_desde: 2023-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_completas
@@ -19,21 +19,26 @@ etapas:
 - cierre
 ---
 
-# NIIF 3 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# NIIF 3 - Combinaciones de negocios
 
 ## Objetivo
-[Pendiente]
+Regular reconocimiento y medici?n de activos adquiridos, pasivos asumidos y plusval?a en combinaciones de negocios.
 
 ## Requerimientos Principales
-[Pendiente]
+- Identificar adquirente y fecha de adquisici?n.
+- Medir activos/pasivos identificables a valor razonable.
+- Reconocer plusval?a o ganancia por compra en t?rminos ventajosos.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Revisar contrato de adquisici?n y estructura de control.
+- Validar valoraci?n independiente y asignaci?n de precio.
+- Probar revelaciones de adquisici?n.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Activos intangibles no identificados separadamente.
+- Goodwill sin soporte de valoraci?n robusto.
 
 ## Referencias Cruzadas
-[Pendiente]
+- NIIF 10
+- NIIF 13
+- NIC 36

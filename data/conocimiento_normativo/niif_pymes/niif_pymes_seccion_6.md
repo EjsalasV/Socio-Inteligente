@@ -8,7 +8,7 @@ vigente_desde: 2017-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_pymes
@@ -20,21 +20,25 @@ etapas:
 - cierre
 ---
 
-# Seccion 6 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# Seccion 6 - Estado de cambios en el patrimonio
 
 ## Objetivo
-[Pendiente]
+Mostrar movimientos en patrimonio atribuibles a resultados, aportes, distribuciones y otros cambios.
 
 ## Requerimientos Principales
-[Pendiente]
+- Detallar conciliaci?n de saldos iniciales y finales por componente.
+- Separar movimientos de capital, reservas y utilidades.
+- Revelar restricciones y decisiones societarias relevantes.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Conciliar actas societarias con movimientos contables.
+- Verificar distribuci?n de dividendos y reservas.
+- Revisar ajustes de periodos anteriores.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Distribuci?n de utilidades sin respaldo de junta.
+- Reservas legales calculadas incorrectamente.
 
 ## Referencias Cruzadas
-[Pendiente]
+- Secci?n 3
+- NIC 1

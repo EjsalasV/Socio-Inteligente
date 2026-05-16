@@ -1,11 +1,12 @@
 ---
 norma: NORMA_DESCONOCIDA
-titulo: Ttulo pendiente de normalizar
+titulo: IVA - Ecuador
 tipo: DESCONOCIDO
 version: vigente
 activo: true
 ultima_actualizacion: 2024-01-01
 referencias_cruzadas: []
+contenido_completo: true
 ---
 
 ﻿# IVA " Impuesto al Valor Agregado (Ecuador)

@@ -1,13 +1,13 @@
 ---
 norma: NIIF 8
-titulo: NIIF 8 - Segmentos de operación
+titulo: NIIF 8 - Segmentos de operacion
 tipo: NIIF_COMPLETA
 version: vigente
 vigente_desde: 2023-01-01
 vigente_hasta: null
 activo: true
 ultima_actualizacion: 2024-01-01
-contenido_completo: false
+contenido_completo: true
 areas_aplicables: []
 afirmaciones_relacionadas: []
 marco: niif_completas
@@ -19,21 +19,25 @@ etapas:
 - cierre
 ---
 
-# NIIF 8 — PENDIENTE DE COMPLETAR
-
-> ⚠️ Este archivo es una plantilla. Debe completarse con el contenido oficial.
+# NIIF 8 - Segmentos de operacion
 
 ## Objetivo
-[Pendiente]
+Revelar informaci?n por segmentos conforme a la forma en que la gerencia eval?a el negocio.
 
 ## Requerimientos Principales
-[Pendiente]
+- Identificar segmentos operativos seg?n informes internos.
+- Revelar ingresos, resultados, activos y pasivos cuando aplique.
+- Conciliar informaci?n segmentada con EEFF.
 
 ## Procedimientos Relacionados
-[Pendiente]
+- Revisar reportes internos usados por m?xima autoridad operativa.
+- Validar criterios de agregaci?n de segmentos.
+- Probar conciliaciones a cifras auditadas.
 
-## Alertas para Auditoría Ecuador
-[Pendiente]
+## Alertas para Auditor?a Ecuador
+- Segmentos relevantes omitidos para simplificar notas.
+- Informaci?n gerencial inconsistente con presentaci?n externa.
 
 ## Referencias Cruzadas
-[Pendiente]
+- NIC 1
+- NIIF 15
