@@ -1,0 +1,111 @@
+{
+  "name": "Auto Documentation Generator",
+  "description": "Auditor registra acción → SocioAI genera documento técnico → Guarda en Google Drive automáticamente",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Escuchar cuando auditor registra una acción de auditoría",
+        "dataPropertyName": "audit_action"
+      },
+      "name": "Start - Webhook Audit Action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "claude-3-sonnet-20240229",
+        "jsonParameters": false,
+        "messages": {
+          "messageValues": [
+            {
+              "content": "=Eres generador de documentos de auditoría. Genera un memo técnico profesional en markdown.\n\nAcción registrada: {{ $node[\"Start - Webhook Audit Action\"].json.audit_action }}\nCliente: {{ $node[\"Start - Webhook Audit Action\"].json.client_name }}\nÁrea: {{ $node[\"Start - Webhook Audit Action\"].json.area }}\nResultado: {{ $node[\"Start - Webhook Audit Action\"].json.result }}\n\nGenera un documento que incluya:\n1. Título descriptivo\n2. Objetivo de la prueba\n3. Procedimiento realizado\n4. Resultado encontrado\n5. NIAs aplicables\n6. Conclusión\n\nFormato: Markdown puro, sin comillas adicionales"
+            }
+          ]
+        }
+      },
+      "name": "Claude - Generate Documentation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "mimeType": "text/plain",
+        "name": "={{ $node[\"Start - Webhook Audit Action\"].json.client_name }}_{{ $node[\"Start - Webhook Audit Action\"].json.area }}_{{ Date.now() }}.md",
+        "fileContent": "={{ $node[\"Claude - Generate Documentation\"].json.body }}"
+      },
+      "name": "Google Drive - Create File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "parentFolderId": "{{ $node[\"Start - Webhook Audit Action\"].json.drive_folder_id }}",
+        "operation": "move"
+      },
+      "name": "Google Drive - Move to Client Folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "to": "={{ $node[\"Start - Webhook Audit Action\"].json.auditor_email }}",
+        "subject": "✓ Documento de auditoría generado automáticamente",
+        "htmlMessage": "=<h2>Tu documentación ha sido generada</h2>\n<p><strong>Acción:</strong> {{ $node[\"Start - Webhook Audit Action\"].json.audit_action }}</p>\n<p><strong>Cliente:</strong> {{ $node[\"Start - Webhook Audit Action\"].json.client_name }}</p>\n<p><strong>Archivo:</strong> <a href=\"{{ $node[\"Google Drive - Create File\"].json.webViewLink }}\">Ver documento</a></p>\n<p>El documento está guardado en tu carpeta de cliente en Google Drive. Revísalo y ajusta si es necesario.</p>"
+      },
+      "name": "Send Email - Doc Generated",
+      "type": "n8n-nodes-base.sendGrid",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Start - Webhook Audit Action": {
+      "main": [
+        [
+          {
+            "node": "Claude - Generate Documentation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Generate Documentation": {
+      "main": [
+        [
+          {
+            "node": "Google Drive - Create File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive - Create File": {
+      "main": [
+        [
+          {
+            "node": "Google Drive - Move to Client Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive - Move to Client Folder": {
+      "main": [
+        [
+          {
+            "node": "Send Email - Doc Generated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

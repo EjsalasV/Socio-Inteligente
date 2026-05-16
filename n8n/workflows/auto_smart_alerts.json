@@ -1,0 +1,111 @@
+{
+  "name": "Smart Alerts System",
+  "description": "Analiza datos de auditoría y envía alertas inteligentes a Slack cuando detecta problemas",
+  "nodes": [
+    {
+      "parameters": {
+        "interval": [1440],
+        "trigger": "daily"
+      },
+      "name": "Trigger - Daily Check",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/api/auditorias/pendientes",
+        "method": "GET",
+        "authentication": "bearerAuth",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "name": "SocioAI API - Get Pending Audits",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "dataPropertyName": "audits"
+      },
+      "name": "Loop - Each Audit",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "model": "claude-3-sonnet-20240229",
+        "jsonParameters": false,
+        "messages": {
+          "messageValues": [
+            {
+              "content": "=Analiza este balance de auditoría y detecta SOLO los problemas más importantes. Responde SOLO JSON:\n{\n  \"alert_level\": \"🚨 CRÍTICO\" / \"🟡 ADVERTENCIA\" / \"ℹ️ INFO\",\n  \"title\": \"Título breve del problema\",\n  \"description\": \"Descripción de 1-2 líneas\",\n  \"action\": \"Acción recomendada\",\n  \"nia_applicable\": \"NIA xxx\"\n}\n\nBalance:\n{{ JSON.stringify($node[\"Loop - Each Audit\"].json.current_item) }}"
+            }
+          ]
+        }
+      },
+      "name": "Claude - Analyze for Alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#auditorias",
+        "text": "={{ JSON.parse($node[\"Claude - Analyze for Alerts\"].json.body).alert_level + \" \" + JSON.parse($node[\"Claude - Analyze for Alerts\"].json.body).title }}",
+        "blocks": "=[\n  {\n    \"type\": \"section\",\n    \"text\": {\n      \"type\": \"mrkdwn\",\n      \"text\": \"*{{ JSON.parse($node[\"Claude - Analyze for Alerts\"].json.body).alert_level }} {{ JSON.parse($node[\"Claude - Analyze for Alerts\"].json.body).title }}*\\n{{ JSON.parse($node[\"Claude - Analyze for Alerts\"].json.body).description }}\"\n    }\n  },\n  {\n    \"type\": \"section\",\n    \"fields\": [\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Cliente:*\\n{{ $node[\"Loop - Each Audit\"].json.current_item.cliente_nombre }}\"\n      },\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*NIA Aplicable:*\\n{{ JSON.parse($node[\"Claude - Analyze for Alerts\"].json.body).nia_applicable }}\"\n      }\n    ]\n  },\n  {\n    \"type\": \"section\",\n    \"text\": {\n      \"type\": \"mrkdwn\",\n      \"text\": \"*Acción Recomendada:*\\n{{ JSON.parse($node[\"Claude - Analyze for Alerts\"].json.body).action }}\"\n    }\n  },\n  {\n    \"type\": \"actions\",\n    \"elements\": [\n      {\n        \"type\": \"button\",\n        \"text\": {\n          \"type\": \"plain_text\",\n          \"text\": \"Ver en SocioAI\"\n        },\n        \"url\": \"http://localhost:3000/auditorias/{{ $node[\"Loop - Each Audit\"].json.current_item.audit_id }}\"\n      }\n    ]\n  }\n]"
+      },
+      "name": "Slack - Send Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Trigger - Daily Check": {
+      "main": [
+        [
+          {
+            "node": "SocioAI API - Get Pending Audits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SocioAI API - Get Pending Audits": {
+      "main": [
+        [
+          {
+            "node": "Loop - Each Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop - Each Audit": {
+      "main": [
+        [
+          {
+            "node": "Claude - Analyze for Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Analyze for Alerts": {
+      "main": [
+        [
+          {
+            "node": "Slack - Send Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

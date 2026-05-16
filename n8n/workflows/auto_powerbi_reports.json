@@ -1,0 +1,95 @@
+{
+  "name": "Auto Power BI Reports",
+  "description": "Cada vez que se calcula materialidad → Auto-envía reporte ejecutivo a Power BI",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Escuchar cuando se calcula materialidad en SocioAI",
+        "dataPropertyName": "materialidad_data"
+      },
+      "name": "Start - Webhook Materialidad",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.powerbi.com/v1.0/myorg/datasets/{{ $env.POWERBI_DATASET_ID }}/rows?$format=json",
+        "method": "POST",
+        "authentication": "oAuth2",
+        "sendHeaders": true,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": "={\n  \"rows\": [\n    {\n      \"fecha\": \"{{ new Date().toISOString() }}\",\n      \"cliente\": \"{{ $node[\"Start - Webhook Materialidad\"].json.client_name }}\",\n      \"materialidad_global\": {{ $node[\"Start - Webhook Materialidad\"].json.materialidad_global }},\n      \"ingresos\": {{ $node[\"Start - Webhook Materialidad\"].json.ingresos }},\n      \"ganancias\": {{ $node[\"Start - Webhook Materialidad\"].json.ganancias }},\n      \"activos\": {{ $node[\"Start - Webhook Materialidad\"].json.activos }},\n      \"patrimonio\": {{ $node[\"Start - Webhook Materialidad\"].json.patrimonio }},\n      \"umbral_trivial\": {{ $node[\"Start - Webhook Materialidad\"].json.umbral_trivial }},\n      \"auditor\": \"{{ $node[\"Start - Webhook Materialidad\"].json.auditor_name }}\"\n    }\n  ]\n}"
+      },
+      "name": "Power BI - Insert Materialidad Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.powerbi.com/v1.0/myorg/datasets/{{ $env.POWERBI_RISKS_DATASET_ID }}/rows?$format=json",
+        "method": "POST",
+        "authentication": "oAuth2",
+        "body": "={\n  \"rows\": {{ JSON.stringify($node[\"Start - Webhook Materialidad\"].json.riesgos.map(r => ({\n    fecha: new Date().toISOString(),\n    cliente: $node[\"Start - Webhook Materialidad\"].json.client_name,\n    area: r.area,\n    riesgo_nivel: r.nivel,\n    descripcion: r.descripcion,\n    nia_aplicable: r.nia\n  }))) }}\n}"
+      },
+      "name": "Power BI - Insert Risks Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "to": "{{ $node[\"Start - Webhook Materialidad\"].json.client_email }}",
+        "subject": "Reporte de Auditoría - {{ $node[\"Start - Webhook Materialidad\"].json.client_name }}",
+        "htmlMessage": "=<h2>Reporte Ejecutivo de Auditoría</h2>\n<p><strong>Cliente:</strong> {{ $node[\"Start - Webhook Materialidad\"].json.client_name }}</p>\n<p><strong>Fecha:</strong> {{ new Date().toLocaleDateString('es-EC') }}</p>\n\n<h3>Materialidad</h3>\n<ul>\n  <li><strong>Materialidad Global:</strong> USD {{ ($node[\"Start - Webhook Materialidad\"].json.materialidad_global).toLocaleString() }}</li>\n  <li><strong>Umbral Trivial:</strong> USD {{ ($node[\"Start - Webhook Materialidad\"].json.umbral_trivial).toLocaleString() }}</li>\n</ul>\n\n<h3>Áreas de Riesgo</h3>\n<ul>\n{{ $node[\"Start - Webhook Materialidad\"].json.riesgos.map(r => `<li><strong>${r.area}</strong>: ${r.nivel} - ${r.descripcion}</li>`).join('') }}\n</ul>\n\n<p><a href=\"https://app.powerbi.com/groups/me/reports/{{ $env.POWERBI_REPORT_ID }}\">Ver reporte completo en Power BI</a></p>"
+      },
+      "name": "Send Email - Executive Report",
+      "type": "n8n-nodes-base.sendGrid",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Start - Webhook Materialidad": {
+      "main": [
+        [
+          {
+            "node": "Power BI - Insert Materialidad Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Power BI - Insert Risks Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Power BI - Insert Materialidad Data": {
+      "main": [
+        [
+          {
+            "node": "Send Email - Executive Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Power BI - Insert Risks Data": {
+      "main": [
+        [
+          {
+            "node": "Send Email - Executive Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

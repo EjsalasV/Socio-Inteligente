@@ -1,0 +1,139 @@
+{
+  "name": "Auto Schedule Meetings",
+  "description": "Cuando auditor dice 'necesito reunión con CFO', automáticamente crea evento en Google Calendar",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Escuchar mensaje del auditor que indique necesidad de reunión",
+        "dataPropertyName": "message"
+      },
+      "name": "Start - Webhook from SocioAI",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "claude-3-sonnet-20240229",
+        "jsonParameters": false,
+        "messages": {
+          "messageValues": [
+            {
+              "content": "=Eres un asistente que detecta si el usuario necesita agendar una reunión. Responde SOLO JSON:\n{\n  \"needs_meeting\": true/false,\n  \"with_person\": \"nombre (si lo dice)\",\n  \"topic\": \"tema de reunión\",\n  \"urgency\": \"high/medium/low\"\n}\n\nMensaje del auditor: {{ $node[\"Start - Webhook from SocioAI\"].json.message }}"
+            }
+          ]
+        }
+      },
+      "name": "Claude - Detect Meeting Need",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ JSON.parse($node[\"Claude - Detect Meeting Need\"].json.body).needs_meeting }}",
+              "operation": "contains",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "name": "IF - Needs Meeting",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "calendarId": "primary",
+        "title": "={{ JSON.parse($node[\"Claude - Detect Meeting Need\"].json.body).topic }}",
+        "description": "=Meeting with {{ JSON.parse($node[\"Claude - Detect Meeting Need\"].json.body).with_person }}\n\nContext: Audit preparation\nAuditor: {{ $node[\"Start - Webhook from SocioAI\"].json.auditor_name }}\n\nDocuments needed:\n- Trial balance\n- Prior audit findings\n- Client profile",
+        "start": "={{ new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() }}",
+        "duration": 60,
+        "timeZone": "America/Guayaquil"
+      },
+      "name": "Google Calendar - Create Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "to": "={{ $node[\"Start - Webhook from SocioAI\"].json.auditor_email }}",
+        "subject": "✓ Reunión agendada automáticamente",
+        "htmlMessage": "=<h2>Tu reunión ha sido agendada</h2>\n<p><strong>Tema:</strong> {{ JSON.parse($node[\"Claude - Detect Meeting Need\"].json.body).topic }}</p>\n<p><strong>Con:</strong> {{ JSON.parse($node[\"Claude - Detect Meeting Need\"].json.body).with_person }}</p>\n<p><strong>Fecha:</strong> {{ new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toLocaleDateString('es-EC') }}</p>\n<p><strong>Enlace:</strong> <a href=\"{{ $node[\"Google Calendar - Create Event\"].json.htmlLink }}\">Ver en calendario</a></p>\n<p>SocioAI ha detectado que necesitabas agendar esta reunión y la ha programado automáticamente.</p>"
+      },
+      "name": "Send Email - Confirmation",
+      "type": "n8n-nodes-base.sendGrid",
+      "typeVersion": 1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "append",
+        "docId": "1234567890abcdef",
+        "sheetId": 0,
+        "values": "={{ $node[\"Start - Webhook from SocioAI\"].json.auditor_name }},{{ JSON.parse($node[\"Claude - Detect Meeting Need\"].json.body).topic }},{{ $node[\"Google Calendar - Create Event\"].json.start }},AGENDADA"
+      },
+      "name": "Google Sheets - Log Meeting",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Start - Webhook from SocioAI": {
+      "main": [
+        [
+          {
+            "node": "Claude - Detect Meeting Need",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Detect Meeting Need": {
+      "main": [
+        [
+          {
+            "node": "IF - Needs Meeting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Needs Meeting": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar - Create Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Sheets - Log Meeting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar - Create Event": {
+      "main": [
+        [
+          {
+            "node": "Send Email - Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
