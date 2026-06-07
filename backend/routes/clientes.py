@@ -10,7 +10,7 @@ from sqlalchemy import func
 from backend.auth import get_current_user
 from backend.models.client import Client
 from backend.models.audit import Audit
-from backend.schemas import UserContext, ApiResponse, ClienteCreateRequest
+from backend.schemas import UserContext, ApiResponse, ClienteCreateRequest, ClienteUpdateRequest
 from backend.utils.database import get_session
 from backend.utils.api_errors import raise_api_error
 
@@ -138,6 +138,57 @@ async def crear_cliente(
         raise_api_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="ERROR_CREATING_CLIENT",
+            message=str(e),
+        )
+
+
+@router.patch("/{cliente_id}", response_model=ApiResponse)
+async def actualizar_cliente(
+    cliente_id: str,
+    body: ClienteUpdateRequest,
+    user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
+) -> ApiResponse:
+    """
+    Actualiza metadatos base del cliente para onboarding y configuración.
+    """
+    try:
+        if user.role.lower() not in {"admin", "manager", "socio"}:
+            raise_api_error(
+                status_code=status.HTTP_403_FORBIDDEN,
+                code="INSUFFICIENT_ROLE",
+                message="Solo perfiles administradores pueden actualizar clientes.",
+            )
+
+        cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
+        if not cliente:
+            raise_api_error(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="CLIENT_NOT_FOUND",
+                message=f"Cliente {cliente_id} no encontrado",
+            )
+
+        if body.nombre is not None:
+            cliente.nombre = body.nombre.strip() or cliente.nombre
+        if body.sector is not None:
+            cliente.sector = body.sector.strip() or None
+        if body.tipo_entidad is not None:
+            cliente.tipo_entidad = body.tipo_entidad.strip().upper() or None
+        if body.tamano is not None:
+            cliente.tamano = body.tamano.strip() or None
+        if body.normativa is not None:
+            cliente.normativa = body.normativa.strip() or "NIIF"
+
+        session.commit()
+        session.refresh(cliente)
+        return ApiResponse(data=cliente.to_dict())
+    except Exception as e:
+        session.rollback()
+        if hasattr(e, "status_code"):
+            raise
+        raise_api_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="ERROR_UPDATING_CLIENT",
             message=str(e),
         )
 

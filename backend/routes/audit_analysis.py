@@ -19,6 +19,7 @@ from backend.services.intelligent_analyzer_service import (
     get_audit_procedures_for_hallazgo,
 )
 from backend.services.analysis_history_service import AnalysisHistoryService
+from backend.services.client_configuration_service import get_cliente_configuration_snapshot
 from backend.repositories.identity_repository import store as identity_store
 from backend.utils.database import get_session
 
@@ -67,11 +68,15 @@ def analyze_client_audit(
         except Exception:
             learning_role = "semi"
 
+        config_snapshot = get_cliente_configuration_snapshot(cliente_id, session=session) or {}
+
         # Datos para análisis
         financial_data = {
-            "sector": request.sector,
-            "tamaño": request.tamaño,
-            "marco_referencial": request.marco_referencial,
+            "sector": request.sector or config_snapshot.get("sector"),
+            "tamaño": request.tamaño or config_snapshot.get("tamano"),
+            "marco_referencial": request.marco_referencial or config_snapshot.get("normativa"),
+            "tipo_entidad": config_snapshot.get("tipo_entidad"),
+            "configuracion_industria": config_snapshot.get("respuestas", {}),
             "balance_trial": request.balance_trial,
             "income_statement": request.income_statement or {},
             "additional_data": request.additional_data or {},

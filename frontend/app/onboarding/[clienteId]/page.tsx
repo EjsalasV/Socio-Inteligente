@@ -4,6 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { hasSessionState, logoutSession } from "../../../lib/auth-session";
+import { updateCliente } from "../../../lib/api/clientes";
+import {
+  getClienteConfiguracion,
+  getPreguntasDinamicas,
+  getTiposEntidad,
+  saveClienteConfiguracion,
+  type PreguntaDinamica,
+  type TipoEntidadOption,
+} from "../../../lib/api/configuracion";
 import { getPerfil, savePerfil } from "../../../lib/api/perfil";
 import { authFetchJson } from "../../../lib/api";
 import { useAppState } from "../../../components/providers/AppStateProvider";
@@ -44,6 +53,10 @@ function toBool(value: unknown): boolean {
   return value === true;
 }
 
+function toStringValue(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
 export default function OnboardingClientePage() {
   const router = useRouter();
   const { resetClientState } = useAppState();
@@ -57,15 +70,21 @@ export default function OnboardingClientePage() {
 
   const [nombreLegal, setNombreLegal] = useState("");
   const [sector, setSector] = useState("Holding");
+  const [tipoEntidad, setTipoEntidad] = useState("HOLDING");
+  const [tamano, setTamano] = useState("Mediana");
   const [pais, setPais] = useState("Ecuador");
   const [fiscalYear, setFiscalYear] = useState("2025");
   const [marco, setMarco] = useState("NIIF para PYMES");
+  const [normativaCliente, setNormativaCliente] = useState("NIIF");
   const [norma, setNorma] = useState("NIAs");
   const [faseAuditoria, setFaseAuditoria] = useState("planificacion");
   const [tbFile, setTbFile] = useState("");
   const [mayorFile, setMayorFile] = useState("");
   const [tbSelectedFile, setTbSelectedFile] = useState<File | null>(null);
   const [mayorSelectedFile, setMayorSelectedFile] = useState<File | null>(null);
+  const [tiposEntidad, setTiposEntidad] = useState<TipoEntidadOption[]>([]);
+  const [preguntasDinamicas, setPreguntasDinamicas] = useState<PreguntaDinamica[]>([]);
+  const [respuestasDinamicas, setRespuestasDinamicas] = useState<Record<string, string>>({});
   const [qa, setQa] = useState<QaState>({
     nomina: false,
     inventarios: false,
@@ -97,7 +116,12 @@ export default function OnboardingClientePage() {
         return;
       }
       try {
-        const perfil = await getPerfil(clienteId);
+        const [perfil, clienteResponse, tipos, configuracion] = await Promise.all([
+          getPerfil(clienteId),
+          authFetchJson<{ data?: Record<string, unknown> }>(`/api/clientes/${clienteId}`),
+          getTiposEntidad(),
+          getClienteConfiguracion(clienteId),
+        ]);
         if (!active) return;
 
         const root = asRecord(perfil.perfil);
@@ -105,16 +129,26 @@ export default function OnboardingClientePage() {
         const encargo = asRecord(root.encargo);
         const cuestionario = asRecord(root.cuestionario_auditoria);
         const carga = asRecord(root.carga_archivos);
+        const clienteApi = asRecord(clienteResponse?.data);
 
-        setNombreLegal(typeof cliente.nombre_legal === "string" && cliente.nombre_legal.trim() ? cliente.nombre_legal : clienteId);
-        setSector(typeof cliente.sector === "string" && cliente.sector.trim() ? cliente.sector : "Holding");
+        setTiposEntidad(tipos);
+        setNombreLegal(typeof cliente.nombre_legal === "string" && cliente.nombre_legal.trim() ? cliente.nombre_legal : toStringValue(clienteApi.nombre, clienteId));
+        setSector(
+          typeof cliente.sector === "string" && cliente.sector.trim()
+            ? cliente.sector
+            : toStringValue(clienteApi.sector, "Holding"),
+        );
+        setTipoEntidad(configuracion?.tipo_entidad || toStringValue(clienteApi.tipo_entidad, tipos[0]?.tipo || "HOLDING"));
+        setTamano(toStringValue(clienteApi.tamano, "Mediana"));
         setPais(typeof cliente.pais === "string" && cliente.pais.trim() ? cliente.pais : "Ecuador");
         setFiscalYear(String(encargo.anio_activo ?? "2025"));
         setMarco(typeof encargo.marco_referencial === "string" && encargo.marco_referencial.trim() ? encargo.marco_referencial : "NIIF para PYMES");
+        setNormativaCliente(toStringValue(clienteApi.normativa, "NIIF"));
         setNorma(typeof encargo.norma_auditoria === "string" && encargo.norma_auditoria.trim() ? encargo.norma_auditoria : "NIAs");
         setFaseAuditoria(typeof encargo.fase_actual === "string" && encargo.fase_actual.trim() ? encargo.fase_actual : "planificacion");
         setTbFile(typeof carga.trial_balance_nombre === "string" ? carga.trial_balance_nombre : "");
         setMayorFile(typeof carga.libro_mayor_nombre === "string" ? carga.libro_mayor_nombre : "");
+        setRespuestasDinamicas(configuracion?.respuestas || {});
         setQa({
           nomina: toBool(cuestionario.nomina),
           inventarios: toBool(cuestionario.inventarios),
@@ -144,8 +178,43 @@ export default function OnboardingClientePage() {
     };
   }, [clienteId, router]);
 
+  useEffect(() => {
+    let active = true;
+    async function loadPreguntas(): Promise<void> {
+      if (!tipoEntidad.trim()) {
+        if (active) setPreguntasDinamicas([]);
+        return;
+      }
+      try {
+        const preguntas = await getPreguntasDinamicas(tipoEntidad);
+        if (!active) return;
+        setPreguntasDinamicas(preguntas);
+        setRespuestasDinamicas((prev) => {
+          const next = { ...prev };
+          for (const pregunta of preguntas) {
+            if (!next[pregunta.id] && pregunta.default) {
+              next[pregunta.id] = pregunta.default;
+            }
+          }
+          return next;
+        });
+      } catch {
+        if (active) setPreguntasDinamicas([]);
+      }
+    }
+
+    void loadPreguntas();
+    return () => {
+      active = false;
+    };
+  }, [tipoEntidad]);
+
   function updateQa(key: keyof QaState): void {
     setQa((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  function updateRespuestaDinamica(id: string, value: string): void {
+    setRespuestasDinamicas((prev) => ({ ...prev, [id]: value }));
   }
 
   async function handleSave(goToDashboard: boolean): Promise<void> {
@@ -155,7 +224,6 @@ export default function OnboardingClientePage() {
     setSaving(true);
 
     try {
-      // Upload files to backend if selected
       let trialBalanceNombre = tbFile;
       let libroMayorNombre = mayorFile;
 
@@ -164,7 +232,7 @@ export default function OnboardingClientePage() {
         formData.append("file", tbSelectedFile);
         const result = await authFetchJson<{ data: { original_name: string; stored_as: string } }>(
           `/api/trial-balance/${clienteId}/upload?kind=tb`,
-          { method: "POST", body: formData }
+          { method: "POST", body: formData },
         );
         trialBalanceNombre = result?.data?.original_name || tbSelectedFile.name;
       }
@@ -174,13 +242,28 @@ export default function OnboardingClientePage() {
         formData.append("file", mayorSelectedFile);
         const result = await authFetchJson<{ data: { original_name: string; stored_as: string } }>(
           `/api/trial-balance/${clienteId}/upload?kind=mayor`,
-          { method: "POST", body: formData }
+          { method: "POST", body: formData },
         );
         libroMayorNombre = result?.data?.original_name || mayorSelectedFile.name;
       }
 
       if (!trialBalanceNombre.trim()) {
         throw new Error("Debes seleccionar un archivo de Trial Balance para continuar.");
+      }
+
+      await updateCliente(clienteId, {
+        nombre: nombreLegal,
+        sector,
+        tipo_entidad: tipoEntidad,
+        tamano,
+        normativa: normativaCliente,
+      });
+
+      if (tipoEntidad.trim()) {
+        await saveClienteConfiguracion(clienteId, {
+          tipo_entidad: tipoEntidad,
+          respuestas: respuestasDinamicas,
+        });
       }
 
       const payload: PerfilPayload = {
@@ -194,8 +277,15 @@ export default function OnboardingClientePage() {
           marco_referencial: marco,
           norma_auditoria: norma,
           fase_actual: faseAuditoria,
+          tipo_entidad: tipoEntidad,
+          tamano,
+          normativa_cliente: normativaCliente,
         },
         cuestionario_auditoria: qa,
+        configuracion_industria: {
+          tipo_entidad: tipoEntidad,
+          respuestas: respuestasDinamicas,
+        },
         carga_archivos: {
           trial_balance_nombre: trialBalanceNombre,
           libro_mayor_nombre: libroMayorNombre,
@@ -232,15 +322,21 @@ export default function OnboardingClientePage() {
       pais.trim() &&
       fiscalYear.trim() &&
       marco.trim() &&
-      norma.trim(),
+      norma.trim() &&
+      tipoEntidad.trim() &&
+      tamano.trim() &&
+      normativaCliente.trim(),
   );
   const cuestionarioRespondido = Object.values(qa).some((value) => value === true);
+  const configuracionIndustriaRespondida =
+    preguntasDinamicas.length === 0 || preguntasDinamicas.every((pregunta) => String(respuestasDinamicas[pregunta.id] || "").trim().length > 0);
   const tbCargado = Boolean(tbFile.trim());
   const mayorCargado = Boolean(mayorFile.trim());
   const faseDefinida = ["planificacion", "ejecucion", "informe"].includes(faseAuditoria);
 
   const checklist = [
     { label: "Datos de cliente", ok: perfilCompleto },
+    { label: "Configuración de industria", ok: configuracionIndustriaRespondida },
     { label: "Cuestionario de auditoria", ok: cuestionarioRespondido },
     { label: "Trial Balance", ok: tbCargado },
     { label: "Libro Mayor", ok: mayorCargado },
@@ -296,6 +392,22 @@ export default function OnboardingClientePage() {
                   <input className="ghost-input" value={pais} onChange={(e) => setPais(e.target.value)} />
                 </label>
                 <label className="flex flex-col gap-2">
+                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Tipo de entidad</span>
+                  <select className="ghost-input" value={tipoEntidad} onChange={(e) => setTipoEntidad(e.target.value)}>
+                    {tiposEntidad.map((item) => (
+                      <option key={item.tipo} value={item.tipo}>{item.nombre}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Tamaño</span>
+                  <select className="ghost-input" value={tamano} onChange={(e) => setTamano(e.target.value)}>
+                    <option value="PyME">PyME</option>
+                    <option value="Mediana">Mediana</option>
+                    <option value="Grande">Grande</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-2">
                   <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Año fiscal</span>
                   <input className="ghost-input" value={fiscalYear} onChange={(e) => setFiscalYear(e.target.value)} />
                 </label>
@@ -305,6 +417,14 @@ export default function OnboardingClientePage() {
                     <option>NIIF para PYMES</option>
                     <option>NIIF Plenas</option>
                     <option>US GAAP</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Normativa cliente</span>
+                  <select className="ghost-input" value={normativaCliente} onChange={(e) => setNormativaCliente(e.target.value)}>
+                    <option value="NIIF">NIIF</option>
+                    <option value="NIIF PYMES">NIIF PYMES</option>
+                    <option value="USGAP">USGAP</option>
                   </select>
                 </label>
                 <label className="flex flex-col gap-2">
@@ -319,7 +439,41 @@ export default function OnboardingClientePage() {
             </div>
 
             <div className="sovereign-card">
-              <h2 className="font-headline text-3xl text-[#041627] mb-6">2. Preguntas clave de auditoría</h2>
+              <h2 className="font-headline text-3xl text-[#041627] mb-6">2. Configuración dinámica de industria</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {preguntasDinamicas.map((pregunta) => (
+                  <label key={pregunta.id} className={`flex flex-col gap-2 ${pregunta.tipo === "text" ? "md:col-span-2" : ""}`}>
+                    <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold flex items-center gap-2">
+                      {pregunta.texto}
+                      {pregunta.critica ? <span className="rounded-full bg-[#ffdad6] px-2 py-0.5 text-[10px] text-[#93000a]">Crítica</span> : null}
+                    </span>
+                    {pregunta.tipo === "select" ? (
+                      <select
+                        className="ghost-input"
+                        value={respuestasDinamicas[pregunta.id] || pregunta.default || ""}
+                        onChange={(e) => updateRespuestaDinamica(pregunta.id, e.target.value)}
+                      >
+                        <option value="">Selecciona una opción</option>
+                        {(pregunta.opciones || []).map((opcion) => (
+                          <option key={`${pregunta.id}-${opcion.valor}`} value={opcion.valor}>{opcion.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="ghost-input"
+                        value={respuestasDinamicas[pregunta.id] || ""}
+                        onChange={(e) => updateRespuestaDinamica(pregunta.id, e.target.value)}
+                        placeholder={pregunta.placeholder || pregunta.default || "Ingresa tu respuesta"}
+                      />
+                    )}
+                    {pregunta.ayuda ? <span className="text-xs text-slate-500">{pregunta.ayuda}</span> : null}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="sovereign-card">
+              <h2 className="font-headline text-3xl text-[#041627] mb-6">3. Preguntas clave de auditoría</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label className="md:col-span-2 flex flex-col gap-2 mb-2">
                   <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Fase actual de auditoría</span>
@@ -383,7 +537,7 @@ export default function OnboardingClientePage() {
             </div>
 
             <div className="sovereign-card">
-              <h2 className="font-headline text-3xl text-[#041627] mb-6">3. Carga de archivos base</h2>
+              <h2 className="font-headline text-3xl text-[#041627] mb-6">4. Carga de archivos base</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="rounded-xl border-2 border-dashed border-black/15 p-5 bg-[#f8fafc]">
                   <p className="text-sm font-semibold text-[#041627]">Trial Balance</p>
@@ -468,3 +622,4 @@ export default function OnboardingClientePage() {
     </div>
   );
 }
+

@@ -70,6 +70,14 @@ class ClienteCreateRequest(BaseModel):
     normativa: str = "NIIF"  # NIIF, NIIF PYMES, USGAP
 
 
+class ClienteUpdateRequest(BaseModel):
+    nombre: str | None = None
+    sector: str | None = None
+    tipo_entidad: str | None = None
+    tamano: str | None = None
+    normativa: str | None = None
+
+
 class ClienteProfile(BaseModel):
     cliente_id: str
     perfil: dict[str, Any]

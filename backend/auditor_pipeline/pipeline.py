@@ -59,7 +59,7 @@ def execute_pipeline(
             retrieve_context_chunks(cliente_id, query_for_rag, top_k=6)
         )
 
-    contexto_cliente = format_client_context(perfil, area, signals_python)
+    contexto_cliente = format_client_context(perfil, area, signals_python, cliente_id)
     rag_block = format_rag_chunks(normalized_chunks)
     user_prompt = build_user_prompt(
         modo=modo,

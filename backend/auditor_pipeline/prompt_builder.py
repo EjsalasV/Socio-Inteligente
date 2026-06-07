@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from backend.repositories.file_repository import read_area_yaml, read_perfil
+from backend.services.client_configuration_service import build_configuration_context, get_cliente_configuration_snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
 SYSTEM_PROMPT_PATH = ROOT / "backend" / "auditor_pipeline" / "system_prompt.txt"
@@ -36,6 +37,7 @@ def format_client_context(
     perfil: dict[str, Any],
     area: dict[str, Any],
     signals_python: dict[str, Any],
+    cliente_id: str = "",
 ) -> str:
     cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
     encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
@@ -65,6 +67,8 @@ def format_client_context(
             else None
         )
 
+    config_block = build_configuration_context(get_cliente_configuration_snapshot(cliente_id)) if cliente_id else "Configuracion de industria: no disponible."
+
     return (
         "CLIENTE ACTIVO:\n"
         f"  Nombre: {_safe_str(cliente.get('nombre_legal') or cliente.get('nombre_corto'))}\n"
@@ -72,6 +76,7 @@ def format_client_context(
         f"  Marco: {_safe_str(encargo.get('marco_referencial'))}\n"
         f"  Ano fiscal: {_safe_str(encargo.get('anio_activo'))}\n"
         f"  Riesgo global: {_safe_str(riesgo_global.get('nivel'), 'medio')}\n\n"
+        f"{config_block}\n\n"
         "AREA ACTIVA:\n"
         f"  Codigo: {_safe_str(area.get('codigo'))}\n"
         f"  Nombre: {_safe_str(area.get('nombre'))}\n"

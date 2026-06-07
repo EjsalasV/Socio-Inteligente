@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTour } from "../../components/tour/TourProvider";
 import { hasSessionState, logoutSession } from "../../lib/auth-session";
 import { createCliente, deleteCliente, getClientes, type ClienteOption } from "../../lib/api/clientes";
+import { getTiposEntidad, type TipoEntidadOption } from "../../lib/api/configuracion";
 import { useUserPreferences } from "../../components/providers/UserPreferencesProvider";
 import { SECTOR_OPTIONS } from "../../lib/sectorCatalog";
 
@@ -34,6 +35,10 @@ export default function ClientesPage() {
   const [nombre, setNombre] = useState("");
   const [sector, setSector] = useState("Holding");
   const [clienteIdManual, setClienteIdManual] = useState("");
+  const [tipoEntidad, setTipoEntidad] = useState("HOLDING");
+  const [tamano, setTamano] = useState("Mediana");
+  const [normativa, setNormativa] = useState("NIIF");
+  const [tiposEntidad, setTiposEntidad] = useState<TipoEntidadOption[]>([]);
   const showWelcomeClientes = !prefsLoading && !preferences.onboarding_ui.welcome_seen;
 
   useEffect(() => {
@@ -45,9 +50,10 @@ export default function ClientesPage() {
     let active = true;
     async function load(): Promise<void> {
       try {
-        const list = await getClientes();
+        const [list, tipos] = await Promise.all([getClientes(), getTiposEntidad()]);
         if (!active) return;
         setClientes(list);
+        setTiposEntidad(tipos);
       } catch (err) {
         if (!active) return;
         const message = err instanceof Error ? err.message : "No se pudo cargar la cartera de clientes.";
@@ -99,12 +105,18 @@ export default function ClientesPage() {
         cliente_id: rawId,
         nombre: cleanName,
         sector,
+        tipo_entidad: tipoEntidad,
+        tamano,
+        normativa,
       });
 
       setClientes((prev) => [created, ...prev.filter((x) => x.cliente_id !== created.cliente_id)]);
       setNombre("");
       setSector("Holding");
       setClienteIdManual("");
+      setTipoEntidad("HOLDING");
+      setTamano("Mediana");
+      setNormativa("NIIF");
       router.push(`/onboarding/${created.cliente_id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "No se pudo crear el cliente.";
@@ -311,6 +323,7 @@ export default function ClientesPage() {
                       <p className="font-headline text-2xl text-[#041627]">{cliente.nombre}</p>
                       <p className="text-xs uppercase tracking-[0.14em] text-slate-500 mt-1">
                         ID: {cliente.cliente_id} · Sector: {cliente.sector || "Sin sector"}
+                        {cliente.tipo_entidad ? ` · Tipo: ${cliente.tipo_entidad}` : ""}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -361,6 +374,35 @@ export default function ClientesPage() {
                   ))}
                 </select>
               </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Tipo de entidad</span>
+                <select className="ghost-input" value={tipoEntidad} onChange={(e) => setTipoEntidad(e.target.value)}>
+                  {tiposEntidad.map((item) => (
+                    <option key={item.tipo} value={item.tipo}>{item.nombre}</option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Tamaño</span>
+                  <select className="ghost-input" value={tamano} onChange={(e) => setTamano(e.target.value)}>
+                    <option value="PyME">PyME</option>
+                    <option value="Mediana">Mediana</option>
+                    <option value="Grande">Grande</option>
+                  </select>
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Normativa</span>
+                  <select className="ghost-input" value={normativa} onChange={(e) => setNormativa(e.target.value)}>
+                    <option value="NIIF">NIIF</option>
+                    <option value="NIIF PYMES">NIIF PYMES</option>
+                    <option value="USGAP">USGAP</option>
+                  </select>
+                </label>
+              </div>
 
               <button
                 type="submit"

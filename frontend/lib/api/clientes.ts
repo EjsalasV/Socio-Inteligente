@@ -5,6 +5,9 @@ export interface ClienteOption {
   cliente_id: string;
   nombre: string;
   sector: string | null;
+  tipo_entidad?: string | null;
+  tamano?: string | null;
+  normativa?: string | null;
 }
 
 export interface ClienteDocumento {
@@ -33,6 +36,9 @@ export interface CreateClienteInput {
   cliente_id: string;
   nombre: string;
   sector?: string | null;
+  tipo_entidad?: string | null;
+  tamano?: string | null;
+  normativa?: string | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -48,7 +54,10 @@ function asClienteOption(value: unknown): ClienteOption | null {
   if (!cliente_id) return null;
   const nombre = typeof value.nombre === "string" && value.nombre.trim() ? value.nombre : cliente_id;
   const sector = typeof value.sector === "string" && value.sector.trim() ? value.sector : null;
-  return { cliente_id, nombre, sector };
+  const tipo_entidad = typeof value.tipo_entidad === "string" && value.tipo_entidad.trim() ? value.tipo_entidad : null;
+  const tamano = typeof value.tamano === "string" && value.tamano.trim() ? value.tamano : null;
+  const normativa = typeof value.normativa === "string" && value.normativa.trim() ? value.normativa : null;
+  return { cliente_id, nombre, sector, tipo_entidad, tamano, normativa };
 }
 
 export async function getClientes(): Promise<ClienteOption[]> {
@@ -63,6 +72,9 @@ export async function createCliente(input: CreateClienteInput): Promise<ClienteO
     cliente_id: input.cliente_id.trim() || undefined,
     nombre: input.nombre.trim(),
     sector: input.sector?.trim() || null,
+    tipo_entidad: input.tipo_entidad?.trim() || null,
+    tamano: input.tamano?.trim() || null,
+    normativa: input.normativa?.trim() || "NIIF",
   };
   const response = await authFetchJson<ApiEnvelope<unknown>>("/api/clientes", {
     method: "POST",
@@ -71,6 +83,28 @@ export async function createCliente(input: CreateClienteInput): Promise<ClienteO
   const cliente = asClienteOption(response?.data);
   if (!cliente) {
     throw new Error("No se pudo crear el cliente.");
+  }
+  return cliente;
+}
+
+export async function updateCliente(
+  clienteId: string,
+  input: Partial<CreateClienteInput> & { nombre?: string },
+): Promise<ClienteOption> {
+  const payload = {
+    nombre: input.nombre?.trim() || undefined,
+    sector: input.sector?.trim() || null,
+    tipo_entidad: input.tipo_entidad?.trim() || null,
+    tamano: input.tamano?.trim() || null,
+    normativa: input.normativa?.trim() || null,
+  };
+  const response = await authFetchJson<ApiEnvelope<unknown>>(`/api/clientes/${clienteId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  const cliente = asClienteOption(response?.data);
+  if (!cliente) {
+    throw new Error("No se pudo actualizar el cliente.");
   }
   return cliente;
 }

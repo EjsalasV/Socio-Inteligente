@@ -33,9 +33,20 @@ def _format_financial_data_for_analysis(data: dict[str, Any]) -> str:
     else:
         balance_summary = balance
 
+    config = data.get("configuracion_industria", {})
+    if isinstance(config, dict) and config:
+        config_lines = "\n".join([f"- {k}: {v}" for k, v in config.items()])
+    else:
+        config_lines = "- No industry-specific answers configured"
+
     return f"""CLIENT FINANCIAL DATA:
 Sector: {data.get('sector', 'Unknown')}
 Size: {data.get('tamaño', 'Unknown')}
+Entity Type: {data.get('tipo_entidad', 'Unknown')}
+Framework: {data.get('marco_referencial', 'Unknown')}
+
+INDUSTRY PARAMETERS:
+{config_lines}
 
 TOP ACCOUNTS (by balance):
 {json.dumps(balance_summary, ensure_ascii=False)}"""
@@ -46,7 +57,7 @@ def _build_analysis_prompt() -> str:
     Construye prompt para análisis inteligente de datos financieros
     Detecta patrones auditables genéricos (funciona para cualquier sector)
     """
-    return """Analyze financial data for 4-5 audit findings. Look for common audit patterns:
+    return """Analyze financial data for 4-5 audit findings. Use the industry parameters when they exist to calibrate expectations and material thresholds. Look for common audit patterns:
 - Negative balances in income/expense accounts (sign reversal, misclassification)
 - Accounts with zero depreciation/amortization (asset valuation issues)
 - Compensating account pairs (assets=liabilities, suggesting masking)
