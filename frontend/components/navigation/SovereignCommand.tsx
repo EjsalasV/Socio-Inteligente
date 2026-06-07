@@ -29,6 +29,7 @@ function parseClienteFromPath(pathname: string): string | null {
     chunks[0] === "dashboard" ||
     chunks[0] === "risk-engine" ||
     chunks[0] === "trial-balance" ||
+    chunks[0] === "configuracion" ||
     chunks[0] === "estados-financieros" ||
     chunks[0] === "areas" ||
     chunks[0] === "perfil" ||
@@ -107,6 +108,13 @@ export default function SovereignCommand() {
         subtitle: "Abrir ficha de configuración del cliente",
         kind: "command",
         action: () => router.push(currentClienteId ? `/perfil/${currentClienteId}` : "/"),
+      },
+      {
+        id: "cmd-configuracion",
+        label: "Configurar industria",
+        subtitle: "Abrir pantalla dedicada de configuración del cliente",
+        kind: "command",
+        action: () => router.push(currentClienteId ? `/configuracion/${currentClienteId}` : "/"),
       },
       {
         id: "cmd-risk",

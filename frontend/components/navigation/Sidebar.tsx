@@ -16,6 +16,7 @@ type NavItem = {
     | "risk-engine"
     | "trial-balance"
     | "mayor"
+    | "configuracion"
     | "knowledge"
     | "estados-financieros"
     | "areas"
@@ -66,6 +67,7 @@ export default function Sidebar() {
         ? [{ id: "admin", key: "admin", label: "Admin", icon: "admin_panel_settings", href: "/admin" } as NavItem]
         : []),
       { id: "dashboard", key: "dashboard", label: "Dashboard", icon: "dashboard", href: withCliente("dashboard") },
+      { id: "configuracion", key: "configuracion", label: "Configuración", icon: "tune", href: withCliente("configuracion") },
       { id: "risk-engine", key: "risk-engine", label: "Risk Engine", icon: "security", href: withCliente("risk-engine") },
       { id: "trial-balance", key: "trial-balance", label: "Trial Balance", icon: "account_balance_wallet", href: withCliente("trial-balance") },
       { id: "mayor", key: "mayor", label: "Mayor Contable", icon: "table_view", href: withCliente("mayor") },
@@ -158,6 +160,8 @@ export default function Sidebar() {
                               ? "sidebar-trial-balance"
                               : item.key === "mayor"
                                 ? "sidebar-mayor"
+                              : item.key === "configuracion"
+                                ? "sidebar-configuracion"
                               : item.key === "knowledge"
                                 ? "sidebar-knowledge"
                               : item.key === "estados-financieros"

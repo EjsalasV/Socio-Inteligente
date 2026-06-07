@@ -63,6 +63,7 @@ export default function Header() {
   const moduleHint = useMemo(() => {
     const hints: Record<string, string> = {
       perfil: "Completa marco, materialidad y responsable para habilitar un flujo consistente.",
+      configuracion: "Define industria, tamano y parametros clave para contextualizar analisis y hallazgos.",
       dashboard: "Revisa KPIs y ranking para decidir donde iniciar trabajo de campo.",
       "trial-balance": "Confirma variaciones relevantes y marca cuentas para pruebas.",
       mayor: "Analiza movimientos con filtros y valida hallazgos contables del libro mayor.",
