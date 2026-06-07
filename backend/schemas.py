@@ -65,6 +65,9 @@ class ClienteCreateRequest(BaseModel):
     cliente_id: str | None = None
     nombre: str
     sector: str | None = None
+    tipo_entidad: str | None = None  # BANCO, RETAIL, SERVICIOS, MANUFACTURA, HOLDING, SALUD, EDUCACION
+    tamano: str | None = None  # PyME, Mediana, Grande
+    normativa: str = "NIIF"  # NIIF, NIIF PYMES, USGAP
 
 
 class ClienteProfile(BaseModel):

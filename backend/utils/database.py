@@ -75,6 +75,7 @@ def init_db():
         # Importar todos los modelos para que se registren en Base.metadata
         from backend.models.client import Client
         from backend.models.audit import Audit
+        from backend.models.cliente_configuration import ClienteConfiguration
         from backend.models.workpapers_template import WorkpapersTemplate
         from backend.models.workpapers_observation import WorkpapersObservation
         from backend.models.workpapers_files import WorkpapersFile
@@ -82,6 +83,7 @@ def init_db():
         from backend.models.knowledge_relation import KnowledgeRelation
         from backend.models.knowledge_event import KnowledgeEvent
         from backend.models.knowledge_chunk import KnowledgeChunk
+        from backend.models.intelligent_analysis_history import IntelligentAnalysisHistory
 
         # Importar Base de la localización compartida
         from backend.models import Base

@@ -7,8 +7,31 @@ from typing import Awaitable, Callable
 from uuid import uuid4
 
 # [IMPORTANT] Load .env FIRST, before any other imports
+from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()
+
+# Cargar explícitamente desde la raíz del proyecto con override=True
+_ROOT = Path(__file__).resolve().parents[1]
+_env_root = _ROOT / ".env"
+_env_backend = _ROOT / "backend" / ".env"
+
+# Cargar primero backend/.env, luego root/.env (override para asegurar carga)
+if _env_backend.exists():
+    load_dotenv(_env_backend, override=True)
+if _env_root.exists():
+    load_dotenv(_env_root, override=True)
+
+# [IMPORTANT] Setup logging EARLY, before other imports
+from backend.utils.logging_config import setup_logging
+setup_logging()
+
+# Verificar variables críticas al inicio
+import logging as _logging
+_startup_logger = _logging.getLogger("socio_ai.startup")
+_deepseek_key = os.getenv("DEEPSEEK_API_KEY", "")
+_ai_provider = os.getenv("AI_PROVIDER", "")
+_startup_logger.info(f"🔑 AI_PROVIDER={_ai_provider}")
+_startup_logger.info(f"🔑 DEEPSEEK_API_KEY={'✅ configurada (' + _deepseek_key[:8] + '...)' if _deepseek_key else '❌ NO ENCONTRADA'}")
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
@@ -88,14 +111,17 @@ def _register_routes_once() -> None:
         area_catalog,
         admin,
         areas,
+        audit_analysis,
         audit_validator,
         auth,
         briefing,
         chat,
         clientes,
+        configuracion,
         dashboard,
         expert_criteria,
         export,
+        feedback,
         hallazgos,
         historicos,
         holdings_cascade_route,
@@ -114,6 +140,7 @@ def _register_routes_once() -> None:
         mayor,
         knowledge,
         user_preferences,
+        validaciones_avanzadas,
         workpapers,
         workflow,
         audit_programs_dashboard,
@@ -121,11 +148,14 @@ def _register_routes_once() -> None:
 
     app.include_router(auth.router)
     app.include_router(clientes.router)
+    app.include_router(configuracion.router)
     app.include_router(perfil.router)
     app.include_router(dashboard.router)
     app.include_router(risk_engine.router)
     app.include_router(areas.router)
     app.include_router(chat.router)
+    app.include_router(feedback.router)
+    app.include_router(audit_analysis.router)
     app.include_router(metodologia.router)
     app.include_router(reportes.router)
     app.include_router(reportes_papeles.router)
@@ -150,6 +180,7 @@ def _register_routes_once() -> None:
     app.include_router(search.router)
     app.include_router(trial_balance.router)
     app.include_router(mayor.router)
+    app.include_router(validaciones_avanzadas.router)
     app.include_router(knowledge.router)
     app.include_router(export.router)
     _routes_registered = True

@@ -31,7 +31,8 @@ function parseClienteFromPath(pathname: string): string | null {
     chunks[0] === "trial-balance" ||
     chunks[0] === "estados-financieros" ||
     chunks[0] === "areas" ||
-    chunks[0] === "perfil"
+    chunks[0] === "perfil" ||
+    chunks[0] === "knowledge"
   ) {
     return chunks[1] ?? null;
   }
@@ -127,6 +128,13 @@ export default function SovereignCommand() {
         subtitle: "Liquidez, solvencia y rentabilidad",
         kind: "command",
         action: () => router.push(currentClienteId ? `/estados-financieros/${currentClienteId}` : "/"),
+      },
+      {
+        id: "cmd-knowledge",
+        label: "Ver Knowledge Core",
+        subtitle: "Gestión del conocimiento e inteligencia normativa",
+        kind: "command",
+        action: () => router.push(currentClienteId ? `/knowledge/${currentClienteId}` : "/"),
       },
     ];
 

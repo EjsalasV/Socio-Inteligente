@@ -18,6 +18,7 @@ export default function TerminosPage() {
   // Leer el archivo markdown de términos
   const filePath = path.join(
     process.cwd(),
+    '..',
     'legal',
     'TERMINOS_SERVICIO.md'
   )

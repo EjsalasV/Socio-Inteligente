@@ -16,6 +16,7 @@ export const metadata = {
 export default function ResponsabilidadPage() {
   const filePath = path.join(
     process.cwd(),
+    '..',
     'legal',
     'DOCUMENTO_RESPONSABILIDAD.md'
   )

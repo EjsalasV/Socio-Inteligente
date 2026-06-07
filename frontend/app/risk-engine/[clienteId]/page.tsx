@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
 import ContextualHelp from "../../../components/help/ContextualHelp";
+import IntelligentAnalyzer from "../../../components/risk/IntelligentAnalyzer";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useLearningRole } from "../../../lib/hooks/useLearningRole";
 import { useRiskEngine } from "../../../lib/hooks/useRiskEngine";
@@ -122,6 +123,11 @@ export default function RiskEnginePage() {
           },
         ]}
       />
+
+      {/* Intelligent Analyzer - Detección automática de anomalías */}
+      <section className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6">
+        <IntelligentAnalyzer clienteId={clienteId} />
+      </section>
 
       {role === "junior" && (
         <section className="bg-[#a5eff0]/10 border border-[#a5eff0]/30 rounded-xl p-6 space-y-4">

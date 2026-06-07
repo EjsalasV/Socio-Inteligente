@@ -116,6 +116,9 @@ async def crear_cliente(
             client_id=client_id,
             nombre=body.nombre,
             sector=body.sector,
+            tipo_entidad=body.tipo_entidad,
+            tamano=body.tamano,
+            normativa=body.normativa or "NIIF",
             created_by=user.sub if user else "SYSTEM",
             estado="ACTIVO",
         )

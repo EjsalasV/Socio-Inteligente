@@ -1,21 +1,34 @@
 @echo off
+setlocal
+
 REM ==========================================
-REM Cierra todos los servicios
+REM Cierra solo los servicios locales de Socio AI
 REM ==========================================
+
+title Socio AI - Detener Servicios
 
 echo.
-echo Cerrando servicios...
+echo ============================================
+echo  Cerrando servicios de Socio AI...
+echo ============================================
 echo.
 
-REM Mata los procesos
-taskkill /FI "WINDOWTITLE eq Backend*" /T /F 2>nul
-taskkill /FI "WINDOWTITLE eq Frontend*" /T /F 2>nul
-taskkill /FI "WINDOWTITLE eq Desktop*" /T /F 2>nul
+REM start-local.bat abre ventanas con estos titulos.
+REM /T mata tambien los procesos hijos de cada ventana.
+echo [1/3] Cerrando Backend de Socio AI...
+taskkill /FI "WINDOWTITLE eq SocioAI Backend*" /T /F 2>nul
 
-REM También mata los procesos específicos
-taskkill /IM python.exe /F 2>nul
-taskkill /IM node.exe /F 2>nul
-taskkill /IM electron.exe /F 2>nul
+echo [2/3] Cerrando Frontend de Socio AI...
+taskkill /FI "WINDOWTITLE eq SocioAI Frontend*" /T /F 2>nul
 
-echo ✓ Servicios detenidos
-timeout /t 2 /nobreak
+echo [3/3] Cerrando utilidades opcionales de Socio AI...
+taskkill /FI "WINDOWTITLE eq SocioAI*" /T /F 2>nul
+
+echo.
+echo ============================================
+echo  Servicios locales de Socio AI cerrados
+echo ============================================
+echo.
+timeout /t 2 /nobreak >nul
+
+endlocal

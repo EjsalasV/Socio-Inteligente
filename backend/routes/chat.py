@@ -16,6 +16,7 @@ from backend.repositories.file_repository import (
     list_area_codes,
     read_chat_history,
 )
+from backend.repositories.identity_repository import store as identity_store
 from backend.services.memory_service import compress_old_messages_if_needed
 from backend.schemas import ApiResponse, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse, UserContext
 from backend.services.rag_chat_service import generate_chat_response, generate_metodologia_response
@@ -51,6 +52,7 @@ def _run_chat_engine(
     user_sub: str = "",
     user_display_name: str = "",
     user_role: str = "",
+    learning_role: str = "semi",
 ) -> dict:
     # El chat principal debe sentirse conversacional.
     # El pipeline estructurado se puede activar de forma explicita para chat si se requiere.
@@ -62,6 +64,7 @@ def _run_chat_engine(
             user_sub=user_sub,
             user_display_name=user_display_name,
             user_role=user_role,
+            learning_role=learning_role,
         )
 
     try:
@@ -95,12 +98,21 @@ def post_chat(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
+
+    # Obtener learning_role del usuario
+    try:
+        prefs = identity_store.get_preferences(user.sub)
+        learning_role = str(prefs.get("learning_role") or "semi").strip().lower()
+    except Exception:
+        learning_role = "semi"
+
     rag = _run_chat_engine(
         cliente_id,
         payload.message,
         user_sub=user.sub,
         user_display_name=user.display_name or user.sub,
         user_role=user.role or "",
+        learning_role=learning_role,
     )
     append_chat_message(
         cliente_id,

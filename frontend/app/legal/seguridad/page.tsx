@@ -16,6 +16,7 @@ export const metadata = {
 export default function SeguridadPage() {
   const filePath = path.join(
     process.cwd(),
+    '..',
     'legal',
     'CHECKLIST_SEGURIDAD.md'
   )

@@ -33,7 +33,7 @@ if %errorlevel%==0 (
 )
 
 echo [1/2] Iniciando Backend en http://127.0.0.1:8000 ...
-start "SocioAI Backend" cmd /k "cd /d %~dp0 && %PY_CMD% -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
+start "SocioAI Backend" cmd /k "cd /d %~dp0 && set KNOWLEDGE_CORE_ENABLED=1 && %PY_CMD% -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
 
 timeout /t 2 /nobreak >nul
 

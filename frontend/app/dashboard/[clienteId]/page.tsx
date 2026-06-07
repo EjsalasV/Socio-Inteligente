@@ -6,6 +6,7 @@ import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
 import FlowGuide from "../../../components/flow/FlowGuide";
 import { AlertsBanner } from "../../../components/dashboard/AlertsBanner";
+import FeedbackCard from "../../../components/dashboard/FeedbackCard";
 import { PeriodoComparador } from "../../../components/periodo-selector/PeriodoComparador";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
@@ -71,6 +72,7 @@ export default function DashboardClientePage() {
   return (
     <div className="space-y-8 pb-8">
       <AlertsBanner />
+      <FeedbackCard />
       {materialidadPorArea.length > 0 ? (
         <section className="sovereign-card">
           <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold mb-2">Materialidad por area</p>

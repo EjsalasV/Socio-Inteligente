@@ -1369,6 +1369,7 @@ def _llm_answer(
     web_results: list[dict[str, str]] | None = None,
     area_context: str = "",
     expert_criteria_used: bool = False,
+    learning_role: str = "semi",
 ) -> dict[str, Any]:
     provider, api_key = _resolved_provider()
     from openai import OpenAI
@@ -1422,14 +1423,43 @@ def _llm_answer(
             "\nAdemas: no repitas solo el ranking; interpreta los datos y concluye con criterio auditor."
         )
 
+    # Adaptar mensaje según learning_role del auditor
+    learning_role_instruction = ""
+    if learning_role == "junior":
+        learning_role_instruction = (
+            "\n\nOTA SOBRE TU NIVEL (Junior): Explica PASO A PASO. "
+            "Incluye el PORQUÉ de cada cosa, no solo el QUÉ. "
+            "Define términos técnicos. Sugiere dónde aprender más."
+        )
+    elif learning_role == "semi":
+        learning_role_instruction = (
+            "\n\nNOTA SOBRE TU NIVEL (Semi-Senior): Sé conciso pero técnico. "
+            "Explica el razonamiento detrás de cada procedimiento. "
+            "Señala casos especiales o excepciones."
+        )
+    elif learning_role == "senior":
+        learning_role_instruction = (
+            "\n\nNOTA SOBRE TU NIVEL (Senior): Ve al grano. "
+            "Asume conocimiento de normas y procedimientos. "
+            "Enfócate en excepciones, riesgos complejos y criterio profesional."
+        )
+    elif learning_role == "socio":
+        learning_role_instruction = (
+            "\n\nNOTA SOBRE TU NIVEL (Socio): Resumen ejecutivo. "
+            "Implicaciones de negocio, riesgos y recomendaciones. "
+            "Criterio estratégico, no procedimientos."
+        )
+
     user_content = (
         f"Consulta:\n{query}\n\n"
         "Responde de forma conversacional, concreta y accionable para un auditor."
         + reasoning_hint
+        + learning_role_instruction
         if mode == "chat"
         else (
             f"Consulta:\n{query}\n\n"
             "Devuelve recomendacion accionable con criterio, pasos y evidencia."
+            + learning_role_instruction
         )
     )
 
@@ -1527,6 +1557,7 @@ def generate_chat_response(
     user_sub: str = "",
     user_display_name: str = "",
     user_role: str = "",
+    learning_role: str = "semi",
 ) -> dict[str, Any]:
     # Respuestas de alto valor y baja latencia, siempre contextuales.
     # Verificar caché de respuesta (FASE 5: Caché RAG)
@@ -1614,6 +1645,7 @@ def generate_chat_response(
                 web_results=web_results or None,
                 area_context=area_context,
                 expert_criteria_used=expert_criteria_used,
+                learning_role=learning_role,
             )
         else:
             result = _llm_answer(
@@ -1622,6 +1654,7 @@ def generate_chat_response(
                 web_results=web_results or None,
                 area_context=area_context,
                 expert_criteria_used=expert_criteria_used,
+                learning_role=learning_role,
             )
         set_cached_response(response_cache_key, result)
         return result

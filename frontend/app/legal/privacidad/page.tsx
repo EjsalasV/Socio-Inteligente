@@ -16,6 +16,7 @@ export const metadata = {
 export default function PrivacidadPage() {
   const filePath = path.join(
     process.cwd(),
+    '..',
     'legal',
     'POLITICA_PRIVACIDAD.md'
   )
