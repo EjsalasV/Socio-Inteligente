@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from backend.schemas import RiskCriticalArea, RiskStrategyResponse, RiskStrategyTest
+from backend.services.industry_risk_rules_service import summarize_risk_areas_for_ai
 from backend.services.rag_chat_service import generate_judgement_response
 
 
@@ -95,6 +96,7 @@ def _normalize_test(
 
 
 def _ai_query_for_risk(areas: list[RiskCriticalArea], deterministic: RiskStrategyResponse) -> str:
+    signal_summary = summarize_risk_areas_for_ai(areas, top_n=6)
     facts = {
         "top_areas": [
             {
@@ -107,6 +109,7 @@ def _ai_query_for_risk(areas: list[RiskCriticalArea], deterministic: RiskStrateg
             }
             for a in areas[:6]
         ],
+        "signal_summary": signal_summary,
         "baseline_strategy": {
             "approach": deterministic.approach,
             "control_pct": deterministic.control_pct,
@@ -117,9 +120,15 @@ def _ai_query_for_risk(areas: list[RiskCriticalArea], deterministic: RiskStrateg
             "python_numbers_are_authoritative": True,
             "do_not_modify_scores": True,
             "max_tests_per_type": 6,
+            "must_use_active_signals_to_explain_why": True,
+            "must_align_procedures_with_industry_and_mayor_signals": True,
         },
     }
-    return json.dumps(facts, ensure_ascii=False, indent=2)
+    return (
+        "Usa las señales activas por industria y mayor para explicar la estrategia y priorizar procedimientos. "
+        "Si una señal activa existe, reflejala explícitamente en rationale y en las pruebas sugeridas.\n\n"
+        f"{json.dumps(facts, ensure_ascii=False, indent=2)}"
+    )
 
 
 def build_risk_judgement_with_ai(

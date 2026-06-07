@@ -18,16 +18,14 @@ LOGGER = logging.getLogger("socio_ai.intelligent_analyzer")
 
 def _format_financial_data_for_analysis(data: dict[str, Any]) -> str:
     """
-    Formatea datos financieros para que IA los analice (versión compacta)
+    Formatea datos financieros para que IA los analice (version compacta)
     """
-    # Filtrar solo cuentas principales (mayor saldo)
-    balance = data.get('balance_trial', {})
+    balance = data.get("balance_trial", {})
     if balance:
-        # Mantener solo las 50 cuentas más grandes
         sorted_accounts = sorted(
             balance.items(),
             key=lambda x: abs(float(x[1]) if isinstance(x[1], (int, float)) else 0),
-            reverse=True
+            reverse=True,
         )[:50]
         balance_summary = dict(sorted_accounts)
     else:
@@ -39,14 +37,38 @@ def _format_financial_data_for_analysis(data: dict[str, Any]) -> str:
     else:
         config_lines = "- No industry-specific answers configured"
 
+    risk_signals = data.get("risk_signals", {})
+    signal_lines: list[str] = []
+    if isinstance(risk_signals, dict):
+        items = risk_signals.get("areas") if isinstance(risk_signals.get("areas"), list) else []
+        for signal in items[:5]:
+            if not isinstance(signal, dict):
+                continue
+            area_name = str(signal.get("area_nombre") or signal.get("area_id") or "Area")
+            nivel = str(signal.get("nivel") or "N/D")
+            industry_boost = signal.get("industry_boost", 0)
+            mayor_boost = signal.get("mayor_boost", 0)
+            drivers = signal.get("drivers", [])
+            driver_text = ", ".join([str(x) for x in drivers[:2]]) if isinstance(drivers, list) else ""
+            signal_lines.append(
+                f"- {area_name} [{nivel}] | industry_boost={industry_boost} | mayor_boost={mayor_boost}"
+                + (f" | drivers: {driver_text}" if driver_text else "")
+            )
+    risk_signal_block = "\n".join(signal_lines) if signal_lines else "- No active risk signals"
+
+    size = data.get("tamano") or data.get("tama?o") or data.get("tama??o") or "Unknown"
+
     return f"""CLIENT FINANCIAL DATA:
 Sector: {data.get('sector', 'Unknown')}
-Size: {data.get('tamaño', 'Unknown')}
+Size: {size}
 Entity Type: {data.get('tipo_entidad', 'Unknown')}
 Framework: {data.get('marco_referencial', 'Unknown')}
 
 INDUSTRY PARAMETERS:
 {config_lines}
+
+ACTIVE RISK SIGNALS:
+{risk_signal_block}
 
 TOP ACCOUNTS (by balance):
 {json.dumps(balance_summary, ensure_ascii=False)}"""
@@ -54,10 +76,10 @@ TOP ACCOUNTS (by balance):
 
 def _build_analysis_prompt() -> str:
     """
-    Construye prompt para análisis inteligente de datos financieros
-    Detecta patrones auditables genéricos (funciona para cualquier sector)
+    Construye prompt para analisis inteligente de datos financieros.
+    Detecta patrones auditables genericos y usa senales activas como prioridad.
     """
-    return """Analyze financial data for 4-5 audit findings. Use the industry parameters when they exist to calibrate expectations and material thresholds. Look for common audit patterns:
+    return """Analyze financial data for 4-5 audit findings. Use the industry parameters when they exist to calibrate expectations and material thresholds. Use ACTIVE RISK SIGNALS as priority lenses: when signals mention WIP, related parties, liquidity, collections, inventory rotation, scholarships, insurance exposure, or guarantees, bias the findings and procedures toward those themes. Look for common audit patterns:
 - Negative balances in income/expense accounts (sign reversal, misclassification)
 - Accounts with zero depreciation/amortization (asset valuation issues)
 - Compensating account pairs (assets=liabilities, suggesting masking)

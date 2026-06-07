@@ -21,6 +21,11 @@ from backend.schemas import (
     RiskStrategyTest,
     UserContext,
 )
+from backend.services.client_configuration_service import get_cliente_configuration_snapshot
+from backend.services.industry_risk_rules_service import (
+    build_industry_risk_signal,
+    get_cliente_configuration_signature,
+)
 from backend.services.judgement_service import build_risk_judgement_with_ai
 from backend.services.mayor_service import load_mayor_canonical
 from backend.services.view_cache_service import get_cached_view, set_cached_view
@@ -75,6 +80,7 @@ def _risk_signature(cliente_id: str) -> str:
         except Exception:
             pass
     parts.append(f"{count}:{newest}")
+    parts.append(get_cliente_configuration_signature(cliente_id))
     return "|".join(parts)
 
 
@@ -544,6 +550,7 @@ def _from_ranking(cliente_id: str) -> list[RiskCriticalArea]:
             for _, row in ranking.iterrows()
         }
         mayor_signals = _mayor_signals_by_area(cliente_id, tb_totals_by_area)
+        config_snapshot = get_cliente_configuration_snapshot(cliente_id)
 
         out: list[RiskCriticalArea] = []
         for _, row in ranking.sort_values("score_riesgo", ascending=False).head(12).iterrows():
@@ -551,11 +558,28 @@ def _from_ranking(cliente_id: str) -> list[RiskCriticalArea]:
             base_score = _to_float(row.get("score_riesgo", 0.0))
             signal = mayor_signals.get(area_id, {})
             mayor_boost = _to_float(signal.get("boost", 0.0))
-            final_score = min(99.0, base_score + mayor_boost)
+            industry_signal = build_industry_risk_signal(
+                config_snapshot,
+                area_id=area_id,
+                area_name=str(row.get("nombre") or f"Area {area_id}"),
+                metrics=row.to_dict() if hasattr(row, "to_dict") else dict(row),
+            )
+            industry_boost = _to_float(industry_signal.get("boost", 0.0))
+            final_score = min(99.0, base_score + mayor_boost + industry_boost)
             frecuencia, impacto = _score_to_axes(final_score)
 
-            components = {"base_model": round(base_score, 2), "mayor_boost": round(mayor_boost, 2)}
+            components = {
+                "base_model": round(base_score, 2),
+                "mayor_boost": round(mayor_boost, 2),
+                "industry_boost": round(industry_boost, 2),
+            }
             components.update(signal.get("components", {}))
+            components.update(industry_signal.get("components", {}))
+
+            drivers = []
+            for item in [*(signal.get("drivers", []) or []), *(industry_signal.get("drivers", []) or [])]:
+                if item and item not in drivers:
+                    drivers.append(item)
 
             out.append(
                 RiskCriticalArea(
@@ -566,7 +590,7 @@ def _from_ranking(cliente_id: str) -> list[RiskCriticalArea]:
                     frecuencia=frecuencia,
                     impacto=impacto,
                     hallazgos_abiertos=_to_int(row.get("expert_flags_count", 0), 0),
-                    drivers=signal.get("drivers", []),
+                    drivers=drivers[:4],
                     score_components=components,
                 )
             )
@@ -579,6 +603,7 @@ def _from_area_files(cliente_id: str) -> list[RiskCriticalArea]:
     cliente_root = Path(__file__).resolve().parents[2] / "data" / "clientes" / cliente_id
     areas_dir = cliente_root / "areas"
     critical_areas: list[RiskCriticalArea] = []
+    config_snapshot = get_cliente_configuration_snapshot(cliente_id)
 
     if areas_dir.exists():
         for area_file in sorted(areas_dir.glob("*.yaml")):
@@ -589,18 +614,33 @@ def _from_area_files(cliente_id: str) -> list[RiskCriticalArea]:
             score, hallazgos_count, _pendientes_count = _compute_score(area_data)
             area_id = str(area_data.get("codigo") or area_file.stem)
             area_name = str(area_data.get("nombre") or f"Area {area_id}")
-            frecuencia, impacto = _score_to_axes(score)
+            industry_signal = build_industry_risk_signal(
+                config_snapshot,
+                area_id=area_id,
+                area_name=area_name,
+                metrics={
+                    "pct_total": _to_float(area_data.get("pct_total", 0.0)),
+                    "materialidad_relativa": _to_float(area_data.get("materialidad_relativa", 0.0)),
+                },
+            )
+            industry_boost = _to_float(industry_signal.get("boost", 0.0))
+            final_score = min(99.0, score + industry_boost)
+            frecuencia, impacto = _score_to_axes(final_score)
             critical_areas.append(
                 RiskCriticalArea(
                     area_id=area_id,
                     area_nombre=area_name,
-                    score=round(score, 2),
-                    nivel=_normalize_level(score),
+                    score=round(final_score, 2),
+                    nivel=_normalize_level(final_score),
                     frecuencia=frecuencia,
                     impacto=impacto,
                     hallazgos_abiertos=_to_int(hallazgos_count, 0),
-                    drivers=[],
-                    score_components={"base_model": round(score, 2)},
+                    drivers=industry_signal.get("drivers", []),
+                    score_components={
+                        "base_model": round(score, 2),
+                        "industry_boost": round(industry_boost, 2),
+                        **industry_signal.get("components", {}),
+                    },
                 )
             )
 

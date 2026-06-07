@@ -9,7 +9,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, UploadFile, File, Form
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from backend.auth import authorize_cliente_access, get_current_user
@@ -29,8 +29,10 @@ LOGGER = logging.getLogger("socio_ai.audit_analysis")
 
 class FinancialDataRequest(BaseModel):
     """Request body para análisis de datos financieros"""
+    model_config = {"populate_by_name": True}
+
     sector: str | None = None
-    tamaño: str | None = None
+    tamano: str | None = Field(default=None, alias="tamaño")
     marco_referencial: str | None = "NIIF Completas"
     balance_trial: dict[str, Any]
     income_statement: dict[str, Any] | None = None
@@ -73,13 +75,15 @@ def analyze_client_audit(
         # Datos para análisis
         financial_data = {
             "sector": request.sector or config_snapshot.get("sector"),
-            "tamaño": request.tamaño or config_snapshot.get("tamano"),
+            "tamaño": request.tamano or config_snapshot.get("tamano"),
+            "tamano": request.tamano or config_snapshot.get("tamano"),
             "marco_referencial": request.marco_referencial or config_snapshot.get("normativa"),
             "tipo_entidad": config_snapshot.get("tipo_entidad"),
             "configuracion_industria": config_snapshot.get("respuestas", {}),
             "balance_trial": request.balance_trial,
             "income_statement": request.income_statement or {},
             "additional_data": request.additional_data or {},
+            "risk_signals": (request.additional_data or {}).get("risk_signals", {}),
         }
 
         # Ejecutar análisis CON SESSION para RAG

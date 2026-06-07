@@ -1,5 +1,6 @@
-﻿import type { RiskCriticalArea } from "../../types/risk";
+import type { RiskCriticalArea } from "../../types/risk";
 import { getLsShortName } from "../../lib/lsCatalog";
+import { getRiskSignalSummary } from "../../lib/riskSignals";
 
 type Props = {
   areas: RiskCriticalArea[];
@@ -38,22 +39,53 @@ export default function CriticalRisks({ areas, id = "riesgos-criticos" }: Props)
 
       {list.map((item) => {
         const ui = levelChip(item.nivel);
+        const signal = getRiskSignalSummary(item);
         return (
-          <article
-            key={item.area_id}
-            className={`bg-[#f1f4f6] p-6 rounded-xl border-l-4 flex justify-between items-center ${ui.borderClass}`}
-          >
-            <div>
-              <h4 className="font-bold text-[#041627]">{item.area_nombre}</h4>
-              <div className="flex items-center space-x-2 mt-1">
-                <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${ui.chipClass}`}>{item.nivel}</span>
-                <span className="text-[10px] text-slate-500 font-medium uppercase tracking-tight">{getLsShortName(item.area_id)}</span>
+          <article key={item.area_id} className={`bg-[#f1f4f6] p-6 rounded-xl border-l-4 ${ui.borderClass}`}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h4 className="font-bold text-[#041627]">{item.area_nombre}</h4>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${ui.chipClass}`}>{item.nivel}</span>
+                  <span className="text-[10px] text-slate-500 font-medium uppercase tracking-tight">{getLsShortName(item.area_id)}</span>
+                  {signal.industryBoost > 0 ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded font-bold border border-teal-200 bg-teal-50 text-teal-800">
+                      Industria +{signal.industryBoost.toFixed(1)}
+                    </span>
+                  ) : null}
+                  {signal.mayorBoost > 0 ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded font-bold border border-blue-200 bg-blue-50 text-blue-800">
+                      Mayor +{signal.mayorBoost.toFixed(1)}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className={`text-2xl font-black ${ui.scoreClass}`}>{item.score.toFixed(2)}</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Score</div>
               </div>
             </div>
-            <div className="text-right">
-              <div className={`text-2xl font-black ${ui.scoreClass}`}>{item.score.toFixed(2)}</div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase">Score</div>
-            </div>
+
+            {signal.drivers.length > 0 ? (
+              <div className="mt-4 space-y-2">
+                {signal.drivers.slice(0, 2).map((driver) => (
+                  <p key={driver} className="text-sm text-slate-700 flex items-start gap-2">
+                    <span className="material-symbols-outlined text-base text-[#0d9488]">subdirectory_arrow_right</span>
+                    <span>{driver}</span>
+                  </p>
+                ))}
+              </div>
+            ) : null}
+
+            {signal.topComponents.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {signal.topComponents.slice(0, 2).map((component) => (
+                  <span key={component.key} className="text-[11px] rounded-lg bg-white/80 border border-slate-200 px-2.5 py-1 text-slate-700">
+                    {component.label}: +{component.value.toFixed(1)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </article>
         );
       })}
