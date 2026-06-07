@@ -33,7 +33,7 @@ if %errorlevel%==0 (
 )
 
 echo [1/2] Iniciando Backend en http://127.0.0.1:8000 ...
-start "SocioAI Backend" cmd /k "cd /d %~dp0 && set KNOWLEDGE_CORE_ENABLED=1 && %PY_CMD% -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
+start "SocioAI Backend" cmd /k "title SocioAI Backend && cd /d %~dp0 && set KNOWLEDGE_CORE_ENABLED=1 && %PY_CMD% -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
 
 timeout /t 2 /nobreak >nul
 
@@ -56,7 +56,7 @@ if "%BACK_OK%"=="1" (
 )
 
 echo [2/2] Iniciando Frontend en http://localhost:3000 ...
-start "SocioAI Frontend" cmd /k "cd /d %~dp0frontend && npm run dev"
+start "SocioAI Frontend" cmd /k "title SocioAI Frontend && cd /d %~dp0frontend && npm run dev"
 
 echo.
 echo OK. Servicios lanzados:

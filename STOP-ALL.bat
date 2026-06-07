@@ -13,16 +13,20 @@ echo  Cerrando servicios de Socio AI...
 echo ============================================
 echo.
 
-REM start-local.bat abre ventanas con estos titulos.
-REM /T mata tambien los procesos hijos de cada ventana.
 echo [1/3] Cerrando Backend de Socio AI...
-taskkill /FI "WINDOWTITLE eq SocioAI Backend*" /T /F 2>nul
+powershell -NoProfile -Command ^
+  "$targets = Get-Process | Where-Object { $_.MainWindowTitle -like 'SocioAI Backend*' }; " ^
+  "if ($targets) { $targets | Stop-Process -Force }"
 
 echo [2/3] Cerrando Frontend de Socio AI...
-taskkill /FI "WINDOWTITLE eq SocioAI Frontend*" /T /F 2>nul
+powershell -NoProfile -Command ^
+  "$targets = Get-Process | Where-Object { $_.MainWindowTitle -like 'SocioAI Frontend*' }; " ^
+  "if ($targets) { $targets | Stop-Process -Force }"
 
-echo [3/3] Cerrando utilidades opcionales de Socio AI...
-taskkill /FI "WINDOWTITLE eq SocioAI*" /T /F 2>nul
+echo [3/3] Cerrando otras ventanas opcionales de Socio AI...
+powershell -NoProfile -Command ^
+  "$targets = Get-Process | Where-Object { $_.MainWindowTitle -like 'SocioAI*' }; " ^
+  "if ($targets) { $targets | Stop-Process -Force }"
 
 echo.
 echo ============================================

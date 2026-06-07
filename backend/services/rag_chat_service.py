@@ -588,6 +588,24 @@ def _resolved_provider() -> tuple[str, str]:
     deepseek_key = (os.getenv("DEEPSEEK_API_KEY") or "").strip()
     openai_key = (os.getenv("OPENAI_API_KEY") or "").strip()
 
+    def _is_placeholder(key: str) -> bool:
+        normalized = str(key or "").strip().lower()
+        if not normalized:
+            return True
+        placeholders = {
+            "sk-your_key_here",
+            "your_key_here",
+            "change_me",
+            "your-openai-key",
+            "your-deepseek-key",
+        }
+        return normalized in placeholders or "your_key" in normalized or "your-key" in normalized
+
+    if _is_placeholder(deepseek_key):
+        deepseek_key = ""
+    if _is_placeholder(openai_key):
+        openai_key = ""
+
     if explicit == "deepseek" and deepseek_key:
         return "deepseek", deepseek_key
     if explicit == "openai" and openai_key:

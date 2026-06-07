@@ -106,7 +106,7 @@ def analyze_financial_data(
                 return {
                     "error": "No API key configured",
                     "hallazgos": [],
-                    "message": "Configure DEEPSEEK_API_KEY en el archivo .env"
+                    "message": "Configura una API key real en .env. La clave actual parece ausente o de ejemplo."
                 }
 
             if provider == "deepseek":
@@ -213,11 +213,17 @@ def analyze_financial_data(
 
     except Exception as e:
         LOGGER.error(f"❌ Análisis fallido para {cliente_id}: {e}", exc_info=True)
+        error_text = str(e)
+        if "401" in error_text or "authentication" in error_text.lower():
+            error_text = "Credenciales IA inválidas"
+            user_message = "La API key configurada para IA no es válida. Revisa DEEPSEEK_API_KEY u OPENAI_API_KEY en .env."
+        else:
+            user_message = "Error al analizar datos"
         return {
             "cliente_id": cliente_id,
-            "error": str(e),
+            "error": error_text,
             "hallazgos": [],
-            "message": "Error al analizar datos"
+            "message": user_message,
         }
 
 

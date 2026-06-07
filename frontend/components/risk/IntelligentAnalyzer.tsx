@@ -27,6 +27,7 @@ interface AnalysisResult {
   resumen: string
   observaciones_sector: string
   error?: string
+  message?: string
 }
 
 interface TrialBalanceDataResponse {
@@ -48,6 +49,7 @@ export default function IntelligentAnalyzer({ clienteId }: { clienteId: string }
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [selectedHallazgo, setSelectedHallazgo] = useState<Hallazgo | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const analysisIssue = result?.error || result?.message || null
 
   // Auto-cargar análisis cuando se monta el componente
   useEffect(() => {
@@ -105,7 +107,6 @@ export default function IntelligentAnalyzer({ clienteId }: { clienteId: string }
         }),
       })
 
-      console.log('Análisis completado:', analysisData)
       setResult(analysisData.data)
     } catch (err) {
       console.error('Error en loadAnalysis:', err)
@@ -188,7 +189,19 @@ export default function IntelligentAnalyzer({ clienteId }: { clienteId: string }
           )}
 
           {/* Hallazgos */}
-          {result.hallazgos && result.hallazgos.length > 0 ? (
+          {analysisIssue ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+              <p className="text-amber-900 font-semibold">
+                No se pudo completar el análisis inteligente
+              </p>
+              <p className="text-amber-800 mt-2">
+                {analysisIssue}
+              </p>
+              <p className="text-amber-700 text-sm mt-3">
+                Revisa la configuración de IA en el backend y vuelve a intentar.
+              </p>
+            </div>
+          ) : result.hallazgos && result.hallazgos.length > 0 ? (
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 🎯 Hallazgos Detectados ({result.hallazgos.length})

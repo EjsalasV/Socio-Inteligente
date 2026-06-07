@@ -15,11 +15,12 @@ _ROOT = Path(__file__).resolve().parents[1]
 _env_root = _ROOT / ".env"
 _env_backend = _ROOT / "backend" / ".env"
 
-# Cargar primero backend/.env, luego root/.env (override para asegurar carga)
-if _env_backend.exists():
-    load_dotenv(_env_backend, override=True)
+# Cargar primero root/.env y luego backend/.env.
+# Asi, la configuracion especifica del backend prevalece sobre placeholders generales.
 if _env_root.exists():
     load_dotenv(_env_root, override=True)
+if _env_backend.exists():
+    load_dotenv(_env_backend, override=True)
 
 # [IMPORTANT] Setup logging EARLY, before other imports
 from backend.utils.logging_config import setup_logging

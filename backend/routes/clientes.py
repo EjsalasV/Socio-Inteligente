@@ -29,7 +29,7 @@ async def listar_clientes(
     """
     try:
         clientes = session.query(Client).order_by(Client.nombre).all()
-        clientes_data = [c.to_dict() for c in clientes]
+        clientes_data = [c.to_dict() for c in clientes if c is not None]
 
         return ApiResponse(
             data={
@@ -125,6 +125,7 @@ async def crear_cliente(
 
         session.add(nuevo_cliente)
         session.commit()
+        session.refresh(nuevo_cliente)
 
         return ApiResponse(
             data=nuevo_cliente.to_dict(),
