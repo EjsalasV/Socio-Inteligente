@@ -35,17 +35,17 @@ echo Iniciando servicios...
 echo.
 
 echo [1/3] Abriendo Backend (FastAPI en puerto 8000)...
-start "Backend - Uvicorn 8000" cmd /k "title Backend - Uvicorn 8000 && python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000"
+start "SocioAI Backend" cmd /k "title SocioAI Backend && python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000"
 
 timeout /t 2 /nobreak
 
 echo [2/3] Abriendo Frontend (Next.js en puerto 3000)...
-start "Frontend - Next.js 3000" cmd /k "title Frontend - Next.js 3000 && cd frontend && npm run dev"
+start "SocioAI Frontend" cmd /k "title SocioAI Frontend && cd frontend && npm run dev"
 
 timeout /t 2 /nobreak
 
 echo [3/3] Abriendo Desktop App (Electron)...
-start "Desktop App - Electron" cmd /k "title Desktop App - Electron && cd desktop-sync-manager && npm run dev"
+start "SocioAI Desktop" cmd /k "title SocioAI Desktop && cd desktop-sync-manager && npm run dev"
 
 echo.
 echo ====================================================
