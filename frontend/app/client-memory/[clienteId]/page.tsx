@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
@@ -8,7 +8,6 @@ import ContextualHelp from "../../../components/help/ContextualHelp";
 import {
   getClienteDocumentos,
   getClienteHallazgos,
-  uploadClienteDocumento,
   type ClienteDocumento,
 } from "../../../lib/api/clientes";
 import { getPerfil } from "../../../lib/api/perfil";
@@ -38,9 +37,6 @@ export default function ClientMemoryPage() {
   const [memoText, setMemoText] = useState("");
   const [documentos, setDocumentos] = useState<ClienteDocumento[]>([]);
   const [hallazgos, setHallazgos] = useState<Array<{ title: string; body: string }>>([]);
-  const [uploadingDoc, setUploadingDoc] = useState(false);
-  const [uploadMsg, setUploadMsg] = useState("");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -79,24 +75,6 @@ export default function ClientMemoryPage() {
 
   const topRisks = useMemo(() => dashboard?.top_areas?.slice(0, 3) ?? [], [dashboard]);
   const fileHelpText = "PDF/TXT se abren en nueva pestaña. XLSX/CSV normalmente se descargan para revisión.";
-
-  async function handleUploadDocument(file: File): Promise<void> {
-    setUploadingDoc(true);
-    setUploadMsg("");
-    try {
-      const result = await uploadClienteDocumento(clienteId, file);
-      setDocumentos(result.documentos);
-      setUploadMsg(
-        result.ingestion.indexed
-          ? `Documento indexado para AI (${result.ingestion.text_chars} caracteres).`
-          : "Documento cargado. No se pudo extraer texto util para AI.",
-      );
-    } catch (error) {
-      setUploadMsg(error instanceof Error ? error.message : "No se pudo cargar el documento.");
-    } finally {
-      setUploadingDoc(false);
-    }
-  }
 
   if (isLoading) return <DashboardSkeleton />;
   if (error) return <ErrorMessage message={error} />;
@@ -166,24 +144,9 @@ export default function ClientMemoryPage() {
           <article data-tour="memory-documentos" className="sovereign-card !p-0 overflow-hidden">
             <div className="p-6 border-b border-black/5 flex items-center justify-between">
               <h3 className="font-headline text-3xl text-[#041627]">Repositorio de Documentos</h3>
-              <button
-                type="button"
-                className="text-xs uppercase tracking-[0.13em] font-bold text-teal-700 disabled:opacity-60"
-                disabled={uploadingDoc}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {uploadingDoc ? "Cargando..." : "Cargar documento"}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleUploadDocument(file);
-                  e.currentTarget.value = "";
-                }}
-              />
+              <span className="text-[10px] uppercase tracking-[0.13em] font-bold text-slate-400 border border-slate-200 rounded-full px-3 py-1">
+                Disponible próximamente
+              </span>
             </div>
             <div className="px-6 py-2 bg-[#f8fbff] border-b border-black/5 text-[11px] text-slate-500">{fileHelpText}</div>
             <table className="w-full border-collapse">
@@ -223,12 +186,13 @@ export default function ClientMemoryPage() {
                 ))}
                 {documentos.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="py-6 px-6 text-sm text-slate-500">No hay documentos cargados.</td>
+                    <td colSpan={3} className="py-6 px-6 text-sm text-slate-500">
+                      La carga de documentos al expediente estará disponible próximamente.
+                    </td>
                   </tr>
                 ) : null}
               </tbody>
             </table>
-            {uploadMsg ? <div className="px-6 py-3 text-xs text-slate-600 border-t border-black/5">{uploadMsg}</div> : null}
           </article>
         </div>
 
