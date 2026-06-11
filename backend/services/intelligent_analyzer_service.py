@@ -131,6 +131,21 @@ def analyze_financial_data(
 
         # Usar provider remoto (DeepSeek / OpenAI)
         if not use_lm_studio:
+            # Interruptor de privacidad: con AI_CLIENT_DATA_ENABLED=0 los datos
+            # financieros del cliente nunca salen a proveedores externos de IA.
+            # Un LLM local (LM_STUDIO_BASE_URL) sigue funcionando normalmente.
+            if os.getenv("AI_CLIENT_DATA_ENABLED", "1").strip().lower() in {"0", "false", "no"}:
+                LOGGER.warning("Analisis IA omitido: AI_CLIENT_DATA_ENABLED=0 (sin envio de datos a proveedores externos)")
+                return {
+                    "error": "AI_CLIENT_DATA_DISABLED",
+                    "hallazgos": [],
+                    "message": (
+                        "El envio de datos del cliente a proveedores externos de IA esta deshabilitado "
+                        "(AI_CLIENT_DATA_ENABLED=0). Configura un LLM local con LM_STUDIO_BASE_URL "
+                        "o habilita el envio explicitamente."
+                    ),
+                }
+
             provider, api_key = _resolved_provider()
             LOGGER.info(f"🌐 Usando provider remoto: {provider}")
 
