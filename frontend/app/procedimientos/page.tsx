@@ -346,6 +346,64 @@ export default function ProcedimientosPage() {
               )}
 
               <article className="sovereign-card">
+                <p className="text-[11px] uppercase tracking-[0.1em] text-slate-500 font-bold mb-1">Qué pedir y qué preguntar al cliente</p>
+                <p className="text-sm text-slate-600 mb-3">
+                  Guía por aseveración: los documentos que debes solicitar y las preguntas que debes hacer antes de ejecutar las pruebas.
+                </p>
+                {detail.requerimientos.length === 0 ? (
+                  <p className="text-sm text-slate-600">Aún no hay guía de requerimientos registrada para esta área.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {detail.requerimientos.map((req) => (
+                      <div key={req.aseveracion} className="rounded-lg border border-black/10 bg-white p-4">
+                        <p className="text-[10px] uppercase tracking-[0.14em] font-bold text-[#002f30] bg-[#a5eff0]/30 inline-block rounded-full px-3 py-1">
+                          Aseveración: {req.aseveracion}
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.1em] text-slate-500 font-bold mb-1">Documentos a solicitar</p>
+                            {req.documentos.length === 0 ? (
+                              <p className="text-xs text-slate-500">Sin documentos registrados.</p>
+                            ) : (
+                              <ul className="space-y-1 text-sm text-slate-700 list-disc list-inside">
+                                {req.documentos.map((doc) => (
+                                  <li key={doc}>{doc}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.1em] text-slate-500 font-bold mb-1">Preguntas al cliente</p>
+                            {req.preguntas.length === 0 ? (
+                              <p className="text-xs text-slate-500">Sin preguntas registradas.</p>
+                            ) : (
+                              <ul className="space-y-1 text-sm text-slate-700 list-disc list-inside">
+                                {req.preguntas.map((pregunta) => (
+                                  <li key={pregunta}>{pregunta}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.1em] text-slate-500 font-bold mb-1">Cómo validarlo</p>
+                            {req.procedimientos.length === 0 ? (
+                              <p className="text-xs text-slate-500">Sin pasos registrados.</p>
+                            ) : (
+                              <ul className="space-y-1 text-sm text-slate-700 list-disc list-inside">
+                                {req.procedimientos.map((paso) => (
+                                  <li key={paso}>{paso}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </article>
+
+              <article className="sovereign-card">
                 <p className="text-[11px] uppercase tracking-[0.1em] text-slate-500 font-bold mb-2">Alertas tributarias relevantes</p>
                 {detail.alertas_tributarias.length === 0 ? (
                   <p className="text-sm text-slate-600">No hay alertas tributarias registradas para esta area.</p>

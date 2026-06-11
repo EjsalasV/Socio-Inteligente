@@ -56,12 +56,20 @@ export type AreaTaxAlert = {
   accion: string;
 };
 
+export type AreaRequirementBlock = {
+  aseveracion: string;
+  documentos: string[];
+  preguntas: string[];
+  procedimientos: string[];
+};
+
 export type AreaProcedureDetail = {
   area_codigo: string;
   area_nombre: string;
   procedimientos: ProcedureItem[];
   riesgos_tipicos: AreaProcedureRisk[];
   alertas_tributarias: AreaTaxAlert[];
+  requerimientos: AreaRequirementBlock[];
 };
 
 export async function getProcedureAreas(): Promise<ProcedureAreaSummary[]> {
@@ -123,12 +131,30 @@ export async function getAreaProcedures(areaCodigo: string): Promise<AreaProcedu
     })
     .filter((row): row is AreaTaxAlert => row !== null);
 
+  const asStringList = (value: unknown): string[] =>
+    asArray(value)
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter((item) => item.length > 0);
+
+  const requerimientos = asArray(payload.requerimientos)
+    .map((row) => {
+      if (!isRecord(row)) return null;
+      return {
+        aseveracion: asString(row.aseveracion),
+        documentos: asStringList(row.documentos),
+        preguntas: asStringList(row.preguntas),
+        procedimientos: asStringList(row.procedimientos),
+      };
+    })
+    .filter((row): row is AreaRequirementBlock => row !== null && row.aseveracion.length > 0);
+
   return {
     area_codigo: asString(payload.area_codigo, areaCodigo),
     area_nombre: asString(payload.area_nombre, `Área ${areaCodigo}`),
     procedimientos,
     riesgos_tipicos: riesgosTipicos,
     alertas_tributarias: alertasTributarias,
+    requerimientos,
   };
 }
 

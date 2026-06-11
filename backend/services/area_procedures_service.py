@@ -10,6 +10,7 @@ CATALOGOS_ROOT = ROOT / "data" / "catalogos"
 PROCEDURES_PATH = CATALOGOS_ROOT / "procedimientos_por_area.yaml"
 RISKS_PATH = CATALOGOS_ROOT / "riesgos_por_area.yaml"
 TAX_ALERTS_PATH = CATALOGOS_ROOT / "alertas_tributarias_por_area.yaml"
+REQUIREMENTS_PATH = CATALOGOS_ROOT / "requerimientos_por_area.yaml"
 AREAS_PATH = CATALOGOS_ROOT / "areas.yaml"
 
 _CACHE: dict[str, Any] = {
@@ -17,6 +18,7 @@ _CACHE: dict[str, Any] = {
     "procedures": {},
     "risks": {},
     "tax_alerts": {},
+    "requirements": {},
     "areas_lookup": {},
 }
 
@@ -191,6 +193,47 @@ def load_tax_alerts_yaml(force_reload: bool = False) -> dict[str, Any]:
     return normalized
 
 
+def _clean_str_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item or "").strip()]
+
+
+def load_requirements_yaml(force_reload: bool = False) -> dict[str, Any]:
+    """Guia de requerimientos por area: que documentos pedir y que preguntas
+    hacer al cliente, organizado por aseveracion (data/catalogos/requerimientos_por_area.yaml)."""
+    signature = _safe_signature(REQUIREMENTS_PATH)
+    if not force_reload and _CACHE["signatures"].get("requirements") == signature:
+        return _CACHE["requirements"]
+    payload = _read_yaml(REQUIREMENTS_PATH)
+    areas_raw = payload.get("areas") if isinstance(payload.get("areas"), dict) else {}
+    normalized: dict[str, dict[str, Any]] = {}
+    for area_code_raw, area_payload in areas_raw.items():
+        area_code = _normalize_text(area_code_raw)
+        if not area_code or not isinstance(area_payload, dict):
+            continue
+        area_name = _normalize_text(area_payload.get("nombre"))
+        aseveraciones_raw = (
+            area_payload.get("aseveraciones") if isinstance(area_payload.get("aseveraciones"), dict) else {}
+        )
+        aseveraciones: list[dict[str, Any]] = []
+        for asev_key, detail in aseveraciones_raw.items():
+            if not isinstance(detail, dict):
+                continue
+            aseveraciones.append(
+                {
+                    "aseveracion": _normalize_text(asev_key).lower(),
+                    "documentos": _clean_str_list(detail.get("documentos")),
+                    "preguntas": _clean_str_list(detail.get("preguntas")),
+                    "procedimientos": _clean_str_list(detail.get("procedimientos")),
+                }
+            )
+        normalized[area_code] = {"nombre": area_name, "aseveraciones": aseveraciones}
+    _CACHE["requirements"] = normalized
+    _CACHE["signatures"]["requirements"] = signature
+    return normalized
+
+
 def _area_sort_key(area_code: str) -> tuple[int, ...]:
     parts = []
     for part in str(area_code).split("."):
@@ -227,15 +270,18 @@ def get_procedures_by_area(area_codigo: str) -> dict[str, Any]:
     areas_lookup = _load_areas_lookup()
     risks_map = load_risks_yaml()
     alerts_map = load_tax_alerts_yaml()
+    requirements_map = load_requirements_yaml()
 
     procedures_entry = procedures_map.get(area_code, {})
     risks_entry = risks_map.get(area_code, {})
     alerts_entry = alerts_map.get(area_code, {})
+    requirements_entry = requirements_map.get(area_code, {})
 
     area_name = (
         _normalize_text(procedures_entry.get("nombre"))
         or _normalize_text(risks_entry.get("nombre"))
         or _normalize_text(alerts_entry.get("nombre"))
+        or _normalize_text(requirements_entry.get("nombre"))
         or areas_lookup.get(area_code, "")
     )
 
@@ -245,6 +291,7 @@ def get_procedures_by_area(area_codigo: str) -> dict[str, Any]:
         "procedimientos": procedures_entry.get("procedimientos", []) if isinstance(procedures_entry, dict) else [],
         "riesgos_tipicos": risks_entry.get("riesgos", []) if isinstance(risks_entry, dict) else [],
         "alertas_tributarias": alerts_entry.get("alertas", []) if isinstance(alerts_entry, dict) else [],
+        "requerimientos": requirements_entry.get("aseveraciones", []) if isinstance(requirements_entry, dict) else [],
     }
 
 
