@@ -1,13 +1,14 @@
 """
 API endpoints para gestionar clientes y auditorías
 """
+import logging
 from typing import Any, Optional, List
 from datetime import datetime, date
 
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import func
 
-from backend.auth import get_current_user
+from backend.auth import authorize_cliente_access, get_current_user
 from backend.models.client import Client
 from backend.models.audit import Audit
 from backend.schemas import UserContext, ApiResponse, ClienteCreateRequest, ClienteUpdateRequest
@@ -15,6 +16,27 @@ from backend.utils.database import get_session
 from backend.utils.api_errors import raise_api_error
 
 router = APIRouter(prefix="/api/clientes", tags=["clientes"])
+LOGGER = logging.getLogger("socio_ai.api.clientes")
+
+_MANAGEMENT_ROLES = {"admin", "manager", "socio"}
+
+
+def _user_can_access(cliente_id: str, user: UserContext) -> bool:
+    """True si el usuario tiene acceso al cliente segun sus asignaciones."""
+    try:
+        authorize_cliente_access(cliente_id, user)
+        return True
+    except HTTPException:
+        return False
+
+
+def _require_management_role(user: UserContext, message: str) -> None:
+    if user.role.lower() not in _MANAGEMENT_ROLES:
+        raise_api_error(
+            status_code=status.HTTP_403_FORBIDDEN,
+            code="INSUFFICIENT_ROLE",
+            message=message,
+        )
 
 
 # ============= CLIENTES =============
@@ -29,7 +51,11 @@ async def listar_clientes(
     """
     try:
         clientes = session.query(Client).order_by(Client.nombre).all()
-        clientes_data = [c.to_dict() for c in clientes if c is not None]
+        clientes_data = [
+            c.to_dict()
+            for c in clientes
+            if c is not None and c.estado != "ARCHIVADO" and _user_can_access(c.client_id, user)
+        ]
 
         return ApiResponse(
             data={
@@ -37,11 +63,14 @@ async def listar_clientes(
                 "clientes": clientes_data,
             },
         )
-    except Exception as e:
+    except Exception:
+        LOGGER.exception("clientes.listar failed")
         raise_api_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="ERROR_LISTING_CLIENTS",
-            message=str(e),
+            message="No se pudo obtener la lista de clientes.",
+            action_hint="Reintenta en unos segundos. Si persiste, contacta soporte.",
+            retryable=True,
         )
 
 
@@ -54,6 +83,7 @@ async def obtener_cliente(
     """
     Obtener información detallada de un cliente
     """
+    authorize_cliente_access(cliente_id, user)
     try:
         cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
 
@@ -69,10 +99,13 @@ async def obtener_cliente(
     except Exception as e:
         if hasattr(e, "status_code"):
             raise
+        LOGGER.exception("clientes.obtener failed")
         raise_api_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="ERROR_FETCHING_CLIENT",
-            message=str(e),
+            message="No se pudo obtener el cliente.",
+            action_hint="Reintenta en unos segundos. Si persiste, contacta soporte.",
+            retryable=True,
         )
 
 
@@ -92,12 +125,7 @@ async def crear_cliente(
     """
     try:
         # Verificar rol - solo admin, manager, y socio pueden crear clientes
-        if user.role.lower() not in {"admin", "manager", "socio"}:
-            raise_api_error(
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="INSUFFICIENT_ROLE",
-                message="Solo perfiles administradores pueden crear clientes.",
-            )
+        _require_management_role(user, "Solo perfiles administradores pueden crear clientes.")
 
         # Usar client_id del body o generar uno
         client_id = body.cliente_id or body.nombre.lower().replace(" ", "_")
@@ -135,10 +163,13 @@ async def crear_cliente(
         session.rollback()
         if hasattr(e, "status_code"):
             raise
+        LOGGER.exception("clientes.crear failed")
         raise_api_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="ERROR_CREATING_CLIENT",
-            message=str(e),
+            message="No se pudo crear el cliente.",
+            action_hint="Reintenta en unos segundos. Si persiste, contacta soporte.",
+            retryable=True,
         )
 
 
@@ -152,13 +183,9 @@ async def actualizar_cliente(
     """
     Actualiza metadatos base del cliente para onboarding y configuración.
     """
+    authorize_cliente_access(cliente_id, user)
     try:
-        if user.role.lower() not in {"admin", "manager", "socio"}:
-            raise_api_error(
-                status_code=status.HTTP_403_FORBIDDEN,
-                code="INSUFFICIENT_ROLE",
-                message="Solo perfiles administradores pueden actualizar clientes.",
-            )
+        _require_management_role(user, "Solo perfiles administradores pueden actualizar clientes.")
 
         cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
         if not cliente:
@@ -186,10 +213,13 @@ async def actualizar_cliente(
         session.rollback()
         if hasattr(e, "status_code"):
             raise
+        LOGGER.exception("clientes.actualizar failed")
         raise_api_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="ERROR_UPDATING_CLIENT",
-            message=str(e),
+            message="No se pudo actualizar el cliente.",
+            action_hint="Reintenta en unos segundos. Si persiste, contacta soporte.",
+            retryable=True,
         )
 
 
@@ -204,6 +234,7 @@ async def listar_auditorias(
     """
     Listar todas las auditorías de un cliente (historial de períodos)
     """
+    authorize_cliente_access(cliente_id, user)
     try:
         cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
         if not cliente:
@@ -233,10 +264,13 @@ async def listar_auditorias(
     except Exception as e:
         if hasattr(e, "status_code"):
             raise
+        LOGGER.exception("clientes.listar_auditorias failed")
         raise_api_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="ERROR_LISTING_AUDITS",
-            message=str(e),
+            message="No se pudieron obtener las auditorias del cliente.",
+            action_hint="Reintenta en unos segundos. Si persiste, contacta soporte.",
+            retryable=True,
         )
 
 
@@ -258,7 +292,10 @@ async def crear_auditoria(
     - socio_asignado: Socio responsable (opcional)
     - senior_asignado: Senior responsable (opcional)
     """
+    authorize_cliente_access(cliente_id, user)
     try:
+        _require_management_role(user, "Solo perfiles administradores pueden crear auditorias.")
+
         cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
         if not cliente:
             raise_api_error(
@@ -303,10 +340,13 @@ async def crear_auditoria(
         session.rollback()
         if hasattr(e, "status_code"):
             raise
+        LOGGER.exception("clientes.crear_auditoria failed")
         raise_api_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="ERROR_CREATING_AUDIT",
-            message=str(e),
+            message="No se pudo crear la auditoria.",
+            action_hint="Reintenta en unos segundos. Si persiste, contacta soporte.",
+            retryable=True,
         )
 
 
@@ -321,8 +361,17 @@ async def actualizar_auditoria_estado(
     """
     Actualizar estado de una auditoría
     """
+    authorize_cliente_access(cliente_id, user)
     try:
-        auditoria = session.query(Audit).filter(Audit.id == audit_id).first()
+        _require_management_role(user, "Solo perfiles administradores pueden actualizar auditorias.")
+
+        # La auditoria debe pertenecer al cliente indicado en la ruta.
+        auditoria = (
+            session.query(Audit)
+            .join(Client, Audit.client_id == Client.id)
+            .filter(Audit.id == audit_id, Client.client_id == cliente_id)
+            .first()
+        )
         if not auditoria:
             raise_api_error(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -352,8 +401,11 @@ async def actualizar_auditoria_estado(
         session.rollback()
         if hasattr(e, "status_code"):
             raise
+        LOGGER.exception("clientes.actualizar_auditoria failed")
         raise_api_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="ERROR_UPDATING_AUDIT",
-            message=str(e),
+            message="No se pudo actualizar la auditoria.",
+            action_hint="Reintenta en unos segundos. Si persiste, contacta soporte.",
+            retryable=True,
         )
