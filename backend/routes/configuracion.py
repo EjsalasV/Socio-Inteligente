@@ -2,12 +2,13 @@
 API endpoints para Configuración de Clientes
 Maneja preguntas dinámicas por industria
 """
+import logging
 from typing import Any
 from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from backend.auth import get_current_user
+from backend.auth import authorize_cliente_access, get_current_user
 from backend.constants.configuracion_industrias import (
     obtener_preguntas,
     obtener_tipos_entidad,
@@ -20,6 +21,7 @@ from backend.utils.database import get_session
 from backend.utils.api_errors import raise_api_error
 
 router = APIRouter(prefix="/api/configuracion", tags=["configuracion"])
+LOGGER = logging.getLogger("socio_ai.api.configuracion")
 
 
 class GuardarConfiguracionRequest(BaseModel):
@@ -42,10 +44,11 @@ async def listar_tipos_entidad(
                 "tipos": tipos,
             }
         )
-    except Exception as e:
+    except Exception:
+        LOGGER.exception("configuracion.listar_tipos failed")
         raise_api_error(
             code="ERROR_LISTING_TYPES",
-            message=str(e),
+            message="No se pudieron obtener los tipos de entidad.",
         )
 
 
@@ -82,9 +85,10 @@ async def obtener_preguntas_dinámicas(
     except Exception as e:
         if hasattr(e, "status_code"):
             raise
+        LOGGER.exception("configuracion.preguntas failed")
         raise_api_error(
             code="ERROR_FETCHING_QUESTIONS",
-            message=str(e),
+            message="No se pudieron obtener las preguntas de configuracion.",
         )
 
 
@@ -102,6 +106,7 @@ async def guardar_configuracion(
     - tipo_entidad: Tipo de entidad (BANCO, RETAIL, etc)
     - respuestas: Dict con respuestas (JSON)
     """
+    authorize_cliente_access(cliente_id, user)
     try:
         # Obtener cliente
         cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
@@ -166,9 +171,10 @@ async def guardar_configuracion(
         session.rollback()
         if hasattr(e, "status_code"):
             raise
+        LOGGER.exception("configuracion.guardar failed")
         raise_api_error(
             code="ERROR_SAVING_CONFIGURATION",
-            message=str(e),
+            message="No se pudo guardar la configuracion del cliente.",
         )
 
 
@@ -181,6 +187,7 @@ async def obtener_configuracion(
     """
     Obtiene la configuración guardada de un cliente
     """
+    authorize_cliente_access(cliente_id, user)
     try:
         cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
         if not cliente:
@@ -214,7 +221,8 @@ async def obtener_configuracion(
     except Exception as e:
         if hasattr(e, "status_code"):
             raise
+        LOGGER.exception("configuracion.obtener failed")
         raise_api_error(
             code="ERROR_FETCHING_CONFIGURATION",
-            message=str(e),
+            message="No se pudo obtener la configuracion del cliente.",
         )

@@ -4,6 +4,7 @@ Rutas para descargar plantillas de Papeles de Trabajo (V1 - Simple)
 - Descargar plantilla por Línea de Cuenta (L/S)
 - Obtener papeles por L/S como JSON
 """
+import logging
 from typing import Any, Optional
 from io import BytesIO
 
@@ -24,6 +25,7 @@ except ImportError:
     raise ImportError("openpyxl is required for Excel generation")
 
 router = APIRouter(prefix="/api/papeles-trabajo", tags=["papeles-plantilla"])
+LOGGER = logging.getLogger("socio_ai.api.papeles_plantilla")
 
 
 @router.get("/{cliente_id}/papeles-count", response_model=ApiResponse)
@@ -53,11 +55,12 @@ async def contar_papeles(
 
         return ApiResponse(status="success", data=data)
 
-    except Exception as e:
+    except Exception:
+        LOGGER.exception("papeles_plantilla.contar failed")
         raise_api_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code="ERROR",
-            message=str(e),
+            message="No se pudo obtener el conteo de papeles de trabajo.",
         )
 
 

@@ -1,6 +1,7 @@
 """
 API endpoints para Validaciones Avanzadas de Mayor
 """
+import logging
 from typing import Any
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -13,6 +14,7 @@ from backend.utils.api_errors import raise_api_error
 from backend.utils.database import get_session
 
 router = APIRouter(prefix="/api/validaciones", tags=["validaciones"])
+LOGGER = logging.getLogger("socio_ai.api.validaciones")
 
 
 @router.get("/{cliente_id}/avanzadas", response_model=ApiResponse)
@@ -75,9 +77,10 @@ async def get_validaciones_avanzadas(
     except Exception as e:
         if hasattr(e, "status_code"):
             raise
+        LOGGER.exception("validaciones.avanzadas failed")
         raise_api_error(
             code="ERROR_RUNNING_VALIDATIONS",
-            message=str(e),
+            message="No se pudieron ejecutar las validaciones avanzadas.",
         )
 
 
@@ -162,9 +165,10 @@ async def get_resumen_validaciones(
     except Exception as e:
         if hasattr(e, "status_code"):
             raise
+        LOGGER.exception("validaciones.resumen failed")
         raise_api_error(
             code="ERROR_GETTING_SUMMARY",
-            message=str(e),
+            message="No se pudo obtener el resumen de validaciones.",
         )
 
 

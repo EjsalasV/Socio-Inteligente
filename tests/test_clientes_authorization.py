@@ -122,6 +122,29 @@ def test_crear_auditoria_denied_for_unassigned_even_with_role(two_clients, monke
     assert res.status_code == 403
 
 
+def test_configuracion_obtener_denied_for_unassigned(two_clients, monkeypatch) -> None:
+    a, b = two_clients
+    monkeypatch.setenv("ALLOWED_CLIENTES", a.client_id)
+    client = TestClient(app)
+    res = client.get(
+        f"/api/configuracion/{b.client_id}/obtener",
+        headers=_bearer(allowed_clientes=[a.client_id]),
+    )
+    assert res.status_code == 403
+
+
+def test_configuracion_guardar_denied_for_unassigned(two_clients, monkeypatch) -> None:
+    a, b = two_clients
+    monkeypatch.setenv("ALLOWED_CLIENTES", a.client_id)
+    client = TestClient(app)
+    res = client.post(
+        f"/api/configuracion/{b.client_id}/guardar",
+        headers=_bearer(allowed_clientes=[a.client_id]),
+        json={"tipo_entidad": "HOLDING", "respuestas": {}},
+    )
+    assert res.status_code == 403
+
+
 def test_actualizar_auditoria_cross_client_is_not_found(two_clients, monkeypatch) -> None:
     """Una auditoria de un cliente no puede modificarse via la ruta de otro cliente."""
     a, b = two_clients
