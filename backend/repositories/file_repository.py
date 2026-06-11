@@ -25,6 +25,15 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA_CLIENTES = ROOT / "data" / "clientes"
 CATALOGOS = ROOT / "data" / "catalogos"
 
+# Identificador de cliente seguro para usar como nombre de directorio:
+# letras (incluye unicode), digitos, guion y guion bajo. Excluye ".", "/" y "\"
+# para impedir path traversal fuera de data/clientes.
+_SAFE_CLIENTE_ID = re.compile(r"^[\w\-]{1,64}$")
+
+
+def is_safe_cliente_id(cliente_id: str) -> bool:
+    return bool(_SAFE_CLIENTE_ID.match(str(cliente_id or "").strip()))
+
 
 class FileRepository:
     """Repositorio de archivos local para aislar el acceso a disco.
@@ -39,7 +48,14 @@ class FileRepository:
         self.catalogos = self.root / "data" / "catalogos"
 
     def cliente_dir(self, cliente_id: str) -> Path:
-        return self.data_clientes / cliente_id
+        cid = str(cliente_id or "").strip()
+        if not cid:
+            # Flujos globales (sin cliente) esperan rutas inexistentes y defaults.
+            # El sentinel evita que lecturas/escrituras aterricen en data/clientes raiz.
+            return self.data_clientes / "__sin_cliente__"
+        if not is_safe_cliente_id(cid):
+            raise ValueError(f"cliente_id invalido: {cid!r}")
+        return self.data_clientes / cid
 
     def _resolve_cliente_dir(self, cliente_id: str, *, for_write: bool = False) -> Path:
         cid = str(cliente_id or "").strip()
@@ -47,12 +63,13 @@ class FileRepository:
         if exact.exists():
             return exact
 
-        if not self.data_clientes.exists() or not cid:
+        if not self.data_clientes.exists():
             return exact
 
+        # Solo se aceptan variantes con sufijo de anio del MISMO id (p.ej. "{cid}_2024").
+        # Nunca coincidencias parciales: un id parecido no debe resolver a la
+        # carpeta de otro cliente.
         year_pattern_exact = re.compile(rf"^{re.escape(cid)}_(20\d{{2}})$")
-        year_pattern_generic = re.compile(r"^(?P<base>.+)_(?P<year>20\d{2})$")
-        cid_norm = cid.lower()
         best_dir: Path | None = None
         best_year = -1
         for item in self.data_clientes.iterdir():
@@ -60,15 +77,8 @@ class FileRepository:
                 continue
             m = year_pattern_exact.match(item.name)
             if not m:
-                mg = year_pattern_generic.match(item.name)
-                if not mg:
-                    continue
-                base = mg.group("base").lower()
-                if not (base in cid_norm or cid_norm in base):
-                    continue
-                year = int(mg.group("year"))
-            else:
-                year = int(m.group(1))
+                continue
+            year = int(m.group(1))
             if year > best_year:
                 best_year = year
                 best_dir = item
