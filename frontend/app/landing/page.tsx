@@ -48,7 +48,7 @@ export default function LandingPage() {
               </a>
             </div>
             <p className="mt-6 text-sm text-slate-500">
-              Usado por firmas de auditoría en Colombia, México y Argentina · Cumple NIA, NIIF e ISAE 3000
+              Construido por un auditor para firmas independientes de LATAM · Alineado a NIA y NIIF
             </p>
           </div>
         </section>
