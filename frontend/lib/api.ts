@@ -125,7 +125,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   // Heavy modules may need one retry when backend warms caches on first hit.
-  const attempts = isHeavyPath(path) ? 3 : 2;
+  // Solo se reintentan metodos idempotentes: un POST/PUT/PATCH/DELETE que expira
+  // pudo haber llegado al servidor y reintentarlo duplicaria la operacion.
+  const isIdempotent = ["GET", "HEAD", "OPTIONS"].includes(method);
+  const attempts = isIdempotent ? (isHeavyPath(path) ? 3 : 2) : 1;
   let res: Response | null = null;
   let lastError: unknown = null;
 
