@@ -223,6 +223,48 @@ async def actualizar_cliente(
         )
 
 
+@router.delete("/{cliente_id}", response_model=ApiResponse)
+async def archivar_cliente(
+    cliente_id: str,
+    user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
+) -> ApiResponse:
+    """
+    Archivado lógico de un cliente.
+
+    No elimina datos: marca el cliente como ARCHIVADO y deja de mostrarse
+    en la cartera. Los datos del encargo se conservan.
+    """
+    authorize_cliente_access(cliente_id, user)
+    try:
+        _require_management_role(user, "Solo perfiles administradores pueden archivar clientes.")
+
+        cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
+        if not cliente:
+            raise_api_error(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="CLIENT_NOT_FOUND",
+                message=f"Cliente {cliente_id} no encontrado",
+            )
+
+        cliente.estado = "ARCHIVADO"
+        session.commit()
+        session.refresh(cliente)
+        return ApiResponse(data=cliente.to_dict())
+    except Exception as e:
+        session.rollback()
+        if hasattr(e, "status_code"):
+            raise
+        LOGGER.exception("clientes.archivar failed")
+        raise_api_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="ERROR_ARCHIVING_CLIENT",
+            message="No se pudo archivar el cliente.",
+            action_hint="Reintenta en unos segundos. Si persiste, contacta soporte.",
+            retryable=True,
+        )
+
+
 # ============= AUDITORÍAS =============
 
 @router.get("/{cliente_id}/auditorias", response_model=ApiResponse)

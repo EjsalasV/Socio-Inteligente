@@ -109,10 +109,16 @@ export async function updateCliente(
   return cliente;
 }
 
+export async function archiveCliente(clienteId: string): Promise<void> {
+  // Archivado logico: el backend conserva los datos y oculta el cliente de la cartera.
+  await authFetchJson<ApiEnvelope<unknown>>(`/api/clientes/${clienteId}`, {
+    method: "DELETE",
+  });
+}
+
+/** @deprecated Usa archiveCliente: la operacion es un archivado logico, no un borrado. */
 export async function deleteCliente(clienteId: string): Promise<void> {
-  // Note: DELETE endpoint not available in new API
-  // This function is deprecated
-  console.warn("deleteCliente: DELETE endpoint not available in new API");
+  await archiveCliente(clienteId);
 }
 
 export async function uploadClienteArchivo(

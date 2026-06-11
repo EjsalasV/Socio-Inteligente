@@ -145,6 +145,53 @@ def test_configuracion_guardar_denied_for_unassigned(two_clients, monkeypatch) -
     assert res.status_code == 403
 
 
+def test_archivar_cliente_requires_management_role(two_clients, monkeypatch) -> None:
+    a, _ = two_clients
+    monkeypatch.setenv("ALLOWED_CLIENTES", a.client_id)
+    client = TestClient(app)
+    res = client.delete(
+        f"/api/clientes/{a.client_id}",
+        headers=_bearer(role="staff", allowed_clientes=[a.client_id]),
+    )
+    assert res.status_code == 403
+
+
+def test_archivar_cliente_denied_for_unassigned(two_clients, monkeypatch) -> None:
+    a, b = two_clients
+    monkeypatch.setenv("ALLOWED_CLIENTES", a.client_id)
+    client = TestClient(app)
+    res = client.delete(
+        f"/api/clientes/{b.client_id}",
+        headers=_bearer(role="manager", allowed_clientes=[a.client_id]),
+    )
+    assert res.status_code == 403
+
+
+def test_archivar_cliente_is_logical_and_hides_from_list(two_clients, monkeypatch) -> None:
+    """Archivar conserva el registro (estado=ARCHIVADO) y lo saca de la cartera."""
+    a, b = two_clients
+    monkeypatch.setenv("ALLOWED_CLIENTES", "*")
+    client = TestClient(app)
+    headers = _bearer(role="admin", allowed_clientes=["*"])
+
+    res = client.delete(f"/api/clientes/{b.client_id}", headers=headers)
+    assert res.status_code == 200
+    assert res.json()["data"]["estado"] == "ARCHIVADO"
+
+    session = SessionLocal()
+    try:
+        row = session.query(Client).filter(Client.client_id == b.client_id).first()
+        assert row is not None
+        assert row.estado == "ARCHIVADO"
+    finally:
+        session.close()
+
+    listed = client.get("/api/clientes", headers=headers)
+    ids = [c["client_id"] for c in listed.json()["data"]["clientes"]]
+    assert b.client_id not in ids
+    assert a.client_id in ids
+
+
 def test_actualizar_auditoria_cross_client_is_not_found(two_clients, monkeypatch) -> None:
     """Una auditoria de un cliente no puede modificarse via la ruta de otro cliente."""
     a, b = two_clients
