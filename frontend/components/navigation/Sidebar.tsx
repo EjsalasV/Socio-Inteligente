@@ -33,8 +33,9 @@ import { useTour } from "../tour/TourProvider";
   href: string;
 };
 
-// Modo MVP: la navegación muestra solo el flujo central de análisis
-// (clientes → perfil → TB/Mayor → dashboard → riesgos → chat).
+// Modo MVP: la navegación muestra el flujo de análisis (clientes → perfil →
+// TB/Mayor → dashboard → riesgos → chat) y el pilar de aprendizaje
+// (biblioteca normativa y guía de procedimientos por área/rol).
 // NEXT_PUBLIC_FULL_PLATFORM=1 restaura la plataforma completa (demos/desarrollo).
 const FULL_PLATFORM = process.env.NEXT_PUBLIC_FULL_PLATFORM === "1";
 const MVP_KEYS = new Set<NavItem["key"]>([
@@ -47,6 +48,8 @@ const MVP_KEYS = new Set<NavItem["key"]>([
   "mayor",
   "estados-financieros",
   "socio-chat",
+  "biblioteca",
+  "procedimientos",
 ]);
 
 function itemClass(active: boolean): string {

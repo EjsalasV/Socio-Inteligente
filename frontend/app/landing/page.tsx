@@ -131,22 +131,24 @@ export default function LandingPage() {
 
         <section className="bg-[#041627] py-16 text-white">
           <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
-            <h2 className="font-headline text-3xl md:text-4xl">Resultados que justifican el cambio</h2>
+            <h2 className="font-headline text-3xl md:text-4xl">Para qué está diseñado</h2>
             <div className="mt-8 grid gap-4 md:grid-cols-3">
               <article className="rounded-editorial border border-white/15 bg-white/5 p-6">
-                <p className="font-headline text-5xl text-[#a5eff0]">60%</p>
-                <p className="mt-2 text-sm uppercase tracking-[0.12em] text-slate-200">menos tiempo en planificación</p>
-              </article>
-              <article className="rounded-editorial border border-white/15 bg-white/5 p-6">
-                <p className="font-headline text-5xl text-[#a5eff0]">8 hrs</p>
+                <p className="font-headline text-3xl text-[#a5eff0]">Analizar en minutos</p>
                 <p className="mt-2 text-sm uppercase tracking-[0.12em] text-slate-200">
-                  ahorradas por encargo en papeles de trabajo
+                  el balance que hoy te toma horas revisar en Excel
                 </p>
               </article>
               <article className="rounded-editorial border border-white/15 bg-white/5 p-6">
-                <p className="font-headline text-5xl text-[#a5eff0]">100%</p>
+                <p className="font-headline text-3xl text-[#a5eff0]">Criterio explicado</p>
                 <p className="mt-2 text-sm uppercase tracking-[0.12em] text-slate-200">
-                  trazabilidad desde riesgo hasta evidencia
+                  cada hallazgo con su norma, su porqué y su procedimiento
+                </p>
+              </article>
+              <article className="rounded-editorial border border-white/15 bg-white/5 p-6">
+                <p className="font-headline text-3xl text-[#a5eff0]">Aprender auditando</p>
+                <p className="mt-2 text-sm uppercase tracking-[0.12em] text-slate-200">
+                  guías por área y rol: qué pedir, qué revisar, qué aseveración cubrir
                 </p>
               </article>
             </div>
