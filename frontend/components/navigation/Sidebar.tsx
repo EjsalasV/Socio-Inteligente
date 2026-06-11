@@ -9,14 +9,13 @@ import { useAuditContext } from "../../lib/hooks/useAuditContext";
 import { useUserPreferences } from "../providers/UserPreferencesProvider";
 import { useTour } from "../tour/TourProvider";
 
-type NavItem = {
+  type NavItem = {
   id: string;
   key:
     | "dashboard"
     | "risk-engine"
     | "trial-balance"
     | "mayor"
-    | "configuracion"
     | "knowledge"
     | "estados-financieros"
     | "areas"
@@ -33,6 +32,22 @@ type NavItem = {
   icon: string;
   href: string;
 };
+
+// Modo MVP: la navegación muestra solo el flujo central de análisis
+// (clientes → perfil → TB/Mayor → dashboard → riesgos → chat).
+// NEXT_PUBLIC_FULL_PLATFORM=1 restaura la plataforma completa (demos/desarrollo).
+const FULL_PLATFORM = process.env.NEXT_PUBLIC_FULL_PLATFORM === "1";
+const MVP_KEYS = new Set<NavItem["key"]>([
+  "clientes",
+  "perfil",
+  "admin",
+  "dashboard",
+  "risk-engine",
+  "trial-balance",
+  "mayor",
+  "estados-financieros",
+  "socio-chat",
+]);
 
 function itemClass(active: boolean): string {
   if (active) {
@@ -67,7 +82,6 @@ export default function Sidebar() {
         ? [{ id: "admin", key: "admin", label: "Admin", icon: "admin_panel_settings", href: "/admin" } as NavItem]
         : []),
       { id: "dashboard", key: "dashboard", label: "Dashboard", icon: "dashboard", href: withCliente("dashboard") },
-      { id: "configuracion", key: "configuracion", label: "Configuración", icon: "tune", href: withCliente("configuracion") },
       { id: "risk-engine", key: "risk-engine", label: "Risk Engine", icon: "security", href: withCliente("risk-engine") },
       { id: "trial-balance", key: "trial-balance", label: "Trial Balance", icon: "account_balance_wallet", href: withCliente("trial-balance") },
       { id: "mayor", key: "mayor", label: "Mayor Contable", icon: "table_view", href: withCliente("mayor") },
@@ -96,6 +110,11 @@ export default function Sidebar() {
     [canManageUsers, withCliente],
   );
 
+  const visibleItems = useMemo<NavItem[]>(
+    () => (FULL_PLATFORM ? items : items.filter((item) => MVP_KEYS.has(item.key))),
+    [items],
+  );
+
   return (
     <>
       <button
@@ -122,7 +141,7 @@ export default function Sidebar() {
           </div>
 
           <nav className="space-y-2 flex-1 overflow-y-auto pr-1 min-h-0" role="menubar">
-            {items.map((item) => {
+            {visibleItems.map((item) => {
               const active =
                 item.key === "biblioteca" || item.key === "procedimientos"
                   ? pathname.startsWith(`/${item.key}`)
@@ -160,8 +179,6 @@ export default function Sidebar() {
                               ? "sidebar-trial-balance"
                               : item.key === "mayor"
                                 ? "sidebar-mayor"
-                              : item.key === "configuracion"
-                                ? "sidebar-configuracion"
                               : item.key === "knowledge"
                                 ? "sidebar-knowledge"
                               : item.key === "estados-financieros"
