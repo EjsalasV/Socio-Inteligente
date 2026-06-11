@@ -97,7 +97,7 @@ Visit `http://localhost:3000`
    - Deploy your project
    - Check Vercel logs for `[OK] Database initialized`
 
-See `FIX_DATABASE_URL.md` for detailed troubleshooting.
+See `SETUP_PERSISTENCIA.md` for detailed troubleshooting.
 
 ## 🔑 Key Endpoints
 
@@ -185,11 +185,8 @@ git push
 
 ## 📚 Documentation
 
-- [Database Architecture](ARQUITECTURA_BD.txt)
 - [Database Setup Guide](SETUP_PERSISTENCIA.md)
-- [Troubleshooting DATABASE_URL](FIX_DATABASE_URL.md)
-- [Project Status](ESTADO_ACTUAL.txt)
-- [Checklist](CHECKLIST_DB.md)
+- [Documentación adicional](docs/)
 
 ## 🐛 Troubleshooting
 
@@ -200,7 +197,7 @@ git push
 **DATABASE_URL not configured**
 - Local: App falls back to SQLite automatically ✅
 - Vercel: Must add DATABASE_URL environment variable
-- Check `FIX_DATABASE_URL.md` for detailed steps
+- Check `SETUP_PERSISTENCIA.md` for detailed steps
 
 **Type generation mismatches**
 - Run: `cd frontend && npm run generate:types`
