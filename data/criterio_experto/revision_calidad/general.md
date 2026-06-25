@@ -43,6 +43,7 @@ Antes de leer un solo papel de trabajo, recorrer el balance final y preguntarse:
 - ¿Las revisiones del senior o socio quedaron evidenciadas?
 - ¿Independencia y aceptación del cliente están documentadas?
 
-## Pregunta final
+## Pregunta final de cierre
 
-Si este cliente quiebra mañana y un perito revisa el archivo, ¿qué nos van a reclamar que debimos haber visto?
+- **Pregunta judicial:** si este cliente quiebra mañana y un perito revisa el archivo, ¿qué nos van a reclamar que debimos haber visto?
+- **Pregunta operativa:** ¿cuál es el TOP-3 de hallazgos potenciales que dejamos sin probar?

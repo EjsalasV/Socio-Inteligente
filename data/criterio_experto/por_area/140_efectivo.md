@@ -5,7 +5,7 @@
 ## Alertas prácticas
 
 - La conciliación bancaria cuadrada no prueba nada por sí sola: lo que importa son las partidas conciliatorias, su edad, naturaleza y si se limpiaron en enero.
-- Pedir el certificado bancario de todas las cuentas, incluidas las cerradas en el año. La cuenta que el cliente no menciona es la que suele esconder sobregiros, cuentas embargadas o firmas no autorizadas.
+- Pedir el certificado bancario de todas las cuentas (compañía, directivos, accionistas), incluidas las cerradas en el año. En firmas familiares, la cuenta que el cliente no menciona suele esconder sobregiros, cuentas embargadas, firmas no autorizadas o transacciones de relacionados.
 - Cheques girados y no cobrados de más de 6 meses: en la práctica suelen ser pasivo u obligación pendiente, no simple "menos banco".
 - Saldos en moneda extranjera: verificar tipo de cambio de cierre y dónde se registró la diferencia.
 - Efectivo restringido, fideicomisos y cuentas en garantía no deben presentarse como disponibles.
