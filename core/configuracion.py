@@ -196,12 +196,14 @@ def obtener_app_config() -> Dict[str, Any]:
     """Obtiene configuración de app con overrides seguros por entorno."""
     app_cfg = dict(cargar_config().get("app", {}))
 
-    env_name = (
-        os.getenv("SOCIOAI_ENV")
-        or os.getenv("ENV")
-        or app_cfg.get("environment")
-        or "development"
-    )
+    config_environment = str(app_cfg.get("environment") or "").strip().lower()
+    explicit_environment = os.getenv("SOCIOAI_ENV") or os.getenv("APP_ENV")
+    if explicit_environment:
+        env_name = explicit_environment
+    elif config_environment == "production":
+        env_name = "production"
+    else:
+        env_name = os.getenv("ENV") or config_environment or "development"
     environment = str(env_name).strip().lower()
     app_cfg["environment"] = environment
 

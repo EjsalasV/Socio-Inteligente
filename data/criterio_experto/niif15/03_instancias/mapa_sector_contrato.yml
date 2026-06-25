@@ -1,0 +1,235 @@
+---
+nombre: Mapa Sector → Patrón de Contrato → Instancia Ejecutable
+version: 1.0
+estado: Router que navega auditor de su sector a instancia concreta
+descripcion: Guía al auditor desde "tengo cliente de X sector" a "aquí está tu checklist ejecutable"
+
+instrucciones_uso: |
+  1. ¿De qué sector es tu cliente?
+  2. ¿Qué tipo de contrato tienes (venta, servicio, construcción)?
+  3. Usa este mapa para encontrar la INSTANCIA que aplica
+  4. Abre la instancia .md
+  5. Sigue el checklist ejecutable
+
+sectores:
+
+  servicios:
+    descripcion: Firmas de servicios (consultoría, outsourcing, desarrollo, soporte)
+    patrones:
+      - patron: Servicios Plurianuales (Desarrollo + Soporte + Licencia)
+        descripcion: Contrato integrado donde cliente recibe development, annual support + software license
+        tipo_obligacion:
+          - desarrollo (sobre_tiempo_por_avance)
+          - soporte (sobre_tiempo_lineal)
+          - licencia (punto_en_tiempo o sobre_tiempo_lineal)
+        instancia: servicios/plurianuales.md
+        casos_tipicos:
+          - Desarrollo ERP con soporte anual + licencia
+          - Desarrollo de aplicación móvil con mantenimiento
+          - Implementación de software + soporte
+        riesgo_tipico: No separar desarrollo de soporte; reconocer todo en punto_en_tiempo
+        auditor_debe_validar:
+          - ¿Se separaron las 3 obligaciones?
+          - ¿Desarrollo por avance tiene acta de hito?
+          - ¿Soporte es lineal en los 12 meses?
+          - ¿Licencia es punto_en_tiempo (activación) o lineal (suscripción)?
+
+      - patron: Outsourcing / Múltiples Recursos Continuos
+        descripcion: Cliente paga por equipo de personas/recursos durante plazo (months/years)
+        tipo_obligacion:
+          - servicio_lineal_periodo
+        instancia: servicios/outsourcing.md
+        casos_tipicos:
+          - 3 desarrolladores 24 meses por USD 500k/año
+          - Equipo de soporte técnico para Data Center cliente
+          - Staffing de consultores por período
+        riesgo_tipico: Reconocer todo mes 1; no validar que recursos realmente trabajaron
+        auditor_debe_validar:
+          - ¿Contrato especifica cantidad de FTEs y plazo total?
+          - ¿Hay acta mensual de disponibilidad de recursos?
+          - ¿Se reconoce linealmente?
+          - ¿Si recursos se redujeron, se ajustó el ingreso?
+
+      - patron: Consultoría / Entregas por Hito
+        descripcion: Consultoría entregando diagnóstico, plan, ejecución, reportes
+        tipo_obligacion:
+          - servicio_por_avance
+        instancia: servicios/consultoria_por_hito.md
+        casos_tipicos:
+          - Auditoría operacional (diagnóstico, plan, ejecución, cierre)
+          - Asesoría fiscal (análisis, recomendaciones, implementación)
+          - Transformación digital (diseño, implementación, capacitación)
+        riesgo_tipico: % avance estimado sin evidencia; cliente rechaza deliverable
+        auditor_debe_validar:
+          - ¿Hay especificación de entregas?
+          - ¿Cada entrega tiene acta de aceptación?
+          - ¿% avance está evidenciado (demo, documento entregado)?
+          - ¿Cliente firmó aceptación de cada fase?
+
+  retail:
+    descripcion: Venta de bienes a consumidor o distribuidor (tiendas, e-commerce, mayoristas)
+    patrones:
+      - patron: Venta Simple (Punto en Tiempo)
+        descripcion: Venta de bien físico, cliente recibe control al pagar/recibir
+        tipo_obligacion:
+          - bien_tangible_entrega
+        instancia: retail/venta_simple.md
+        casos_tipicos:
+          - Tienda física (cliente compra, se lleva)
+          - E-commerce (cliente compra, shipment)
+          - Venta mayorista a distribuidor
+        riesgo_tipico: Venta anticipada (enviado pero cliente no pagó)
+        auditor_debe_validar:
+          - ¿Fecha venta = fecha entrega?
+          - ¿Hay evidencia de pago o compromiso de pago?
+          - ¿No hay devoluciones estimadas?
+
+      - patron: Venta con Derecho de Retorno (Devoluciones Estimadas)
+        descripcion: Cliente puede retornar producto dentro de período (30, 60, 90 días)
+        tipo_obligacion:
+          - venta_con_devolucion_estimada
+        instancia: retail/venta_con_retorno.md
+        casos_tipicos:
+          - Retail con política 30 días retorno
+          - Distribución con "derecho de retorno no movido"
+          - Venta en consignación
+        riesgo_tipico: Ingresar 100% sin estimar devoluciones; tasa estimada incorrecta
+        auditor_debe_validar:
+          - ¿% devolución estimada está documentado?
+          - ¿Base: histórico, sector, contrato?
+          - ¿Ingreso = 100% - % estimada?
+          - ¿Pasivo reversible fue creado?
+          - ¿Al cierre, se reversa pasivo si no retorna?
+
+  bienes:
+    descripcion: Venta de bienes duraderos con instalación, garantía, o servicios incluidos
+    patrones:
+      - patron: Equipo + Instalación + Mantenimiento (USD 35k+)
+        descripcion: Venta de bien que requiere instalación y luego mantenimiento periódico
+        tipo_obligacion:
+          - bien_tangible_con_instalacion
+          - servicio_lineal_periodo
+          - garantia_con_obligacion
+        instancia: bienes/equipos_instalacion_mantenimiento.md
+        casos_tipicos:
+          - Venta de reactor químico (USD 35k + instalación + garantía 2 años)
+          - Venta de máquina industrial (instalación + mantenimiento 3 años)
+          - Venta de sistema de aire (equipo + instalación + servicio anual)
+        riesgo_tipico: No separar bien de instalación de mantenimiento; reconocer todo en punto
+        auditor_debe_validar:
+          - ¿Se separaron 3 obligaciones?
+          - ¿Bien tiene acta de entrega?
+          - ¿Instalación tiene acta de funcionamiento?
+          - ¿Mantenimiento es lineal en plazo de garantía?
+          - ¿Asignación de precio a cada una está documentada?
+
+      - patron: Maquinaria con Garantía/Warranty
+        descripcion: Venta de máquina con cobertura de garantía durante período
+        tipo_obligacion:
+          - bien_tangible_entrega
+          - garantia_con_obligacion
+        instancia: bienes/maquinaria_con_garantia.md
+        casos_tipicos:
+          - Venta de compresor con 2 años garantía
+          - Venta de motor industrial con warranty de defectos
+        riesgo_tipico: No separar bien de garantía; garantía no se descuenta del ingreso
+        auditor_debe_validar:
+          - ¿Garantía se separó como obligación?
+          - ¿Se asignó precio a garantía?
+          - ¿Se crea pasivo por garantía estimada?
+
+  construccion:
+    descripcion: Contratos de construcción de obra civil, edificios, etc.
+    patrones:
+      - patron: Construcción por Fases (5-10 hitos)
+        descripcion: Obra dividida en fases (cimientos, estructura, acabados, servicios, cierre) con certificación de supervisor
+        tipo_obligacion:
+          - construccion_por_fases_multiple (puede ser obligación única o separables, depende de contrato)
+          - servicio_por_avance
+          - venta_con_retencion
+        instancia: construccion/obra_por_fases.md
+        casos_tipicos:
+          - Edificio residencial (5-7 fases)
+          - Obra civil (carretera, puente, alcantarillado)
+          - Casa individual
+        riesgo_tipico: Avance estimado sin certificado de supervisor; retención no descontada; cliente rechaza fase
+        auditor_debe_validar:
+          - ¿Hay especificación de cada fase?
+          - ¿Hay certificado de supervisor para cada fase?
+          - ¿% avance es documentado (no estimado)?
+          - ¿Retención (5-10%) se descontó del ingreso?
+          - ¿Si cliente rechazó fase, se revirtió ingreso?
+
+      - patron: Obra con Retención Hasta Cierre
+        descripcion: Cliente retiene % (5-10%) hasta que obra cierre completamente
+        tipo_obligacion:
+          - venta_con_retencion
+          - servicio_por_avance
+        instancia: construccion/obra_con_retencion.md
+        casos_tipicos:
+          - Obra pública (retención 10% típica)
+          - Construcción privada (retención 5%)
+        riesgo_tipico: Reconocer 100% sin descontar retención; retención nunca se libera
+        auditor_debe_validar:
+          - ¿Contrato especifica % retención?
+          - ¿Ingreso = 100% - % retención?
+          - ¿Pasivo por retención está contabilizado?
+          - ¿Acta de cierre liberó la retención?
+
+templates_instancia:
+  estructura: |
+    # Instancia: [NOMBRE]
+
+    > **Descripción:** [qué es este patrón, cuándo ocurre]
+
+    ## Las Obligaciones
+
+    [Tabla: obligación, tipo, método, monto, criterio cumplimiento]
+
+    ## Cómo Audita
+
+    ### Paso 1: Validar Contrato
+    [Checklist específico]
+
+    ### Paso 2: Validar Obligaciones
+    [Checklist específico]
+
+    ### Paso 3: Validar Precio
+    [Checklist específico]
+
+    ### Paso 4: Validar Asignación
+    [Checklist específico]
+
+    ### Paso 5: Validar Reconocimiento
+    [Checklist específico]
+
+    ## Hallazgos Típicos
+
+    [TOP-5 hallazgos encontrados en práctica]
+
+    ## Matriz de Pruebas
+
+    [Tabla: qué validar, cómo, qué buscar, hallazgo si falla]
+
+instrucciones_para_auditor:
+
+  "soy_auditor_junior_y_tengo_cliente_de_servicios":
+    paso_1: Identifica qué tipo de servicio (plurianual, outsourcing, consultoría)
+    paso_2: Abre esta matriz; busca tu sector + patrón
+    paso_3: Abre la instancia .md que aparece
+    paso_4: Sigue el checklist (no necesitas leer NIIF 15 completo)
+    paso_5: Compara hallazgos encontrados contra "Hallazgos Típicos" en instancia
+    paso_6: Reporta hallazgo a socio revisor
+
+  "soy_socio_y_revisando_auditoria_de_ingresos":
+    valida: ¿El junior usó la instancia correcta?
+    valida: ¿Cubrió todos los pasos (1-5)?
+    valida: ¿Validó los 8 controles universales?
+    valida: ¿Buscó los hallazgos típicos?
+    pregunta: ¿Cuál fue el riesgo más alto en este cliente?
+
+  "soy_cliente_y_quiero_mejorar_mis_controles":
+    paso_1: Identifica tu sector y patrón de contrato
+    paso_2: Lee la instancia .md
+    paso_3: Implementa los 8 controles universales
+    paso_4: Reduce riesgo de hallazgos en próximas auditorías

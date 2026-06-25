@@ -1,7 +1,191 @@
 """
-Configuración dinámica por tipo de industria/entidad
-Define preguntas y parámetros que configuran el sistema de auditoría
+Configuracion dinamica por tipo de industria/entidad.
+Incluye una base general tipo CaseWare y bloques especificos por negocio.
 """
+
+from __future__ import annotations
+
+from copy import deepcopy
+
+
+GENERAL_QUESTIONS = [
+    {
+        "id": "estructura_entidad",
+        "texto": "La estructura de la entidad es una compania.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": True,
+        "ayuda": "Valida si el perfil base corresponde a una persona juridica operativa.",
+    },
+    {
+        "id": "perfil_adecuado",
+        "texto": "Se esta utilizando el perfil adecuado para este compromiso.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": True,
+        "ayuda": "Si es NO, el perfil debe corregirse antes de continuar.",
+    },
+    {
+        "id": "cumple_nia_315",
+        "texto": "El compromiso sigue la NIA 315 (Revisada 2019).",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": True,
+        "ayuda": "Base para la evaluacion de riesgos de incorreccion material.",
+    },
+    {
+        "id": "cumple_nia_220",
+        "texto": "El compromiso sigue la NIA 220 (Revisada) y la NICC 2.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": True,
+        "ayuda": "Permite calibrar el control de calidad del encargo.",
+    },
+    {
+        "id": "es_proposito_especial",
+        "texto": "El compromiso es una auditoria de proposito especial.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "NO",
+        "critica": True,
+        "ayuda": "Impacta la lectura del marco contable y los procedimientos.",
+    },
+    {
+        "id": "continuacion_compromiso",
+        "texto": "Esta es una continuidad de un compromiso de auditoria.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": True,
+        "ayuda": "Sirve para reutilizar antecedentes y comparativos.",
+    },
+    {
+        "id": "requiere_experto",
+        "texto": "Sera requerido un auditor experto.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "NO",
+        "critica": False,
+        "ayuda": "Define si el encargo necesita apoyo tecnico especializado.",
+    },
+    {
+        "id": "incluir_vistas_riesgo",
+        "texto": "Incluir vistas detalladas del informe de riesgo.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": False,
+        "ayuda": "Activa vistas ampliadas para supervision y revisiones.",
+    },
+    {
+        "id": "empresa_en_marcha",
+        "texto": "Se ha anticipado que sera identificada la condicion de empresa en marcha.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "NO",
+        "critica": True,
+        "ayuda": "Permite elevar foco en liquidez, continuidad y eventos subsecuentes.",
+    },
+    {
+        "id": "tiene_provisiones_estimaciones",
+        "texto": "Los estados financieros incluyen estimaciones, devengos, pagos anticipados y provisiones.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": True,
+        "ayuda": "Si es SI, se deben reforzar pruebas de estimacion y corte.",
+    },
+    {
+        "id": "ti_provee_servicios",
+        "texto": "El entorno de TI incluye una organizacion que provee servicios tecnologicos.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": False,
+        "ayuda": "Impacta el alcance de controles generales y accesos.",
+    },
+    {
+        "id": "usa_comercio_electronico",
+        "texto": "La entidad tiene comercio electronico o ventas por canales digitales.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "NO",
+        "critica": False,
+        "ayuda": "Afecta corte, ingresos, devoluciones y analiticos de ventas.",
+    },
+    {
+        "id": "ciclo_ingresos_cxc",
+        "texto": "La entidad posee el ciclo de ingresos, cuentas por cobrar y entradas.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": True,
+        "ayuda": "Ciclo basico para casi todo encargo operativo.",
+    },
+    {
+        "id": "ciclo_compras_cxp",
+        "texto": "La entidad posee el ciclo de compras, cuentas por pagar y pagos.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": True,
+        "ayuda": "Necesario para validar pasivos, corte y devengos.",
+    },
+    {
+        "id": "ciclo_nomina",
+        "texto": "La entidad posee el ciclo de nomina.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": False,
+        "ayuda": "Ayuda a definir procedimientos de sueldos y beneficios.",
+    },
+    {
+        "id": "ciclo_informes_financieros",
+        "texto": "La entidad posee el ciclo de informes financieros.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "SI",
+        "critica": True,
+        "ayuda": "Define el nivel de formalizacion del cierre y reporting.",
+    },
+    {
+        "id": "ciclo_inventario",
+        "texto": "La entidad posee el ciclo de inventario.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "NO",
+        "critica": True,
+        "ayuda": "Clave para retail, manufactura y entidades con stock.",
+    },
+    {
+        "id": "ciclo_inversiones",
+        "texto": "La entidad posee el ciclo de inversiones.",
+        "tipo": "select",
+        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+        "default": "NO",
+        "critica": True,
+        "ayuda": "Relevante para holdings, fondos, fideicomisos y financieras.",
+    },
+]
+
+
+def _merge_questions(*groups: list[dict]) -> list[dict]:
+    merged: list[dict] = []
+    seen: set[str] = set()
+    for group in groups:
+        for item in group:
+            qid = item.get("id")
+            if not isinstance(qid, str) or qid in seen:
+                continue
+            seen.add(qid)
+            merged.append(deepcopy(item))
+    return merged
+
 
 CONFIGURACION_INDUSTRIAS = {
     "BANCO": {
@@ -12,155 +196,166 @@ CONFIGURACION_INDUSTRIAS = {
                 "texto": "¿Rango de vencimiento para cartera vencida?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "15", "label": "15 días"},
-                    {"valor": "30", "label": "30 días (default)"},
-                    {"valor": "45", "label": "45 días"},
-                    {"valor": "90", "label": "90 días"},
+                    {"valor": "15", "label": "15 dias"},
+                    {"valor": "30", "label": "30 dias (default)"},
+                    {"valor": "45", "label": "45 dias"},
+                    {"valor": "90", "label": "90 dias"},
                 ],
                 "default": "30",
                 "critica": True,
-                "afecta_hallazgos": ["A.3", "A.6"],
-                "ayuda": "Define cuándo una cartera se considera vencida para detectar hallazgos"
+                "ayuda": "Define cuando una cartera se considera vencida.",
             },
             {
                 "id": "clasificacion_cartera",
-                "texto": "¿Qué clasificación de cartera usa?",
+                "texto": "¿Que clasificacion de cartera usa?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "ABCDE", "label": "A/B/C/D/E (Standard SBS)"},
+                    {"valor": "ABCDE", "label": "A/B/C/D/E"},
                     {"valor": "VIGENTE_VENCIDA", "label": "Vigente/Vencida"},
                     {"valor": "OTRO", "label": "Otro"},
                 ],
                 "default": "ABCDE",
                 "critica": True,
-                "afecta_hallazgos": ["A.3", "A.6"],
-                "ayuda": "Clasificación que el banco usa internamente"
+                "ayuda": "Clasificacion interna de riesgo crediticio.",
             },
             {
                 "id": "provisiones_pct",
-                "texto": "% de provisión esperado por clasificación",
+                "texto": "% de provision esperado por clasificacion",
                 "tipo": "text",
                 "placeholder": "0.5,1,2,5,10",
                 "default": "0.5,1,2,5,10",
                 "critica": True,
-                "afecta_hallazgos": ["PROVISION"],
-                "ayuda": "Separado por comas. Ej: 0.5% para A, 1% para B, etc"
-            },
-            {
-                "id": "esta_auditado_sbs",
-                "texto": "¿Está auditado por SBS (Superintendencia)?",
-                "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí"},
-                    {"valor": "NO", "label": "No"},
-                ],
-                "default": "SI",
-                "critica": False,
-                "afecta_hallazgos": [],
-                "ayuda": "Si es SBS, se aplican validaciones regulatorias adicionales"
+                "ayuda": "Separado por comas.",
             },
             {
                 "id": "tiene_obligaciones_publico",
-                "texto": "¿Tiene obligaciones con el público (depósitos)?",
+                "texto": "¿Tiene obligaciones con el publico (depositos)?",
                 "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí"},
-                    {"valor": "NO", "label": "No"},
-                ],
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
                 "default": "SI",
                 "critica": False,
-                "afecta_hallazgos": [],
-                "ayuda": "Determina análisis de liquidez y reservas"
+                "ayuda": "Determina analisis de liquidez y reservas.",
             },
-        ]
+        ],
     },
-
+    "COOPERATIVAS": {
+        "nombre": "Cooperativas / Ahorro y Credito",
+        "preguntas": [
+            {
+                "id": "tipo_cooperativa",
+                "texto": "¿Que tipo de cooperativa es?",
+                "tipo": "select",
+                "opciones": [
+                    {"valor": "AHORRO_CREDITO", "label": "Ahorro y credito"},
+                    {"valor": "PRODUCCION", "label": "Produccion / Servicios"},
+                    {"valor": "CONSUMO", "label": "Consumo"},
+                    {"valor": "OTRO", "label": "Otro"},
+                ],
+                "default": "AHORRO_CREDITO",
+                "critica": True,
+                "ayuda": "Contextualiza cartera, aportes y excedentes.",
+            },
+            {
+                "id": "rango_vencimiento_cartera",
+                "texto": "¿A cuantos dias se considera vencida la cartera de socios?",
+                "tipo": "select",
+                "opciones": [
+                    {"valor": "30", "label": "30 dias"},
+                    {"valor": "60", "label": "60 dias"},
+                    {"valor": "90", "label": "90 dias"},
+                    {"valor": "120", "label": "120 dias"},
+                ],
+                "default": "60",
+                "critica": True,
+                "ayuda": "Calibra mora y provision de cartera social.",
+            },
+            {
+                "id": "tiene_aportes_obligatorios",
+                "texto": "¿Existen aportes obligatorios de socios?",
+                "tipo": "select",
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+                "default": "SI",
+                "critica": False,
+                "ayuda": "Importante para capital social y patrimonializacion.",
+            },
+            {
+                "id": "tiene_beneficios_sociales",
+                "texto": "¿Otorga beneficios sociales, bonos o retornos a socios?",
+                "tipo": "select",
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+                "default": "NO",
+                "critica": False,
+                "ayuda": "Puede afectar provisiones y distribucion de excedentes.",
+            },
+        ],
+    },
     "RETAIL": {
         "nombre": "Retail / Comercio / Distribuidora",
         "preguntas": [
             {
                 "id": "rango_vencimiento_cxc",
-                "texto": "¿A cuántos días se considera CxC vencida?",
+                "texto": "¿A cuantos dias se considera CxC vencida?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "30", "label": "30 días (tiendas modernas)"},
-                    {"valor": "45", "label": "45 días"},
-                    {"valor": "60", "label": "60 días (retail tradicional)"},
-                    {"valor": "90", "label": "90 días"},
+                    {"valor": "30", "label": "30 dias"},
+                    {"valor": "45", "label": "45 dias"},
+                    {"valor": "60", "label": "60 dias"},
+                    {"valor": "90", "label": "90 dias"},
                 ],
                 "default": "60",
                 "critica": True,
-                "afecta_hallazgos": ["A.3", "A.4"],
-                "ayuda": "Retail tiene ciclos más largos que servicios"
+                "ayuda": "Retail suele tener ciclos mas largos que servicios.",
             },
             {
                 "id": "inventario_pct_activos",
-                "texto": "¿Qué % de inventario esperas vs total activos?",
+                "texto": "¿Que % de inventario esperas vs total activos?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "30", "label": "30-40% (bajo)"},
-                    {"valor": "50", "label": "40-60% (normal)"},
-                    {"valor": "70", "label": "60-80% (alto)"},
+                    {"valor": "30", "label": "30-40%"},
+                    {"valor": "50", "label": "40-60%"},
+                    {"valor": "70", "label": "60-80%"},
                     {"valor": "custom", "label": "Personalizado"},
                 ],
                 "default": "50",
                 "critica": True,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "Parámetro clave para detectar desbalances"
+                "ayuda": "Parametro clave para detectar desbalances.",
             },
             {
                 "id": "rotacion_inventario_dias",
-                "texto": "¿Cuántos días debería rotar el inventario?",
+                "texto": "¿Cuantos dias deberia rotar el inventario?",
                 "tipo": "text",
                 "placeholder": "45",
                 "default": "60",
                 "critica": True,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "Ej: retail moda 30-45d, electronics 45-90d, etc"
+                "ayuda": "Ej: moda 30-45d, electronica 45-90d.",
             },
             {
                 "id": "tiene_consignaciones",
-                "texto": "¿Tiene inventario en consignación de proveedores?",
+                "texto": "¿Tiene inventario en consignacion de proveedores?",
                 "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí"},
-                    {"valor": "NO", "label": "No"},
-                ],
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
                 "default": "NO",
                 "critica": False,
-                "afecta_hallazgos": ["CUTOFF"],
-                "ayuda": "Requiere validación especial de cutoff"
+                "ayuda": "Requiere validacion especial de corte.",
             },
-            {
-                "id": "pct_devoluciones_normal",
-                "texto": "% de devoluciones clientes considerado normal",
-                "tipo": "text",
-                "placeholder": "2",
-                "default": "2",
-                "critica": False,
-                "afecta_hallazgos": [],
-                "ayuda": "Por encima de esto = alerta"
-            },
-        ]
+        ],
     },
-
     "SERVICIOS": {
-        "nombre": "Servicios / Consultoría / Legal",
+        "nombre": "Servicios / Consultoria / Legal",
         "preguntas": [
             {
                 "id": "rango_vencimiento_cxc",
-                "texto": "¿A cuántos días se considera CxC vencida?",
+                "texto": "¿A cuantos dias se considera CxC vencida?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "30", "label": "30 días (agresivo)"},
-                    {"valor": "45", "label": "45 días"},
-                    {"valor": "60", "label": "60 días (normal)"},
-                    {"valor": "90", "label": "90 días"},
+                    {"valor": "30", "label": "30 dias"},
+                    {"valor": "45", "label": "45 dias"},
+                    {"valor": "60", "label": "60 dias"},
+                    {"valor": "90", "label": "90 dias"},
                 ],
                 "default": "60",
                 "critica": True,
-                "afecta_hallazgos": ["A.3", "A.4"],
-                "ayuda": "Servicios usualmente tienen 30-60 días de términos"
+                "ayuda": "Servicios suelen tener terminos de 30-60 dias.",
             },
             {
                 "id": "margen_esperado",
@@ -169,91 +364,51 @@ CONFIGURACION_INDUSTRIAS = {
                 "placeholder": "25",
                 "default": "25",
                 "critica": True,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "% margen bruto esperado. Bajo de esto = alerta"
+                "ayuda": "Margen bruto esperado. Bajo de esto = alerta.",
             },
             {
                 "id": "usa_proyectos",
                 "texto": "¿Contabiliza por proyectos?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "SI", "label": "Sí (por proyecto)"},
+                    {"valor": "SI", "label": "Si (por proyecto)"},
                     {"valor": "NO", "label": "No (por cuenta general)"},
                 ],
                 "default": "SI",
                 "critica": True,
-                "afecta_hallazgos": [],
-                "ayuda": "Determina si validar márgenes por proyecto"
-            },
-            {
-                "id": "tiene_servicios_garantia",
-                "texto": "¿Tiene servicios con período de garantía?",
-                "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí"},
-                    {"valor": "NO", "label": "No"},
-                ],
-                "default": "NO",
-                "critica": False,
-                "afecta_hallazgos": ["PROVISION"],
-                "ayuda": "Requiere provisiones por garantías"
+                "ayuda": "Determina si validar margenes por proyecto.",
             },
             {
                 "id": "tiene_anticipos_clientes",
                 "texto": "¿Recibe anticipos de clientes?",
                 "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí"},
-                    {"valor": "NO", "label": "No"},
-                ],
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
                 "default": "SI",
                 "critica": False,
-                "afecta_hallazgos": ["INGRESOS"],
-                "ayuda": "Requiere validación de reconocimiento de ingresos"
+                "ayuda": "Requiere validacion de reconocimiento de ingresos.",
             },
-        ]
+        ],
     },
-
     "MANUFACTURA": {
-        "nombre": "Manufactura / Producción",
+        "nombre": "Manufactura / Produccion",
         "preguntas": [
             {
-                "id": "rango_vencimiento_cxc",
-                "texto": "¿A cuántos días se considera CxC vencida?",
-                "tipo": "select",
-                "opciones": [
-                    {"valor": "30", "label": "30 días"},
-                    {"valor": "45", "label": "45 días"},
-                    {"valor": "60", "label": "60 días (normal)"},
-                    {"valor": "90", "label": "90 días"},
-                ],
-                "default": "60",
-                "critica": True,
-                "afecta_hallazgos": ["A.3", "A.4"],
-                "ayuda": "Manufactura típicamente tiene ciclos 60-90d"
-            },
-            {
                 "id": "rotacion_inventario_dias",
-                "texto": "¿Cuántos días debería rotar el inventario?",
+                "texto": "¿Cuantos dias deberia rotar el inventario?",
                 "tipo": "text",
                 "placeholder": "90",
                 "default": "90",
                 "critica": True,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "Manufactura: 60-120d común"
+                "ayuda": "Manufactura suele tener ciclos mas largos.",
             },
             {
                 "id": "tiene_wip",
                 "texto": "¿Tiene inventario WIP (Work in Process)?",
                 "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí"},
-                    {"valor": "NO", "label": "No"},
-                ],
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
                 "default": "SI",
                 "critica": True,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "Requiere validación de % WIP normal"
+                "ayuda": "Requiere validacion de porcentaje WIP normal.",
             },
             {
                 "id": "pct_wip_normal",
@@ -262,39 +417,23 @@ CONFIGURACION_INDUSTRIAS = {
                 "placeholder": "15",
                 "default": "15",
                 "critica": True,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "Por encima = posible retraso de producción"
+                "ayuda": "Por encima = posible retraso de produccion.",
             },
             {
                 "id": "usa_costos_estandar",
-                "texto": "¿Usa costos estándar vs costo real?",
+                "texto": "¿Usa costos estandar vs costo real?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "ESTANDAR", "label": "Costo estándar"},
+                    {"valor": "ESTANDAR", "label": "Costo estandar"},
                     {"valor": "REAL", "label": "Costo real"},
                     {"valor": "PROMEDIO", "label": "Costo promedio"},
                 ],
                 "default": "REAL",
                 "critica": True,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "Método de valoración de inventario"
+                "ayuda": "Metodo de valuacion de inventario.",
             },
-            {
-                "id": "tiene_bienes_construccion",
-                "texto": "¿Tiene bienes en construcción (capex)?",
-                "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí"},
-                    {"valor": "NO", "label": "No"},
-                ],
-                "default": "SI",
-                "critica": False,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "Requiere validación de tiempo en construcción"
-            },
-        ]
+        ],
     },
-
     "HOLDING": {
         "nombre": "Holding / Grupo Empresarial",
         "preguntas": [
@@ -305,97 +444,121 @@ CONFIGURACION_INDUSTRIAS = {
                 "placeholder": "10",
                 "default": "10",
                 "critica": True,
-                "afecta_hallazgos": ["B.2"],
-                "ayuda": "Por encima = riesgo de concentración"
+                "ayuda": "Por encima = riesgo de concentracion.",
             },
             {
                 "id": "usa_equity_method",
-                "texto": "¿Usa método de equity para inversiones?",
+                "texto": "¿Usa metodo de equity para inversiones?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "SI", "label": "Sí (costo o equity)"},
+                    {"valor": "SI", "label": "Si (costo o equity)"},
                     {"valor": "NO", "label": "No (solo costo)"},
                 ],
                 "default": "SI",
                 "critica": True,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "NIIF requiere validar método de consolidación"
+                "ayuda": "NIIF requiere validar metodo de consolidacion.",
             },
             {
                 "id": "tiene_cambios_control",
-                "texto": "¿Hubo adquisiciones/ventas en el período?",
+                "texto": "¿Hubo adquisiciones/ventas en el periodo?",
                 "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí"},
-                    {"valor": "NO", "label": "No"},
-                ],
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
                 "default": "NO",
                 "critica": True,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "Cambios de control requieren impairment analysis"
-            },
-            {
-                "id": "centraliza_deuda",
-                "texto": "¿Centraliza deuda de grupo o descentralizada?",
-                "tipo": "select",
-                "opciones": [
-                    {"valor": "CENTRALIZADA", "label": "Centralizada (holding financia)"},
-                    {"valor": "DESCENTRALIZADA", "label": "Descentralizada (cada empresa)"},
-                ],
-                "default": "CENTRALIZADA",
-                "critica": False,
-                "afecta_hallazgos": [],
-                "ayuda": "Afecta análisis de transacciones relacionadas"
+                "ayuda": "Cambios de control requieren impairment analysis.",
             },
             {
                 "id": "tiene_garantias_pasivos",
                 "texto": "¿Holding garantiza pasivos de controladas?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "SI", "label": "Sí"},
+                    {"valor": "SI", "label": "Si"},
                     {"valor": "NO", "label": "No"},
                     {"valor": "PARCIALMENTE", "label": "Parcialmente"},
                 ],
                 "default": "SI",
                 "critica": False,
-                "afecta_hallazgos": ["CONTINGENCIAS"],
-                "ayuda": "Requiere análisis de pasivos contingentes"
+                "ayuda": "Requiere analisis de pasivos contingentes.",
             },
-        ]
+        ],
     },
-
+    "FIDEICOMISOS": {
+        "nombre": "Fideicomisos / Patrimonios Autonomos",
+        "preguntas": [
+            {
+                "id": "tipo_fideicomiso",
+                "texto": "¿Que tipo de fideicomiso es?",
+                "tipo": "select",
+                "opciones": [
+                    {"valor": "MERCANTIL", "label": "Mercantil"},
+                    {"valor": "INMOBILIARIO", "label": "Inmobiliario"},
+                    {"valor": "GARANTIA", "label": "Garantia"},
+                    {"valor": "ADMINISTRACION", "label": "Administracion"},
+                    {"valor": "OTRO", "label": "Otro"},
+                ],
+                "default": "ADMINISTRACION",
+                "critica": True,
+                "ayuda": "Ayuda a entender la naturaleza economica del patrimonio.",
+            },
+            {
+                "id": "administra_recursos_terceros",
+                "texto": "¿Administra recursos de terceros o beneficiarios?",
+                "tipo": "select",
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+                "default": "SI",
+                "critica": True,
+                "ayuda": "Determina trazabilidad y segregacion de fondos.",
+            },
+            {
+                "id": "tiene_bienes_fideicomitidos",
+                "texto": "¿Existen bienes fideicomitidos o activos administrados?",
+                "tipo": "select",
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+                "default": "SI",
+                "critica": True,
+                "ayuda": "Requiere controles especiales sobre activos administrados.",
+            },
+            {
+                "id": "ingresos_por_comision",
+                "texto": "¿Reconoce ingresos por comisiones, administracion o estructuracion?",
+                "tipo": "select",
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
+                "default": "SI",
+                "critica": False,
+                "ayuda": "Importante para corte y reconocimiento por servicios prestados.",
+            },
+        ],
+    },
     "SALUD": {
-        "nombre": "Salud / Clínica / Hospital / Farmacéutica",
+        "nombre": "Salud / Clinica / Hospital / Farmaceutica",
         "preguntas": [
             {
                 "id": "rango_vencimiento_cxc",
-                "texto": "¿A cuántos días se considera CxC vencida?",
+                "texto": "¿A cuantos dias se considera CxC vencida?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "30", "label": "30 días"},
-                    {"valor": "45", "label": "45 días"},
-                    {"valor": "60", "label": "60 días (pacientes)"},
-                    {"valor": "90", "label": "90 días (seguros)"},
+                    {"valor": "30", "label": "30 dias"},
+                    {"valor": "45", "label": "45 dias"},
+                    {"valor": "60", "label": "60 dias (pacientes)"},
+                    {"valor": "90", "label": "90 dias (seguros)"},
                 ],
                 "default": "60",
                 "critica": True,
-                "afecta_hallazgos": ["A.3", "A.4"],
-                "ayuda": "Salud: pacientes 30d, seguros pueden ser 60-90d"
+                "ayuda": "Pacientes 30d, seguros pueden ser 60-90d.",
             },
             {
                 "id": "tipo_entidad_salud",
                 "texto": "¿Tipo de entidad de salud?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "CLINICA", "label": "Clínica pequeña"},
+                    {"valor": "CLINICA", "label": "Clinica"},
                     {"valor": "HOSPITAL", "label": "Hospital"},
-                    {"valor": "FARMACEUTICA", "label": "Farmacéutica"},
+                    {"valor": "FARMACEUTICA", "label": "Farmaceutica"},
                     {"valor": "OTRO", "label": "Otro"},
                 ],
                 "default": "CLINICA",
                 "critica": True,
-                "afecta_hallazgos": [],
-                "ayuda": "Cada tipo tiene riesgos diferentes"
+                "ayuda": "Cada tipo tiene riesgos diferentes.",
             },
             {
                 "id": "pct_seguros_vs_pacientes",
@@ -404,70 +567,49 @@ CONFIGURACION_INDUSTRIAS = {
                 "placeholder": "70",
                 "default": "70",
                 "critica": True,
-                "afecta_hallazgos": ["A.4"],
-                "ayuda": "Alto % seguros = CxC más largo"
-            },
-            {
-                "id": "tiene_medicinas_vencidas",
-                "texto": "¿Hay rotación lenta de medicinas?",
-                "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí (riesgo de vencimiento)"},
-                    {"valor": "NO", "label": "No (rotación rápida)"},
-                ],
-                "default": "SI",
-                "critica": False,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "Requiere validación de obsolescencia"
+                "ayuda": "Alto % seguros = CxC mas largo.",
             },
             {
                 "id": "usa_arco_norm",
-                "texto": "¿Está regulado por ARCO o SBS?",
+                "texto": "¿Esta regulado por ARCO o SBS?",
                 "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí"},
-                    {"valor": "NO", "label": "No"},
-                ],
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
                 "default": "NO",
                 "critica": False,
-                "afecta_hallazgos": [],
-                "ayuda": "Regulación adicional requiere validaciones extra"
+                "ayuda": "Regulacion adicional requiere validaciones extra.",
             },
-        ]
+        ],
     },
-
     "EDUCACION": {
-        "nombre": "Educación / Universidad / Colegio",
+        "nombre": "Educacion / Universidad / Colegio",
         "preguntas": [
             {
                 "id": "rango_vencimiento_pensiones",
-                "texto": "¿A cuántos meses se considera pensión vencida?",
+                "texto": "¿A cuantos meses se considera pension vencida?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "1", "label": "1 mes (muy estricto)"},
-                    {"valor": "2", "label": "2 meses (estándar)"},
-                    {"valor": "3", "label": "3 meses (flexible)"},
+                    {"valor": "1", "label": "1 mes"},
+                    {"valor": "2", "label": "2 meses"},
+                    {"valor": "3", "label": "3 meses"},
                     {"valor": "6", "label": "6 meses"},
                 ],
                 "default": "3",
                 "critica": True,
-                "afecta_hallazgos": ["A.3", "A.4"],
-                "ayuda": "Educación: pensiones 30-90d común"
+                "ayuda": "Educacion: pensiones 30-90d comun.",
             },
             {
                 "id": "tipo_institucion",
-                "texto": "¿Tipo de institución?",
+                "texto": "¿Tipo de institucion?",
                 "tipo": "select",
                 "opciones": [
-                    {"valor": "COLEGIO", "label": "Colegio (K-12)"},
+                    {"valor": "COLEGIO", "label": "Colegio"},
                     {"valor": "UNIVERSIDAD_PRIVADA", "label": "Universidad privada"},
-                    {"valor": "INSTITUTO", "label": "Instituto técnico"},
+                    {"valor": "INSTITUTO", "label": "Instituto tecnico"},
                     {"valor": "OTRO", "label": "Otro"},
                 ],
                 "default": "COLEGIO",
                 "critica": True,
-                "afecta_hallazgos": [],
-                "ayuda": "Cada tipo tiene estructura financiera diferente"
+                "ayuda": "Cada tipo tiene estructura financiera diferente.",
             },
             {
                 "id": "pct_becas",
@@ -476,58 +618,46 @@ CONFIGURACION_INDUSTRIAS = {
                 "placeholder": "20",
                 "default": "20",
                 "critica": True,
-                "afecta_hallazgos": ["A.4"],
-                "ayuda": "Alto = menor cobranza, mayor provisión"
+                "ayuda": "Alto = menor cobranza, mayor provision.",
             },
             {
                 "id": "tiene_endowment",
                 "texto": "¿Tiene endowment o fondo patrimonial?",
                 "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí"},
-                    {"valor": "NO", "label": "No"},
-                ],
+                "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
                 "default": "NO",
                 "critica": False,
-                "afecta_hallazgos": ["A.5"],
-                "ayuda": "Requiere valuación especial"
+                "ayuda": "Requiere valuacion especial.",
             },
-            {
-                "id": "tiene_investigacion",
-                "texto": "¿Tiene ingresos por investigación?",
-                "tipo": "select",
-                "opciones": [
-                    {"valor": "SI", "label": "Sí"},
-                    {"valor": "NO", "label": "No"},
-                ],
-                "default": "NO",
-                "critica": False,
-                "afecta_hallazgos": ["INGRESOS"],
-                "ayuda": "Requiere validación de ingresos diferidos"
-            },
-        ]
+        ],
     },
 }
 
 
 def obtener_preguntas(tipo_entidad: str) -> dict | None:
     """
-    Obtiene preguntas para un tipo de entidad
+    Obtiene preguntas para un tipo de entidad.
 
-    Args:
-        tipo_entidad: BANCO, RETAIL, SERVICIOS, MANUFACTURA, HOLDING, SALUD, EDUCACION
-
-    Returns:
-        Dict con preguntas o None si tipo no existe
+    Para cualquier tipo especifico, mezcla preguntas generales + preguntas del tipo.
+    Si tipo_entidad es GENERAL, devuelve solo la base general.
     """
-    return CONFIGURACION_INDUSTRIAS.get(tipo_entidad)
+    tipo_upper = (tipo_entidad or "").upper().strip()
+    if tipo_upper == "GENERAL":
+        return {
+            "nombre": "Configuracion general del encargo",
+            "preguntas": deepcopy(GENERAL_QUESTIONS),
+        }
+
+    configuracion = CONFIGURACION_INDUSTRIAS.get(tipo_upper)
+    if not configuracion:
+        return None
+
+    return {
+        "nombre": f"Configuracion general + {configuracion['nombre']}",
+        "preguntas": _merge_questions(GENERAL_QUESTIONS, configuracion.get("preguntas", [])),
+    }
 
 
 def obtener_tipos_entidad() -> list:
-    """
-    Obtiene lista de todos los tipos de entidad soportados
-    """
-    return [
-        {"tipo": k, "nombre": v["nombre"]}
-        for k, v in CONFIGURACION_INDUSTRIAS.items()
-    ]
+    """Obtiene lista de todos los tipos de entidad soportados."""
+    return [{"tipo": k, "nombre": v["nombre"]} for k, v in CONFIGURACION_INDUSTRIAS.items()]

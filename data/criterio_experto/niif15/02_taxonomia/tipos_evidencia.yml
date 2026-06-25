@@ -1,0 +1,283 @@
+---
+nombre: Tipos de Evidencia para Auditoría de NIIF 15
+version: 1.0
+estado: framework universal, checklist para auditor
+descripcion: Qué documentos, actas y registros buscar para validar cada paso de NIIF 15
+
+evidencia_por_paso:
+
+  paso_1_identificar_contrato:
+
+    documentos_primarios:
+      - nombre: Contrato Formal
+        descripcion: Acuerdo escrito firmado por ambas partes
+        dónde_buscar: Archivo del cliente, email, portal de contratos
+        qué_validar: Firmas auténticas, fecha, partes identificadas, precio claro
+        riesgo_si_no_existe: Ingreso sin contrato identificable
+
+      - nombre: Orden de Compra (OC) del Cliente
+        descripcion: Cliente emite OC que cliente reconoce contrato
+        dónde_buscar: Email del cliente o portal de órdenes
+        qué_validar: Fecha OC, descripción de bien/servicio, precio
+        riesgo_si_no_existe: Contrato implícito (es válido pero requiere más evidencia)
+
+      - nombre: Propuesta o Cotización Aceptada
+        descripcion: Vendedor envía propuesta, cliente responde "aceptado" o firma
+        dónde_buscar: Email del vendedor, archivo de propuestas
+        qué_validar: Fecha de aceptación, aceptación explícita por cliente
+        riesgo_si_no_existe: Contrato verbal o implícito
+
+      - nombre: Email de Confirmación del Contrato
+        descripcion: Resumen escrito del acuerdo enviado por email y confirmado
+        dónde_buscar: Correo electrónico (auditar copia)
+        qué_validar: Partes del contrato confirmadas, aceptación cliente
+        riesgo_si_no_existe: Contrato muy implícito, riesgo de disputa
+
+    documentos_secundarios:
+      - nombre: Factura Inicial
+        descripcion: Primera factura del contrato (evidencia de cumplimiento acordado)
+        dónde_buscar: Contabilidad, registro de ventas
+        qué_validar: Descripción de bien/servicio, precio, cliente
+        riesgo_si_no_existe: Si es venta sin factura (contrato verbal)
+
+      - nombre: Confirmación de Cliente de Requisitos
+        descripcion: Email o acta donde cliente confirma que entendió el alcance
+        dónde_buscar: Email, acta de reunión
+        qué_validar: Especificación de bien/servicio, plazo, cliente firmó
+        riesgo_si_no_existe: Disputa sobre alcance
+
+    validaciones_auditoria:
+      - ¿Existe contrato documentado?
+      - ¿Partes son identificables?
+      - ¿Hay evidencia de que cliente aceptó?
+      - ¿Precio es claro (fijo, variable pero calculable)?
+      - ¿Hay probabilidad razonable de cobro?
+
+  paso_2_identificar_obligaciones:
+
+    documentos_primarios:
+      - nombre: Matriz de Obligaciones
+        descripcion: Documento que lista y describe cada obligación separable
+        dónde_buscar: Archivo del cliente (si cliente lo preparó) o archivo de vendedor
+        qué_validar: Cada obligación separada, descripción de cumplimiento
+        riesgo_si_no_existe: HALLAZGO - Obligaciones no están separadas, mezclan servicios
+
+      - nombre: Especificación Técnica de Obligaciones
+        descripcion: Detalle de qué entrega cada obligación, cuándo, cómo
+        dónde_buscar: Anexo a contrato, acta de requerimientos
+        qué_validar: Cada obligación tiene criterio de cumplimiento claro
+        riesgo_si_no_existe: No está claro cuándo se cumple, cliente puede disputar
+
+      - nombre: Acta de Análisis de Requerimientos
+        descripcion: Cliente y vendedor firman acta especificando obligaciones
+        dónde_buscar: Acta de reunión
+        qué_validar: Firmada por ambas partes, lista cada obligación, fechas de cumplimiento
+        riesgo_si_no_existe: Cliente después dice "yo no pedí eso"
+
+      - nombre: Contrato Especificando Fases/Hitos
+        descripcion: Contrato detalla cada obligación como fase (construcción, desarrollo)
+        dónde_buscar: Anexo técnico del contrato
+        qué_validar: Cada fase tiene descripción, fecha esperada, criterio de aceptación
+        riesgo_si_no_existe: Obligaciones no están claramente separadas
+
+    validaciones_auditoria:
+      - ¿Cuántas obligaciones separables hay?
+      - ¿Cada una está documentada (especificación, plazo, cumplimiento)?
+      - ¿Cliente está de acuerdo (acta de requerimientos)?
+      - ¿Obligaciones están en contrato o anexo?
+
+  paso_3_determinar_precio_transaccion:
+
+    documentos_primarios:
+      - nombre: Contrato con Precio Fijo
+        descripcion: Contrato especifica monto exacto a pagar
+        dónde_buscar: Clausula de precio en contrato
+        qué_validar: Moneda clara, monto exacto
+        riesgo_si_no_existe: Precio incierto
+
+      - nombre: Fórmula de Precio Variable
+        descripcion: Si precio es variable, contrato tiene fórmula clara
+        dónde_buscar: Clausula de precio en contrato
+        qué_validar: Fórmula es objetiva (ej. "costo horario USD 50 × horas")
+        riesgo_si_no_existe: Precio incierto, auditor debe estimar
+
+      - nombre: Aprobación de Cliente del Presupuesto
+        descripcion: Cliente acepta precio propuesto
+        dónde_buscar: Email, OC, contrato firmado
+        qué_validar: Cliente confirmó precio
+        riesgo_si_no_existe: Disputa sobre precio
+
+    documentos_secundarios:
+      - nombre: Análisis de Descuentos
+        descripcion: Documento que detalla descuentos acordados (por pago anticipado, volumen, etc.)
+        dónde_buscar: Contrato o política de descuentos
+        qué_validar: Descuento está documentado, cumplimiento de condición
+        riesgo_si_no_existe: HALLAZGO - Descuento no se restó del ingreso
+
+      - nombre: Análisis de Devoluciones Estimadas
+        descripcion: Si hay derecho a devolución, análisis de % esperado
+        dónde_buscar: Historia de devoluciones de cliente, benchmarking de sector
+        qué_validar: % estimado es razonable (vs. histórico o industria)
+        riesgo_si_no_existe: HALLAZGO - No se estimó devolución
+
+      - nombre: Análisis de Retención de Cliente
+        descripcion: Si cliente retiene % (construcción, servicios), documento de % y plazo
+        dónde_buscar: Contrato, cláusula de pago
+        qué_validar: % y plazo de liberación están claros
+        riesgo_si_no_existe: HALLAZGO - No se redujo ingreso por retención
+
+      - nombre: Análisis de Bonificaciones o Precio Contingente
+        descripcion: Si hay bonificación futura (ej. "USD 5k si cliente usa 100k horas"), análisis de probabilidad
+        dónde_buscar: Contrato, acta de condiciones
+        qué_validar: Probabilidad de cumplimiento de condición
+        riesgo_si_no_existe: HALLAZGO - Bonificación reconocida sin probabilidad
+
+    validaciones_auditoria:
+      - ¿Cuál es el monto que realmente se cobrará?
+      - ¿Descuentos, retenciones, devoluciones fueron restados?
+      - ¿Variables (bonificaciones) fueron estimadas?
+      - ¿Precio está actualizado (cambios de contrato)?
+
+  paso_4_asignar_precio_a_obligaciones:
+
+    documentos_primarios:
+      - nombre: Matriz de Asignación de Precio
+        descripcion: Documento que distribuye precio total entre cada obligación
+        dónde_buscar: Archivo de cliente o vendedor
+        qué_validar: Cada obligación tiene monto asignado; suma = precio total
+        riesgo_si_no_existe: HALLAZGO - Asignación no documentada
+
+      - nombre: Base de Asignación (Precios Observables)
+        descripcion: Si obligación se vende por separado, precio de mercado
+        dónde_buscar: Listado de precios de vendedor, ofertas a otros clientes
+        qué_validar: Precio observable es confiable y reciente
+        riesgo_si_no_existe: Se debe estimar (siguiente)
+
+      - nombre: Estimación de Precios (si no hay observable)
+        descripcion: Análisis de costo + margen o benchmarking de mercado
+        dónde_buscar: Archivo de estimaciones, análisis de costo
+        qué_validar: Estimación es razonable, documentada
+        riesgo_si_no_existe: HALLAZGO - Asignación arbitraria
+
+    validaciones_auditoria:
+      - ¿Cómo se asignó precio entre obligaciones?
+      - ¿La base (observable o estimada) está documentada?
+      - ¿Suma de obligaciones = Precio de transacción?
+      - ¿Cambios de contrato actualizaron la matriz?
+
+  paso_5_reconocer_ingreso:
+
+    documentos_para_punto_en_tiempo:
+      - nombre: Acta de Entrega
+        descripcion: Documento de que cliente recibió bien físico
+        dónde_buscar: Acta de entrega del transportista o cliente
+        qué_validar: Fecha de entrega, firma de cliente, bien identificado
+        riesgo_si_no_existe: HALLAZGO - Ingreso sin evidencia de entrega
+
+      - nombre: Acta de Aceptación
+        descripcion: Cliente firma aceptando cumplimiento (especialmente para servicios)
+        dónde_buscar: Acta de reunión, email de aceptación, certificado
+        qué_validar: Fecha de aceptación, firma de cliente (no ejecutor)
+        riesgo_si_no_existe: HALLAZGO - Ingreso sin evidencia de aceptación
+
+      - nombre: Certificado de Funcionamiento
+        descripcion: Para bien con instalación, certificado de que funciona
+        dónde_buscar: Certificado de técnico
+        qué_validar: Fecha de certificado, bien funciona
+        riesgo_si_no_existe: HALLAZGO - Ingreso sin evidencia de funcionamiento
+
+      - nombre: Email de Confirmación del Cliente
+        descripcion: Cliente confirma por email que recibió/aceptó
+        dónde_buscar: Correo electrónico
+        qué_validar: Fecha email, confirmación clara
+        riesgo_si_no_existe: Cumplimiento implícito (más riesgo)
+
+    documentos_para_sobre_tiempo_lineal:
+      - nombre: Contrato de Servicio con Plazo
+        descripcion: Especifica plazo total (ej. "24 meses") y monto total
+        dónde_buscar: Contrato
+        qué_validar: Plazo claro, monto total
+        riesgo_si_no_existe: No se puede calcular reconocimiento lineal
+
+      - nombre: Acta de Disponibilidad Periódica
+        descripcion: Acta (mensual o por período) que servicio estuvo disponible
+        dónde_buscar: Acta de reunión, reporte periódico
+        qué_validar: Cada período tiene acta; si faltó período, servicio no fue disponible
+        riesgo_si_no_existe: HALLAZGO - Reconocimiento lineal sin evidencia de prestación
+
+      - nombre: Factura Periódica
+        descripcion: Factura mensual o periódica de servicio
+        dónde_buscar: Registro de ventas
+        qué_validar: Cada período tiene factura; montos son iguales (lineal)
+        riesgo_si_no_existe: No hay evidencia de facturación periódica
+
+      - nombre: Cálculo de Reconocimiento Lineal
+        descripcion: Documento que muestra: precio total ÷ períodos = ingreso por período
+        dónde_buscar: Archivo del cliente
+        qué_validar: Fórmula es correcta; se aplicó consistentemente
+        riesgo_si_no_existe: HALLAZGO - Reconocimiento lineal no documentado
+
+    documentos_para_sobre_tiempo_por_avance:
+      - nombre: Contrato Especificando Fases/Hitos
+        descripcion: Fases o hitos con descripción y fecha esperada
+        dónde_buscar: Anexo técnico del contrato
+        qué_validar: Cada fase está descrita; criterio de aceptación
+        riesgo_si_no_existe: HALLAZGO - Fases no están claras
+
+      - nombre: Acta de Avance por Fase
+        descripcion: Acta (mensual o por hito) que especifica % cumplido
+        dónde_buscar: Acta de reunión con cliente/supervisor
+        qué_validar: Firma de cliente/supervisor (no solo ejecutor)
+        riesgo_si_no_existe: HALLAZGO - % avance no está documentado
+
+      - nombre: Evidencia de Cumplimiento de Fase
+        descripcion: Foto, demo, certificado, o documento que prueba que fase se completó
+        dónde_buscar: Archivo técnico
+        qué_validar: Evidencia es clara (no es solo "sí, completado")
+        riesgo_si_no_existe: HALLAZGO - Avance estimado sin evidencia física
+
+      - nombre: Acta de Aceptación de Fase
+        descripcion: Cliente firma aceptando que fase cumple especificación
+        dónde_buscar: Acta de reunión
+        qué_validar: Firma de cliente, fecha de aceptación
+        riesgo_si_no_existe: HALLAZGO - Fase sin aceptación formal
+
+      - nombre: Cálculo de Ingreso por Avance
+        descripcion: Documento: % avance × precio total = ingreso a reconocer
+        dónde_buscar: Archivo del cliente
+        qué_validar: Fórmula es correcta; % avance se apoya en acta
+        riesgo_si_no_existe: HALLAZGO - Ingreso por avance no documentado
+
+      - nombre: Control de Cambios (RFCs)
+        descripcion: Si hubo cambios de especificación, órdenes de cambio
+        dónde_buscar: Archivo de cambios
+        qué_validar: Cambio fue autorizado; afectó % avance o precio
+        riesgo_si_no_existe: HALLAZGO - Cambios no documentados; riesgo de ingreso incorrecto
+
+checklist_universal:
+
+  antes_de_reconocer_ingreso:
+    - ¿Existe contrato documentado?
+    - ¿Cliente aceptó el contrato?
+    - ¿Hay evidencia de CUMPLIMIENTO (acta, certificado, factura)?
+    - ¿La fecha de cumplimiento está documentada?
+    - ¿El precio es correcto (con descuentos, retenciones aplicados)?
+    - ¿La obligación está separada y documentada?
+    - ¿El método de reconocimiento es correcto (punto vs. tiempo)?
+
+  durante_la_auditoria:
+    - ¿Seleccionaste muestra representativa de contratos?
+    - ¿Para cada contrato, validaste los 5 pasos?
+    - ¿Comparaste fecha de cumplimiento vs. fecha de asiento contable?
+    - ¿Buscaste ingresos sin evidencia de cumplimiento?
+    - ¿Validaste que devoluciones, retenciones, bonificaciones fueron aplicadas?
+    - ¿Revisaste cambios de contrato y cómo afectaron ingreso?
+
+  preguntas_de_riesgo:
+    - ¿Encontraste ingresos sin acta/certificado de cumplimiento?
+    - ¿Hay actas anteriores a cumplimiento real (ingreso anticipado)?
+    - ¿Hay servicios no prestados pero ingreso ya reconocido?
+    - ¿Hay devoluciones, retenciones o bonificaciones no descontadas?
+    - ¿Hay obligaciones no separadas (todas como una)?
+    - ¿Hay disputas pendientes (cliente reclama incumplimiento)?
+

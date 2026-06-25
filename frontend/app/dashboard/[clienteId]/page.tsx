@@ -11,6 +11,7 @@ import { PeriodoComparador } from "../../../components/periodo-selector/PeriodoC
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
 import { useLearningRole } from "../../../lib/hooks/useLearningRole";
+import Link from "next/link";
 
 const DashboardSocio = dynamic(() => import("../../../components/dashboard/views/DashboardSocio"), {
   loading: () => <DashboardSkeleton />,
@@ -73,6 +74,22 @@ export default function DashboardClientePage() {
     <div className="space-y-8 pb-8">
       <AlertsBanner />
       <FeedbackCard />
+      <section className="sovereign-card flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold">Ajustes del cliente</p>
+          <h2 className="font-headline text-2xl text-[#041627] mt-1">Ajustar contexto del negocio</h2>
+          <p className="text-sm text-slate-600 mt-2">
+            Desde aquí puedes volver a los ajustes específicos del cliente sin salir del dashboard.
+          </p>
+        </div>
+        <Link
+          href={`/configuracion/${clienteId}`}
+          className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-white text-sm font-semibold"
+          style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}
+        >
+          Abrir ajustes
+        </Link>
+      </section>
       {materialidadPorArea.length > 0 ? (
         <section className="sovereign-card">
           <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500 font-bold mb-2">Materialidad por area</p>

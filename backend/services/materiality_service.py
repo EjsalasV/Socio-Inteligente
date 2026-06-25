@@ -78,7 +78,7 @@ def calculate_materiality(cliente_ingresos: float, areas_aplicables: list[dict[s
         area_name = str(area.get("nombre") or f"Area {area_code}").strip()
         percentage = _area_percentage(area_code)
         suggested = ingreso_base * percentage
-        if minimum_threshold > 0:
+        if minimum_threshold > 0 and minimum_threshold <= ingreso_base:
             suggested = max(suggested, minimum_threshold)
         out.append(
             {
@@ -91,4 +91,3 @@ def calculate_materiality(cliente_ingresos: float, areas_aplicables: list[dict[s
         )
 
     return out
-

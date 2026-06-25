@@ -1,0 +1,266 @@
+---
+nombre: Tipos de Obligaciones de Desempeño bajo NIIF 15
+version: 1.0
+estado: framework universal, aplicable a todos los sectores
+descripcion: Clasificación de obligaciones según naturaleza y cumplimiento
+
+categorias:
+
+  # BIENES TANGIBLES
+  bien_tangible_entrega:
+    nombre: Bien Tangible - Entrega Física
+    descripcion: Cliente recibe control de bien físico (equipo, maquinaria, inventario)
+    metodo_reconocimiento: punto_en_tiempo
+    evento_cumplimiento: Entrega física + aceptación cliente
+    evidencia_tipica:
+      - Acta de entrega
+      - Acta de aceptación
+      - Documento de transporte
+      - Firma cliente en recepción
+    riesgos_tipicos:
+      - Ingreso antes de cumplimiento
+      - Control interpretado mal (cliente rechaza post-entrega)
+      - Devolucion no estimada
+    sectores: bienes, retail, construccion
+    ejemplos:
+      - Venta de equipo para manufactura
+      - Venta de maquinaria
+      - Entrega de inventario a distribuidor
+
+  bien_tangible_con_instalacion:
+    nombre: Bien Tangible + Instalación
+    descripcion: Bien que requiere servicio separable de instalación/setup
+    metodo_reconocimiento: punto_en_tiempo (si instalacion es simple) o sobre_tiempo (si es compleja)
+    evento_cumplimiento: Instalación completada + acta de funcionamiento
+    evidencia_tipica:
+      - Contrato de venta
+      - Contrato/acta de instalación
+      - Acta de funcionamiento (bien operativo)
+      - Certificado de técnico
+    riesgos_tipicos:
+      - No separar instalación como obligación
+      - Reconocer ingreso antes de que funcione
+      - Instalación demorada y cliente rechaza
+    sectores: bienes, servicios, construccion
+    ejemplos:
+      - Equipo + instalación compleja (reactor, línea de producción)
+      - Software + implementación
+      - Máquina + calibración
+
+  # SERVICIOS LINEAL (PERÍODO)
+  servicio_lineal_periodo:
+    nombre: Servicio Lineal por Período
+    descripcion: Obligación de proporcionar servicio continuo durante plazo (contrato activo)
+    metodo_reconocimiento: sobre_tiempo_lineal
+    evento_cumplimiento: Cada mes (o período) que pase y cliente reciba servicio
+    evidencia_tipica:
+      - Contrato de servicios con plazo claro
+      - Factura periódica (mensual, trimestral)
+      - Acta de disponibilidad/funcionamiento del servicio
+      - Reporte de horas trabajadas o actividad
+    riesgos_tipicos:
+      - Reconocer todo en mes 1 en lugar de linealmente
+      - Falta evidencia de que servicio se prestó cada período
+      - Cliente reclama que servicio fue deficiente, no pagó
+    sectores: servicios, construccion
+    ejemplos:
+      - Mantenimiento de máquina (24 meses)
+      - Soporte técnico (anual)
+      - Servicio de outsourcing (3 años)
+      - Garantía de producto (período específico)
+      - Suscripción SaaS (mensual)
+
+  # SERVICIOS POR AVANCE
+  servicio_por_avance:
+    nombre: Servicio por Avance / Hito
+    descripcion: Obligación de completar servicio entregable por entregable (construcción, desarrollo por fases)
+    metodo_reconocimiento: sobre_tiempo_por_avance
+    evento_cumplimiento: Cada hito/fase completada y aceptada
+    evidencia_tipica:
+      - Contrato con especificación de fases
+      - Acta de avance por hito (% cumplido)
+      - Acta de aceptación de hito
+      - Certificado de supervisor (en construcción)
+      - Demo de funcionalidad (en desarrollo)
+    riesgos_tipicos:
+      - Reconocer ingreso por hito sin acta de cumplimiento
+      - % de avance estimado vs. real
+      - Cliente rechaza hito (pero ya reconociste ingreso)
+      - Cambios de especificación no reflejados en % avance
+    sectores: servicios, construccion
+    ejemplos:
+      - Desarrollo de software (3 fases)
+      - Obra de construcción (5 fases)
+      - Consultoría (por entregables)
+      - Diseño (por iteraciones aceptadas)
+
+  servicio_licencia_software:
+    nombre: Licencia de Software / Acceso
+    descripcion: Derecho a usar software o plataforma durante período (no implementación, solo licencia)
+    metodo_reconocimiento: punto_en_tiempo (activación) o sobre_tiempo_lineal (suscripción recurrente)
+    evento_cumplimiento: Activación de credenciales o cada período de suscripción activa
+    evidencia_tipica:
+      - Contrato de licencia
+      - Email de activación o credenciales
+      - Factura de período
+      - Reporte de usuarios activos
+    riesgos_tipicos:
+      - Confundir licencia con implementación (son obligaciones separables)
+      - Reconocer anticipo de 12 meses sin devengar mensual
+      - Cliente no utiliza, pero contrato estaba vigente
+    sectores: servicios, tecnologia
+    ejemplos:
+      - Licencia Microsoft 365 (anual o mensual)
+      - Suscripción SaaS
+      - Acceso a plataforma digital
+      - Licencia ERP (con actualizaciones anuales)
+
+  # DEVOLUCIONES Y RETORNOS
+  venta_con_devolucion_estimada:
+    nombre: Venta con Derecho de Devolución
+    descripcion: Cliente puede retornar producto dentro de plazo (% variable estimado)
+    metodo_reconocimiento: punto_en_tiempo (al retorno, no al inicio)
+    evento_cumplimiento: Venta finaliza cuando plazo de retorno vence o cliente confirma retención
+    evidencia_tipica:
+      - Contrato especificando % retorno esperado
+      - Análisis histórico de tasas retorno
+      - Póliza de devolución
+      - Registros de devoluciones efectivas
+    riesgos_tipicos:
+      - Reconocer ingreso por monto full sin estimar devoluciones
+      - Tasa de devolución estimada vs. real (cambio material)
+      - Cliente deja pasar plazo pero luego disputa
+    sectores: retail, comercio
+    ejemplos:
+      - Venta retail con 30 días de retorno
+      - Distribución con "derecho de retorno no movido"
+      - Venta en consignación
+
+  venta_con_retencion:
+    nombre: Venta con Retención de Cliente
+    descripcion: Cliente retiene % de pago hasta cierre, certificación o cumplimiento futuro
+    metodo_reconocimiento: punto_en_tiempo (en fecha cumplimiento total, o sobre_tiempo si retención es por período)
+    evento_cumplimiento: Retención se libera (cierre de obra, certificación, plazo vencido)
+    evidencia_tipica:
+      - Contrato especificando % retención y plazo
+      - Factura con descuento por retención
+      - Acta de cierre
+      - Certificado de supervisor o cliente
+    riesgos_tipicos:
+      - Reconocer 100% en lugar de monto neto (sin retención)
+      - Retención no liberada y cliente no pagó pasivo
+      - Retención que "nunca se libera" (disputa permanente)
+    sectores: construccion, bienes, servicios
+    ejemplos:
+      - Construcción con retención 5% hasta cierre
+      - Servicios con retención 10% por 1 año
+      - Bienes con retención hasta comprobar funcionamiento
+
+  # GARANTÍAS
+  garantia_con_obligacion:
+    nombre: Garantía / Warranty
+    descripcion: Obligación implícita o explícita de garantizar producto durante plazo
+    metodo_reconocimiento: sobre_tiempo_lineal (durante plazo de garantía)
+    evento_cumplimiento: Cada día que producto está cubierto por garantía
+    evidencia_tipica:
+      - Contrato especificando cobertura garantía
+      - Certificado de garantía
+      - Póliza de seguros (si tercero cubre)
+      - Registros de reclamaciones
+    riesgos_tipicos:
+      - No separar garantía como obligación separable
+      - Pasivo insuficiente por garantías potenciales
+      - Reclamos posteriores (cliente cobró, luego reclama)
+    sectores: bienes, manufactura
+    ejemplos:
+      - Venta de equipo con garantía de 2 años
+      - Venta de producto con warranty de defectos
+
+  # COMBINADAS / PAQUETES
+  paquete_bien_servicio_lineal:
+    nombre: Paquete: Bien + Servicio Lineal
+    descripcion: Combinación de bien y servicio lineal (Ej. equipo + mantenimiento 3 años)
+    metodo_reconocimiento: punto_en_tiempo (bien) + sobre_tiempo_lineal (servicio)
+    evento_cumplimiento: Bien cuando se entrega; servicio cada mes/período
+    evidencia_tipica:
+      - Contrato detallando bien y servicio
+      - Acta de entrega de bien
+      - Matriz asignación precio (bien vs. servicio)
+      - Actas periódicas de mantenimiento
+    riesgos_tipicos:
+      - No separar bien de servicio
+      - Precio asignado incorrectamente
+      - Servicio no prestado (pero ya reconociste ingreso)
+    sectores: bienes, servicios
+    ejemplos:
+      - Equipo + instalación + mantenimiento 24 meses
+      - Máquina + servicio técnico 3 años
+      - Software + soporte annual
+
+  paquete_desarrollo_soporte_licencia:
+    nombre: Paquete: Desarrollo + Soporte + Licencia
+    descripcion: Servicio completo de software (desarrollo, licencia, soporte)
+    metodo_reconocimiento: punto_en_tiempo (desarrollo por avance) + sobre_tiempo_lineal (soporte + licencia)
+    evento_cumplimiento: Desarrollo cuando hito se completa; soporte/licencia cada período
+    evidencia_tipica:
+      - Contrato con especificación de desarrollo (fases) vs. soporte (anual)
+      - Acta de avance de desarrollo
+      - Acta de activación de sistema
+      - Contrato de soporte (anual)
+      - Factura periódica de soporte
+    riesgos_tipicos:
+      - Mezclar desarrollo con soporte (son obligaciones distintas)
+      - Asignación de precio incorrecta entre componentes
+      - Soporte no se presta pero ya reconociste ingreso
+      - Cambios de especificación en desarrollo afectan plazo
+    sectores: servicios, tecnologia
+    ejemplos:
+      - Desarrollo de ERP + licencia anual + soporte
+      - Desarrollo de app + hosting + mantenimiento
+
+  # SOBRE CONTRATOS COMPLEJOS
+  construccion_por_fases_multiple:
+    nombre: Construcción por Fases (Obligación Única o Múltiple)
+    descripcion: Obra divida en fases; DEPENDE del contrato si es 1 o N obligaciones
+    metodo_reconocimiento: sobre_tiempo_por_avance (si es obligación única); punto_en_tiempo (si cada fase es separable)
+    evento_cumplimiento: Cada fase completada y certificada (o todo al cierre)
+    evidencia_tipica:
+      - Contrato especificando fases
+      - Especificación técnica de cada fase
+      - Acta de supervisor por fase
+      - Certificado de conclusión
+      - Contrato cláusula: ¿cliente puede rechazar fase sin rechazar obra? → obligaciones separables
+    riesgos_tipicos:
+      - Confundir obligación única con múltiples
+      - Avance estimado vs. real (supervisor bajo presión)
+      - Cliente rechaza fase (pero ya reconociste ingreso)
+      - Cambios de contrato afectan alcance/precio
+    sectores: construccion
+    ejemplos:
+      - Edificio: cimientos → estructura → acabados → electricidad → pintura
+      - Carretera: movimiento tierra → base → asfalto → señalización
+
+arbolado_tipos:
+  servicios:
+    - servicio_lineal_periodo
+    - servicio_por_avance
+    - servicio_licencia_software
+    - paquete_desarrollo_soporte_licencia
+
+  bienes:
+    - bien_tangible_entrega
+    - bien_tangible_con_instalacion
+    - garantia_con_obligacion
+    - paquete_bien_servicio_lineal
+
+  retail:
+    - bien_tangible_entrega
+    - venta_con_devolucion_estimada
+    - venta_con_retencion
+
+  construccion:
+    - bien_tangible_con_instalacion
+    - servicio_por_avance
+    - venta_con_retencion
+    - construccion_por_fases_multiple
+    - garantia_con_obligacion

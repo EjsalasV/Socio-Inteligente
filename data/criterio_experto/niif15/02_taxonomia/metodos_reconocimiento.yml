@@ -1,0 +1,214 @@
+---
+nombre: Métodos de Reconocimiento de Ingresos bajo NIIF 15
+version: 1.0
+estado: framework universal
+descripcion: Cómo se reconoce ingreso según el tipo de obligación y cumplimiento
+
+metodos:
+
+  punto_en_tiempo:
+    nombre: Reconocimiento en Punto en Tiempo
+    descripcion: Ingreso se reconoce en UN momento específico cuando cliente recibe control de bien/servicio
+
+    cuando_aplica:
+      - Venta de bien tangible (cliente tiene control → entrega física)
+      - Servicio completado en momento específico (cliente acepta → acta)
+      - Derecho de retorno vence (ya no se puede devolver)
+      - Cumplimiento es instantáneo, no gradual
+
+    casos:
+      - Venta retail: 100% cuando cliente paga + se lleva producto
+      - Equipo: 100% cuando cliente firma acta de recepción
+      - Acta de aceptación: 100% cuando cliente confirma servicio completo
+      - Devolución: 100% cuando plazo de retorno vence
+
+    criterios_control_cliente:
+      - Cliente tiene derecho a usar bien (física o legalmente)
+      - Cliente asume riesgos de obsolescencia, pérdida, daño
+      - Cliente ha aceptado bien (explícita o implícitamente)
+      - Precio es exigible al cliente
+
+    evidencia_auditoria:
+      - Acta de entrega o acta de aceptación
+      - Firma de cliente (papel o digital)
+      - Documento de cumplimiento (certificado, factura)
+      - Si hay acta: fecha acta = fecha reconocimiento ingreso
+      - Si es implícito (retail): fecha venta = fecha transacción
+
+    riesgos_tipicos_hallazo:
+      - Ingreso reconocido SIN acta de aceptación
+      - Acta anterior a cumplimiento real
+      - Cliente rechazó pero ingreso no se revirtió
+      - Acta estaba "lista para firmar" pero cliente nunca la firmó
+      - Servicio incompleto pero acta dice "completado"
+
+    preguntas_auditoria:
+      - ¿Existe acta o documento que evidencie la fecha del control?
+      - ¿La firma es auténtica (no falsificada o por autoridad sin poder)?
+      - ¿Cliente puede probar después que no recibió o no aceptó?
+      - ¿Acta es anterior al cumplimiento (riesgo: ingreso anticipado)?
+
+  sobre_tiempo_lineal:
+    nombre: Reconocimiento sobre Tiempo (Lineal)
+    descripcion: Ingreso se reconoce gradualmente durante período (mismo monto cada período)
+
+    cuando_aplica:
+      - Servicio continuo durante plazo (mantenimiento, soporte, suscripción)
+      - Obligación lineal sin variación (cliente recibe igual valor cada período)
+      - Contrato no tiene hitos específicos
+      - Cumplimiento es uniforme mes a mes
+
+    casos:
+      - Mantenimiento anual: USD 12k / 12 meses = USD 1k por mes
+      - Soporte técnico: USD 6k por año = USD 500 por mes
+      - Suscripción SaaS: USD 100 por mes
+      - Garantía: USD 24k por 24 meses = USD 1k por mes
+
+    formula:
+      ingreso_mensual = precio_total / número_de_periodos
+      fecha_reconocimiento = FINAL de cada período (o INICIO si contrato lo especifica)
+
+    evidencia_auditoria:
+      - Contrato especificando plazo total y monto total
+      - Acta o certificado de que servicio estuvo vigente el período
+      - Factura periódica (o acta si no se factura)
+      - Cálculo de reconocimiento lineal documentado
+      - Si servicio fue suspendido: acta de suspensión + cálculo ajustado
+
+    riesgos_tipicos_hallazo:
+      - Ingreso reconocido TODO en mes 1 en lugar de linealmente
+      - Tasa lineal incorrecta (12k/24 meses en lugar de 12k/12 meses)
+      - Servicio fue suspendido pero ingreso se siguió reconociendo
+      - Cliente no pagó, pero ingreso se reconoció igual
+      - Plazo se extendió pero no se ajustó el cálculo
+
+    preguntas_auditoria:
+      - ¿Existe fórmula documentada: total ÷ períodos?
+      - ¿El contrato estaba vigente TODO el período?
+      - ¿Si fue suspendido, cuándo y por cuánto tiempo?
+      - ¿El cliente recibió el servicio cada mes?
+      - ¿Hay actas o facturas que evidencien cada período?
+
+  sobre_tiempo_por_avance:
+    nombre: Reconocimiento sobre Tiempo (Por Avance / Hito)
+    descripcion: Ingreso se reconoce gradualmente según % de cumplimiento (construcción, desarrollo por fases)
+
+    cuando_aplica:
+      - Servicio entregable por entregable (construcción por fases, desarrollo iterativo)
+      - Cada fase/hito tiene valor distinto (no lineal)
+      - Cliente valida cumplimiento de cada fase antes de siguiente
+      - Cambios de especificación afectan avance
+
+    casos:
+      - Desarrollo 3 fases: 30% mes 1, 40% mes 2, 30% mes 3
+      - Construcción 5 fases: cimientos 15%, estructura 25%, acabados 35%, servicios 15%, cierre 10%
+      - Consultoría 4 entregables: diagnóstico 20%, plan 20%, ejecución 50%, cierre 10%
+
+    formula:
+      % avance = cumplimiento_reportado_por_supervisor / total_contratado
+      ingreso_período = precio_total × % avance_acumulado - ingreso_reconocido_anterior
+
+    evidencia_auditoria:
+      - Contrato especificando fases o hitos
+      - Especificación técnica de cada fase/hito
+      - Acta de avance por fase (firmada por supervisor o cliente)
+      - Acta de aceptación de fase (cliente confirma cumplimiento)
+      - Cálculo documentado: % avance × precio = ingreso
+      - Cambios de contrato documentados (RFCs, órdenes de cambio)
+
+    riesgos_tipicos_hallazo:
+      - Acta de avance firmada por ejecutor (no cliente/supervisor)
+      - % avance estimado sin evidencia física de cumplimiento
+      - Acta de avance anterior a cumplimiento real (ingreso anticipado)
+      - Cambios de especificación no reflejados en % (ingreso incorrecto)
+      - Cliente rechazó fase pero % avance no se revertió
+      - Acta de avance es genérica ("en progreso 50%") sin detalle
+
+    preguntas_auditoria:
+      - ¿Quién firma acta de avance? ¿Cliente o solo ejecutor?
+      - ¿% avance está evidenciado (fotos, demo, certificado)?
+      - ¿Acta es anterior o posterior a cumplimiento real?
+      - ¿Cambios de contrato (alcance) se reflejaron en % avance?
+      - ¿Hay disputas pendientes sobre cumplimiento de fase anterior?
+
+  punto_en_tiempo_con_variable:
+    nombre: Reconocimiento en Punto en Tiempo + Componente Variable
+    descripcion: Mezcla: bien se entrega (punto) pero tiene servicio adicional variable (estimado al cierre)
+
+    cuando_aplica:
+      - Devoluciones estimadas (bien se entrega, pero % se devuelve)
+      - Bonificaciones por cumplimiento (bien entregado, bonus si cliente cumple condición)
+      - Precio contingente (precio final depende de evento futuro)
+
+    casos:
+      - Venta retail 10% retorno: reconoce 90% en entrega, 10% como pasivo reversible
+      - Venta con bonificación "USD 5k si cliente usa >100k horas en año 1": reconoce monto sin bonificación
+      - Distribución "retorno no movido": reconoce neto de estimada devolución
+
+    formula:
+      ingreso = precio_contrato - estimada_variable
+      pasivo_reversible = estimada_variable (se reversa si no ocurre)
+
+    evidencia_auditoria:
+      - Contrato especificando tasa variable (% retorno o bonificación)
+      - Análisis histórico de tasas reales
+      - Cálculo documentado: tasa variable × precio = pasivo
+      - Registro del pasivo reversible (cuenta contable clara)
+      - Al cierre: ajuste cuando variable se resuelve (cliente retorna o no)
+
+    riesgos_tipicos_hallazo:
+      - Ingreso por precio full sin estimar devoluciones
+      - Tasa de devolución estimada incorrecta (2% vs. 12% real)
+      - Pasivo reversible no creado
+      - Pasivo no reverso cuando devolución no ocurrió
+      - Cambio material en tasa variable no se ajustó
+
+    preguntas_auditoria:
+      - ¿Qué % variable usó? ¿Cómo lo estimó?
+      - ¿Hay análisis histórico de tasas reales vs. estimadas?
+      - ¿El pasivo reversible está claramente contabilizado?
+      - ¿Al cierre, se ajusta cuando variable se resuelve?
+
+criterios_decision_metodo:
+
+  "bien_tangible_o_servicio_completado":
+    pregunta: "¿Cliente recibe bien tangible O servicio completado en momento específico?"
+    respuesta_si: "PUNTO EN TIEMPO"
+    ejemplo: "Equipo entregado, acta de aceptación firmada → 100% en esa fecha"
+
+  "servicio_continuo_lineal":
+    pregunta: "¿Es servicio continuo durante período, sin hitos, con valor igual cada mes?"
+    respuesta_si: "SOBRE TIEMPO LINEAL"
+    ejemplo: "Mantenimiento anual USD 12k, sin hitos especiales → USD 1k/mes"
+
+  "fases_o_hitos_con_aceptacion":
+    pregunta: "¿Contrato tiene fases/hitos específicos? ¿Cliente acepta cada fase?"
+    respuesta_si: "SOBRE TIEMPO POR AVANCE"
+    ejemplo: "Construcción 5 fases, acta de supervisor por fase → % avance × precio"
+
+  "variable_estimada":
+    pregunta: "¿Hay componente variable (devoluciones, bonificación, precio contingente)?"
+    respuesta_si: "REDUCIR INGRESO POR ESTIMADA VARIABLE, CREAR PASIVO"
+    ejemplo: "10% devolución estimada → ingreso 90%, pasivo 10%"
+
+evidencia_universal_auditoria:
+
+  contrato:
+    - Debe estar firmado por ambas partes
+    - Debe especificar: bien/servicio, cantidad, precio, plazo
+    - Debe tener criterio de cumplimiento (acta, factura, aceptación)
+
+  cumplimiento:
+    - Acta, certificado o documento que evidencie que obligación se cumplió
+    - Firma de cliente (no solo ejecutor)
+    - Fecha cumplimiento documentada
+
+  precio:
+    - Monto claro y exigible
+    - Descuentos, retenciones, variables estimadas deducidas
+
+  registro_contable:
+    - Fecha asiento = fecha cumplimiento (no es especulación)
+    - Cuenta de ingreso clara
+    - Si hay variable: pasivo reversible está contabilizado
+

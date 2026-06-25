@@ -1,0 +1,315 @@
+---
+nombre: Matriz Riesgo → Control → Prueba → Hallazgo (Ejecutable)
+version: 1.0
+estado: Framework universal para todos los sectores
+descripcion: Qué riesgo buscar, qué control validar, qué prueba hacer, qué hallazgo reportar
+
+riesgos_hallazgos:
+
+  # RIESGO 1: CONTRATO NO IDENTIFICADO O NO AUTORIZADO
+  riesgo_1_contrato_no_identificado:
+    titulo: Contrato No Identificado o Sin Aprobación
+    descripcion: Ingreso reconocido sin contrato documentado o sin aprobación formal
+
+    que_buscar: "Ingresos sin contrato escrito, aprobación verbal, o acuerdos implícitos"
+
+    control_mitiga: "Control 1 - Aprobación Formal del Contrato"
+
+    prueba_auditoria:
+      - Muestra 5-10% de ingresos reconocidos
+      - Para cada uno: ¿existe contrato escrito?
+      - ¿existe evidencia de aprobación (email, acta, firma)?
+      - ¿Quién aprobó? (¿tiene autoridad?)
+      - Si es implícito (retail), ¿hay acta o documentación posterior?
+
+    hallazgo_si_encuentro:
+      plantilla: |
+        Ingreso USD [monto] reconocido sin contrato documentado.
+        El contrato fue [verbal/implícito/email sin firma].
+        Riesgo: Cliente puede disputar términos o cumplimiento.
+        NIIF 15 requiere contrato identificable.
+
+      impacto: Bajo (si hay otros indicios de cumplimiento) a Medio (si no hay nada)
+      recomendacion: Solicitar a cliente documentación retroactiva del acuerdo, o si no existe, considerar reversión.
+
+    ejemplos_reales:
+      - Desarrollo de software ejecutado "verbalmente" sin contrato escrito
+      - Servicios de consultoría facturados sin orden de compra del cliente
+      - Mantenimiento de equipo "por costumbre" sin contrato anual
+
+  # RIESGO 2: OBLIGACIONES NO SEPARADAS
+  riesgo_2_obligaciones_no_separadas:
+    titulo: Obligaciones Separables No Identificadas
+    descripcion: Contrato tiene múltiples obligaciones, pero se tratan como una sola
+
+    que_buscar: "Contratos con 2+ servicios/bienes, reconocidos 100% en punto_en_tiempo"
+
+    control_mitiga: "Control 2 - Identificación de Obligaciones"
+
+    prueba_auditoria:
+      - Revisar 5-10 contratos con valor > umbrales
+      - Para cada uno: ¿hay bien + servicio? ¿hay fases?
+      - ¿existe matriz de obligaciones?
+      - ¿se separaron o se mezclaron?
+      - Validar contra tipos_obligacion.yml
+
+    hallazgo_si_encuentro:
+      plantilla: |
+        Contrato de [Descripción] USD [monto] contiene [N] obligaciones separables:
+        1. [Obligación 1] (USD X, método Y)
+        2. [Obligación 2] (USD X, método Y)
+        Pero se reconoció como obligación única en punto_en_tiempo.
+        Impacto: Ingresos mal-timing entre períodos.
+
+      impacto: Medio (afecta timing, no necesariamente monto total)
+      recomendacion: Separar obligaciones, re-asignar precio, ajustar futuro reconocimiento.
+
+    ejemplos_reales:
+      - Equipo (punto_en_tiempo) + Instalación (servicio, sobre_tiempo) → todo como una
+      - Desarrollo (por_avance) + Soporte (lineal) + Licencia (punto_en_tiempo) → todo como una
+      - Construcción por 5 fases → reconocido 100% sin separar por hito
+
+  # RIESGO 3: PRECIO INCORRECTO O SIN AJUSTES
+  riesgo_3_precio_incorrecto:
+    titulo: Precio de Transacción No Ajustado por Descuentos/Retenciones/Devoluciones
+    descripcion: Ingresos reconocidos por precio list, sin descontar retenciones, devolucionables, etc.
+
+    que_buscar: "Ingresos sin análisis de variables (devoluciones, retenciones, bonificaciones)"
+
+    control_mitiga: "Control 3 - Asignación de Precio"
+
+    prueba_auditoria:
+      - Para contratos identificados, ¿hay descuentos por pago anticipado?
+      - ¿hay retención de cliente (construcción, servicios)? ¿cuánta?
+      - ¿hay derecho de devolución? ¿qué % estimado?
+      - ¿hay bonificaciones contingentes?
+      - Validar que TODAS fueron descontadas del ingreso reconocido
+
+    hallazgo_si_encuentro:
+      plantilla: |
+        Contrato USD [monto contrato] tiene:
+        - Retención cliente 10% (USD X) → NO se descontó del ingreso
+        - Devoluciones estimadas 5% (USD Y) → NO se creó pasivo
+
+        Ingreso reconocido: USD [total] (incorrecto)
+        Debería ser: USD [total - descuentos] (ingreso) + USD [descuentos] (pasivo/diferido)
+
+      impacto: Medio a Material (depende del %)
+      recomendacion: Ajustar ingreso y crear pasivo por componentes aplazados.
+
+    ejemplos_reales:
+      - Venta retail 10% retorno estimado → reconoce 100% en lugar de 90%
+      - Construcción con 5% retención hasta cierre → reconoce 100% en lugar de 95%
+      - Servicios con 20% descuento por pago anticipado → cliente pagó adelantado pero se reconoce 100%
+
+  # RIESGO 4: MÉTODO DE RECONOCIMIENTO INCORRECTO
+  riesgo_4_metodo_incorrecto:
+    titulo: Método de Reconocimiento Incorrecto (Punto vs. Tiempo)
+    descripcion: Servicio lineal reconocido 100% en mes 1, o construcción sin separar por hito
+
+    que_buscar: "Obligaciones sobre_tiempo reconocidas como punto_en_tiempo"
+
+    control_mitiga: "Control 4 - Evaluación del Método de Reconocimiento"
+
+    prueba_auditoria:
+      - Listar todos los servicios contratados (mantenimiento, soporte, garantía, outsourcing)
+      - Para cada uno: ¿cuál es el método actual?
+      - ¿Debería ser sobre_tiempo_lineal o sobre_tiempo_por_avance?
+      - Si es diferente → hallazgo
+
+    hallazgo_si_encuentro:
+      plantilla: |
+        Contrato de Soporte Técnico USD [monto anual], plazo 24 meses.
+        Reconocido método: 100% en mes 1
+        Método correcto: sobre_tiempo_lineal USD [monto/24] cada mes
+
+        Impacto: Ingreso sobre-estimado en mes 1 por USD [monto × 23/24]
+
+      impacto: Material (dependiendo del monto y plazo)
+      recomendacion: Revertir ingreso mes 1, ajustar a lineal, crear pasivo diferido por cobro anticipado.
+
+    ejemplos_reales:
+      - Mantenimiento 24 meses USD 12k → reconoce USD 12k mes 1 en lugar de USD 0.5k/mes
+      - Construcción 5 fases → reconoce 100% cuando se firma, no por hito
+      - Suscripción SaaS anual USD 600 → reconoce 100% enero en lugar de USD 50/mes
+
+  # RIESGO 5: INGRESO SIN EVIDENCIA DE CUMPLIMIENTO
+  riesgo_5_ingreso_sin_evidencia:
+    titulo: Ingreso Reconocido Sin Acta/Certificado de Cumplimiento
+    descripcion: Ingreso registrado aunque cliente no aceptó, no cumplió, o no entregó
+
+    que_buscar: "Ingresos sin acta de entrega, aceptación, o avance"
+
+    control_mitiga: "Control 5 - Evidencia de Cumplimiento"
+
+    prueba_auditoria:
+      - Para cada ingreso auditado, ¿existe acta/certificado?
+      - ¿Acta está firmada por CLIENTE (no solo ejecutor)?
+      - ¿Acta es anterior a asiento contable?
+      - ¿Acta especifica qué se cumplió?
+
+    hallazgo_si_encuentro:
+      plantilla: |
+        Ingreso USD [monto] reconocido en [fecha].
+        No existe acta de cumplimiento.
+
+        Documentación encontrada:
+        - [Factura interna] (sin firma cliente)
+        - [Email de vendedor] (sin confirmación cliente)
+        - [Especificación] (sin acta final)
+
+        Riesgo: Ingreso anticipado (cliente no aceptó).
+
+      impacto: Medio a Material (depende de probabilidad de cumplimiento)
+      recomendacion: Solicitar acta retroactiva o revertir ingreso si no hay evidencia.
+
+    ejemplos_reales:
+      - Desarrollo de software: ingreso sin acta de cumplimiento, "en proceso"
+      - Venta de equipo: ingreso sin acta de recepción (en tránsito)
+      - Servicios: factura sin acta de aceptación del servicio
+
+  # RIESGO 6: INGRESO ANTICIPADO (Acta anterior a cumplimiento)
+  riesgo_6_ingreso_anticipado:
+    titulo: Acta de Cumplimiento Posterior a Asiento Contable
+    descripcion: Ingreso se registra antes de que exista acta, o acta es con fecha anterior a real
+
+    que_buscar: "Asiento contable anterior a acta de cumplimiento"
+
+    control_mitiga: "Control 6 - Método de Cumplimiento vs. Registro Contable"
+
+    prueba_auditoria:
+      - Auditar 10-15 ingresos significativos
+      - Para cada uno: comparar fecha asiento vs. fecha acta
+      - Si asiento es anterior → ingreso anticipado
+      - Validar contra PASO 5 del framework
+
+    hallazgo_si_encuentro:
+      plantilla: |
+        Ingreso USD [monto] registrado [fecha asiento].
+        Acta de cumplimiento está fechada [fecha acta] (posterior).
+
+        Diferencia: [N] días/meses de ingreso anticipado.
+        Impacto: Ingreso reconocido sin evidencia de cumplimiento en esa fecha.
+
+      impacto: Material (depende de diferencia temporal)
+      recomendacion: Revertir ingreso, reconocer en fecha correcta (fecha acta).
+
+    ejemplos_reales:
+      - Ingreso en noviembre, acta de cumplimiento en diciembre → ingreso anticipado 1 mes
+      - Factura en junio, acta de aceptación en agosto → anticipado 2 meses
+      - Desarrollo reconocido 100%, acta de cumplimiento "por completarse"
+
+  # RIESGO 7: INGRESOS NO RECONCILIADOS
+  riesgo_7_sin_reconciliacion:
+    titulo: No Existe Reconciliación de Progreso vs. Ingreso Contable
+    descripcion: Ingresos se acumulan sin validación periódica de que se corresponden con cumplimiento real
+
+    que_buscar: "Clientes sin reconciliación mensual de ingresos vs. avance"
+
+    control_mitiga: "Control 7 - Reconciliación Periódica"
+
+    prueba_auditoria:
+      - ¿Existe archivo de reconciliación mensual?
+      - ¿Se comparan: ingresos contables vs. progreso real?
+      - ¿Se investigan diferencias?
+      - Para contratos de servicios largos, validar últimos 3-6 meses
+
+    hallazgo_si_encuentro:
+      plantilla: |
+        No existe reconciliación de ingresos vs. progreso para servicios de largo plazo.
+
+        Contrato de [Descripción] (plazo [X] meses):
+        - Ingreso reconocido acumulado: USD [X]
+        - Progreso reportado (actas): [X]%
+        - Diferencia: No se validó mensualmente
+
+        Riesgo: Ingresos fantasma sin detección.
+
+      impacto: Medio (es debilidad de control, no hallazgo de monto)
+      recomendacion: Implementar reconciliación mensual de ingresos vs. actas de progreso.
+
+    ejemplos_reales:
+      - Outsourcing 36 meses: USD 3M reconocido linealmente sin validar que servicios se prestaron
+      - Mantenimiento: ingresos se reconocen 24 meses, pero servicio fue suspendido mes 10
+      - Desarrollo: ingreso por avance sin validar que cada fase fue aceptada realmente
+
+  # RIESGO 8: CAMBIOS DE CONTRATO SIN RE-ANÁLISIS
+  riesgo_8_cambios_sin_reanalisis:
+    titulo: Cambios de Contrato No Documentados o No Re-Analizados
+    descripcion: Contrato cambia (alcance, plazo, precio) pero análisis NIIF 15 no se actualiza
+
+    que_buscar: "Cambios de especificación, plazo o precio sin RFC/orden de cambio"
+
+    control_mitiga: "Control 8 - Revisión de Modificaciones de Contrato"
+
+    prueba_auditoria:
+      - Revisar archivo del cliente: ¿hay RFCs o cambios documentados?
+      - Para cada cambio: ¿se re-analizó NIIF 15?
+      - ¿Se actualizó matriz de obligaciones?
+      - ¿Se re-calculó asignación de precio?
+      - ¿Se ajustaron futuras acumulaciones?
+
+    hallazgo_si_encuentro:
+      plantilla: |
+        Contrato USD [inicial] fue modificado a USD [final].
+        Cambio no está documentado en RFC.
+
+        Análisis NIIF 15:
+        - Matriz de obligaciones: no se actualizó
+        - Asignación de precio: no se re-analizó
+        - Reconocimiento futuro: basado en precio viejo USD [inicial]
+
+        Impacto: Ingreso futuro podría estar incorrecto.
+
+      impacto: Medio a Material (depende de magnitud del cambio)
+      recomendacion: Documentar cambio, re-analizar NIIF 15, ajustar futuro reconocimiento.
+
+    ejemplos_reales:
+      - Contrato USD 100k cambió a USD 150k (cliente pidió más); sin orden de cambio
+      - Plazo pasó de 12 a 24 meses (extensión); reconocimiento lineal no se ajustó
+      - Alcance se redujo (cliente canceló fase); ingreso no se revirtió
+
+checklist_uso_auditoria:
+
+  antes_de_auditar_ingresos:
+    - ¿Qué tipos de contratos tiene el cliente? (bienes, servicios, construcción, etc.)
+    - ¿Cuál es el monto significativo de ingresos?
+    - ¿Qué riesgos son más probables en este sector?
+
+  durante_la_auditoria:
+    - Selecciona muestra de contratos (poblacion y significancia)
+    - Para cada contrato, valida usando esta matriz:
+      - ¿Qué riesgos aplican?
+      - ¿Qué control debería existir?
+      - ¿Qué prueba debo hacer?
+      - ¿Encontré hallazgo?
+
+  preguntas_al_cierre:
+    - ¿Cuál es el riesgo más recurrente encontrado?
+    - ¿Es sistémico (control débil) o aislado?
+    - ¿Impacto es material o por encima de tolerancia?
+    - ¿Hay patrón por sector o tipo de cliente?
+
+riesgos_por_sector:
+
+  servicios:
+    - riesgo_2_obligaciones_no_separadas (desarrollo + soporte + licencia)
+    - riesgo_4_metodo_incorrecto (servicios como punto en lugar de lineal/avance)
+    - riesgo_6_ingreso_anticipado (cliente no aceptó, pero se reconoce)
+    - riesgo_7_sin_reconciliacion (servicios continuos sin validación)
+
+  retail:
+    - riesgo_3_precio_incorrecto (devoluciones no estimadas)
+    - riesgo_5_ingreso_sin_evidencia (venta sin comprobante de cliente)
+    - riesgo_1_contrato_no_identificado (venta implícita, retail)
+
+  bienes:
+    - riesgo_2_obligaciones_no_separadas (bien + instalación + garantía)
+    - riesgo_3_precio_incorrecto (retenciones por funcionamiento)
+    - riesgo_6_ingreso_anticipado (bien en tránsito, reconocido sin entrega)
+
+  construccion:
+    - riesgo_2_obligaciones_no_separables (obligación única vs. múltiples fases)
+    - riesgo_4_metodo_incorrecto (por_avance vs. punto_en_tiempo)
+    - riesgo_6_ingreso_anticipado (reconocido sin certificado de supervisor)
+    - riesgo_8_cambios_sin_reanalisis (RFCs frecuentes en obras)

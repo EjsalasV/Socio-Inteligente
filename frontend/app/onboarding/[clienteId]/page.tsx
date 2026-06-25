@@ -6,11 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { hasSessionState, logoutSession } from "../../../lib/auth-session";
 import { updateCliente } from "../../../lib/api/clientes";
 import {
-  getClienteConfiguracion,
-  getPreguntasDinamicas,
   getTiposEntidad,
-  saveClienteConfiguracion,
-  type PreguntaDinamica,
   type TipoEntidadOption,
 } from "../../../lib/api/configuracion";
 import { getPerfil, savePerfil } from "../../../lib/api/perfil";
@@ -39,12 +35,6 @@ type QaState = {
   estimaciones_complejas: boolean;
   erp_implementado: boolean;
 };
-
-function toClienteId(raw: string | string[] | undefined): string {
-  if (Array.isArray(raw)) return raw[0] ?? "";
-  return raw ?? "";
-}
-
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
 }
@@ -61,7 +51,7 @@ export default function OnboardingClientePage() {
   const router = useRouter();
   const { resetClientState } = useAppState();
   const params = useParams<Params>();
-  const clienteId = useMemo(() => toClienteId(params?.clienteId), [params]);
+  const clienteId = useMemo(() => (Array.isArray(params?.clienteId) ? params?.clienteId[0] ?? "" : params?.clienteId ?? ""), [params]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -83,8 +73,6 @@ export default function OnboardingClientePage() {
   const [tbSelectedFile, setTbSelectedFile] = useState<File | null>(null);
   const [mayorSelectedFile, setMayorSelectedFile] = useState<File | null>(null);
   const [tiposEntidad, setTiposEntidad] = useState<TipoEntidadOption[]>([]);
-  const [preguntasDinamicas, setPreguntasDinamicas] = useState<PreguntaDinamica[]>([]);
-  const [respuestasDinamicas, setRespuestasDinamicas] = useState<Record<string, string>>({});
   const [qa, setQa] = useState<QaState>({
     nomina: false,
     inventarios: false,
@@ -116,11 +104,10 @@ export default function OnboardingClientePage() {
         return;
       }
       try {
-        const [perfil, clienteResponse, tipos, configuracion] = await Promise.all([
+        const [perfil, clienteResponse, tipos] = await Promise.all([
           getPerfil(clienteId),
           authFetchJson<{ data?: Record<string, unknown> }>(`/api/clientes/${clienteId}`),
           getTiposEntidad(),
-          getClienteConfiguracion(clienteId),
         ]);
         if (!active) return;
 
@@ -138,7 +125,7 @@ export default function OnboardingClientePage() {
             ? cliente.sector
             : toStringValue(clienteApi.sector, "Holding"),
         );
-        setTipoEntidad(configuracion?.tipo_entidad || toStringValue(clienteApi.tipo_entidad, tipos[0]?.tipo || "HOLDING"));
+        setTipoEntidad(toStringValue(clienteApi.tipo_entidad, tipos[0]?.tipo || "HOLDING"));
         setTamano(toStringValue(clienteApi.tamano, "Mediana"));
         setPais(typeof cliente.pais === "string" && cliente.pais.trim() ? cliente.pais : "Ecuador");
         setFiscalYear(String(encargo.anio_activo ?? "2025"));
@@ -148,7 +135,6 @@ export default function OnboardingClientePage() {
         setFaseAuditoria(typeof encargo.fase_actual === "string" && encargo.fase_actual.trim() ? encargo.fase_actual : "planificacion");
         setTbFile(typeof carga.trial_balance_nombre === "string" ? carga.trial_balance_nombre : "");
         setMayorFile(typeof carga.libro_mayor_nombre === "string" ? carga.libro_mayor_nombre : "");
-        setRespuestasDinamicas(configuracion?.respuestas || {});
         setQa({
           nomina: toBool(cuestionario.nomina),
           inventarios: toBool(cuestionario.inventarios),
@@ -178,46 +164,11 @@ export default function OnboardingClientePage() {
     };
   }, [clienteId, router]);
 
-  useEffect(() => {
-    let active = true;
-    async function loadPreguntas(): Promise<void> {
-      if (!tipoEntidad.trim()) {
-        if (active) setPreguntasDinamicas([]);
-        return;
-      }
-      try {
-        const preguntas = await getPreguntasDinamicas(tipoEntidad);
-        if (!active) return;
-        setPreguntasDinamicas(preguntas);
-        setRespuestasDinamicas((prev) => {
-          const next = { ...prev };
-          for (const pregunta of preguntas) {
-            if (!next[pregunta.id] && pregunta.default) {
-              next[pregunta.id] = pregunta.default;
-            }
-          }
-          return next;
-        });
-      } catch {
-        if (active) setPreguntasDinamicas([]);
-      }
-    }
-
-    void loadPreguntas();
-    return () => {
-      active = false;
-    };
-  }, [tipoEntidad]);
-
   function updateQa(key: keyof QaState): void {
     setQa((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
-  function updateRespuestaDinamica(id: string, value: string): void {
-    setRespuestasDinamicas((prev) => ({ ...prev, [id]: value }));
-  }
-
-  async function handleSave(goToDashboard: boolean): Promise<void> {
+  async function handleSave(): Promise<void> {
     if (!clienteId) return;
     setError("");
     setSuccess("");
@@ -259,13 +210,6 @@ export default function OnboardingClientePage() {
         normativa: normativaCliente,
       });
 
-      if (tipoEntidad.trim()) {
-        await saveClienteConfiguracion(clienteId, {
-          tipo_entidad: tipoEntidad,
-          respuestas: respuestasDinamicas,
-        });
-      }
-
       const payload: PerfilPayload = {
         cliente: {
           nombre_legal: nombreLegal,
@@ -282,10 +226,6 @@ export default function OnboardingClientePage() {
           normativa_cliente: normativaCliente,
         },
         cuestionario_auditoria: qa,
-        configuracion_industria: {
-          tipo_entidad: tipoEntidad,
-          respuestas: respuestasDinamicas,
-        },
         carga_archivos: {
           trial_balance_nombre: trialBalanceNombre,
           libro_mayor_nombre: libroMayorNombre,
@@ -298,8 +238,8 @@ export default function OnboardingClientePage() {
       setMayorFile(libroMayorNombre);
       setTbSelectedFile(null);
       setMayorSelectedFile(null);
-      setSuccess("Onboarding guardado correctamente.");
-      router.push(goToDashboard ? `/dashboard/${clienteId}` : `/perfil/${clienteId}`);
+      setSuccess("Onboarding guardado correctamente. Ahora completa la configuracion del cliente.");
+      router.push(`/configuracion/${clienteId}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "No se pudo guardar el onboarding.";
       setError(message);
@@ -328,15 +268,12 @@ export default function OnboardingClientePage() {
       normativaCliente.trim(),
   );
   const cuestionarioRespondido = Object.values(qa).some((value) => value === true);
-  const configuracionIndustriaRespondida =
-    preguntasDinamicas.length === 0 || preguntasDinamicas.every((pregunta) => String(respuestasDinamicas[pregunta.id] || "").trim().length > 0);
   const tbCargado = Boolean(tbFile.trim());
   const mayorCargado = Boolean(mayorFile.trim());
   const faseDefinida = ["planificacion", "ejecucion", "informe"].includes(faseAuditoria);
 
   const checklist = [
     { label: "Datos de cliente", ok: perfilCompleto },
-    { label: "Configuración de industria", ok: configuracionIndustriaRespondida },
     { label: "Cuestionario de auditoria", ok: cuestionarioRespondido },
     { label: "Trial Balance", ok: tbCargado },
     { label: "Libro Mayor", ok: mayorCargado },
@@ -439,41 +376,7 @@ export default function OnboardingClientePage() {
             </div>
 
             <div className="sovereign-card">
-              <h2 className="font-headline text-3xl text-[#041627] mb-6">2. Configuración dinámica de industria</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {preguntasDinamicas.map((pregunta) => (
-                  <label key={pregunta.id} className={`flex flex-col gap-2 ${pregunta.tipo === "text" ? "md:col-span-2" : ""}`}>
-                    <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold flex items-center gap-2">
-                      {pregunta.texto}
-                      {pregunta.critica ? <span className="rounded-full bg-[#ffdad6] px-2 py-0.5 text-[10px] text-[#93000a]">Crítica</span> : null}
-                    </span>
-                    {pregunta.tipo === "select" ? (
-                      <select
-                        className="ghost-input"
-                        value={respuestasDinamicas[pregunta.id] || pregunta.default || ""}
-                        onChange={(e) => updateRespuestaDinamica(pregunta.id, e.target.value)}
-                      >
-                        <option value="">Selecciona una opción</option>
-                        {(pregunta.opciones || []).map((opcion) => (
-                          <option key={`${pregunta.id}-${opcion.valor}`} value={opcion.valor}>{opcion.label}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        className="ghost-input"
-                        value={respuestasDinamicas[pregunta.id] || ""}
-                        onChange={(e) => updateRespuestaDinamica(pregunta.id, e.target.value)}
-                        placeholder={pregunta.placeholder || pregunta.default || "Ingresa tu respuesta"}
-                      />
-                    )}
-                    {pregunta.ayuda ? <span className="text-xs text-slate-500">{pregunta.ayuda}</span> : null}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="sovereign-card">
-              <h2 className="font-headline text-3xl text-[#041627] mb-6">3. Preguntas clave de auditoría</h2>
+              <h2 className="font-headline text-3xl text-[#041627] mb-6">2. Preguntas clave de auditoría</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label className="md:col-span-2 flex flex-col gap-2 mb-2">
                   <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Fase actual de auditoría</span>
@@ -579,7 +482,7 @@ export default function OnboardingClientePage() {
               <p className="text-xs uppercase tracking-[0.16em] text-[#89d3d4]">Socio AI</p>
               <h3 className="font-headline text-3xl mt-3">Motor listo para iniciar</h3>
               <p className="text-sm text-slate-200 mt-3 leading-relaxed">
-                Con este onboarding terminamos setup de cliente. Luego ya puedes navegar Dashboard, Risk Engine y Áreas con contexto real.
+                Primero cargamos el archivo base y las preguntas de encargo. Luego pasas a la configuracion del cliente y finalmente al dashboard.
               </p>
             </div>
 
@@ -600,20 +503,11 @@ export default function OnboardingClientePage() {
             <div className="grid grid-cols-1 gap-3">
               <button
                 type="button"
-                onClick={() => void handleSave(false)}
+                onClick={() => void handleSave()}
                 disabled={saving}
                 className="w-full py-3 rounded-xl border border-black/10 bg-white text-slate-700 font-semibold disabled:opacity-60"
               >
-                {saving ? "Guardando..." : "Guardar y abrir perfil"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSave(true)}
-                disabled={saving}
-                className="w-full py-3 rounded-xl text-white font-semibold shadow-sm disabled:opacity-60"
-                style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}
-              >
-                {saving ? "Guardando..." : "Arrancar sistema"}
+                {saving ? "Guardando..." : "Guardar y continuar a configuración"}
               </button>
             </div>
           </aside>

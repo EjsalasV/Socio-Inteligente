@@ -203,7 +203,10 @@ def calcular_materialidad(cliente: str, base_valor: float | None = None) -> dict
 
     perfil = leer_perfil(cliente) or {}
     minimum_threshold, threshold_origen = _resolver_minimum_threshold(perfil, regla)
-    if materialidad_sugerida < minimum_threshold:
+    # El umbral minimo solo debe actuar cuando el encargo es lo suficientemente grande.
+    # Si el umbral supera la base del cliente, termina aplastando clientes pequenos/medianos
+    # y oculta la materialidad real del encargo.
+    if minimum_threshold > 0 and minimum_threshold <= base_valor and materialidad_sugerida < minimum_threshold:
         materialidad_sugerida = minimum_threshold
 
     materialidad_desempeno = materialidad_sugerida * 0.75

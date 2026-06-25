@@ -348,6 +348,21 @@ def get_dashboard(
         trivial = trivial_perfil if trivial_perfil > 0 else trivial_calc
         materialidad_origen = "perfil" if mp_perfil > 0 else ("motor" if mp_calc > 0 else "sin_definir")
         materialidad_detalle = _materialidad_detail_from_motor(materialidad)
+        if mp_perfil > 0:
+            materialidad_preliminar = (
+                materialidad.get("preliminar", {}) if isinstance(materialidad.get("preliminar"), dict) else {}
+            )
+            materialidad_final = materialidad.get("final", {}) if isinstance(materialidad.get("final"), dict) else {}
+            materialidad_detalle.base_usada = _to_str(
+                materialidad_preliminar.get("base_usada") or materialidad_final.get("base_usada") or materialidad_detalle.base_usada,
+                materialidad_detalle.base_usada,
+            )
+            if not materialidad_detalle.base_usada:
+                materialidad_detalle.base_usada = "Perfil / juicio profesional"
+            materialidad_detalle.origen_regla = _to_str(
+                materialidad_preliminar.get("justificacion_nia") or materialidad_final.get("justificacion_nia") or materialidad_detalle.origen_regla,
+                materialidad_detalle.origen_regla,
+            )
         base_valor = materialidad_detalle.base_valor
         riesgo_global_nivel = _extract_riesgo_global_nivel(perfil)
         pct_riesgo = _selected_pct_by_risk(riesgo_global_nivel)
@@ -364,7 +379,13 @@ def get_dashboard(
             for area in all_top_areas
             if bool(area.con_saldo)
         ]
-        base_for_area_materiality = balance.ingresos if balance.ingresos > 0 else balance.activo
+        base_for_area_materiality = (
+            me
+            if me > 0
+            else mp
+            if mp > 0
+            else (balance.ingresos if balance.ingresos > 0 else balance.activo)
+        )
         area_materiality_rows = calculate_area_materiality(base_for_area_materiality, areas_for_materiality)
         materialidad_por_area = [
             DashboardAreaMaterialidad(

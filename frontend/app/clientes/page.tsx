@@ -6,8 +6,15 @@ import { useRouter } from "next/navigation";
 
 import { useTour } from "../../components/tour/TourProvider";
 import { hasSessionState, logoutSession } from "../../lib/auth-session";
-import { createCliente, deleteCliente, getClientes, type ClienteOption } from "../../lib/api/clientes";
-import { getTiposEntidad, type TipoEntidadOption } from "../../lib/api/configuracion";
+import QuestionHelp from "../../components/ui/QuestionHelp";
+import { archiveCliente, createCliente, getClientes, type ClienteOption } from "../../lib/api/clientes";
+import {
+  getPreguntasDinamicas,
+  getTiposEntidad,
+  type PreguntaDinamica,
+  type TipoEntidadOption,
+} from "../../lib/api/configuracion";
+import { savePerfil } from "../../lib/api/perfil";
 import { useUserPreferences } from "../../components/providers/UserPreferencesProvider";
 import { SECTOR_OPTIONS } from "../../lib/sectorCatalog";
 
@@ -18,6 +25,19 @@ function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 40);
+}
+
+function buildInitialAnswers(
+  preguntas: PreguntaDinamica[],
+  saved: Record<string, string>,
+): Record<string, string> {
+  const next: Record<string, string> = { ...saved };
+  for (const pregunta of preguntas) {
+    if (!next[pregunta.id] && pregunta.default) {
+      next[pregunta.id] = pregunta.default;
+    }
+  }
+  return next;
 }
 
 export default function ClientesPage() {
@@ -39,6 +59,8 @@ export default function ClientesPage() {
   const [tamano, setTamano] = useState("Mediana");
   const [normativa, setNormativa] = useState("NIIF");
   const [tiposEntidad, setTiposEntidad] = useState<TipoEntidadOption[]>([]);
+  const [generalQuestions, setGeneralQuestions] = useState<PreguntaDinamica[]>([]);
+  const [generalResponses, setGeneralResponses] = useState<Record<string, string>>({});
   const showWelcomeClientes = !prefsLoading && !preferences.onboarding_ui.welcome_seen;
 
   useEffect(() => {
@@ -50,10 +72,16 @@ export default function ClientesPage() {
     let active = true;
     async function load(): Promise<void> {
       try {
-        const [list, tipos] = await Promise.all([getClientes(), getTiposEntidad()]);
+        const [list, tipos, general] = await Promise.all([
+          getClientes(),
+          getTiposEntidad(),
+          getPreguntasDinamicas("GENERAL"),
+        ]);
         if (!active) return;
         setClientes(list);
         setTiposEntidad(tipos);
+        setGeneralQuestions(general);
+        setGeneralResponses(buildInitialAnswers(general, {}));
       } catch (err) {
         if (!active) return;
         const message = err instanceof Error ? err.message : "No se pudo cargar la cartera de clientes.";
@@ -110,6 +138,13 @@ export default function ClientesPage() {
         normativa,
       });
 
+      await savePerfil(created.cliente_id, {
+        configuracion_general: {
+          tipo_entidad: tipoEntidad,
+          respuestas: generalResponses,
+        },
+      });
+
       setClientes((prev) => [created, ...prev.filter((x) => x.cliente_id !== created.cliente_id)]);
       setNombre("");
       setSector("Holding");
@@ -117,6 +152,7 @@ export default function ClientesPage() {
       setTipoEntidad("HOLDING");
       setTamano("Mediana");
       setNormativa("NIIF");
+      setGeneralResponses(buildInitialAnswers(generalQuestions, {}));
       router.push(`/onboarding/${created.cliente_id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "No se pudo crear el cliente.";
@@ -126,19 +162,19 @@ export default function ClientesPage() {
     }
   }
 
-  async function handleDeleteClient(cliente: ClienteOption): Promise<void> {
+  async function handleArchiveClient(cliente: ClienteOption): Promise<void> {
     const confirmed = window.confirm(
-      `Vas a borrar el cliente "${cliente.nombre}" (${cliente.cliente_id}). Esta acción no se puede deshacer. ¿Continuar?`,
+      `Vas a archivar el cliente "${cliente.nombre}" (${cliente.cliente_id}). Dejará de mostrarse en la cartera, pero sus datos se conservan. ¿Continuar?`,
     );
     if (!confirmed) return;
 
     setDeletingId(cliente.cliente_id);
     setError("");
     try {
-      await deleteCliente(cliente.cliente_id);
+      await archiveCliente(cliente.cliente_id);
       setClientes((prev) => prev.filter((item) => item.cliente_id !== cliente.cliente_id));
     } catch (err) {
-      const message = err instanceof Error ? err.message : "No se pudo borrar el cliente.";
+      const message = err instanceof Error ? err.message : "No se pudo archivar el cliente.";
       setError(message);
     } finally {
       setDeletingId(null);
@@ -283,6 +319,12 @@ export default function ClientesPage() {
                     Empezar onboarding
                   </Link>
                   <Link
+                    href={`/configuracion/${firstClient.cliente_id}`}
+                    className="px-3 py-2 rounded-lg border border-[#041627]/20 text-slate-700 text-xs font-semibold uppercase tracking-[0.08em] bg-white"
+                  >
+                    Ajustes del cliente
+                  </Link>
+                  <Link
                     href={`/dashboard/${firstClient.cliente_id}`}
                     className="px-3 py-2 rounded-lg border border-[#041627]/20 text-slate-700 text-xs font-semibold uppercase tracking-[0.08em] bg-white"
                   >
@@ -329,14 +371,17 @@ export default function ClientesPage() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => void handleDeleteClient(cliente)}
+                        onClick={() => void handleArchiveClient(cliente)}
                         disabled={deletingId === cliente.cliente_id}
                         className="px-4 py-2 rounded-xl text-sm border border-[#ba1a1a]/30 text-[#93000a] bg-[#ffdad6]/40 hover:bg-[#ffdad6] disabled:opacity-60"
                       >
-                        {deletingId === cliente.cliente_id ? "Borrando..." : "Borrar"}
+                        {deletingId === cliente.cliente_id ? "Archivando..." : "Archivar"}
                       </button>
                       <Link data-tour="clientes-onboarding-link" href={`/onboarding/${cliente.cliente_id}`} className="px-4 py-2 rounded-xl text-sm bg-white border border-black/10 text-slate-700 hover:bg-slate-50">
                         Onboarding
+                      </Link>
+                      <Link href={`/configuracion/${cliente.cliente_id}`} className="px-4 py-2 rounded-xl text-sm bg-white border border-black/10 text-slate-700 hover:bg-slate-50">
+                        Ajustes del cliente
                       </Link>
                       <Link data-tour="clientes-open-dashboard-link" href={`/dashboard/${cliente.cliente_id}`} className="px-4 py-2 rounded-xl text-sm text-white" style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}>
                         Abrir dashboard
@@ -352,7 +397,7 @@ export default function ClientesPage() {
           <article data-tour="clientes-form" className="xl:col-span-5 sovereign-card">
             <h3 className="font-headline text-3xl text-[#041627]">Nuevo cliente</h3>
             <p className="text-sm text-slate-600 mt-2 mb-6">
-              Al crear el cliente te llevo directo al onboarding para configurar preguntas clave y cargar archivos.
+              Primero capturamos la configuracion general del encargo y luego te llevo al onboarding para el bloque especifico por tipo de negocio.
             </p>
 
             <form className="space-y-4" onSubmit={handleCreateClient}>
@@ -402,6 +447,47 @@ export default function ClientesPage() {
                     <option value="USGAP">USGAP</option>
                   </select>
                 </label>
+              </div>
+
+              <div className="rounded-xl border border-[#041627]/10 bg-[#f8fafc] p-4 space-y-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Configuración general</p>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Base del encargo tipo CaseWare. Esto se guarda al crear el cliente y luego el onboarding añade el bloque específico.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {generalQuestions.map((pregunta) => (
+                    <label key={pregunta.id} className="flex flex-col gap-2">
+                      <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold flex items-center gap-2">
+                        {pregunta.texto}
+                        {pregunta.critica ? <span className="rounded-full bg-[#ffdad6] px-2 py-0.5 text-[10px] text-[#93000a]">Crítica</span> : null}
+                        <QuestionHelp text={pregunta.ayuda} />
+                      </span>
+                      {pregunta.tipo === "select" ? (
+                        <select
+                          className="ghost-input"
+                          value={generalResponses[pregunta.id] || pregunta.default || ""}
+                          onChange={(e) => setGeneralResponses((prev) => ({ ...prev, [pregunta.id]: e.target.value }))}
+                        >
+                          <option value="">Selecciona una opción</option>
+                          {(pregunta.opciones || []).map((opcion) => (
+                            <option key={`${pregunta.id}-${opcion.valor}`} value={opcion.valor}>
+                              {opcion.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          className="ghost-input"
+                          value={generalResponses[pregunta.id] || ""}
+                          onChange={(e) => setGeneralResponses((prev) => ({ ...prev, [pregunta.id]: e.target.value }))}
+                          placeholder={pregunta.placeholder || pregunta.default || "Ingresa tu respuesta"}
+                        />
+                      )}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <button

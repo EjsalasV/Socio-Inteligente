@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
+import QuestionHelp from "../../../components/ui/QuestionHelp";
 import { authFetchJson } from "../../../lib/api";
 import { updateCliente } from "../../../lib/api/clientes";
 import {
@@ -17,6 +18,7 @@ import {
   type PreguntaDinamica,
   type TipoEntidadOption,
 } from "../../../lib/api/configuracion";
+import { getPerfil } from "../../../lib/api/perfil";
 import { getDashboardData } from "../../../lib/api/dashboard";
 import { SECTOR_OPTIONS } from "../../../lib/sectorCatalog";
 
@@ -91,22 +93,24 @@ export default function ConfiguracionClientePage() {
   const [preguntas, setPreguntas] = useState<PreguntaDinamica[]>([]);
   const [respuestas, setRespuestas] = useState<Record<string, string>>({});
   const [configInfo, setConfigInfo] = useState<ClienteConfiguracion | null>(null);
+  const [generalConfig, setGeneralConfig] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let active = true;
     async function load(): Promise<void> {
       if (!clienteId) {
-        setError("Cliente inválido.");
+        setError("Cliente invÃ¡lido.");
         setLoading(false);
         return;
       }
 
       try {
-        const [dashboard, clienteResponse, tipos, configuracion] = await Promise.all([
+        const [dashboard, clienteResponse, tipos, configuracion, perfil] = await Promise.all([
           getDashboardData(clienteId),
           authFetchJson<{ data?: Record<string, unknown> }>(`/api/clientes/${clienteId}`),
           getTiposEntidad(),
           getClienteConfiguracion(clienteId),
+          getPerfil(clienteId),
         ]);
         if (!active) return;
 
@@ -125,6 +129,13 @@ export default function ConfiguracionClientePage() {
         setClienteMeta(meta);
         setTipoOptions(tipos);
         setConfigInfo(configuracion);
+        const perfilRoot = isRecord(perfil?.perfil) ? perfil.perfil : {};
+        const general = isRecord(perfilRoot.configuracion_general) ? perfilRoot.configuracion_general : {};
+        setGeneralConfig(
+          isRecord(general.respuestas)
+            ? Object.fromEntries(Object.entries(general.respuestas).map(([key, value]) => [key, String(value ?? "")]))
+            : {},
+        );
 
         const preguntasTipo = await getPreguntasDinamicas(tipo);
         if (!active) return;
@@ -132,7 +143,7 @@ export default function ConfiguracionClientePage() {
         setRespuestas(buildInitialAnswers(preguntasTipo, configuracion?.respuestas || {}));
       } catch (err) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : "No se pudo cargar la configuración del cliente.");
+        setError(err instanceof Error ? err.message : "No se pudo cargar la configuraciÃ³n del cliente.");
       } finally {
         if (active) setLoading(false);
       }
@@ -210,9 +221,9 @@ export default function ConfiguracionClientePage() {
         respuestas,
       });
       setConfigInfo(savedConfig);
-      setSuccess("Configuración guardada y lista para impactar análisis y hallazgos.");
+      setSuccess("ConfiguraciÃ³n guardada y lista para impactar anÃ¡lisis y hallazgos.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar la configuración.");
+      setError(err instanceof Error ? err.message : "No se pudo guardar la configuraciÃ³n.");
     } finally {
       setSaving(false);
     }
@@ -231,12 +242,12 @@ export default function ConfiguracionClientePage() {
       <section className="sovereign-card">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Configuración del cliente</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-slate-500">ConfiguraciÃ³n del cliente</p>
             <h1 className="font-headline text-4xl text-[#041627] mt-2">
               {clienteNombre || clienteMeta.nombre || clienteId}
             </h1>
             <p className="text-sm text-slate-600 mt-3 max-w-3xl">
-              Define los parámetros de industria que van a contextualizar el análisis inteligente, el pipeline y la lectura del encargo.
+              Define los parÃ¡metros de industria que van a contextualizar el anÃ¡lisis inteligente, el pipeline y la lectura del encargo.
             </p>
           </div>
 
@@ -257,26 +268,50 @@ export default function ConfiguracionClientePage() {
       {error ? <div className="sovereign-card text-sm text-[#93000a] bg-[#ffdad6] border border-[#ba1a1a]/20">{error}</div> : null}
       {success ? <div className="sovereign-card text-sm text-[#065f46] bg-[#ecfdf5] border border-[#047857]/20">{success}</div> : null}
 
+      <section className="sovereign-card space-y-3">
+        <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">ConfiguraciÃ³n general del encargo</p>
+        <div className="flex flex-wrap gap-2 text-sm text-slate-700">
+          <span className="rounded-full bg-slate-100 px-3 py-1">Guardada al crear el cliente</span>
+          <span className="rounded-full bg-slate-100 px-3 py-1">
+            {Object.keys(generalConfig).length} respuestas base
+          </span>
+        </div>
+        {Object.keys(generalConfig).length ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+            {Object.entries(generalConfig).slice(0, 6).map(([key, value]) => (
+              <div key={key} className="rounded-xl border border-[#041627]/10 bg-[#f8fafc] p-3">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500 font-bold">{key}</p>
+                <p className="text-sm text-[#041627] mt-1">{value}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-600">
+            AÃºn no hay configuraciÃ³n general guardada. Esta se captura al crear el cliente.
+          </p>
+        )}
+      </section>
+
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <article className="sovereign-card">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Preguntas activas</p>
           <p className="font-headline text-3xl text-[#041627] mt-2">{preguntas.length}</p>
-          <p className="text-sm text-slate-500 mt-2">Parámetros cargados para {clienteMeta.tipo_entidad || "la industria actual"}.</p>
+          <p className="text-sm text-slate-500 mt-2">ParÃ¡metros cargados para {clienteMeta.tipo_entidad || "la industria actual"}.</p>
         </article>
         <article className="sovereign-card">
-          <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Críticas respondidas</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">CrÃ­ticas respondidas</p>
           <p className="font-headline text-3xl text-[#041627] mt-2">
             {criticalCount === 0 ? "0" : `${preguntas.filter((p) => p.critica && String(respuestas[p.id] || "").trim()).length}/${criticalCount}`}
           </p>
-          <p className="text-sm text-slate-500 mt-2">{criticalAnswered ? "Lista para análisis contextual." : "Aún faltan parámetros clave."}</p>
+          <p className="text-sm text-slate-500 mt-2">{criticalAnswered ? "Lista para anÃ¡lisis contextual." : "AÃºn faltan parÃ¡metros clave."}</p>
         </article>
         <article className="sovereign-card">
           <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Respuestas completas</p>
           <p className="font-headline text-3xl text-[#041627] mt-2">{answeredCount}/{preguntas.length}</p>
-          <p className="text-sm text-slate-500 mt-2">Cobertura actual del cuestionario dinámico.</p>
+          <p className="text-sm text-slate-500 mt-2">Cobertura actual del cuestionario dinÃ¡mico.</p>
         </article>
         <article className="sovereign-card">
-          <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Último guardado</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Ãšltimo guardado</p>
           <p className="font-headline text-xl text-[#041627] mt-2">{formatDate(configInfo?.updated_at)}</p>
           <p className="text-sm text-slate-500 mt-2">{dirty ? "Tienes cambios sin guardar." : "Sin cambios pendientes."}</p>
         </article>
@@ -326,7 +361,7 @@ export default function ConfiguracionClientePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
             <label className="flex flex-col gap-2">
-              <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Tamaño</span>
+              <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">TamaÃ±o</span>
               <select
                 className="ghost-input"
                 value={clienteMeta.tamano}
@@ -355,7 +390,7 @@ export default function ConfiguracionClientePage() {
           <div className="rounded-xl border border-[#041627]/10 bg-[#f8fafc] p-4">
             <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Impacto</p>
             <p className="text-sm text-slate-600 mt-2">
-              Esta configuración ya alimenta el analizador inteligente y el pipeline de auditoría para ajustar expectativas según industria.
+              Esta configuraciÃ³n ya alimenta el analizador inteligente y el pipeline de auditorÃ­a para ajustar expectativas segÃºn industria.
             </p>
           </div>
         </article>
@@ -363,7 +398,7 @@ export default function ConfiguracionClientePage() {
         <article className="xl:col-span-8 sovereign-card space-y-5">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Parámetros dinámicos</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">ParÃ¡metros dinÃ¡micos</p>
               <h2 className="font-headline text-2xl text-[#041627] mt-2">Cuestionario por industria</h2>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -381,7 +416,7 @@ export default function ConfiguracionClientePage() {
                 className="px-4 py-2 rounded-xl text-white text-sm font-semibold disabled:opacity-60"
                 style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}
               >
-                {saving ? "Guardando..." : "Guardar configuración"}
+                {saving ? "Guardando..." : "Guardar configuraciÃ³n"}
               </button>
             </div>
           </div>
@@ -391,7 +426,8 @@ export default function ConfiguracionClientePage() {
               <label key={pregunta.id} className={`flex flex-col gap-2 ${pregunta.tipo === "text" ? "md:col-span-2" : ""}`}>
                 <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold flex items-center gap-2">
                   {pregunta.texto}
-                  {pregunta.critica ? <span className="rounded-full bg-[#ffdad6] px-2 py-0.5 text-[10px] text-[#93000a]">Crítica</span> : null}
+                  {pregunta.critica ? <span className="rounded-full bg-[#ffdad6] px-2 py-0.5 text-[10px] text-[#93000a]">CrÃ­tica</span> : null}
+                  <QuestionHelp text={pregunta.ayuda} />
                 </span>
                 {pregunta.tipo === "select" ? (
                   <select
@@ -399,7 +435,7 @@ export default function ConfiguracionClientePage() {
                     value={respuestas[pregunta.id] || pregunta.default || ""}
                     onChange={(e) => setRespuestas((prev) => ({ ...prev, [pregunta.id]: e.target.value }))}
                   >
-                    <option value="">Selecciona una opción</option>
+                    <option value="">Selecciona una opciÃ³n</option>
                     {(pregunta.opciones || []).map((opcion) => (
                       <option key={`${pregunta.id}-${opcion.valor}`} value={opcion.valor}>{opcion.label}</option>
                     ))}
@@ -412,7 +448,6 @@ export default function ConfiguracionClientePage() {
                     placeholder={pregunta.placeholder || pregunta.default || "Ingresa tu respuesta"}
                   />
                 )}
-                {pregunta.ayuda ? <span className="text-xs text-slate-500">{pregunta.ayuda}</span> : null}
               </label>
             ))}
           </div>
@@ -421,3 +456,4 @@ export default function ConfiguracionClientePage() {
     </div>
   );
 }
+
