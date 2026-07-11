@@ -13,6 +13,7 @@ from backend.services.expert_criteria_service import (
     get_quality_review_criteria,
     update_expert_criteria,
 )
+from backend.services.grupo_criteria_service import get_grupo_criteria, list_grupos
 
 LOGGER = logging.getLogger("socio_ai.expert_criteria")
 router = APIRouter(prefix="/api/expert-criteria", tags=["expert-criteria"])
@@ -50,6 +51,20 @@ def get_sector_criteria(sector: str, user: UserContext = Depends(get_current_use
 def get_quality_criteria(user: UserContext = Depends(get_current_user)) -> ApiResponse:
     payload = get_quality_review_criteria()
     LOGGER.info("expert_criteria.review requested_by=%s found=%s", user.sub, payload.get("found"))
+    return ApiResponse(data=payload)
+
+
+@router.get("/grupos", response_model=ApiResponse)
+def get_grupos_mapa(user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    grupos = list_grupos()
+    LOGGER.info("expert_criteria.grupos requested_by=%s total=%s", user.sub, len(grupos))
+    return ApiResponse(data={"grupos": grupos, "total": len(grupos)})
+
+
+@router.get("/grupo/{grupo}", response_model=ApiResponse)
+def get_grupo(grupo: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    payload = get_grupo_criteria(grupo)
+    LOGGER.info("expert_criteria.grupo requested_by=%s grupo=%s found=%s", user.sub, grupo, payload.get("found"))
     return ApiResponse(data=payload)
 
 

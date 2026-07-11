@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from backend.services.rag_chat_service import _resolved_provider
 from backend.services.analysis_history_service import AnalysisHistoryService
+from backend.services.grupo_criteria_service import build_analysis_criteria_block
 
 LOGGER = logging.getLogger("socio_ai.intelligent_analyzer")
 
@@ -58,7 +59,15 @@ def _format_financial_data_for_analysis(data: dict[str, Any]) -> str:
 
     size = data.get("tamano") or data.get("tama?o") or data.get("tama??o") or "Unknown"
 
-    return f"""CLIENT FINANCIAL DATA:
+    # Criterio experto por grupo del balance (grupos detectados en el TB)
+    criteria_block = ""
+    try:
+        account_names = [str(k) for k in (balance or {}).keys()]
+        criteria_block = build_analysis_criteria_block(account_names)
+    except Exception as exc:
+        LOGGER.warning("No se pudo construir criterio de grupos: %s", exc)
+
+    base = f"""CLIENT FINANCIAL DATA:
 Sector: {data.get('sector', 'Unknown')}
 Size: {size}
 Entity Type: {data.get('tipo_entidad', 'Unknown')}
@@ -73,20 +82,32 @@ ACTIVE RISK SIGNALS:
 TOP ACCOUNTS (by balance):
 {json.dumps(balance_summary, ensure_ascii=False)}"""
 
+    if criteria_block:
+        base = f"{base}\n\n{criteria_block}"
+    return base
+
 
 def _build_analysis_prompt() -> str:
     """
     Construye prompt para analisis inteligente de datos financieros.
     Detecta patrones auditables genericos y usa senales activas como prioridad.
     """
-    return """Analyze financial data for 4-5 audit findings. Use the industry parameters when they exist to calibrate expectations and material thresholds. Use ACTIVE RISK SIGNALS as priority lenses: when signals mention WIP, related parties, liquidity, collections, inventory rotation, scholarships, insurance exposure, or guarantees, bias the findings and procedures toward those themes. Look for common audit patterns:
+    return """Analyze financial data for 4-6 audit findings. Use the industry parameters when they exist to calibrate expectations and material thresholds. Use ACTIVE RISK SIGNALS as priority lenses: when signals mention WIP, related parties, liquidity, collections, inventory rotation, scholarships, insurance exposure, or guarantees, bias the findings and procedures toward those themes.
+
+If an EXPERT AUDIT CRITERIA section is present, it is your PRIMARY lens — it contains the firm's expert criterion per balance group (riesgos recurrentes, matriz riesgo→prueba→hallazgo, and CHEQUEOS CRUZADOS between groups). Rules for using it:
+1. Prioritize findings that match the riesgos recurrentes of the detected groups, evidenced by the actual balances.
+2. ALWAYS run the CHEQUEOS CRUZADOS (cross-group coherence checks): inventory vs. revenue (corte), gross margin vs. cost/inventory movement, payroll expense vs. provisions, tax echo of non-deductible items. If the balances show incoherence between linked groups, that IS a finding — cite the specific numbers.
+3. Write each finding following the matriz plantillas when available (state the amount, the missing evidence/control, and the norm).
+4. In "auditoria" use the concrete tests from the criteria (verbos operativos: pedir, recalcular, conciliar, confirmar), and in "evidencia_buscar" the specific documents the criteria mentions (actas, planillas IESS, certificados, conciliación tributaria).
+
+Also look for generic audit patterns:
 - Negative balances in income/expense accounts (sign reversal, misclassification)
 - Accounts with zero depreciation/amortization (asset valuation issues)
 - Compensating account pairs (assets=liabilities, suggesting masking)
 - Classification discrepancies (related accounts with inconsistent treatment)
 - Round amounts or missing accruals (completeness issues)
-- Unusual account relationships or missing complementary accounts
-Return JSON: {"hallazgos": [{"id":"H00X", "descripcion":"...", "nivel":"CRITICAL|IMPORTANT|MINOR", "norma":"NIC XX", "riesgo":"...", "auditoria":["procedure"], "evidencia_buscar":["doc"], "cuenta_afectada":"...", "monto_impactado":0}], "resumen":"Executive summary", "observaciones_sector":"Sector notes"}"""
+- Unusual account relationships or missing complementary accounts (e.g., payroll expense without provisiones de beneficios, inventory without provisión de obsolescencia)
+Respond in Spanish. Return JSON: {"hallazgos": [{"id":"H00X", "descripcion":"...", "nivel":"CRITICAL|IMPORTANT|MINOR", "norma":"NIC XX", "riesgo":"...", "auditoria":["procedure"], "evidencia_buscar":["doc"], "cuenta_afectada":"...", "monto_impactado":0, "vinculo_cruzado":"grupo A vs grupo B (si aplica)"}], "resumen":"Executive summary", "observaciones_sector":"Sector notes"}"""
 
 
 def analyze_financial_data(

@@ -14,6 +14,7 @@ from backend.repositories.file_repository import list_documentos, read_hallazgos
 from backend.services.area_procedures_service import get_procedures_by_area, list_areas_with_procedure_count
 from backend.services.chat_response_cache_service import build_response_cache_key, get_cached_response, set_cached_response
 from backend.services.expert_criteria_service import get_expert_criteria_by_area, get_expert_criteria_by_sector
+from backend.services.grupo_criteria_service import build_grupo_context_block, resolve_grupo
 from backend.services.rag_cache_service import build_rag_cache_key, get_cached_chunks, set_cached_chunks
 from backend.services.normativa_monitor_service import get_pending_normative_changes
 from backend.services.prompt_service import render_prompt, validate_minimum_output
@@ -726,7 +727,9 @@ def _enrich_context_with_area_procedures(area_codigo: str, context: str) -> str:
     return f"{base}\n\n[PROCEDIMIENTOS POR ÁREA]\n{block}"
 
 
-def _enrich_context_with_expert_criteria(area_codigo: str, sector: str, context: str) -> tuple[str, bool]:
+def _enrich_context_with_expert_criteria(
+    area_codigo: str, sector: str, context: str, query: str = ""
+) -> tuple[str, bool]:
     base = str(context or "").strip()
     used = False
     blocks: list[str] = []
@@ -754,6 +757,15 @@ def _enrich_context_with_expert_criteria(area_codigo: str, sector: str, context:
                 f"Fuente: {str(by_sector.get('source_path') or 'template')}\n"
                 f"{sector_content}"
             )
+
+    # Criterio por grupo del balance (normas + matriz + vínculos cruzados).
+    # Se resuelve desde el código de área o desde el texto de la pregunta.
+    grupo = resolve_grupo(area_codigo=area_codigo, area_nombre=query)
+    if grupo:
+        grupo_block = build_grupo_context_block(grupo, compact=True)
+        if grupo_block:
+            used = True
+            blocks.append(f"[CRITERIO EXPERTO - GRUPO DEL BALANCE]\n{grupo_block}")
 
     if not blocks:
         return base, used
@@ -1618,8 +1630,9 @@ def generate_chat_response(
         sector = ""
 
     expert_criteria_used = False
-    if area_code or sector:
-        area_context, expert_criteria_used = _enrich_context_with_expert_criteria(area_code, sector, area_context)
+    area_context, expert_criteria_used = _enrich_context_with_expert_criteria(
+        area_code, sector, area_context, query=query
+    )
 
     # Construir contexto de memoria (resúmenes + mensajes recientes)
     memory_summary: str = ""
