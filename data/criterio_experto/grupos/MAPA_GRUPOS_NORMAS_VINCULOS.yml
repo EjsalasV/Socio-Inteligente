@@ -1,0 +1,305 @@
+---
+nombre: Mapa Maestro - Grupos del Balance → Normas → Vínculos
+version: 1.0
+estado: Esqueleto completo de la herramienta. Define alcance total (los ~15 grupos son finitos y universales). Los módulos se construyen por prioridad; los vínculos se declaran TODOS aquí y se activan cuando ambos lados existen.
+proposito: |
+  Un auditor no audita "por norma", audita por grupo del balance.
+  Este mapa conecta cada grupo con: (1) las normas que le aplican,
+  (2) el criterio experto existente, (3) los vínculos de coherencia
+  con otros grupos — el pensamiento de socio que un junior no tiene.
+
+# ═══════════════════════════════════════════════════════════
+# GRUPOS DEL ACTIVO
+# ═══════════════════════════════════════════════════════════
+
+grupos:
+
+  efectivo:
+    nombre: Efectivo y Equivalentes
+    codigo_area: "140"
+    normas: [NIC 7]
+    modulo: por_area/140_efectivo.md
+    estado: criterio_existente
+    vinculos:
+      - con: ingresos
+        chequeo: "Cobros del año vs. ingresos + variación de CxC: si ingresos suben pero cobros no, ¿dónde está el efectivo?"
+      - con: obligaciones_financieras
+        chequeo: "Sobregiros presentados como pasivo, no neteados contra bancos"
+      - con: partes_relacionadas
+        chequeo: "Transferencias a cuentas de accionistas/directivos en últimos y primeros 5 días (kiting)"
+
+  cxc:
+    nombre: Cuentas por Cobrar y Deterioro
+    codigo_area: "130"
+    normas: [NIIF 9, NIIF 15]
+    modulo: por_area/130_cxc.md
+    estado: criterio_existente
+    vinculos:
+      - con: ingresos
+        chequeo: "CxC crece más rápido que ingresos → riesgo de ventas ficticias o clientes que no pagan"
+      - con: efectivo
+        chequeo: "Rotación de cartera vs. flujo de cobros real"
+      - con: partes_relacionadas
+        chequeo: "CxC a relacionadas sin interés, sin plazo o sin movimiento = posible distribución encubierta"
+
+  inventarios:
+    nombre: Inventarios
+    codigo_area: "150"
+    normas: [NIC 2, NIC 36 (referencia)]
+    modulo: grupos/inventarios/NIC2_INVENTARIOS.md
+    estado: construido
+    vinculos:
+      - con: ingresos
+        chequeo: "CORTE: última venta del año debe tener salida de inventario en el mismo período (no venta dic / salida ene)"
+        activo: true
+      - con: costo_ventas_gastos
+        chequeo: "Margen bruto coherente: si inventario sube 40% y ventas caen, ¿por qué compró tanto? Inventario inicial + compras - inventario final = costo de ventas"
+        activo: true
+      - con: cxp
+        chequeo: "Compras registradas vs. inventario recibido: mercadería en tránsito, facturas por recibir"
+        activo: false
+      - con: impuestos
+        chequeo: "Provisión por obsolescencia: gasto no deducible hasta baja efectiva → conciliación tributaria e impuesto diferido"
+        activo: true
+
+  ppe:
+    nombre: Propiedad, Planta y Equipo
+    codigo_area: "160"
+    normas: [NIC 16, NIC 36, NIC 23]
+    modulo: pendiente
+    estado: pendiente
+    vinculos:
+      - con: costo_ventas_gastos
+        chequeo: "Depreciación del año coherente con saldos y vidas útiles; mantenimientos mayores capitalizados vs. gasto"
+      - con: obligaciones_financieras
+        chequeo: "Activos en garantía revelados; intereses capitalizables en construcción (NIC 23)"
+      - con: impuestos
+        chequeo: "Depreciación contable vs. tributaria → impuesto diferido"
+
+  intangibles:
+    nombre: Intangibles y Plusvalía
+    normas: [NIC 38, NIC 36]
+    modulo: pendiente
+    estado: pendiente
+    vinculos:
+      - con: costo_ventas_gastos
+        chequeo: "Desarrollo capitalizado que en realidad es gasto de investigación o mantenimiento"
+
+  propiedades_inversion:
+    nombre: Propiedades de Inversión
+    codigo_area: "170"
+    normas: [NIC 40, NIIF 13]
+    modulo: por_area/170_propiedad_inversion.md
+    estado: criterio_existente
+    vinculos:
+      - con: ingresos
+        chequeo: "Rentas a partes relacionadas fuera de mercado afectan ingreso Y la evidencia del valor razonable"
+      - con: impuestos
+        chequeo: "Ganancia por valor razonable en resultados sin impuesto diferido asociado"
+
+  impuestos_activos:
+    nombre: Impuestos - Activos, Pasivos y Diferidos
+    codigo_area: "145"
+    normas: [NIC 12]
+    modulo: grupos/impuestos/NIC12_IMPUESTOS.md
+    estado: construido
+    vinculos:
+      - con: TODOS
+        chequeo: "La conciliación tributaria toca todos los grupos: cada diferencia contable-fiscal nace en otra área"
+        activo: true
+      - con: nomina
+        chequeo: "Participación trabajadores 15% calculada sobre utilidad correcta; provisiones laborales no deducibles"
+        activo: true
+      - con: inventarios
+        chequeo: "Provisión obsolescencia no deducible → diferencia temporaria"
+        activo: true
+      - con: patrimonio
+        chequeo: "Dividendos distribuidos: retenciones, impuesto a la renta único; utilidades que soportan la distribución"
+        activo: false
+
+# ═══════════════════════════════════════════════════════════
+# GRUPOS DEL PASIVO
+# ═══════════════════════════════════════════════════════════
+
+  cxp:
+    nombre: Cuentas por Pagar / Proveedores
+    normas: [NIIF 9 (presentación), NIC 37 (acumulaciones)]
+    modulo: pendiente
+    estado: pendiente
+    vinculos:
+      - con: inventarios
+        chequeo: "Pasivos omitidos: compras de diciembre facturadas en enero (búsqueda de pasivos no registrados)"
+      - con: costo_ventas_gastos
+        chequeo: "Gastos devengados sin factura (servicios diciembre) provisionados"
+
+  obligaciones_financieras:
+    nombre: Obligaciones Financieras
+    normas: [NIIF 9, NIIF 7]
+    modulo: pendiente
+    estado: pendiente
+    vinculos:
+      - con: efectivo
+        chequeo: "Confirmación bancaria revela deudas que el cliente no listó"
+      - con: ppe
+        chequeo: "Covenants y garantías sobre activos revelados en notas"
+      - con: costo_ventas_gastos
+        chequeo: "Gasto financiero coherente con saldo promedio × tasa pactada (recálculo global)"
+
+  provisiones:
+    nombre: Provisiones y Contingencias
+    normas: [NIC 37]
+    modulo: pendiente
+    estado: pendiente
+    vinculos:
+      - con: nomina
+        chequeo: "Juicios laborales: demandas de ex-empleados provisionadas o reveladas"
+      - con: impuestos
+        chequeo: "Contingencias tributarias (glosas SRI) evaluadas: probable=provisión, posible=revelación"
+
+  beneficios_empleados:
+    nombre: Beneficios a Empleados (pasivo laboral largo plazo)
+    normas: [NIC 19]
+    modulo: grupos/nomina/NIC19_NOMINA.md
+    estado: construido
+    vinculos:
+      - con: nomina
+        chequeo: "Jubilación patronal y desahucio: provisión actuarial coherente con antigüedad de la plantilla"
+        activo: true
+
+  patrimonio:
+    nombre: Patrimonio
+    codigo_area: "200"
+    normas: [NIC 32, NIC 1]
+    modulo: por_area/200_patrimonio.md
+    estado: criterio_existente
+    vinculos:
+      - con: impuestos_activos
+        chequeo: "Dividendos contra utilidades reales y con acta; efectos fiscales de la distribución"
+      - con: resultados
+        chequeo: "Secuencia: saldo inicial + resultado del año - distribuciones = saldo final (cuadre línea por línea)"
+
+# ═══════════════════════════════════════════════════════════
+# GRUPOS DE RESULTADOS
+# ═══════════════════════════════════════════════════════════
+
+  ingresos:
+    nombre: Ingresos Ordinarios
+    normas: [NIIF 15]
+    modulo: niif15/ (framework + taxonomía + instancias + controles)
+    estado: construido
+    vinculos:
+      - con: cxc
+        chequeo: "Ingresos suben, CxC sube más rápido, cobros no suben → señal de alerta"
+        activo: false
+      - con: inventarios
+        chequeo: "CORTE: venta reconocida = salida de inventario en el mismo período"
+        activo: true
+      - con: efectivo
+        chequeo: "Flujo de cobros coherente con ingresos devengados"
+        activo: false
+
+  costo_ventas_gastos:
+    nombre: Costo de Ventas y Gastos Operativos
+    normas: [NIC 1, NIC 2 (costo), marco de devengo]
+    modulo: grupos/gastos/GASTOS_COSTO_VENTAS.md
+    estado: construido
+    vinculos:
+      - con: inventarios
+        chequeo: "Costo de ventas = inv. inicial + compras - inv. final (recálculo global obligatorio)"
+        activo: true
+      - con: ingresos
+        chequeo: "Margen bruto vs. año anterior y vs. sector: variación >3-5 puntos exige explicación"
+        activo: true
+      - con: nomina
+        chequeo: "Gasto sueldos del estado de resultados cuadra con planillas IESS y formulario 107"
+        activo: true
+      - con: cxp
+        chequeo: "Gastos de diciembre sin factura provisionados (corte de gastos)"
+        activo: false
+      - con: partes_relacionadas
+        chequeo: "Servicios/management fees de relacionadas: sustancia, precio de mercado, retenciones"
+        activo: false
+
+  nomina:
+    nombre: Nómina y Beneficios (gasto + pasivo corriente)
+    normas: [NIC 19, Código de Trabajo Ecuador, LSS/IESS]
+    modulo: grupos/nomina/NIC19_NOMINA.md
+    estado: construido
+    vinculos:
+      - con: costo_ventas_gastos
+        chequeo: "Gasto nómina contable = planillas IESS + provisiones de beneficios (cuadre global)"
+        activo: true
+      - con: impuestos
+        chequeo: "Participación trabajadores 15%; gastos de nómina no soportados en IESS son no deducibles"
+        activo: true
+      - con: provisiones
+        chequeo: "Décimos, vacaciones, fondos de reserva provisionados al cierre; juicios laborales"
+        activo: false
+      - con: beneficios_empleados
+        chequeo: "Jubilación patronal/desahucio actuarial para plantilla con 10+ años"
+        activo: true
+
+# ═══════════════════════════════════════════════════════════
+# TRANSVERSALES (no son grupos, cruzan todo)
+# ═══════════════════════════════════════════════════════════
+
+transversales:
+  partes_relacionadas:
+    normas: [NIC 24]
+    criterio: errores_comunes/partes_relacionadas.md
+    aplica_a: TODOS
+
+  revelaciones:
+    normas: [NIC 1, NIIF 7, NIIF 12]
+    criterio: errores_comunes/revelaciones_incompletas.md
+    aplica_a: TODOS
+
+  negocio_en_marcha:
+    normas: [NIC 1]
+    criterio: revision_calidad/general.md
+    aplica_a: TODOS
+
+  deterioro:
+    normas: [NIC 36]
+    criterio: errores_comunes/deterioros_sin_soporte.md
+    aplica_a: [inventarios, ppe, intangibles, cxc, propiedades_inversion]
+
+# ═══════════════════════════════════════════════════════════
+# ESTADO DE CONSTRUCCIÓN Y PRIORIDAD
+# ═══════════════════════════════════════════════════════════
+
+roadmap:
+  construidos:
+    - ingresos (NIIF 15 — framework completo con taxonomía e instancias)
+    - inventarios (NIC 2)
+    - costo_ventas_gastos
+    - nomina (NIC 19 + Ecuador)
+    - impuestos (NIC 12 + conciliación tributaria Ecuador)
+  criterio_existente_por_enriquecer:
+    - efectivo (140)
+    - cxc (130)
+    - propiedades_inversion (170)
+    - patrimonio (200)
+    - impuestos_activos (145)
+  pendientes_por_demanda:
+    - ppe
+    - cxp
+    - obligaciones_financieras
+    - provisiones
+    - intangibles
+  criterio_priorizacion: |
+    El orden lo define el uso real: áreas que consumen más tiempo
+    a los auditores usuarios. Prioridad inicial validada por el
+    socio fundador: nómina, impuestos, inventarios, ingresos, gastos.
+
+# ═══════════════════════════════════════════════════════════
+# CÓMO USA ESTE MAPA EL MOTOR DE ANÁLISIS
+# ═══════════════════════════════════════════════════════════
+
+uso_por_el_motor:
+  paso_1: "Auditor pide análisis de un grupo (ej. inventarios) de un cliente"
+  paso_2: "Motor carga: módulo del grupo + criterio del sector del cliente + datos reales (TB, mayor)"
+  paso_3: "Motor identifica vínculos ACTIVOS del grupo y carga los chequeos cruzados"
+  paso_4: "IA analiza: riesgos internos del grupo + coherencia con grupos vinculados"
+  paso_5: "Reporta hallazgos con referencia a norma, prueba sugerida y evidencia esperada"
+  regla_de_oro: "Un análisis de grupo NUNCA se entrega sin correr sus vínculos activos — eso es lo que diferencia criterio de socio vs. checklist de junior"
