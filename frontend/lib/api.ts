@@ -61,6 +61,10 @@ function getRequestTimeoutMs(path?: string): number {
     ? Math.max(35000, Math.min(heavyRaw, 90000))
     : 35000;
   const normalizedPath = String(path || "").toLowerCase();
+  // El análisis con IA llama a un LLM externo: puede tardar 30-60s.
+  if (normalizedPath.includes("/audit-analysis/")) {
+    return Math.max(base, 90000);
+  }
   if (
     normalizedPath.startsWith("/dashboard/") ||
     normalizedPath.startsWith("/risk-engine/") ||

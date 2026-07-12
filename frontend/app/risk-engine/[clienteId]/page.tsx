@@ -60,6 +60,36 @@ export default function RiskEnginePage() {
   if (error) return <ErrorMessage message={error} />;
   if (!data) return <ErrorMessage message="No hay datos del motor de riesgos para este cliente." />;
 
+  if (data.sin_datos) {
+    return (
+      <div className="pt-4 pb-8 max-w-screen-2xl">
+        <header className="mb-6">
+          <span className="text-[#001919] font-label text-xs tracking-[0.2em] uppercase font-bold mb-2 block">
+            Risk Intelligence Dashboard
+          </span>
+          <h1 className="font-headline text-4xl font-bold text-[#041627] tracking-tight">
+            Motor de Riesgos - Mapa de Calor de Auditoría
+          </h1>
+        </header>
+        <section className="sovereign-card flex flex-col items-start gap-4 p-8">
+          <span className="material-symbols-outlined text-4xl text-slate-400">upload_file</span>
+          <h2 className="font-headline text-2xl font-bold text-[#041627]">Sin datos para calcular riesgos</h2>
+          <p className="text-sm text-slate-600 max-w-xl">
+            {data.mensaje ||
+              "Aún no hay Trial Balance ni áreas trabajadas para este cliente. El motor no muestra riesgos simulados: sube el TB y la matriz se calculará con los saldos reales."}
+          </p>
+          <Link
+            href={`/trial-balance/${clienteId}`}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#041627] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white hover:bg-[#0a2a42]"
+          >
+            <span className="material-symbols-outlined text-base">table_chart</span>
+            Cargar Trial Balance
+          </Link>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="pt-4 pb-8 space-y-8 max-w-screen-2xl">
       <header className="mb-4">

@@ -665,42 +665,15 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
     if not critical_areas:
         critical_areas = _from_area_files(cliente_id)
 
-    if not critical_areas:
-        critical_areas = [
-            RiskCriticalArea(
-                area_id="14",
-                area_nombre="Inversiones no corrientes",
-                score=72.0,
-                nivel="MEDIO",
-                frecuencia=4,
-                impacto=4,
-                hallazgos_abiertos=0,
-                drivers=["Sin datos historicos suficientes; riesgo base por relevancia financiera."],
-                score_components={"base_model": 72.0},
-            ),
-            RiskCriticalArea(
-                area_id="200",
-                area_nombre="Patrimonio",
-                score=65.0,
-                nivel="MEDIO",
-                frecuencia=4,
-                impacto=3,
-                hallazgos_abiertos=0,
-                drivers=[],
-                score_components={"base_model": 65.0},
-            ),
-            RiskCriticalArea(
-                area_id="1000",
-                area_nombre="Gastos administrativos",
-                score=52.0,
-                nivel="BAJO",
-                frecuencia=3,
-                impacto=3,
-                hallazgos_abiertos=0,
-                drivers=[],
-                score_components={"base_model": 52.0},
-            ),
-        ]
+    # Sin TB ni areas trabajadas NO se inventan riesgos: un auditor no puede
+    # recibir una matriz simulada como si fuera analisis real.
+    sin_datos = not critical_areas
+    mensaje = (
+        "Aun no hay datos para calcular riesgos. Sube el Trial Balance del cliente "
+        "para que el motor detecte las areas y calcule la matriz."
+        if sin_datos
+        else ""
+    )
 
     critical_areas.sort(key=lambda x: x.score, reverse=True)
     quadrants = _build_matrix_cells(critical_areas)
@@ -722,6 +695,8 @@ def get_risk_engine(cliente_id: str, user: UserContext = Depends(get_current_use
         areas_criticas=critical_areas[:8],
         strategy=strategy,
         recommended_tests=[*(strategy.control_tests or []), *(strategy.substantive_tests or [])],
+        sin_datos=sin_datos,
+        mensaje=mensaje,
     )
     response = ApiResponse(data=payload.model_dump())
     if ttl_seconds > 0:

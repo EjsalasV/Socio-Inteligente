@@ -119,6 +119,8 @@ export async function getRiskEngineData(clienteId: string): Promise<RiskEngineRe
       recommended_tests: recommendedRaw
         .map((x) => normalizeStrategyTest(x, "control"))
         .filter((item): item is RiskStrategyTest => item !== null),
+      sin_datos: raw.sin_datos === true,
+      mensaje: asString(raw.mensaje, ""),
     };
   } catch (error) {
     if (error instanceof TokenExpiredError) {

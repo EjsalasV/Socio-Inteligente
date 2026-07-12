@@ -223,6 +223,8 @@ class RiskEngineResponse(BaseModel):
     areas_criticas: list[RiskCriticalArea]
     strategy: RiskStrategyResponse
     recommended_tests: list[RiskStrategyTest] = Field(default_factory=list)
+    sin_datos: bool = False
+    mensaje: str = ""
 
 
 class AreaResponse(BaseModel):

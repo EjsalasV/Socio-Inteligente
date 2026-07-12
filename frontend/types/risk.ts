@@ -55,6 +55,8 @@ export interface RiskEngineResponse {
   areas_criticas: RiskCriticalArea[];
   strategy: RiskStrategy;
   recommended_tests?: RiskStrategyTest[];
+  sin_datos?: boolean;
+  mensaje?: string;
 }
 
 export type RiskMatrixData = RiskEngineResponse;

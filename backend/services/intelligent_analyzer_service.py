@@ -100,8 +100,10 @@ If an EXPERT AUDIT CRITERIA section is present, it is your PRIMARY lens — it c
 3. Write each finding following the matriz plantillas when available (state the amount, the missing evidence/control, and the norm).
 4. In "auditoria" use the concrete tests from the criteria (verbos operativos: pedir, recalcular, conciliar, confirmar), and in "evidencia_buscar" the specific documents the criteria mentions (actas, planillas IESS, certificados, conciliación tributaria).
 
+SIGN CONVENTION (read first): infer the TB sign convention before flagging anything. If most liability, equity and revenue accounts show NEGATIVE balances, the TB uses signed convention (credits negative): negative revenue/equity/liabilities are NORMAL and are NOT findings. Under that convention, flag the OPPOSITE: expenses or assets with credit (negative) sign, or revenue/liabilities/equity with debit (positive) sign. Never report "cuenta de ingresos con saldo negativo" as a finding when the whole credit side is negative.
+
 Also look for generic audit patterns:
-- Negative balances in income/expense accounts (sign reversal, misclassification)
+- Balances whose sign contradicts the inferred convention (sign reversal, misclassification)
 - Accounts with zero depreciation/amortization (asset valuation issues)
 - Compensating account pairs (assets=liabilities, suggesting masking)
 - Classification discrepancies (related accounts with inconsistent treatment)
@@ -217,11 +219,14 @@ def analyze_financial_data(
         ]
 
         try:
+            # response_format json_object evita respuestas con texto extra;
+            # max_tokens amplio porque 4-6 hallazgos detallados superan 2000.
             response = client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=0.3,
-                max_tokens=2000,
+                max_tokens=4000,
+                response_format={"type": "json_object"},
             )
         except Exception as e:
             LOGGER.debug(f"Error con parámetros completos, intentando con parámetros mínimos...")
@@ -230,6 +235,9 @@ def analyze_financial_data(
                 model=model,
                 messages=messages,
             )
+        finish_reason = str(getattr(response.choices[0], "finish_reason", "") or "")
+        if finish_reason == "length":
+            LOGGER.warning("Respuesta de IA truncada por max_tokens (finish_reason=length)")
 
         # Extraer respuesta
         response_text = response.choices[0].message.content or ""
