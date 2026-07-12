@@ -139,6 +139,14 @@ export default function ClientesPage() {
       });
 
       await savePerfil(created.cliente_id, {
+        cliente: {
+          nombre_legal: cleanName,
+          sector,
+        },
+        encargo: {
+          anio_activo: new Date().getFullYear(),
+          marco_referencial: normativa,
+        },
         configuracion_general: {
           tipo_entidad: tipoEntidad,
           respuestas: generalResponses,
@@ -453,7 +461,7 @@ export default function ClientesPage() {
                 <div>
                   <p className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Configuración general</p>
                   <p className="text-sm text-slate-600 mt-1">
-                    Base del encargo tipo CaseWare. Esto se guarda al crear el cliente y luego el onboarding añade el bloque específico.
+                    Estas respuestas calibran el análisis del encargo (riesgos, materialidad e IA). Se guardan al crear el cliente y el onboarding añade el bloque específico del sector.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 gap-4">

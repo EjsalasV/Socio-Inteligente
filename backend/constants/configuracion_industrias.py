@@ -1,6 +1,8 @@
 """
 Configuracion dinamica por tipo de industria/entidad.
-Incluye una base general tipo CaseWare y bloques especificos por negocio.
+Preguntas de encargo que calibran el analisis (materialidad, riesgos, IA).
+Cada respuesta viaja al analizador como parametro de industria: solo deben
+existir preguntas cuya respuesta cambie el analisis o el alcance.
 """
 
 from __future__ import annotations
@@ -17,15 +19,6 @@ GENERAL_QUESTIONS = [
         "default": "SI",
         "critica": True,
         "ayuda": "Valida si el perfil base corresponde a una persona juridica operativa.",
-    },
-    {
-        "id": "perfil_adecuado",
-        "texto": "Se esta utilizando el perfil adecuado para este compromiso.",
-        "tipo": "select",
-        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
-        "default": "SI",
-        "critica": True,
-        "ayuda": "Si es NO, el perfil debe corregirse antes de continuar.",
     },
     {
         "id": "cumple_nia_315",
@@ -71,15 +64,6 @@ GENERAL_QUESTIONS = [
         "default": "NO",
         "critica": False,
         "ayuda": "Define si el encargo necesita apoyo tecnico especializado.",
-    },
-    {
-        "id": "incluir_vistas_riesgo",
-        "texto": "Incluir vistas detalladas del informe de riesgo.",
-        "tipo": "select",
-        "opciones": [{"valor": "SI", "label": "Si"}, {"valor": "NO", "label": "No"}],
-        "default": "SI",
-        "critica": False,
-        "ayuda": "Activa vistas ampliadas para supervision y revisiones.",
     },
     {
         "id": "empresa_en_marcha",
