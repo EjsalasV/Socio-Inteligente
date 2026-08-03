@@ -57,8 +57,15 @@ export function getApiBase(): string {
 }
 
 export function buildApiUrl(path: string): string {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${getApiBase()}${normalizedPath}`;
+  let normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const base = getApiBase();
+  // La mayoría de rutas nuevas ya incluyen /api. Cuando el navegador local
+  // usa el proxy /api, evita construir /api/api/... y conserva compatibilidad
+  // con rutas históricas como /dashboard o /auth.
+  if ((base === "/api" || base.endsWith("/api")) && normalizedPath.startsWith("/api/")) {
+    normalizedPath = normalizedPath.slice(4);
+  }
+  return `${base}${normalizedPath}`;
 }
 
 export function getBrowserOrigin(): string {

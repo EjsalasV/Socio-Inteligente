@@ -21,7 +21,7 @@ except Exception:  # pragma: no cover
     redis = None  # type: ignore
 
 
-_NAMESPACE = "rag:responses:v1"
+_NAMESPACE = "rag:responses:v3_client_first"
 
 
 def _as_bool(value: str | None, default: bool) -> bool:
@@ -52,6 +52,10 @@ def build_response_cache_key(
     cliente_id: str,
     query: str,
     mode: str = "chat",
+    *,
+    learning_role: str = "",
+    context_signature: str = "",
+    conversation_id: str = "",
 ) -> str:
     """Construye clave única para la respuesta usando SHA256."""
     normalized_cliente = _normalize_text(cliente_id) or "global"
@@ -59,6 +63,9 @@ def build_response_cache_key(
         "cliente_id": normalized_cliente,
         "query": _normalize_text(query),
         "mode": str(mode or "chat").strip().lower(),
+        "learning_role": _normalize_text(learning_role),
+        "context_signature": str(context_signature or "").strip(),
+        "conversation_id": _normalize_text(conversation_id),
     }
     canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()

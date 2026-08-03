@@ -255,11 +255,8 @@ def validar_perfil_basico(perfil: Dict[str, Any]) -> None:
 
     campos_minimos = [
         ("cliente", "nombre_legal"),
-        ("cliente", "nombre_corto"),
-        ("cliente", "ruc"),
         ("encargo", "anio_activo"),
         ("encargo", "marco_referencial"),
-        ("encargo", "tipo_encargo"),
     ]
 
     faltantes = []

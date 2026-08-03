@@ -125,6 +125,26 @@ def _fase_normalizada(raw: str) -> str:
     return "planificacion"
 
 
+def _fase_perfil_normalizada(raw: str) -> str:
+    """Conserva la visita seleccionada en onboarding.
+
+    El workflow interno usa tres macrofases, pero el perfil necesita distinguir
+    visita preliminar de visita final para orientar correctamente al mentor.
+    """
+    value = (raw or "").strip().lower()
+    if value in {"planificacion", "preliminar", "final", "cierre"}:
+        return value
+    if "final" in value:
+        return "final"
+    if "prelim" in value:
+        return "preliminar"
+    if "inform" in value or "cier" in value:
+        return "cierre"
+    if "ejec" in value or "visita" in value:
+        return "preliminar"
+    return "planificacion"
+
+
 def normalize_perfil_doc_v1(doc: dict[str, Any]) -> dict[str, Any]:
     data = dict(doc or {})
     data["schema_version"] = VALID_SCHEMA_VERSION
@@ -141,7 +161,7 @@ def normalize_perfil_doc_v1(doc: dict[str, Any]) -> dict[str, Any]:
     # Backward compatibility: perfiles legacy pueden venir sin nivel de riesgo.
     if not str(data["riesgo_global"].get("nivel") or "").strip():
         data["riesgo_global"]["nivel"] = "medio"
-    data["encargo"]["fase_actual"] = _fase_normalizada(str(data["encargo"].get("fase_actual", "")))
+    data["encargo"]["fase_actual"] = _fase_perfil_normalizada(str(data["encargo"].get("fase_actual", "")))
     return data
 
 

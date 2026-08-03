@@ -18,7 +18,9 @@ export type AuditModule =
   | "socio-chat"
   | "client-memory"
   | "biblioteca"
-  | "procedimientos";
+  | "procedimientos"
+  | "learning-progress"
+  | "entity-profile";
 
 type AuditContextValue = {
   clienteId: string;
@@ -49,6 +51,8 @@ function parseFromPath(pathname: string): AuditContextValue {
   if (first === "client-memory") moduleKey = "client-memory";
   if (first === "biblioteca") moduleKey = "biblioteca";
   if (first === "procedimientos") moduleKey = "procedimientos";
+  if (first === "learning-progress") moduleKey = "learning-progress";
+  if (first === "entity-profile") moduleKey = "entity-profile";
 
   const labels: Record<AuditModule, string> = {
     dashboard: "Dashboard",
@@ -62,10 +66,12 @@ function parseFromPath(pathname: string): AuditContextValue {
     "papeles-trabajo": "Papeles de Trabajo",
     perfil: "Perfil Cliente",
     reportes: "Reportes",
-    "socio-chat": "Socio Chat",
+    "socio-chat": "Mentor",
     "client-memory": "Client Memory",
     biblioteca: "Biblioteca",
     procedimientos: "Procedimientos",
+    "learning-progress": "Mi aprendizaje",
+    "entity-profile": "Perfil de entidad",
   };
 
   return {

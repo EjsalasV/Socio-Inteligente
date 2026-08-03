@@ -18,6 +18,10 @@ from backend.repositories.file_repository import (
 )
 from backend.repositories.identity_repository import store as identity_store
 from backend.services.memory_service import compress_old_messages_if_needed
+from backend.services.chat_conversation_service import (
+    create_conversation, delete_conversation, ensure_conversation,
+    list_conversations, rename_conversation,
+)
 from backend.schemas import ApiResponse, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse, UserContext
 from backend.services.rag_chat_service import generate_chat_response, generate_metodologia_response
 
@@ -28,6 +32,14 @@ LOGGER = logging.getLogger("socio_ai.chat")
 class ChatExportRequest(BaseModel):
     content: str
     title: str | None = None
+
+
+class ConversationCreateRequest(BaseModel):
+    title: str = "Nueva conversación"
+
+
+class ConversationRenameRequest(BaseModel):
+    title: str
 
 
 def _is_true(value: str | None) -> bool:
@@ -53,6 +65,7 @@ def _run_chat_engine(
     user_display_name: str = "",
     user_role: str = "",
     learning_role: str = "semi",
+    conversation_id: str = "",
 ) -> dict:
     # El chat principal debe sentirse conversacional.
     # El pipeline estructurado se puede activar de forma explicita para chat si se requiere.
@@ -65,6 +78,7 @@ def _run_chat_engine(
             user_display_name=user_display_name,
             user_role=user_role,
             learning_role=learning_role,
+            conversation_id=conversation_id,
         )
 
     try:
@@ -98,6 +112,11 @@ def post_chat(
     user: UserContext = Depends(get_current_user),
 ) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
+    conversation = ensure_conversation(
+        cliente_id,
+        payload.conversation_id or create_conversation(cliente_id)["id"],
+        payload.message,
+    )
 
     # Obtener learning_role del usuario
     try:
@@ -113,6 +132,7 @@ def post_chat(
         user_display_name=user.display_name or user.sub,
         user_role=user.role or "",
         learning_role=learning_role,
+        conversation_id=str(conversation["id"]),
     )
     append_chat_message(
         cliente_id,
@@ -122,6 +142,7 @@ def post_chat(
             "user_id": user.sub,
             "user_display_name": user.display_name or user.sub,
             "user_role": user.role or "",
+            "conversation_id": conversation["id"],
         },
     )
 
@@ -153,6 +174,7 @@ def post_chat(
             "prompt_id": data.prompt_id,
             "prompt_version": data.prompt_version,
             "user_id": user.sub,
+            "conversation_id": conversation["id"],
         },
     )
     # Comprimir historial si supera el umbral (no bloquea la respuesta)
@@ -160,15 +182,18 @@ def post_chat(
         compress_old_messages_if_needed(cliente_id)
     except Exception:
         pass
-    return ApiResponse(data=data.model_dump())
+    response_data = data.model_dump()
+    response_data["conversation_id"] = conversation["id"]
+    return ApiResponse(data=response_data)
 
 
 @router.get("/{cliente_id}/history", response_model=ApiResponse)
-def get_chat_history(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+def get_chat_history(cliente_id: str, conversation_id: str = "", user: UserContext = Depends(get_current_user)) -> ApiResponse:
     authorize_cliente_access(cliente_id, user)
     rows = read_chat_history(cliente_id)
     safe_rows: list[dict] = []
-    for row in rows[-120:]:
+    selected = [row for row in rows if not conversation_id or row.get("conversation_id") == conversation_id]
+    for row in selected[-120:]:
         if not isinstance(row, dict):
             continue
         safe_rows.append(
@@ -181,6 +206,35 @@ def get_chat_history(cliente_id: str, user: UserContext = Depends(get_current_us
             }
         )
     return ApiResponse(data={"messages": safe_rows})
+
+
+@router.get("/{cliente_id}/conversations", response_model=ApiResponse)
+def get_conversations(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    return ApiResponse(data={"conversations": list_conversations(cliente_id)})
+
+
+@router.post("/{cliente_id}/conversations", response_model=ApiResponse)
+def post_conversation(cliente_id: str, payload: ConversationCreateRequest, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    return ApiResponse(data={"conversation": create_conversation(cliente_id, payload.title)})
+
+
+@router.patch("/{cliente_id}/conversations/{conversation_id}", response_model=ApiResponse)
+def patch_conversation(cliente_id: str, conversation_id: str, payload: ConversationRenameRequest, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    row = rename_conversation(cliente_id, conversation_id, payload.title)
+    if row is None:
+        raise_api_error(status_code=404, code="CONVERSATION_NOT_FOUND", message="Conversación no encontrada.")
+    return ApiResponse(data={"conversation": row})
+
+
+@router.delete("/{cliente_id}/conversations/{conversation_id}", response_model=ApiResponse)
+def remove_conversation(cliente_id: str, conversation_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    if not delete_conversation(cliente_id, conversation_id):
+        raise_api_error(status_code=404, code="CONVERSATION_NOT_FOUND", message="Conversación no encontrada.")
+    return ApiResponse(data={"deleted": True})
 
 
 @router.post("/{cliente_id}/metodologia", response_model=ApiResponse)

@@ -56,10 +56,10 @@ reglas_por_sector:
 
   servicios:
     base: "ingresos"
-    porcentaje_min: 0.05
-    porcentaje_max: 0.10
+    porcentaje_min: 0.005
+    porcentaje_max: 0.01
     minimum_threshold: 80000
-    descripcion: "Servicios - usa 5-10% de ingresos"
+    descripcion: "Servicios - referencia inicial de 0.5-1% de ingresos; el auditor debe aprobar o modificar"
 
   manufactura:
     base: "activos"

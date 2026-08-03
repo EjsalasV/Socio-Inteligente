@@ -33,8 +33,11 @@ def test_minimum_threshold_precedencia_cliente_sector_global():
         out = calcular_materialidad("cliente_x")
 
     assert out is not None
-    assert out["materialidad_sugerida"] == 200000
+    # Un piso administrativo no puede sustituir el benchmark técnico ni superar
+    # el máximo calculado para la base del encargo.
+    assert out["materialidad_sugerida"] == 15000
     assert out["minimum_threshold_origen"] == "cliente"
+    assert out["minimum_threshold_efectivo"] is False
 
 
 def test_materialidad_maneja_patrimonio_negativo():

@@ -58,6 +58,8 @@ def _format_financial_data_for_analysis(data: dict[str, Any]) -> str:
     risk_signal_block = "\n".join(signal_lines) if signal_lines else "- No active risk signals"
 
     size = data.get("tamano") or data.get("tama?o") or data.get("tama??o") or "Unknown"
+    confirmed_context = data.get("confirmed_entity_context", {})
+    confirmed_context_block = json.dumps(confirmed_context, ensure_ascii=False) if isinstance(confirmed_context, dict) else "{}"
 
     # Criterio experto por grupo del balance (grupos detectados en el TB)
     criteria_block = ""
@@ -80,7 +82,10 @@ ACTIVE RISK SIGNALS:
 {risk_signal_block}
 
 TOP ACCOUNTS (by balance):
-{json.dumps(balance_summary, ensure_ascii=False)}"""
+{json.dumps(balance_summary, ensure_ascii=False)}
+
+AUDITOR-CONFIRMED ENTITY CONTEXT (use as planning context, not as a finding by itself):
+{confirmed_context_block}"""
 
     if criteria_block:
         base = f"{base}\n\n{criteria_block}"

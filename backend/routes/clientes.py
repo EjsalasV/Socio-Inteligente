@@ -6,6 +6,7 @@ from typing import Any, Optional, List
 from datetime import datetime, date
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pydantic import BaseModel, Field
 from sqlalchemy import func
 
 from backend.auth import authorize_cliente_access, get_current_user
@@ -14,6 +15,9 @@ from backend.models.audit import Audit
 from backend.schemas import UserContext, ApiResponse, ClienteCreateRequest, ClienteUpdateRequest
 from backend.utils.database import get_session
 from backend.utils.api_errors import raise_api_error
+from backend.services.client_deletion_service import permanently_delete_client
+from backend.services.client_progress_service import build_client_progress
+from backend.repositories.file_repository import slugify_cliente_id
 
 router = APIRouter(prefix="/api/clientes", tags=["clientes"])
 LOGGER = logging.getLogger("socio_ai.api.clientes")
@@ -74,6 +78,20 @@ async def listar_clientes(
         )
 
 
+@router.get("/progress", response_model=ApiResponse)
+async def listar_progreso_clientes(
+    user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
+) -> ApiResponse:
+    clientes = session.query(Client).order_by(Client.nombre).all()
+    progress = [
+        build_client_progress(cliente.client_id)
+        for cliente in clientes
+        if cliente is not None and cliente.estado != "ARCHIVADO" and _user_can_access(cliente.client_id, user)
+    ]
+    return ApiResponse(data={"clients": progress})
+
+
 @router.get("/{cliente_id}", response_model=ApiResponse)
 async def obtener_cliente(
     cliente_id: str,
@@ -127,8 +145,17 @@ async def crear_cliente(
         # Verificar rol - solo admin, manager, y socio pueden crear clientes
         _require_management_role(user, "Solo perfiles administradores pueden crear clientes.")
 
-        # Usar client_id del body o generar uno
-        client_id = body.cliente_id or body.nombre.lower().replace(" ", "_")
+        # El ID también se usa como nombre de directorio. Normalizarlo antes
+        # de persistir evita clientes huérfanos cuando el usuario escribe
+        # códigos con puntos, espacios, tildes u otros caracteres no seguros.
+        client_id = slugify_cliente_id(body.cliente_id or body.nombre)
+        if not client_id:
+            raise_api_error(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                code="INVALID_CLIENT_ID",
+                message="El código del cliente no contiene caracteres utilizables.",
+                action_hint="Usa letras y números; SocioAI convertirá separadores en guiones bajos.",
+            )
 
         # Verificar si cliente ya existe
         existing = session.query(Client).filter(Client.client_id == client_id).first()
@@ -262,6 +289,43 @@ async def archivar_cliente(
             message="No se pudo archivar el cliente.",
             action_hint="Reintenta en unos segundos. Si persiste, contacta soporte.",
             retryable=True,
+        )
+
+
+class PermanentDeleteRequest(BaseModel):
+    confirmation: str = Field(min_length=1, max_length=64)
+
+
+@router.delete("/{cliente_id}/permanent", response_model=ApiResponse)
+async def borrar_cliente_permanentemente(
+    cliente_id: str,
+    body: PermanentDeleteRequest,
+    user: UserContext = Depends(get_current_user),
+    session: Any = Depends(get_session),
+) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    _require_management_role(user, "Solo perfiles administradores pueden borrar clientes definitivamente.")
+    if body.confirmation.strip() != cliente_id:
+        raise_api_error(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            code="PERMANENT_DELETE_CONFIRMATION_MISMATCH",
+            message="La confirmación no coincide exactamente con el ID del cliente.",
+        )
+    cliente = session.query(Client).filter(Client.client_id == cliente_id).first()
+    if not cliente:
+        raise_api_error(status_code=status.HTTP_404_NOT_FOUND, code="CLIENT_NOT_FOUND", message=f"Cliente {cliente_id} no encontrado")
+    try:
+        deleted = permanently_delete_client(session, cliente)
+        LOGGER.warning("Cliente eliminado permanentemente: cliente=%s usuario=%s detalle=%s", cliente_id, user.sub, deleted)
+        return ApiResponse(data={"deleted": True, "cliente_id": cliente_id, "details": deleted})
+    except Exception as exc:
+        session.rollback()
+        LOGGER.exception("clientes.permanent_delete failed")
+        raise_api_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code="ERROR_PERMANENTLY_DELETING_CLIENT",
+            message="No se pudo borrar definitivamente el cliente.",
+            action_hint="Los datos se conservaron si la eliminación no pudo completarse.",
         )
 
 

@@ -119,11 +119,14 @@ def _register_routes_once() -> None:
         chat,
         clientes,
         configuracion,
+        context_documents,
         dashboard,
+        entity_profile,
         expert_criteria,
         export,
         feedback,
         hallazgos,
+        mentor,
         historicos,
         holdings_cascade_route,
         metodologia,
@@ -150,8 +153,11 @@ def _register_routes_once() -> None:
     app.include_router(auth.router)
     app.include_router(clientes.router)
     app.include_router(configuracion.router)
+    app.include_router(context_documents.router)
     app.include_router(perfil.router)
     app.include_router(dashboard.router)
+    app.include_router(entity_profile.router)
+    app.include_router(mentor.router)
     app.include_router(risk_engine.router)
     app.include_router(areas.router)
     app.include_router(chat.router)

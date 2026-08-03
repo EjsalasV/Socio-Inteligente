@@ -4,7 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { hasSessionState, logoutSession } from "../../../lib/auth-session";
-import { updateCliente } from "../../../lib/api/clientes";
+import {
+  deleteClienteDocumento,
+  getClienteDocumentos,
+  reprocessClienteDocumento,
+  type ClienteDocumento,
+  updateCliente,
+  uploadClienteDocumento,
+} from "../../../lib/api/clientes";
 import {
   getTiposEntidad,
   type TipoEntidadOption,
@@ -68,10 +75,22 @@ export default function OnboardingClientePage() {
   const [normativaCliente, setNormativaCliente] = useState("NIIF");
   const [norma, setNorma] = useState("NIAs");
   const [faseAuditoria, setFaseAuditoria] = useState("planificacion");
+  const [scopeFinancials, setScopeFinancials] = useState("individual");
+  const [visitPlan, setVisitPlan] = useState("preliminar_final");
+  const [periodStart, setPeriodStart] = useState("2025-01-01");
+  const [periodEnd, setPeriodEnd] = useState("2025-12-31");
+  const [tbCutoffDate, setTbCutoffDate] = useState("2025-12-31");
+  const [preliminaryDate, setPreliminaryDate] = useState("");
+  const [finalDate, setFinalDate] = useState("");
   const [tbFile, setTbFile] = useState("");
   const [mayorFile, setMayorFile] = useState("");
   const [tbSelectedFile, setTbSelectedFile] = useState<File | null>(null);
   const [mayorSelectedFile, setMayorSelectedFile] = useState<File | null>(null);
+  const [priorFinancialsFile, setPriorFinancialsFile] = useState("");
+  const [priorFinancialsSelectedFiles, setPriorFinancialsSelectedFiles] = useState<File[]>([]);
+  const [priorControlFile, setPriorControlFile] = useState("");
+  const [priorControlSelectedFile, setPriorControlSelectedFile] = useState<File | null>(null);
+  const [contextDocuments, setContextDocuments] = useState<ClienteDocumento[]>([]);
   const [tiposEntidad, setTiposEntidad] = useState<TipoEntidadOption[]>([]);
   const [qa, setQa] = useState<QaState>({
     nomina: false,
@@ -104,10 +123,11 @@ export default function OnboardingClientePage() {
         return;
       }
       try {
-        const [perfil, clienteResponse, tipos] = await Promise.all([
+        const [perfil, clienteResponse, tipos, contextDocuments] = await Promise.all([
           getPerfil(clienteId),
           authFetchJson<{ data?: Record<string, unknown> }>(`/api/clientes/${clienteId}`),
           getTiposEntidad(),
+          getClienteDocumentos(clienteId),
         ]);
         if (!active) return;
 
@@ -133,8 +153,22 @@ export default function OnboardingClientePage() {
         setNormativaCliente(toStringValue(clienteApi.normativa, "NIIF"));
         setNorma(typeof encargo.norma_auditoria === "string" && encargo.norma_auditoria.trim() ? encargo.norma_auditoria : "NIAs");
         setFaseAuditoria(typeof encargo.fase_actual === "string" && encargo.fase_actual.trim() ? encargo.fase_actual : "planificacion");
+        setScopeFinancials(toStringValue(encargo.alcance_estados, "individual"));
+        setVisitPlan(toStringValue(encargo.esquema_visitas, "preliminar_final"));
+        setPeriodStart(toStringValue(encargo.fecha_inicio_periodo, `${String(encargo.anio_activo ?? "2025")}-01-01`));
+        setPeriodEnd(toStringValue(encargo.fecha_cierre_periodo, `${String(encargo.anio_activo ?? "2025")}-12-31`));
+        setTbCutoffDate(toStringValue(encargo.fecha_corte_tb, `${String(encargo.anio_activo ?? "2025")}-12-31`));
+        setPreliminaryDate(toStringValue(encargo.fecha_visita_preliminar));
+        setFinalDate(toStringValue(encargo.fecha_visita_final));
+        setContextDocuments(contextDocuments);
         setTbFile(typeof carga.trial_balance_nombre === "string" ? carga.trial_balance_nombre : "");
         setMayorFile(typeof carga.libro_mayor_nombre === "string" ? carga.libro_mayor_nombre : "");
+        setPriorFinancialsFile(
+          contextDocuments.find((item) => item.document_type === "prior_financial_statements")?.name ?? "",
+        );
+        setPriorControlFile(
+          contextDocuments.find((item) => item.document_type === "prior_internal_control")?.name ?? "",
+        );
         setQa({
           nomina: toBool(cuestionario.nomina),
           inventarios: toBool(cuestionario.inventarios),
@@ -163,10 +197,6 @@ export default function OnboardingClientePage() {
       active = false;
     };
   }, [clienteId, router]);
-
-  function updateQa(key: keyof QaState): void {
-    setQa((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
 
   async function handleSave(): Promise<void> {
     if (!clienteId) return;
@@ -198,6 +228,23 @@ export default function OnboardingClientePage() {
         libroMayorNombre = result?.data?.original_name || mayorSelectedFile.name;
       }
 
+      const priorPeriod = String(Math.max(1900, Number(fiscalYear || new Date().getFullYear()) - 1));
+      for (const file of priorFinancialsSelectedFiles) {
+        const lower = file.name.toLowerCase();
+        const role = lower.includes("nota") ? "notes" : lower.includes("opini") || lower.includes("informe") ? "audit_opinion" : "financial_statements";
+        const document = await uploadClienteDocumento(clienteId, file, "prior_financial_statements", priorPeriod, role);
+        setPriorFinancialsFile(document.name);
+      }
+      if (priorControlSelectedFile) {
+        const document = await uploadClienteDocumento(
+          clienteId,
+          priorControlSelectedFile,
+          "prior_internal_control",
+          priorPeriod,
+        );
+        setPriorControlFile(document.name);
+      }
+
       if (!trialBalanceNombre.trim()) {
         throw new Error("Debes seleccionar un archivo de Trial Balance para continuar.");
       }
@@ -221,6 +268,13 @@ export default function OnboardingClientePage() {
           marco_referencial: marco,
           norma_auditoria: norma,
           fase_actual: faseAuditoria,
+          alcance_estados: scopeFinancials,
+          esquema_visitas: visitPlan,
+          fecha_inicio_periodo: periodStart,
+          fecha_cierre_periodo: periodEnd,
+          fecha_corte_tb: tbCutoffDate,
+          fecha_visita_preliminar: visitPlan === "preliminar_final" ? preliminaryDate : "",
+          fecha_visita_final: finalDate,
           tipo_entidad: tipoEntidad,
           tamano,
           normativa_cliente: normativaCliente,
@@ -238,8 +292,10 @@ export default function OnboardingClientePage() {
       setMayorFile(libroMayorNombre);
       setTbSelectedFile(null);
       setMayorSelectedFile(null);
-      setSuccess("Onboarding guardado correctamente. Ahora completa la configuracion del cliente.");
-      router.push(`/configuracion/${clienteId}`);
+      setPriorFinancialsSelectedFiles([]);
+      setPriorControlSelectedFile(null);
+      setSuccess("Fuentes guardadas. SocioAI está preparando el perfil de la entidad.");
+      router.push(`/entity-profile/${clienteId}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "No se pudo guardar el onboarding.";
       setError(message);
@@ -267,17 +323,18 @@ export default function OnboardingClientePage() {
       tamano.trim() &&
       normativaCliente.trim(),
   );
-  const cuestionarioRespondido = Object.values(qa).some((value) => value === true);
   const tbCargado = Boolean(tbFile.trim());
   const mayorCargado = Boolean(mayorFile.trim());
-  const faseDefinida = ["planificacion", "ejecucion", "informe"].includes(faseAuditoria);
+  const informeAnteriorCargado = Boolean(priorFinancialsFile.trim());
+  const faseDefinida = Boolean(scopeFinancials && visitPlan && periodStart && periodEnd && tbCutoffDate);
 
   const checklist = [
     { label: "Datos de cliente", ok: perfilCompleto },
-    { label: "Cuestionario de auditoria", ok: cuestionarioRespondido },
+    { label: "Configuración del encargo", ok: faseDefinida },
     { label: "Trial Balance", ok: tbCargado },
     { label: "Libro Mayor", ok: mayorCargado },
-    { label: "Fase de auditoria", ok: faseDefinida },
+    { label: "Estados financieros anteriores (recomendado)", ok: informeAnteriorCargado },
+    { label: "Fechas y visitas", ok: faseDefinida },
   ];
 
   return (
@@ -376,75 +433,38 @@ export default function OnboardingClientePage() {
             </div>
 
             <div className="sovereign-card">
-              <h2 className="font-headline text-3xl text-[#041627] mb-6">2. Preguntas clave de auditoría</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <h2 className="font-headline text-3xl text-[#041627] mb-2">2. Configuración del encargo</h2>
+              <p className="mb-6 text-sm text-slate-600">Estas preguntas ubican a SocioAI en el periodo y corte correctos. El conocimiento del negocio se completa después mediante preguntas adaptativas.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="md:col-span-2 flex flex-col gap-2 mb-2">
                   <span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Fase actual de auditoría</span>
                   <select className="ghost-input" value={faseAuditoria} onChange={(e) => setFaseAuditoria(e.target.value)}>
                     <option value="planificacion">Planificación</option>
-                    <option value="ejecucion">Ejecución</option>
-                    <option value="informe">Informe</option>
+                    <option value="preliminar">Visita preliminar</option>
+                    <option value="final">Visita final</option>
+                    <option value="cierre">Cierre e informe</option>
                   </select>
                 </label>
-                {[
-                  { key: "nomina", label: "Tiene nómina relevante" },
-                  { key: "inventarios", label: "Tiene inventarios materiales" },
-                  { key: "ingresos_complejos", label: "Ingresos complejos / multiproducto" },
-                  { key: "partes_relacionadas", label: "Hay partes relacionadas" },
-                  { key: "multi_moneda", label: "Opera en multimoneda" },
-                ].map((item) => {
-                  const checked = qa[item.key as keyof QaState];
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => updateQa(item.key as keyof QaState)}
-                      className={`text-left rounded-xl p-4 border transition-colors ${checked ? "bg-[#002f30] text-white border-[#002f30]" : "bg-white text-slate-700 border-black/10"}`}
-                    >
-                      <p className="text-sm font-semibold">{item.label}</p>
-                    </button>
-                  );
-                })}
-
-                <div className="md:col-span-2 mt-2 mb-1 flex items-center gap-3">
-                  <span className="text-xs uppercase tracking-[0.16em] text-slate-500 font-bold whitespace-nowrap">Factores de Riesgo y Entorno</span>
-                  <div className="flex-1 h-px bg-black/10" />
-                </div>
-
-                {[
-                  { key: "auditado_anteriormente", label: "Cliente auditado en ejercicios anteriores" },
-                  { key: "opinion_anterior_calificada", label: "Opinión anterior con salvedades o adversa", disabled: !qa.auditado_anteriormente },
-                  { key: "cambios_management", label: "Cambios recientes en alta dirección o gerencia" },
-                  { key: "presion_resultados", label: "Existe presión de resultados (deuda, cotización, bonos)" },
-                  { key: "regulado", label: "Entidad regulada (superintendencia, bolsa, gobierno)" },
-                  { key: "subsidiarias", label: "Tiene subsidiarias o estructura holding" },
-                  { key: "litigios", label: "Litigios o contingencias significativas" },
-                  { key: "estimaciones_complejas", label: "Estimaciones contables complejas (deterioro, provisiones, VR)" },
-                  { key: "erp_implementado", label: "Tiene sistema ERP implementado (SAP, Oracle, etc.)" },
-                ].map((item) => {
-                  const checked = qa[item.key as keyof QaState];
-                  const isDisabled = item.disabled === true;
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => !isDisabled && updateQa(item.key as keyof QaState)}
-                      disabled={isDisabled}
-                      className={`text-left rounded-xl p-4 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${checked ? "bg-[#002f30] text-white border-[#002f30]" : "bg-white text-slate-700 border-black/10"}`}
-                    >
-                      <p className="text-sm font-semibold">{item.label}</p>
-                    </button>
-                  );
-                })}
+                <label className="flex flex-col gap-2"><span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Estados a auditar</span><select className="ghost-input" value={scopeFinancials} onChange={(e) => setScopeFinancials(e.target.value)}><option value="individual">Individuales</option><option value="separate">Separados</option><option value="consolidated">Consolidados</option><option value="combined">Combinados</option><option value="undetermined">Aún no determinado</option></select></label>
+                <label className="flex flex-col gap-2"><span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Esquema de visitas</span><select className="ghost-input" value={visitPlan} onChange={(e) => setVisitPlan(e.target.value)}><option value="single">Una sola visita</option><option value="preliminar_final">Preliminar y final</option><option value="custom">Varias visitas personalizadas</option><option value="undetermined">Aún no definido</option></select></label>
+                <label className="flex flex-col gap-2"><span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Inicio del periodo</span><input type="date" className="ghost-input" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} /></label>
+                <label className="flex flex-col gap-2"><span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Cierre del periodo</span><input type="date" className="ghost-input" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} /></label>
+                <label className="flex flex-col gap-2"><span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Corte del balance cargado</span><input type="date" className="ghost-input" value={tbCutoffDate} onChange={(e) => setTbCutoffDate(e.target.value)} /></label>
+                {visitPlan === "preliminar_final" ? <label className="flex flex-col gap-2"><span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">Visita preliminar</span><input type="date" className="ghost-input" value={preliminaryDate} onChange={(e) => setPreliminaryDate(e.target.value)} /></label> : null}
+                <label className="flex flex-col gap-2"><span className="text-xs uppercase tracking-[0.14em] text-slate-500 font-bold">{visitPlan === "single" ? "Fecha de visita" : "Visita final"}</span><input type="date" className="ghost-input" value={finalDate} onChange={(e) => setFinalDate(e.target.value)} /></label>
+                {scopeFinancials === "consolidated" ? <div className="md:col-span-2 rounded-xl border border-[#177e82]/25 bg-[#edfafa] p-4 text-sm text-[#155e63]">SocioAI abrirá preguntas específicas sobre controladora, componentes, eliminaciones y otros auditores en la segunda ronda.</div> : null}
               </div>
             </div>
 
             <div className="sovereign-card">
-              <h2 className="font-headline text-3xl text-[#041627] mb-6">4. Carga de archivos base</h2>
+              <h2 className="font-headline text-3xl text-[#041627] mb-2">3. Fuentes para entender la entidad</h2>
+              <p className="text-sm text-slate-600 mb-6">
+                El balance actual es la base del análisis. Los documentos anteriores ayudan a SocioAI a comprender el negocio, sus políticas y antecedentes.
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="rounded-xl border-2 border-dashed border-black/15 p-5 bg-[#f8fafc]">
-                  <p className="text-sm font-semibold text-[#041627]">Trial Balance</p>
-                  <p className="text-xs text-slate-500 mt-1">CSV/XLSX</p>
+                  <p className="text-sm font-semibold text-[#041627]">Balance de comprobación preliminar</p>
+                  <p className="text-xs text-slate-500 mt-1">Periodo actual · requerido · CSV/XLSX</p>
                   <input
                     type="file"
                     className="mt-4 text-sm"
@@ -456,11 +476,12 @@ export default function OnboardingClientePage() {
                     accept=".csv,.xlsx,.xls"
                   />
                   {tbFile ? <p className="text-xs text-slate-600 mt-2">Archivo: {tbFile}</p> : null}
+                  {tbSelectedFile ? <button type="button" onClick={() => { setTbSelectedFile(null); setTbFile(""); }} className="mt-2 text-xs font-semibold text-red-700">Quitar selección</button> : null}
                 </label>
 
                 <label className="rounded-xl border-2 border-dashed border-black/15 p-5 bg-[#f8fafc]">
                   <p className="text-sm font-semibold text-[#041627]">Libro Mayor</p>
-                  <p className="text-xs text-slate-500 mt-1">CSV/XLSX</p>
+                  <p className="text-xs text-slate-500 mt-1">Periodo actual · opcional · CSV/XLSX</p>
                   <input
                     type="file"
                     className="mt-4 text-sm"
@@ -472,8 +493,44 @@ export default function OnboardingClientePage() {
                     accept=".csv,.xlsx,.xls"
                   />
                   {mayorFile ? <p className="text-xs text-slate-600 mt-2">Archivo: {mayorFile}</p> : null}
+                  {mayorSelectedFile ? <button type="button" onClick={() => { setMayorSelectedFile(null); setMayorFile(""); }} className="mt-2 text-xs font-semibold text-red-700">Quitar selección</button> : null}
+                </label>
+
+                <label className="rounded-xl border-2 border-dashed border-[#89d3d4]/60 p-5 bg-[#f4fbfb]">
+                  <p className="text-sm font-semibold text-[#041627]">Estados financieros auditados anteriores</p>
+                  <p className="text-xs text-slate-500 mt-1">Opinión, estados y notas · recomendado · PDF/DOCX/XLSX</p>
+                  <input
+                    type="file" multiple
+                    className="mt-4 text-sm"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      setPriorFinancialsSelectedFiles(files);
+                      setPriorFinancialsFile(files.map((file) => file.name).join(", ") || priorFinancialsFile);
+                    }}
+                    accept=".pdf,.docx,.xlsx,.txt,.md,.csv"
+                  />
+                  {priorFinancialsFile ? <p className="text-xs text-slate-600 mt-2">Archivo: {priorFinancialsFile}</p> : null}
+                  {priorFinancialsSelectedFiles.length ? <button type="button" onClick={() => { setPriorFinancialsSelectedFiles([]); setPriorFinancialsFile(""); }} className="mt-2 text-xs font-semibold text-red-700">Quitar {priorFinancialsSelectedFiles.length} archivo(s)</button> : null}
+                </label>
+
+                <label className="rounded-xl border-2 border-dashed border-black/15 p-5 bg-[#f8fafc]">
+                  <p className="text-sm font-semibold text-[#041627]">Control interno o carta a la gerencia</p>
+                  <p className="text-xs text-slate-500 mt-1">Periodo anterior · opcional · PDF/DOCX</p>
+                  <input
+                    type="file"
+                    className="mt-4 text-sm"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setPriorControlSelectedFile(file);
+                      setPriorControlFile(file?.name ?? priorControlFile);
+                    }}
+                    accept=".pdf,.docx,.txt,.md"
+                  />
+                  {priorControlFile ? <p className="text-xs text-slate-600 mt-2">Archivo: {priorControlFile}</p> : null}
+                  {priorControlSelectedFile ? <button type="button" onClick={() => { setPriorControlSelectedFile(null); setPriorControlFile(""); }} className="mt-2 text-xs font-semibold text-red-700">Quitar selección</button> : null}
                 </label>
               </div>
+              {contextDocuments.length ? <div className="mt-6 space-y-2"><p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Archivos ya cargados</p>{contextDocuments.map((document) => <div key={document.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-black/10 bg-white px-4 py-3 text-xs"><div className="min-w-0 flex-1"><p className="truncate font-semibold text-[#041627]">{document.name}</p><p className="text-slate-500">{document.document_role_label} · {document.ingestion?.extraction_method === "ocr" ? "Leído con OCR" : document.ingestion?.indexed ? "Texto extraído" : "Lectura pendiente"}{document.ingestion?.page_count ? ` · ${document.ingestion.pages_with_text ?? 0}/${document.ingestion.page_count} páginas` : ""}</p></div><button type="button" onClick={async () => { await reprocessClienteDocumento(clienteId, document.id); setContextDocuments(await getClienteDocumentos(clienteId)); }} className="font-semibold text-[#177e82]">Reprocesar</button><button type="button" onClick={async () => { await deleteClienteDocumento(clienteId, document.id); setContextDocuments((items) => items.filter((item) => item.id !== document.id)); }} className="font-semibold text-red-700">Eliminar</button></div>)}</div> : null}
             </div>
           </article>
 
@@ -482,7 +539,7 @@ export default function OnboardingClientePage() {
               <p className="text-xs uppercase tracking-[0.16em] text-[#89d3d4]">Socio AI</p>
               <h3 className="font-headline text-3xl mt-3">Motor listo para iniciar</h3>
               <p className="text-sm text-slate-200 mt-3 leading-relaxed">
-                Primero cargamos el archivo base y las preguntas de encargo. Luego pasas a la configuracion del cliente y finalmente al dashboard.
+                Cargamos las fuentes y luego te mostramos, de forma transparente, qué entendió SocioAI y qué necesita que confirmes.
               </p>
             </div>
 
@@ -507,7 +564,7 @@ export default function OnboardingClientePage() {
                 disabled={saving}
                 className="w-full py-3 rounded-xl border border-black/10 bg-white text-slate-700 font-semibold disabled:opacity-60"
               >
-                {saving ? "Guardando..." : "Guardar y continuar a configuración"}
+                {saving ? "Analizando fuentes..." : "Guardar y crear perfil de la entidad"}
               </button>
             </div>
           </aside>

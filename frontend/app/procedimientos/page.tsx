@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import {
   getAreaProcedures,
@@ -46,6 +47,9 @@ function procedureTone(proc: ProcedureItem): string {
 }
 
 export default function ProcedimientosPage() {
+  const searchParams = useSearchParams();
+  const requestedArea = String(searchParams.get("area") || "").trim();
+  const requestedProcedure = String(searchParams.get("procedure") || "").trim();
   const { role, roleLabel } = useLearningRole();
   const [areas, setAreas] = useState<ProcedureAreaSummary[]>([]);
   const [areasLoading, setAreasLoading] = useState<boolean>(true);
@@ -67,7 +71,7 @@ export default function ProcedimientosPage() {
         const rows = await getProcedureAreas();
         if (!active) return;
         setAreas(rows);
-        const defaultArea = rows.find((row) => row.procedures_count > 0) ?? rows[0];
+        const defaultArea = rows.find((row) => row.area_codigo === requestedArea) ?? rows.find((row) => row.procedures_count > 0) ?? rows[0];
         setSelectedAreaCode(defaultArea?.area_codigo ?? "");
       } catch (error: unknown) {
         if (!active) return;
@@ -80,7 +84,11 @@ export default function ProcedimientosPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [requestedArea]);
+
+  useEffect(() => {
+    if (requestedProcedure) setExpandedProcedureId(requestedProcedure);
+  }, [requestedProcedure]);
 
   useEffect(() => {
     if (!selectedAreaCode) return;

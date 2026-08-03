@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTour } from "../../components/tour/TourProvider";
 import { hasSessionState, logoutSession } from "../../lib/auth-session";
 import QuestionHelp from "../../components/ui/QuestionHelp";
-import { archiveCliente, createCliente, getClientes, type ClienteOption } from "../../lib/api/clientes";
+import { archiveCliente, createCliente, getClientes, getClientesProgress, permanentlyDeleteCliente, type ClienteOption, type ClienteProgress } from "../../lib/api/clientes";
 import {
   getPreguntasDinamicas,
   getTiposEntidad,
@@ -50,6 +50,7 @@ export default function ClientesPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [clientes, setClientes] = useState<ClienteOption[]>([]);
+  const [progressByClient, setProgressByClient] = useState<Record<string, ClienteProgress>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showAllClients, setShowAllClients] = useState(false);
 
@@ -72,13 +73,15 @@ export default function ClientesPage() {
     let active = true;
     async function load(): Promise<void> {
       try {
-        const [list, tipos, general] = await Promise.all([
+        const [list, progress, tipos, general] = await Promise.all([
           getClientes(),
+          getClientesProgress(),
           getTiposEntidad(),
           getPreguntasDinamicas("GENERAL"),
         ]);
         if (!active) return;
         setClientes(list);
+        setProgressByClient(Object.fromEntries(progress.map((item) => [item.cliente_id, item])));
         setTiposEntidad(tipos);
         setGeneralQuestions(general);
         setGeneralResponses(buildInitialAnswers(general, {}));
@@ -127,7 +130,7 @@ export default function ClientesPage() {
       return;
     }
 
-    const rawId = clienteIdManual.trim() || slugify(cleanName);
+    const rawId = slugify(clienteIdManual.trim() || cleanName);
     if (!rawId) {
       setError("No se pudo generar el identificador del cliente.");
       return;
@@ -195,6 +198,27 @@ export default function ClientesPage() {
     }
   }
 
+  async function handlePermanentDelete(cliente: ClienteOption): Promise<void> {
+    const confirmation = window.prompt(
+      `Esta acción borrará definitivamente el cliente, sus documentos, análisis y datos relacionados. No se puede deshacer.\n\nEscribe exactamente el ID para confirmar:\n${cliente.cliente_id}`,
+    );
+    if (confirmation === null) return;
+    if (confirmation.trim() !== cliente.cliente_id) {
+      setError("No se borró el cliente: el ID escrito no coincide exactamente.");
+      return;
+    }
+    setDeletingId(cliente.cliente_id);
+    setError("");
+    try {
+      await permanentlyDeleteCliente(cliente.cliente_id, confirmation.trim());
+      setClientes((prev) => prev.filter((item) => item.cliente_id !== cliente.cliente_id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo borrar definitivamente el cliente.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f4efe5_0%,#f8f4eb_40%,#f3eee4_100%)] text-slate-900">
       <div className="lg:grid lg:grid-cols-[262px_minmax(0,1fr)]">
@@ -220,25 +244,21 @@ export default function ClientesPage() {
               </Link>
               {firstClientId ? (
                 <>
-                  <Link href={`/perfil/${firstClientId}`} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-[#d8e4ea] hover:bg-white/5">
-                    <span className="material-symbols-outlined text-[20px] text-[#8ecfd3]">badge</span>
-                    <span>Perfil Cliente</span>
-                  </Link>
-                  <Link href={`/dashboard/${firstClientId}`} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-[#d8e4ea] hover:bg-white/5">
-                    <span className="material-symbols-outlined text-[20px] text-[#8ecfd3]">dashboard</span>
-                    <span>Dashboard</span>
-                  </Link>
-                  <Link href={`/risk-engine/${firstClientId}`} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-[#d8e4ea] hover:bg-white/5">
-                    <span className="material-symbols-outlined text-[20px] text-[#8ecfd3]">security</span>
-                    <span>Risk Engine</span>
+                  <Link href={`/entity-profile/${firstClientId}`} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-[#d8e4ea] hover:bg-white/5">
+                    <span className="material-symbols-outlined text-[20px] text-[#8ecfd3]">domain</span>
+                    <span>Perfil de entidad</span>
                   </Link>
                   <Link href={`/trial-balance/${firstClientId}`} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-[#d8e4ea] hover:bg-white/5">
-                    <span className="material-symbols-outlined text-[20px] text-[#8ecfd3]">account_balance_wallet</span>
-                    <span>Trial Balance</span>
+                    <span className="material-symbols-outlined text-[20px] text-[#8ecfd3]">insights</span>
+                    <span>Análisis y mentor</span>
+                  </Link>
+                  <Link href="/learning-progress" className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-[#d8e4ea] hover:bg-white/5">
+                    <span className="material-symbols-outlined text-[20px] text-[#8ecfd3]">school</span>
+                    <span>Mi aprendizaje</span>
                   </Link>
                   <Link href={`/procedimientos`} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-[#d8e4ea] hover:bg-white/5">
                     <span className="material-symbols-outlined text-[20px] text-[#8ecfd3]">fact_check</span>
-                    <span>Procedimientos</span>
+                    <span>Guía de procedimientos</span>
                   </Link>
                 </>
               ) : null}
@@ -359,10 +379,10 @@ export default function ClientesPage() {
             <section className="relative overflow-hidden rounded-[34px] border border-[#d8cab2]/80 bg-[linear-gradient(180deg,#f7f2e9_0%,#f3ede1_100%)] px-5 py-6 shadow-[0_24px_80px_rgba(51,35,16,0.08)] lg:px-8 lg:py-8">
               <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_340px]">
                 <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-[0.34em] text-[#b38948]">Cartera de clientes</p>
+                  <p className="text-[11px] uppercase tracking-[0.34em] text-[#b38948]">Entidades de auditoría</p>
                   <div className="mt-3 flex flex-wrap items-end gap-4">
                     <h2 data-tour="clientes-title" className="max-w-3xl font-headline text-5xl leading-[0.95] text-[#041627] lg:text-[4.8rem]">
-                      Selecciona un cliente o crea uno nuevo
+                      Continúa exactamente donde quedaste
                     </h2>
                     <div className="hidden xl:flex items-center gap-3 rounded-[24px] border border-[#d7cab4] bg-white/70 px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
                       <span className="material-symbols-outlined text-[22px] text-[#b89a5a]">attach_file</span>
@@ -373,16 +393,16 @@ export default function ClientesPage() {
                     </div>
                   </div>
                   <p className="mt-4 max-w-3xl text-base leading-relaxed text-slate-600">
-                    Gestiona tu cartera con claridad y arranca el siguiente encargo desde una vista más ligera, más editorial y más fácil de escanear.
+                    SocioAI te muestra únicamente las fuentes, el perfil y el análisis pendiente de cada entidad. Sin CRM, horas ni asignaciones.
                   </p>
 
                   <div className="mt-8 grid gap-3 md:grid-cols-5">
                     {[
-                      ["1", "Cliente"],
-                      ["2", "Onboarding"],
-                      ["3", "Trial Balance"],
-                      ["4", "Risk Engine"],
-                      ["5", "Ejecución"],
+                      ["1", "Fuentes"],
+                      ["2", "Perfil"],
+                      ["3", "Hipótesis"],
+                      ["4", "Análisis"],
+                      ["5", "Mentor"],
                     ].map(([number, label]) => (
                       <div key={label} className="flex items-center gap-3 rounded-full border border-[#d7cab4] bg-white/70 px-4 py-3">
                         <span className="grid h-8 w-8 place-items-center rounded-full bg-[#3b7f7a] text-sm font-semibold text-white">{number}</span>
@@ -418,7 +438,7 @@ export default function ClientesPage() {
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.24em] text-[#8b7960]">Ruta recomendada</p>
-                  <p className="mt-1 font-headline text-2xl text-[#041627]">1) Crear cliente  2) Completar perfil  3) Revisar trial balance  4) Priorizar riesgos  5) Ejecutar</p>
+                  <p className="mt-1 font-headline text-2xl text-[#041627]">Fuentes → Perfil transparente → Hipótesis confirmadas → Análisis y mentor</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -540,16 +560,10 @@ export default function ClientesPage() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {visibleClients.map((cliente, index) => {
-                        const stageLabel = index === 0 ? "En ejecución" : index === 1 ? "Onboarding" : index === 2 ? "Planificación" : "Pausado";
-                        const stageTone =
-                          index === 0
-                            ? "bg-[#dceff0] text-[#356f70]"
-                            : index === 1
-                              ? "bg-[#f3ead7] text-[#8b6b2f]"
-                              : index === 2
-                                ? "bg-[#dfe8f1] text-[#496681]"
-                                : "bg-[#ececec] text-[#737373]";
+                      {visibleClients.map((cliente) => {
+                        const progress = progressByClient[cliente.cliente_id];
+                        const stageLabel = progress?.stage ?? "Fuentes pendientes";
+                        const stageTone = progress?.next_action.key === "analysis" ? "bg-[#dceff0] text-[#356f70]" : "bg-[#f3ead7] text-[#8b6b2f]";
                         const initials = cliente.nombre
                           .split(" ")
                           .filter(Boolean)
@@ -578,19 +592,17 @@ export default function ClientesPage() {
                                     {cliente.sector || "Sin sector"} · ID: {cliente.cliente_id}
                                     {cliente.tipo_entidad ? ` · Tipo: ${cliente.tipo_entidad}` : ""}
                                   </p>
-                                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#8b7960]">
-                                    Última actividad: {index === 0 ? "Hoy, 10:24" : index === 1 ? "Ayer, 16:58" : index === 2 ? "23 may, 09:11" : "Sin actividad reciente"}
-                                  </p>
+                                  <p className="mt-2 text-xs text-[#8b7960]">{progress?.sources.count ?? 0} fuentes · Perfil {progress?.profile.confirmed ? "confirmado" : "pendiente"}{progress?.profile.pending_decisions ? ` · ${progress.profile.pending_decisions} hipótesis por revisar` : ""}</p>
                                 </div>
                               </div>
 
                               <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                                 <Link
                                   data-tour="clientes-open-dashboard-link"
-                                  href={`/dashboard/${cliente.cliente_id}`}
+                                  href={progress?.next_action.href ?? `/onboarding/${cliente.cliente_id}`}
                                   className="inline-flex items-center gap-2 rounded-full bg-[#041627] px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-white shadow-[0_12px_26px_rgba(4,22,39,0.22)]"
                                 >
-                                  Abrir dashboard
+                                  {progress?.next_action.label ?? "Completar fuentes"}
                                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                                 </Link>
                                 <Link
@@ -598,13 +610,13 @@ export default function ClientesPage() {
                                   href={`/onboarding/${cliente.cliente_id}`}
                                   className="rounded-full border border-[#d7cab4] bg-white px-4 py-2 text-[11px] uppercase tracking-[0.16em] text-[#7f6b52]"
                                 >
-                                  Onboarding
+                                  Fuentes
                                 </Link>
                                 <Link
-                                  href={`/configuracion/${cliente.cliente_id}`}
+                                  href={`/entity-profile/${cliente.cliente_id}`}
                                   className="rounded-full border border-[#d7cab4] bg-white px-4 py-2 text-[11px] uppercase tracking-[0.16em] text-[#7f6b52]"
                                 >
-                                  Ajustes
+                                  Perfil
                                 </Link>
                                 <button
                                   type="button"
@@ -614,6 +626,15 @@ export default function ClientesPage() {
                                 >
                                   {deletingId === cliente.cliente_id ? "Archivando..." : "Archivar"}
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void handlePermanentDelete(cliente)}
+                                  disabled={deletingId === cliente.cliente_id}
+                                  className="rounded-full border border-red-700 bg-red-700 px-4 py-2 text-[11px] uppercase tracking-[0.16em] text-white disabled:opacity-60"
+                                  title="Borra definitivamente todos los datos del cliente"
+                                >
+                                  {deletingId === cliente.cliente_id ? "Procesando..." : "Borrar definitivamente"}
+                                </button>
                               </div>
                             </div>
 
@@ -621,11 +642,11 @@ export default function ClientesPage() {
                               <div className="h-1.5 flex-1 rounded-full bg-[#eef0ec]">
                                 <div
                                   className="h-full rounded-full bg-gradient-to-r from-[#3b7f7a] to-[#b89a5a]"
-                                  style={{ width: `${72 - index * 11}%` }}
+                                  style={{ width: `${progress?.completion_pct ?? 0}%` }}
                                 />
                               </div>
                               <span className="text-xs uppercase tracking-[0.16em] text-[#8b7960]">
-                                Progreso {index === 0 ? "64%" : index === 1 ? "38%" : index === 2 ? "24%" : "12%"}
+                                Contexto {progress?.completion_pct ?? 0}%
                               </span>
                             </div>
                           </article>
@@ -721,6 +742,7 @@ export default function ClientesPage() {
                   <label className="flex flex-col gap-2">
                     <span className="text-[10px] uppercase tracking-[0.24em] text-[#8b7960] font-bold">Cliente ID (opcional)</span>
                     <input className="ghost-input bg-white/80" value={clienteIdManual} onChange={(e) => setClienteIdManual(e.target.value)} placeholder="si_99283_glc" />
+                    {clienteIdManual.trim() ? <span className="text-xs text-slate-500">Identificador interno: <strong>{slugify(clienteIdManual) || "no válido"}</strong></span> : null}
                   </label>
 
                   <details className="rounded-[24px] border border-[#d7cab4]/70 bg-white/70 px-4 py-4">

@@ -40,9 +40,14 @@ export default function MayorFindingsPanel({ validaciones, isLoading = false }: 
           value={`${validaciones.asientos_descuadrados.count_asientos} asientos / ${validaciones.asientos_descuadrados.count_movimientos} mov.`}
         />
         <ItemRow
-          label="Duplicados"
+          label="Líneas repetidas para validar"
           value={`${validaciones.duplicados.grupos} grupos / ${validaciones.duplicados.movimientos} mov.`}
         />
+        {validaciones.duplicados.grupos > 0 ? (
+          <p className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+            No son {validaciones.duplicados.grupos} errores confirmados. Son grupos con campos iguales; incluyen {validaciones.duplicados.movimientos_adicionales ?? 0} líneas adicionales que deben contrastarse con soporte o datos no incluidos en el mayor.
+          </p>
+        ) : null}
         <ItemRow
           label="Sin referencia"
           value={`${validaciones.movimientos_sin_referencia.count} mov.`}
@@ -59,4 +64,3 @@ export default function MayorFindingsPanel({ validaciones, isLoading = false }: 
     </div>
   );
 }
-

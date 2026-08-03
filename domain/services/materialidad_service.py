@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 from typing import Any
+import unicodedata
 
 import yaml
 
@@ -109,15 +110,22 @@ def obtener_regla_materialidad(cliente: str) -> dict[str, Any] | None:
         rule["origen"] = "regla_defecto"
         return rule
 
+    cliente_data = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
+    encargo_data = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
+    config_data = perfil.get("configuracion_general", {}) if isinstance(perfil.get("configuracion_general"), dict) else {}
     tipo_entidad = str(
-        perfil.get("cliente", {}).get("tipo_entidad", "")
+        cliente_data.get("tipo_entidad") or encargo_data.get("tipo_entidad") or config_data.get("tipo_entidad") or ""
     ).upper().replace(" ", "_")
     if tipo_entidad and tipo_entidad in reglas_entidad:
         rule = dict(reglas_entidad[tipo_entidad])
         rule["origen"] = f"tipo_entidad:{tipo_entidad}"
         return rule
 
-    sector = str(perfil.get("cliente", {}).get("sector", "")).lower().replace(" ", "_")
+    sector_raw = str(cliente_data.get("sector", ""))
+    sector = "".join(c for c in unicodedata.normalize("NFKD", sector_raw) if not unicodedata.combining(c)).lower().replace(" ", "_")
+    sector = {"servicios_legales": "servicios", "servicio_legal": "servicios", "legal": "servicios"}.get(sector, sector)
+    if sector not in reglas_sector and sector.startswith("servicio"):
+        sector = "servicios"
     if sector and sector in reglas_sector:
         rule = dict(reglas_sector[sector])
         rule["origen"] = f"sector:{sector}"
@@ -206,7 +214,8 @@ def calcular_materialidad(cliente: str, base_valor: float | None = None) -> dict
     # El umbral minimo solo debe actuar cuando el encargo es lo suficientemente grande.
     # Si el umbral supera la base del cliente, termina aplastando clientes pequenos/medianos
     # y oculta la materialidad real del encargo.
-    if minimum_threshold > 0 and minimum_threshold <= base_valor and materialidad_sugerida < minimum_threshold:
+    threshold_applied = minimum_threshold > 0 and minimum_threshold <= materialidad_max and materialidad_sugerida < minimum_threshold
+    if threshold_applied:
         materialidad_sugerida = minimum_threshold
 
     materialidad_desempeno = materialidad_sugerida * 0.75
@@ -226,6 +235,7 @@ def calcular_materialidad(cliente: str, base_valor: float | None = None) -> dict
         "origen_regla": regla.get("origen", "unknown"),
         "descripcion_regla": regla.get("descripcion", "N/A"),
         "minimum_threshold_aplicado": round(minimum_threshold, 2),
+        "minimum_threshold_efectivo": threshold_applied,
         "minimum_threshold_origen": threshold_origen,
     }
 

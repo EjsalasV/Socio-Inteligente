@@ -226,6 +226,7 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, Any]
     perfil_path = CLIENTES_ROOT / cliente_id / "perfil.yaml"
     hallazgos_path = CLIENTES_ROOT / cliente_id / "hallazgos.md"
     docs_text_dir = CLIENTES_ROOT / cliente_id / "documentos_text"
+    entity_profile_path = CLIENTES_ROOT / cliente_id / "entity_profile_draft.json"
 
     base_meta: dict[str, Any] = {
         "norma": "Contexto cliente",
@@ -258,6 +259,61 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, Any]
                 meta["ultima_actualizacion"] = datetime.fromtimestamp(hallazgos_path.stat().st_mtime, tz=timezone.utc).date().isoformat()
                 meta["fuente"] = f"{hallazgos_path.name} | Contexto cliente"
                 out.append((rel, text, meta))
+        except Exception:
+            pass
+    if entity_profile_path.exists():
+        try:
+            draft = json.loads(entity_profile_path.read_text(encoding="utf-8"))
+            answers = draft.get("answers") if isinstance(draft, dict) and isinstance(draft.get("answers"), dict) else {}
+            questions = draft.get("questions") if isinstance(draft, dict) and isinstance(draft.get("questions"), list) else []
+            labels = {
+                str(item.get("id") or ""): str(item.get("text") or "")
+                for item in questions
+                if isinstance(item, dict)
+            }
+            facts = draft.get("facts") if isinstance(draft, dict) and isinstance(draft.get("facts"), list) else []
+            fact_lines = [
+                f"- {item.get('label')}: {item.get('value')} (fuente: {item.get('source')})"
+                for item in facts
+                if isinstance(item, dict) and item.get("value") not in (None, "")
+            ]
+            answer_lines = [
+                f"Pregunta: {labels.get(str(key), str(key))}\nRespuesta confirmada por el auditor: {value}"
+                for key, value in answers.items()
+                if str(value or "").strip()
+            ]
+            analysis = draft.get("analysis") if isinstance(draft, dict) and isinstance(draft.get("analysis"), dict) else {}
+            analysis_lines: list[str] = []
+            summary = analysis.get("entity_summary") if isinstance(analysis.get("entity_summary"), dict) else {}
+            if summary:
+                analysis_lines.append(
+                    "Resumen asistido validable: actividad={activity}; ingresos={revenue}; regulacion={regulation}".format(
+                        activity=str(summary.get("activity") or "N/D"),
+                        revenue=str(summary.get("revenue_model") or "N/D"),
+                        regulation=str(summary.get("regulatory_context") or "N/D"),
+                    )
+                )
+            for key, label in (
+                ("risk_hypotheses", "Hipotesis de riesgo"),
+                ("estimate_hypotheses", "Estimacion por comprender"),
+                ("prior_findings", "Hallazgo anterior por verificar"),
+            ):
+                rows = analysis.get(key) if isinstance(analysis.get(key), list) else []
+                analysis_lines.extend(
+                    f"- {label}: {str(row.get('title') or '').strip()}"
+                    for row in rows
+                    if isinstance(row, dict) and str(row.get("title") or "").strip()
+                )
+            text = (
+                "HECHOS DEL PERFIL\n" + "\n".join(fact_lines)
+                + "\n\nRESPUESTAS DEL AUDITOR\n" + "\n\n".join(answer_lines)
+                + ("\n\nLECTURA ASISTIDA PENDIENTE DE VALIDACION\n" + "\n".join(analysis_lines) if analysis_lines else "")
+            )
+            meta = dict(base_meta)
+            meta["norma"] = "Perfil confirmado por el auditor"
+            meta["ultima_actualizacion"] = datetime.fromtimestamp(entity_profile_path.stat().st_mtime, tz=timezone.utc).date().isoformat()
+            meta["fuente"] = "entity_profile_draft.json | Contexto confirmado"
+            out.append((str(entity_profile_path.relative_to(ROOT)), text, meta))
         except Exception:
             pass
     if docs_text_dir.exists():
@@ -464,7 +520,15 @@ def _retrieve_chunks(
 
     candidates.sort(key=lambda x: x.score, reverse=True)
     if required_filter_count <= 0:
-        return candidates[:top_k]
+        # En preguntas aplicadas a un cliente, su perfil y evidencia deben
+        # ocupar parte del contexto. De otro modo la biblioteca normativa
+        # desplaza los hechos confirmados y el modelo rellena vacios con
+        # generalizaciones sectoriales.
+        client_candidates = [c for c in candidates if str((c.metadata or {}).get("tipo") or "").upper() == "CLIENTE"]
+        reserved = client_candidates[: min(3, top_k)]
+        remaining = [c for c in candidates if c not in reserved]
+        mixed = reserved + remaining[: max(0, top_k - len(reserved))]
+        return mixed[:top_k]
 
     strict_candidates = [
         c
@@ -634,6 +698,19 @@ def _current_provider_label() -> str:
 def _query_normalized(text: str) -> str:
     value = unicodedata.normalize("NFD", str(text or "").strip().lower())
     return "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
+
+
+def _is_client_attention_question(query: str) -> bool:
+    value = _query_normalized(query)
+    return "cliente" in value and (
+        "merece" in value
+        or any(token in value for token in ("requiere atencion", "enfocar", "priorizar"))
+    )
+
+
+def _is_criterion_challenge(query: str) -> bool:
+    value = _query_normalized(query)
+    return any(token in value for token in ("desafia", "desafiar", "mi criterio", "cuestiona mi"))
 
 
 def _detect_area_from_query(query: str) -> dict[str, str] | None:
@@ -1098,7 +1175,7 @@ def _inventory_answer(cliente_id: str) -> dict[str, Any]:
     has_mayor = "mayor.xlsx" in docs_names
     extra_docs = [n for n in docs_names if n not in {"tb.xlsx", "mayor.xlsx"}]
     hallazgos_count = len([x for x in hallazgos.splitlines() if x.strip().startswith("## ")])
-    phase = str(workflow.get("current_phase") or encargo.get("fase_actual") or "planificacion").strip()
+    phase = str(encargo.get("fase_actual") or workflow.get("current_phase") or "no configurada").strip()
 
     mp = 0.0
     if isinstance(materialidad, dict):
@@ -1178,7 +1255,7 @@ def _client_snapshot(cliente_id: str) -> str:
         f"Cliente: {str(cliente.get('nombre_legal') or cliente_id)} | "
         f"Sector: {str(cliente.get('sector') or 'N/D')} | "
         f"Marco: {str(encargo.get('marco_referencial') or 'N/D')} | "
-        f"Fase: {str(workflow.get('current_phase') or encargo.get('fase_actual') or 'planificacion')} | "
+        f"Fase configurada por el auditor: {str(encargo.get('fase_actual') or workflow.get('current_phase') or 'no configurada')} | "
         f"TB: {'si' if has_tb else 'no'} | Mayor: {'si' if has_mayor else 'no'} | "
         f"Docs extra: {len([x for x in docs_names if x not in {'tb.xlsx', 'mayor.xlsx'}])} | "
         f"Hallazgos: {hallazgos_count}"
@@ -1482,7 +1559,9 @@ def _llm_answer(
 
     user_content = (
         f"Consulta:\n{query}\n\n"
-        "Responde de forma conversacional, concreta y accionable para un auditor."
+        "Responde de forma conversacional, concreta y accionable para un auditor. Limita la respuesta a 650 palabras y ciérrala completa. "
+        "No inventes modelos de facturación, composición de cuentas, uso de controles, porcentajes de enfoque ni procedimientos ya ejecutados. "
+        "Un ranking cuantitativo prioriza revisión, pero no confirma riesgo ni reemplaza el juicio. Formula las recomendaciones condicionalmente cuando falte evidencia."
         + reasoning_hint
         + learning_role_instruction
         if mode == "chat"
@@ -1510,7 +1589,7 @@ def _llm_answer(
         model=model,
         messages=messages_for_llm,
         temperature=0.35 if mode == "chat" else 0.2,
-        max_tokens=900,
+        max_tokens=1400,
     )
 
     text = ""
@@ -1588,10 +1667,24 @@ def generate_chat_response(
     user_display_name: str = "",
     user_role: str = "",
     learning_role: str = "semi",
+    conversation_id: str = "",
 ) -> dict[str, Any]:
     # Respuestas de alto valor y baja latencia, siempre contextuales.
     # Verificar caché de respuesta (FASE 5: Caché RAG)
-    response_cache_key = build_response_cache_key(cliente_id, query, mode="chat")
+    signature_parts: list[str] = []
+    for context_name in ("perfil.yaml", "entity_profile_draft.json"):
+        context_path = CLIENTES_ROOT / cliente_id / context_name
+        if context_path.exists():
+            stat = context_path.stat()
+            signature_parts.append(f"{context_name}:{stat.st_mtime_ns}:{stat.st_size}")
+    response_cache_key = build_response_cache_key(
+        cliente_id,
+        query,
+        mode="chat",
+        learning_role=learning_role,
+        context_signature="|".join(signature_parts),
+        conversation_id=conversation_id,
+    )
     cached_response = get_cached_response(response_cache_key)
     if cached_response is not None:
         cached_response["cached"] = True
@@ -1604,7 +1697,17 @@ def generate_chat_response(
     if _is_payroll_question(query):
         return _payroll_tests_answer(cliente_id)
 
-    chunks = _retrieve_chunks(cliente_id, query, top_k=6)
+    attention_question = _is_client_attention_question(query)
+    criterion_challenge = _is_criterion_challenge(query)
+    client_first_question = attention_question or criterion_challenge
+    chunks = _retrieve_chunks(cliente_id, query, top_k=12 if client_first_question else 6)
+    if client_first_question:
+        client_chunks = [
+            chunk for chunk in chunks
+            if str((chunk.metadata or {}).get("tipo") or "").upper() == "CLIENTE"
+        ]
+        if client_chunks:
+            chunks = client_chunks[:6]
     area_match = _detect_area_from_query(query)
     area_code = str((area_match or {}).get("area_codigo") or "").strip()
     area_context = ""
@@ -1639,7 +1742,7 @@ def generate_chat_response(
     recent_history: list[dict[str, str]] = []
     try:
         from backend.services.memory_service import build_memory_context
-        memory_summary, recent_history = build_memory_context(cliente_id)
+        memory_summary, recent_history = build_memory_context(cliente_id, conversation_id=conversation_id)
     except Exception:
         pass
 

@@ -56,11 +56,11 @@ def _validate_asientos_descuadrados(df: pd.DataFrame, tolerance: float = 0.01) -
 
 def _validate_duplicados(df: pd.DataFrame) -> dict[str, Any]:
     if df is None or df.empty:
-        return {"grupos": 0, "movimientos": 0, "items": []}
+        return {"grupos": 0, "movimientos": 0, "movimientos_adicionales": 0, "error_confirmado": False, "items": []}
 
     dups = df[df["row_hash"].duplicated(keep=False)].copy()
     if dups.empty:
-        return {"grupos": 0, "movimientos": 0, "items": []}
+        return {"grupos": 0, "movimientos": 0, "movimientos_adicionales": 0, "error_confirmado": False, "items": []}
 
     grouped = (
         dups.groupby("row_hash", dropna=False)
@@ -79,6 +79,9 @@ def _validate_duplicados(df: pd.DataFrame) -> dict[str, Any]:
     return {
         "grupos": int(len(grouped)),
         "movimientos": int(len(dups)),
+        "movimientos_adicionales": int((grouped["repeticiones"] - 1).sum()),
+        "error_confirmado": False,
+        "interpretacion": "Líneas con los campos analizados iguales. Pueden ser operaciones legítimas repetidas; requieren soporte antes de concluir que existe un duplicado.",
         "items": _safe_records(grouped, limit=50),
     }
 
@@ -134,4 +137,3 @@ def run_mayor_validations(
         "montos_altos": _validate_montos_altos(df, percentile=monto_alto_percentile),
         "movimientos_cerca_cierre": _validate_movimientos_cerca_cierre(df, dias=dias_cierre),
     }
-

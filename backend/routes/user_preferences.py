@@ -7,6 +7,7 @@ from backend.repositories.file_repository import append_audit_log
 from backend.repositories.identity_repository import store as identity_store
 from backend.schemas import ApiResponse, UserContext, UserPreferencesPatchRequest, UserPreferencesResponse
 from backend.utils.api_errors import raise_api_error
+from backend.services.learning_progress_service import build_learning_progress, delete_learning_progress
 
 router = APIRouter(prefix="/api/user", tags=["user"])
 
@@ -60,3 +61,13 @@ def patch_preferences(
     )
     return ApiResponse(data=UserPreferencesResponse(**prefs).model_dump())
 
+
+@router.get("/learning-progress", response_model=ApiResponse)
+def get_learning_progress(user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    return ApiResponse(data=build_learning_progress(_prefs_user_id(user)))
+
+
+@router.delete("/learning-progress", response_model=ApiResponse)
+def clear_learning_progress(user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    deleted = delete_learning_progress(_prefs_user_id(user))
+    return ApiResponse(data={"deleted": deleted})

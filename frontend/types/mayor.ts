@@ -74,6 +74,9 @@ export type MayorValidationAsientosDescuadrados = {
 export type MayorValidationDuplicados = {
   grupos: number;
   movimientos: number;
+  movimientos_adicionales?: number;
+  error_confirmado?: boolean;
+  interpretacion?: string;
   items: Array<{
     row_hash: string;
     repeticiones: number;
@@ -121,4 +124,3 @@ export type MayorResumenResponse = {
   resumen: MayorSummary;
   source: MayorSourceMeta;
 };
-

@@ -2,10 +2,11 @@ import React from "react";
 
 type ReactMarkdownProps = {
   children: string;
+  compact?: boolean;
 };
 
 function renderInline(text: string): React.ReactNode[] {
-  const parts = text.split(/(\[.*?\]\(.*?\))/g).filter(Boolean);
+  const parts = text.split(/(\[.*?\]\(.*?\)|\*\*.+?\*\*)/g).filter(Boolean);
 
   return parts.map((part, index) => {
     const linkMatch = part.match(/^\[(.*?)\]\((.*?)\)$/);
@@ -24,11 +25,16 @@ function renderInline(text: string): React.ReactNode[] {
       );
     }
 
+    const strongMatch = part.match(/^\*\*(.+?)\*\*$/);
+    if (strongMatch) {
+      return <strong key={`strong-${index}`} className="font-semibold text-[#041627]">{strongMatch[1]}</strong>;
+    }
+
     return <React.Fragment key={`text-${index}`}>{part}</React.Fragment>;
   });
 }
 
-export function ReactMarkdown({ children }: ReactMarkdownProps) {
+export function ReactMarkdown({ children, compact = false }: ReactMarkdownProps) {
   const lines = children.split(/\r?\n/);
   const elements: React.ReactNode[] = [];
   let listItems: string[] = [];
@@ -116,5 +122,5 @@ export function ReactMarkdown({ children }: ReactMarkdownProps) {
 
   flushList();
 
-  return <article className="mx-auto max-w-4xl px-4 py-8 md:px-6">{elements}</article>;
+  return <article className={compact ? "max-w-none [&>p:last-child]:mb-0" : "mx-auto max-w-4xl px-4 py-8 md:px-6"}>{elements}</article>;
 }

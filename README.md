@@ -186,6 +186,7 @@ git push
 ## 📚 Documentation
 
 - [Database Setup Guide](SETUP_PERSISTENCIA.md)
+- [Guía maestra del producto SocioAI](docs/PRODUCTO_SOCIOAI_GUI_MAESTRA.md)
 - [Documentación adicional](docs/)
 
 ## 🐛 Troubleshooting

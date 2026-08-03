@@ -20,6 +20,7 @@ from backend.services.intelligent_analyzer_service import (
 )
 from backend.services.analysis_history_service import AnalysisHistoryService
 from backend.services.client_configuration_service import get_cliente_configuration_snapshot
+from backend.services.entity_profile_analysis_service import get_accepted_entity_context
 from backend.repositories.identity_repository import store as identity_store
 from backend.utils.database import get_session
 
@@ -84,6 +85,7 @@ def analyze_client_audit(
             "income_statement": request.income_statement or {},
             "additional_data": request.additional_data or {},
             "risk_signals": (request.additional_data or {}).get("risk_signals", {}),
+            "confirmed_entity_context": get_accepted_entity_context(cliente_id),
         }
 
         # Ejecutar análisis CON SESSION para RAG

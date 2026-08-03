@@ -14,6 +14,8 @@ import { useAreaDetail } from "../../../lib/hooks/useAreaDetail";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
 import { getLsName, getLsOptions, getLsShortName, normalizeLsCode } from "../../../lib/lsCatalog";
+import { getAccountMentorGuide, replyToMentor, type MentorConversationTurn, type MentorGuide } from "../../../lib/api/mentor";
+import type { AreaCuenta } from "../../../types/area";
 
 const BASE_OPTIONS = getLsOptions().map((x) => normalizeLsCode(x.codigo));
 
@@ -35,6 +37,15 @@ export default function TrialBalancePage() {
   }, [dashboard]);
 
   const [selectedArea, setSelectedArea] = useState<string>(areaChoices[0] ?? "140");
+  const [mentorAccount, setMentorAccount] = useState<AreaCuenta | null>(null);
+  const [mentorGuide, setMentorGuide] = useState<MentorGuide | null>(null);
+  const [mentorLoading, setMentorLoading] = useState(false);
+  const [mentorError, setMentorError] = useState("");
+  const [mentorSessionId, setMentorSessionId] = useState("");
+  const [mentorTurns, setMentorTurns] = useState<MentorConversationTurn[]>([]);
+  const [mentorResponse, setMentorResponse] = useState("");
+  const [mentorReplying, setMentorReplying] = useState(false);
+  const [mentorTurnsRemaining, setMentorTurnsRemaining] = useState(8);
   useEffect(() => {
     if (areaChoices.length === 0) return;
     if (!areaChoices.includes(selectedArea)) setSelectedArea(areaChoices[0]);
@@ -65,6 +76,75 @@ export default function TrialBalancePage() {
         : tbStage === "inicial"
           ? "Corte Inicial"
           : "Sin saldos";
+
+  async function openMentor(account: AreaCuenta, force = false): Promise<void> {
+    if (!areaData) return;
+    setMentorAccount(account);
+    setMentorLoading(true);
+    setMentorError("");
+    if (!force) setMentorGuide(null);
+    if (!force) {
+      setMentorSessionId("");
+      setMentorTurns([]);
+      setMentorResponse("");
+      setMentorTurnsRemaining(8);
+    }
+    try {
+      const guide = await getAccountMentorGuide(clienteId, {
+        area_code: areaData.encabezado.area_code || selectedArea,
+        area_name: areaData.encabezado.nombre || getLsName(selectedArea),
+        account_code: account.codigo,
+        account_name: account.nombre,
+        current_balance: account.saldo_actual,
+        prior_balance: account.saldo_anterior,
+        variation_pct: variationPct(account.saldo_actual, account.saldo_anterior),
+        area_assertions: areaData.aseveraciones,
+        area_accounts: cuentas.map((row) => ({
+          code: row.codigo,
+          name: row.nombre,
+          current_balance: row.saldo_actual,
+          prior_balance: row.saldo_anterior,
+          variation_pct: variationPct(row.saldo_actual, row.saldo_anterior),
+        })),
+        force,
+      });
+      setMentorGuide(guide);
+    } catch (reason) {
+      setMentorError(reason instanceof Error ? reason.message : "No se pudo iniciar la mentoría.");
+    } finally {
+      setMentorLoading(false);
+    }
+  }
+
+  async function sendMentorResponse(): Promise<void> {
+    if (!mentorAccount || !areaData || !mentorResponse.trim()) return;
+    setMentorReplying(true);
+    setMentorError("");
+    try {
+      const result = await replyToMentor(clienteId, {
+        session_id: mentorSessionId,
+        auditor_response: mentorResponse,
+        account_context: {
+          area_code: areaData.encabezado.area_code || selectedArea,
+          area_name: areaData.encabezado.nombre,
+          account_code: mentorAccount.codigo,
+          account_name: mentorAccount.nombre,
+          current_balance: mentorAccount.saldo_actual,
+          prior_balance: mentorAccount.saldo_anterior,
+          variation_pct: variationPct(mentorAccount.saldo_actual, mentorAccount.saldo_anterior),
+          initial_challenge: mentorGuide?.mentor_challenge ?? "",
+        },
+      });
+      setMentorSessionId(result.session_id);
+      setMentorTurns((current) => [...current, result.turn]);
+      setMentorTurnsRemaining(result.turns_remaining);
+      setMentorResponse("");
+    } catch (reason) {
+      setMentorError(reason instanceof Error ? reason.message : "No se pudo continuar la mentoría.");
+    } finally {
+      setMentorReplying(false);
+    }
+  }
 
   useEffect(() => {
     if (!requiredTb) return;
@@ -209,6 +289,7 @@ export default function TrialBalancePage() {
                 {areaData?.encabezado.actual_year || "Actual"} vs {areaData?.encabezado.anterior_year || "Anterior"}
               </p>
             </div>
+            {cuentas.length ? <button type="button" onClick={() => void openMentor(cuentas[0])} className="rounded-xl border border-[#177e82]/30 bg-[#edfafa] px-4 py-2 text-xs font-semibold text-[#155e63] hover:bg-[#d9f3f3]">Abrir mentor del área</button> : null}
           </div>
 
           <div className="overflow-x-auto">
@@ -230,10 +311,10 @@ export default function TrialBalancePage() {
                   const varPct = variationPct(row.saldo_actual, row.saldo_anterior);
                   const flagged = Math.abs(varPct) > 10;
                   return (
-                    <tr key={row.codigo} className={`border-b border-black/5 hover:bg-[#f7fafc] ${flagged ? "bg-[#ffdad6]/30" : "bg-white"}`}>
+                    <tr key={row.codigo} className={`border-b border-black/5 hover:bg-[#f7fafc] ${mentorAccount?.codigo === row.codigo ? "ring-2 ring-inset ring-[#177e82] bg-[#edfafa]" : flagged ? "bg-[#ffdad6]/30" : "bg-white"}`}>
                       <td className={`px-6 py-4 font-body ${flagged ? "text-[#ba1a1a] font-semibold" : "text-slate-600"}`}>{row.codigo}</td>
                       <td className={`px-6 py-4 ${row.nivel <= 1 ? "font-headline text-lg font-semibold text-[#041627]" : "font-body text-sm text-slate-700 pl-10"}`}>
-                        {row.nombre}
+                        <span>{row.nombre}</span>
                       </td>
                       <td className={`px-6 py-4 text-right font-body ${moneyClass(row.saldo_actual)}`}>{formatMoney(row.saldo_actual)}</td>
                       <td className={`px-6 py-4 text-right font-body ${moneyClass(row.saldo_anterior)}`}>{formatMoney(row.saldo_anterior)}</td>
@@ -263,6 +344,7 @@ export default function TrialBalancePage() {
               <h3 className="font-headline text-2xl text-[#a5eff0]">Socio AI - Guía de Aseveraciones</h3>
             </div>
             <p className="text-[11px] text-[#89d3d4] mb-4">Base determinística del motor (catálogo técnico), no respuesta generativa.</p>
+            <p className="mb-5 rounded-xl border border-white/10 bg-white/5 p-3 text-xs leading-5 text-slate-200">Selecciona <strong>Mentor</strong> en cualquier cuenta. La conversación se abrirá al costado sin sacarte del balance.</p>
 
             <div className="space-y-4">
               {(areaData?.aseveraciones ?? []).slice(0, 3).map((a, idx) => (
@@ -278,6 +360,51 @@ export default function TrialBalancePage() {
           </div>
         </aside>
       </div>
+
+      {mentorAccount ? (
+        <section className="fixed bottom-4 right-4 top-20 z-50 w-[min(640px,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-[#177e82]/30 bg-white p-6 shadow-2xl border-t-4 border-t-[#177e82]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#177e82]">Mentor del área · una consulta IA compartida</p>
+              <h2 className="mt-1 font-headline text-3xl text-[#041627]">{areaData?.encabezado.area_code || selectedArea} · {areaData?.encabezado.nombre || getLsName(selectedArea)}</h2>
+              <p className="mt-2 text-sm text-slate-500">Analiza conjuntamente {cuentas.length} cuentas y sus variaciones. Seleccionar otra cuenta no vuelve a consumir tokens.</p>
+            </div>
+            <div className="flex gap-2">
+              {mentorGuide ? <button type="button" disabled={mentorLoading} onClick={() => void openMentor(mentorAccount, true)} className="rounded-xl border border-black/10 px-4 py-2 text-xs font-semibold">Regenerar</button> : null}
+              <button type="button" onClick={() => { setMentorAccount(null); setMentorGuide(null); setMentorError(""); setMentorTurns([]); setMentorSessionId(""); }} className="rounded-xl bg-slate-100 px-4 py-2 text-xs">Cerrar</button>
+            </div>
+          </div>
+
+          {mentorLoading ? <div className="mt-6 rounded-xl bg-[#edfafa] p-6 text-sm text-[#155e63]">SocioAI está preparando preguntas para ayudarte a razonar…</div> : null}
+          {mentorError ? <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{mentorError}</div> : null}
+          {mentorGuide && !mentorLoading ? (
+            <div className="mt-6 space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <article className="rounded-xl bg-slate-50 p-5"><p className="text-xs font-semibold uppercase text-slate-500">Qué observamos</p><p className="mt-2 text-sm leading-6">{mentorGuide.observation}</p></article>
+                <article className="rounded-xl bg-[#edfafa] p-5"><p className="text-xs font-semibold uppercase text-[#177e82]">Por qué merece atención</p><p className="mt-2 text-sm leading-6">{mentorGuide.why_relevant}</p></article>
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div><h3 className="font-headline text-2xl">Preguntas para ti</h3><ol className="mt-3 space-y-3">{mentorGuide.guided_questions.map((question, index) => <li key={question} className="flex gap-3 rounded-xl border border-black/10 p-4 text-sm"><span className="font-semibold text-[#177e82]">{index + 1}</span><span>{question}</span></li>)}</ol></div>
+                <div><h3 className="font-headline text-2xl">Cómo investigarlo</h3><ul className="mt-3 space-y-3">{mentorGuide.next_steps.map((step) => <li key={step} className="rounded-xl border border-black/10 p-4 text-sm">{step}</li>)}</ul></div>
+              </div>
+              {mentorGuide.mentor_challenge ? <div className="rounded-xl bg-[#041627] p-5 text-white"><p className="text-xs uppercase tracking-[0.14em] text-[#89d3d4]">Desafío del mentor · nivel {mentorGuide.learning_role}</p><p className="mt-2 text-sm leading-6">{mentorGuide.mentor_challenge}</p></div> : null}
+              <div className="rounded-2xl border border-[#177e82]/25 bg-white p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#177e82]">Conversación guiada</p><h3 className="mt-1 font-headline text-2xl">Ahora explícame tu razonamiento</h3></div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">{mentorTurnsRemaining} intervenciones disponibles</span>
+                </div>
+                {mentorTurns.length ? <div className="mt-5 space-y-4">{mentorTurns.map((turn) => <div key={turn.turn_number} className="space-y-2"><div className="ml-auto max-w-3xl rounded-xl bg-[#edfafa] p-4 text-sm"><p className="text-[10px] font-semibold uppercase text-[#177e82]">Tu razonamiento</p><p className="mt-1">{turn.auditor_response}</p></div><div className="max-w-3xl rounded-xl bg-slate-50 p-4 text-sm"><p className="text-[10px] font-semibold uppercase text-slate-500">Retroalimentación del mentor · {turn.mentor.progress_stage}</p><p className="mt-2">{turn.mentor.feedback}</p><p className="mt-2 text-emerald-800"><strong>Acierto:</strong> {turn.mentor.strength}</p><p className="mt-1 text-amber-800"><strong>Brecha:</strong> {turn.mentor.reasoning_gap}</p><p className="mt-3 font-semibold text-[#041627]">{turn.mentor.follow_up_question}</p><details className="mt-2"><summary className="cursor-pointer text-xs text-[#177e82]">Necesito una pista</summary><p className="mt-2 text-xs text-slate-600">{turn.mentor.hint}</p></details>{turn.mentor.recommended_resources && (turn.mentor.recommended_resources.procedures.length || turn.mentor.recommended_resources.norms.length) ? <div className="mt-4 border-t border-black/10 pt-3"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">Recursos para cerrar esta brecha</p><div className="mt-2 flex flex-wrap gap-2">{turn.mentor.recommended_resources.procedures.map((resource) => <Link key={resource.id} href={resource.href} className="rounded-lg border border-[#177e82]/25 bg-white px-3 py-2 text-xs text-[#155e63] hover:bg-[#edfafa]" title={resource.why}>Procedimiento {resource.id} · {resource.nia_ref}</Link>)}{turn.mentor.recommended_resources.norms.map((resource) => <Link key={resource.code} href={resource.href} className="rounded-lg border border-black/10 bg-white px-3 py-2 text-xs text-slate-700 hover:bg-slate-100" title={resource.why}>Biblioteca · {resource.code}</Link>)}</div></div> : null}</div></div>)}</div> : null}
+                <div className="mt-5">
+                  <textarea value={mentorResponse} onChange={(event) => setMentorResponse(event.target.value)} rows={4} maxLength={3000} disabled={mentorReplying || mentorTurnsRemaining === 0} className="w-full rounded-xl border border-black/15 px-4 py-3 text-sm outline-none focus:border-[#177e82] disabled:bg-slate-50" placeholder={mentorTurns.length ? "Responde la nueva pregunta del mentor…" : "Escribe tu hipótesis, qué evidencia buscarías y qué podría refutarla…"} />
+                  <div className="mt-3 flex items-center justify-between gap-3"><p className="text-[11px] text-slate-500">Este diálogo es aprendizaje; no se guarda como evidencia del encargo.</p><button type="button" disabled={mentorReplying || !mentorResponse.trim() || mentorTurnsRemaining === 0} onClick={() => void sendMentorResponse()} className="rounded-xl bg-[#177e82] px-5 py-3 text-sm font-semibold text-white disabled:opacity-40">{mentorReplying ? "Evaluando…" : "Continuar mentoría"}</button></div>
+                </div>
+              </div>
+              {mentorGuide.concepts.length ? <div><h3 className="font-headline text-xl">Conceptos útiles</h3><div className="mt-3 grid gap-3 md:grid-cols-2">{mentorGuide.concepts.map((concept) => <div key={concept.term} className="rounded-xl bg-slate-50 p-4 text-sm"><strong>{concept.term}:</strong> {concept.explanation}</div>)}</div></div> : null}
+              <div className="flex flex-wrap justify-between gap-2 border-t border-black/10 pt-4 text-xs text-slate-500"><p>{mentorGuide.no_conclusion_note || mentorGuide.disclaimer}</p><p>Nivel: {mentorGuide.learning_role}{mentorGuide.model?.input_tokens ? ` · ${mentorGuide.model.input_tokens} tokens` : ""}</p></div>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
     </div>
   );
 }

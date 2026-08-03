@@ -59,7 +59,8 @@ export default function Header() {
     const profileRole = String(session?.role || "").toLowerCase();
     return profileRole === "admin" || profileRole === "socio";
   }, [session?.role]);
-  const showRealtimeBadge = moduleKey !== "biblioteca" && moduleKey !== "procedimientos";
+  const globalLearningModule = moduleKey === "biblioteca" || moduleKey === "procedimientos" || moduleKey === "learning-progress";
+  const showRealtimeBadge = !globalLearningModule && Boolean(clienteId);
   const moduleHint = useMemo(() => {
     const hints: Record<string, string> = {
       perfil: "Completa marco, materialidad y responsable para habilitar un flujo consistente.",
@@ -71,11 +72,13 @@ export default function Header() {
       areas: "Genera briefing, ejecuta pruebas y documenta hallazgos con evidencia.",
       "papeles-trabajo": "Cierra tareas requeridas y valida gates antes de informe.",
       reportes: "Emite borrador/final cuando PLAN y EXEC estén en estado OK.",
-      "socio-chat": "Haz preguntas técnicas y exporta criterio a hallazgos o papeles.",
+      "socio-chat": "Conversa con un mentor que usa el contexto del cliente para enseñar, guiar o desafiar tu criterio.",
       "client-memory": "Consolida documentos e historial para mantener contexto del cliente.",
       "estados-financieros": "Liquidez, solvencia y rentabilidad — señales de riesgo financiero para el encargo.",
       biblioteca: "Consulta NIAs y NIIF PYMES resumidas por rol — criterio de referencia rápida.",
       procedimientos: "Procedimientos, riesgos tipicos y alertas tributarias por area para ejecucion guiada.",
+      "learning-progress": "Revisa competencias practicadas y decide en qué profundizar; no es una evaluación laboral.",
+      "entity-profile": "Confirma qué sabe SocioAI de la entidad antes de utilizar ese contexto en el análisis.",
     };
     const base = hints[moduleKey] ?? "Avanza por fases para mantener trazabilidad del encargo.";
     if (role === "junior") return `${base} Si algo no cuadra, pide soporte y registra evidencia minima.`;
@@ -91,19 +94,19 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-20 bg-white px-4 md:px-8 py-4 border-b border-[#041627]/10" role="banner">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <p className="font-body text-xs uppercase tracking-[0.16em] text-slate-500">Ruta</p>
           <h1 className="font-headline text-3xl text-navy-900 leading-tight">
             {clienteName} <span className="text-slate-400 aria-hidden='true'">/</span> {moduleLabel}
           </h1>
-          <div className="mt-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.13em] text-slate-500" aria-label="Progreso de fases del encargo">
+          {!globalLearningModule && clienteId ? <div className="mt-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.13em] text-slate-500" aria-label="Progreso de fases del encargo">
             <span className={phaseIndex >= 1 ? "text-emerald-700 font-semibold" : ""}>Planificación</span>
             <span aria-hidden="true">•</span>
             <span className={phaseIndex >= 2 ? "text-emerald-700 font-semibold" : ""}>Ejecución</span>
             <span aria-hidden="true">•</span>
             <span className={phaseIndex >= 3 ? "text-emerald-700 font-semibold" : ""}>Informe</span>
-          </div>
+          </div> : null}
           <p className="mt-2 text-xs text-slate-600 max-w-2xl">{moduleHint}</p>
           {lastEvent ? (
             <p className="mt-1 text-[11px] text-slate-500 max-w-2xl">
@@ -112,7 +115,7 @@ export default function Header() {
           ) : null}
         </div>
 
-        <div className="flex items-center gap-3 md:gap-4" role="toolbar" aria-label="Controles de header">
+        <div className="flex flex-wrap items-center gap-3 md:gap-4 xl:justify-end" role="toolbar" aria-label="Controles de header">
           {showRealtimeBadge ? (
             <div
               className="sovereign-card !p-1.5 !px-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-slate-500 min-h-[44px]"

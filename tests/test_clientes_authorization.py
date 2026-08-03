@@ -192,6 +192,43 @@ def test_archivar_cliente_is_logical_and_hides_from_list(two_clients, monkeypatc
     assert a.client_id in ids
 
 
+def test_permanent_delete_requires_exact_confirmation(two_clients, monkeypatch) -> None:
+    _, b = two_clients
+    monkeypatch.setenv("ALLOWED_CLIENTES", "*")
+    client = TestClient(app)
+    res = client.request(
+        "DELETE",
+        f"/api/clientes/{b.client_id}/permanent",
+        headers=_bearer(role="admin", allowed_clientes=["*"]),
+        json={"confirmation": "id_incorrecto"},
+    )
+    assert res.status_code == 422
+    session = SessionLocal()
+    try:
+        assert session.query(Client).filter(Client.client_id == b.client_id).first() is not None
+    finally:
+        session.close()
+
+
+def test_permanent_delete_removes_database_client(two_clients, monkeypatch) -> None:
+    _, b = two_clients
+    monkeypatch.setenv("ALLOWED_CLIENTES", "*")
+    client = TestClient(app)
+    res = client.request(
+        "DELETE",
+        f"/api/clientes/{b.client_id}/permanent",
+        headers=_bearer(role="admin", allowed_clientes=["*"]),
+        json={"confirmation": b.client_id},
+    )
+    assert res.status_code == 200
+    assert res.json()["data"]["deleted"] is True
+    session = SessionLocal()
+    try:
+        assert session.query(Client).filter(Client.client_id == b.client_id).first() is None
+    finally:
+        session.close()
+
+
 def test_actualizar_auditoria_cross_client_is_not_found(two_clients, monkeypatch) -> None:
     """Una auditoria de un cliente no puede modificarse via la ruta de otro cliente."""
     a, b = two_clients

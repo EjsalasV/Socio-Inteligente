@@ -1,16 +1,19 @@
 ﻿"use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
-import ContextualHelp from "../../../components/help/ContextualHelp";
-import { exportChatCriterion, getChatHistory, postChat } from "../../../lib/api";
-import { createWorkpaperTask } from "../../../lib/api/workpapers";
+import { createChatConversation, deleteChatConversation, getChatConversations, getChatHistory, postChat, renameChatConversation, type ChatConversation } from "../../../lib/api";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
 import { useLearningRole } from "../../../lib/hooks/useLearningRole";
 import { useRiskEngine } from "../../../lib/hooks/useRiskEngine";
+import { ReactMarkdown } from "../../../components/ReactMarkdown";
+import { logoutSession } from "../../../lib/auth-session";
+import { useWorkflow } from "../../../lib/hooks/useWorkflow";
 
 type ChatMessage = {
   id: string;
@@ -42,9 +45,9 @@ type HistoryMessage = {
 };
 
 const QUICK_PROMPTS = [
-  "¿Qué norma NIIF o NIA aplica para este caso y por qué?",
-  "Analiza este hallazgo y sugiere procedimientos de auditoría.",
-  "Redacta un párrafo técnico para el informe final de auditoría.",
+  "Ayúdame a comprender qué merece atención en este cliente.",
+  "Enséñame cómo analizar una estimación contable sin saltar a conclusiones.",
+  "Desafía mi criterio sobre el riesgo que estoy evaluando.",
 ];
 
 function normalizeRefPath(path: string): string {
@@ -104,24 +107,52 @@ function nowLabel(): string {
 }
 
 export default function SocioChatPage() {
+  const router = useRouter();
   const { clienteId } = useAuditContext();
   const { role } = useLearningRole();
   const { data: dashboard, isLoading: dashboardLoading, error: dashboardError } = useDashboard(clienteId);
   const { data: riskData } = useRiskEngine(clienteId);
+  const { data: workflow } = useWorkflow(clienteId);
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [actionMsg, setActionMsg] = useState("");
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState("");
+  const [mentorMode, setMentorMode] = useState<"teach" | "help" | "challenge">("help");
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [showThread, setShowThread] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function loadConversations(): Promise<void> {
+      try {
+        const response = await getChatConversations(clienteId);
+        if (!active) return;
+        let rows = response?.data?.conversations ?? [];
+        if (rows.length === 0) {
+          const created = await createChatConversation(clienteId);
+          rows = created.data?.conversation ? [created.data.conversation] : [];
+        }
+        setConversations(rows);
+        setActiveConversationId(rows[0]?.id ?? "");
+      } catch {
+        if (active) setConversations([]);
+      }
+    }
+    if (clienteId) void loadConversations();
+    return () => { active = false; };
+  }, [clienteId]);
 
   useEffect(() => {
     let active = true;
     async function loadHistory(): Promise<void> {
+      if (!activeConversationId) { setMessages([]); return; }
       try {
-        const response = await getChatHistory(clienteId);
+        const response = await getChatHistory(clienteId, activeConversationId);
         if (!active) return;
         const raw: HistoryMessage[] = Array.isArray(response?.data?.messages)
-          ? (response.data.messages as HistoryMessage[])
+          ? (response.data.messages as unknown as HistoryMessage[])
           : [];
         const mapped: ChatMessage[] = raw
           .filter(
@@ -141,50 +172,15 @@ export default function SocioChatPage() {
         if (!active) return;
       }
     }
-    if (clienteId) void loadHistory();
-    return () => {
-      active = false;
-    };
-  }, [clienteId]);
+    void loadHistory();
+    return () => { active = false; };
+  }, [clienteId, activeConversationId]);
 
   const openRisks = useMemo(() => riskData?.areas_criticas?.slice(0, 2) ?? [], [riskData]);
-  const recentThreads = useMemo(
-    () => {
-      const userMsgs = messages.filter((m) => m.role === "user").slice(-6).reverse();
-      return userMsgs.slice(0, 3).map((m) => ({
-        title: m.text.length > 55 ? `${m.text.slice(0, 55)}...` : m.text,
-        subtitle: "Consulta del usuario",
-        period: m.timestamp,
-      }));
-    },
-    [messages],
-  );
-
-  const references = useMemo(() => {
-    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
-    if (lastAssistant?.citations?.length) {
-      const unique = new Map<string, string>();
-      for (const c of lastAssistant.citations) {
-        const source = normalizeRefPath(c.source || "");
-        if (!source || unique.has(source)) continue;
-        const label = c.norma ? `${c.norma} · ${prettyRefLabel(source)}` : prettyRefLabel(source);
-        unique.set(source, label);
-      }
-      if (unique.size > 0) {
-        return Array.from(unique.entries()).map(([source, label]) => ({ source, label }));
-      }
-    }
-    return [];
-  }, [messages]);
-
-  const lastAssistantMessage = useMemo(
-    () => [...messages].reverse().find((m) => m.role === "assistant") ?? null,
-    [messages],
-  );
-
   async function handleSend(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    const prompt = input.trim();
+    const modeInstruction = mentorMode === "teach" ? "Enséñame: " : mentorMode === "challenge" ? "Desafía mi criterio: " : "Ayúdame: ";
+    const prompt = `${modeInstruction}${input.trim()}`;
     if (!prompt || sending) return;
 
     const userMessage: ChatMessage = {
@@ -195,11 +191,12 @@ export default function SocioChatPage() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    setShowThread(true);
     setInput("");
     setSending(true);
 
     try {
-      const response = await postChat(clienteId, { message: prompt });
+      const response = await postChat(clienteId, { message: prompt, conversation_id: activeConversationId });
       const answer = response?.data?.answer || "No hubo respuesta del asistente.";
       const assistantMessage: ChatMessage = {
         id: `a-${Date.now()}`,
@@ -213,6 +210,8 @@ export default function SocioChatPage() {
         expert_criteria_used: response?.data?.expert_criteria_used === true,
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      const refreshed = await getChatConversations(clienteId);
+      setConversations(refreshed.data?.conversations ?? []);
     } catch (err) {
       const message = err instanceof Error ? err.message : "No se pudo consultar al asistente.";
       const assistantMessage: ChatMessage = {
@@ -227,53 +226,32 @@ export default function SocioChatPage() {
     }
   }
 
-  async function handleLinkToWorkpaper(): Promise<void> {
-    if (!lastAssistantMessage) {
-      setActionMsg("No hay criterio generado para vincular.");
-      return;
-    }
-    const top = dashboard?.top_areas?.[0];
-    if (!top) {
-      setActionMsg("No hay área priorizada para crear tarea.");
-      return;
-    }
-    const areaCode = String(top.codigo || "").trim();
-    const areaName = String(top.nombre || "").trim();
-    const prioridad = String(top.prioridad || "media").trim().toLowerCase() || "media";
-    if (!areaCode || !areaName) {
-      setActionMsg("No hay datos válidos del área priorizada para crear la tarea.");
-      return;
-    }
-    const title = `Criterio Socio Chat: ${lastAssistantMessage.text.slice(0, 60)}${lastAssistantMessage.text.length > 60 ? "..." : ""}`;
-    try {
-      const result = await createWorkpaperTask(clienteId, {
-        area_code: areaCode,
-        area_name: areaName,
-        title,
-        nia_ref: "NIA 500",
-        prioridad,
-        required: true,
-        evidence_note: "",
-      });
-      setActionMsg(result.created ? "Tarea creada en Papeles de Trabajo." : "La tarea ya existía en Papeles.");
-    } catch (err) {
-      setActionMsg(err instanceof Error ? err.message : "No se pudo vincular a papeles.");
-    }
+  async function handleNewConversation(): Promise<void> {
+    const response = await createChatConversation(clienteId);
+    const row = response.data?.conversation;
+    if (!row) return;
+    setConversations((prev) => [row, ...prev]);
+    setActiveConversationId(row.id);
+    setMessages([]);
+    setShowThread(false);
   }
 
-  async function handleExportCriterion(): Promise<void> {
-    if (!lastAssistantMessage) {
-      setActionMsg("No hay respuesta para exportar.");
-      return;
-    }
-    try {
-      await exportChatCriterion(clienteId, {
-        title: "Criterio exportado desde Socio Chat",
-        content: lastAssistantMessage.text,
-      });
-      setActionMsg("Criterio exportado y guardado en hallazgos.");
-    } catch (err) {
-      setActionMsg(err instanceof Error ? err.message : "No se pudo exportar criterio.");
+  async function handleRenameConversation(row: ChatConversation): Promise<void> {
+    const title = window.prompt("Nombre de la conversación", row.title)?.trim();
+    if (!title) return;
+    const response = await renameChatConversation(clienteId, row.id, title);
+    const updated = response.data?.conversation;
+    if (updated) setConversations((prev) => prev.map((item) => item.id === row.id ? updated : item));
+  }
+
+  async function handleDeleteConversation(row: ChatConversation): Promise<void> {
+    if (!window.confirm(`¿Eliminar la conversación “${row.title}”? Esta acción no se puede deshacer.`)) return;
+    await deleteChatConversation(clienteId, row.id);
+    const remaining = conversations.filter((item) => item.id !== row.id);
+    setConversations(remaining);
+    if (activeConversationId === row.id) {
+      setActiveConversationId(remaining[0]?.id ?? "");
+      setMessages([]);
     }
   }
 
@@ -281,121 +259,59 @@ export default function SocioChatPage() {
   if (dashboardError) return <ErrorMessage message={dashboardError} />;
   if (!dashboard) return <ErrorMessage message="No hay contexto del cliente para Socio Chat." />;
 
+  const phaseLabel = workflow?.current_phase === "informe" ? "Informe" : workflow?.current_phase === "ejecucion" ? "Visita final" : "Planificación";
+  const recentConversation = conversations[0];
+  const suggestedRisk = openRisks[0];
+
   return (
-    <div className="pt-4 pb-8 h-[calc(100vh-7rem)]">
-      <ContextualHelp
-        title="Ayuda del módulo Socio Chat"
-        compact
-        items={[
-          {
-            label: "Consulta técnica",
-            description:
-              "Pregunta normativa o de procedimiento y revisa fuentes antes de aplicar criterio.",
-          },
-          {
-            label: "Exportar criterio",
-            description:
-              "Guarda la respuesta útil en hallazgos para mantener evidencia del razonamiento.",
-          },
-          {
-            label: "Vincular a papel",
-            description:
-              "Convierte una recomendación en tarea ejecutable dentro de Papeles de Trabajo.",
-          },
-        ]}
-      />
-      {/* Panel de rol — compacto para no reducir el espacio del chat */}
-      {role === "junior" && (
-        <div className="bg-[#a5eff0]/10 border border-[#a5eff0]/30 rounded-xl px-5 py-4 flex flex-col md:flex-row md:items-start gap-4">
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#041627] text-[#a5eff0] text-[10px] font-bold">NIA</span>
-            <p className="text-xs uppercase tracking-[0.14em] text-[#041627]/60 font-bold">Vista Junior — Preguntas sugeridas</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {[
-              "¿Qué procedimientos debo aplicar en CxC?",
-              "¿Cómo evalúo el riesgo de going concern?",
-              "¿Qué es la materialidad de ejecución?",
-              "¿Qué aseveraciones cubre una confirmación bancaria?",
-              "¿Cuándo aplica NIA 540 en estimaciones contables?",
-              "¿Cómo estructuro un hallazgo correctamente?",
-            ].map((q) => (
-              <button
-                key={q}
-                type="button"
-                onClick={() => setInput(q)}
-                className="px-3 py-1.5 rounded-full bg-white border border-[#041627]/15 text-xs text-[#041627] font-medium hover:bg-[#041627] hover:text-white transition-colors"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+    <main className="mentor-paper min-h-screen text-[#10283a]">
+      <div className="h-[100px] bg-[#081d2d]" aria-hidden="true" />
+      <div className="mentor-file-tabs" aria-hidden="true">
+        <span className="mentor-file-tab mentor-file-tab-active">Expediente vivo</span>
+        <span className="mentor-file-tab">Fuentes confirmadas</span>
+      </div>
+
+      <header className="relative z-20 flex min-h-[105px] items-center justify-between border-b border-[#b9aa91]/45 px-8 xl:px-14">
+        <dl className="grid grid-cols-2 gap-x-10 gap-y-3 lg:grid-cols-4 xl:gap-x-16">
+          <div><dt className="mentor-kicker">Cliente</dt><dd className="mentor-meta-value max-w-[230px] truncate">{dashboard.nombre_cliente}</dd></div>
+          <div><dt className="mentor-kicker">Año</dt><dd className="mentor-meta-value">{dashboard.periodo || "Actual"}</dd></div>
+          <div><dt className="mentor-kicker">Fase</dt><dd className="mentor-meta-value">{phaseLabel}</dd></div>
+          <div><dt className="mentor-kicker">Marco</dt><dd className="mentor-meta-value">NIIF para PYMES</dd></div>
+        </dl>
+        <div className="absolute -top-[70px] right-8 ml-5 xl:right-14">
+          <button type="button" onClick={() => setProfileOpen((value) => !value)} className="flex h-11 w-11 items-center justify-center rounded-full border border-[#173b46]/20 bg-[#2f7775] font-headline text-sm text-white shadow-sm" aria-label="Abrir menú de usuario" aria-expanded={profileOpen}>BF</button>
+          {profileOpen ? <div className="absolute right-0 top-14 w-56 rounded-xl border border-[#cfc2ac] bg-[#fffdf8] p-2 text-sm shadow-xl">
+            <p className="px-3 py-2 font-semibold">Perfil del auditor</p>
+            <Link href="/admin" className="block rounded-lg px-3 py-2 hover:bg-[#f1eadf]">Administración</Link>
+            <button type="button" onClick={() => void logoutSession().finally(() => router.push("/"))} className="block w-full rounded-lg px-3 py-2 text-left hover:bg-[#f1eadf]">Cerrar sesión</button>
+          </div> : null}
         </div>
-      )}
+      </header>
 
-      {role === "socio" && (
-        <div className="bg-[#001919] border border-[#a5eff0]/20 rounded-xl px-5 py-4 flex items-center gap-4 text-white">
-          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#a5eff0]/20 text-[#a5eff0] text-[10px] font-bold">AI</span>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            <span className="font-semibold text-white">Modo Socio:</span> el chat responde con criterio ejecutivo — riesgo de emisión, materialidad y enfoque estratégico.
-            Pregunta por áreas críticas, hallazgos relevantes o si el encargo está listo para emitir opinión.
-          </p>
+      <section className="relative mx-auto flex min-h-[calc(100vh-205px)] max-w-[1120px] flex-col px-8 pb-10 pt-16">
+        <div className="mentor-watermark" aria-hidden="true"><span className="material-symbols-outlined">verified_user</span></div>
+        <div className="relative z-10 max-w-[900px]">
+          <h1 className="mx-auto max-w-[820px] text-center font-headline text-[54px] leading-[0.98] tracking-[-0.035em] text-[#0b2538] md:text-[68px]">¿En qué estás<br />trabajando hoy?</h1>
+          <p className="mentor-kicker mt-7 text-center text-[#6f624e]">Elige cómo quieres que te acompañe</p>
         </div>
-      )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr_320px] gap-6 h-full">
-        <aside data-tour="sociochat-conversaciones" className="sovereign-card !p-4 flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-2 mb-4">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Conversaciones</h3>
-            <span className="material-symbols-outlined text-slate-400">edit_square</span>
+        <div className="relative z-10 mx-auto mt-5 w-full max-w-[800px]">
+          <div className="grid w-full grid-cols-3 overflow-hidden rounded-[10px] border border-[#17384a]" role="group" aria-label="Modo de mentoría">
+            {([[
+              "teach", "school", "Enséñame", "Explícame una norma o enfoque."
+            ], ["help", "explore", "Ayúdame", "Guíame en una tarea o decisión."], ["challenge", "flag", "Desafíame", "Pon a prueba mi criterio."]] as const).map(([value, icon, label]) => <button key={value} type="button" onClick={() => setMentorMode(value)} aria-pressed={mentorMode === value} className={`group relative min-h-[62px] border-x border-[#17384a]/25 px-4 text-center transition first:border-l-0 last:border-r-0 ${mentorMode === value ? "bg-[#0e3044] text-white shadow-[0_10px_24px_rgba(9,34,50,0.16)]" : "text-[#183242] hover:bg-white/40"}`}>
+              <span className="flex items-center justify-center gap-3 font-headline text-[21px]"><span className={`material-symbols-outlined text-[22px] ${mentorMode === value ? "text-[#78d4cf]" : "text-[#2f8582]"}`}>{icon}</span>{label}</span>
+            </button>)}
           </div>
-          <div className="space-y-2 overflow-y-auto pr-1">
-            {recentThreads.map((thread, idx) => (
-              <button
-                type="button"
-                key={`${thread.title}-${idx}`}
-                className={`w-full text-left p-3 rounded-xl transition-colors ${idx === 0 ? "bg-white border border-[#041627]/10 shadow-sm" : "hover:bg-[#f1f4f6]"}`}
-              >
-                <p className="text-[9px] uppercase tracking-[0.15em] text-slate-400 font-bold mb-1">{thread.period}</p>
-                <p className="text-sm font-semibold text-[#041627]">{thread.title}</p>
-                <p className="text-[11px] text-slate-500 mt-1">{thread.subtitle}</p>
-              </button>
-            ))}
-            {recentThreads.length === 0 ? (
-              <p className="text-xs text-slate-500 px-2">No hay conversaciones recientes para este cliente.</p>
-            ) : null}
-          </div>
-        </aside>
+          <div className="mt-4 flex items-center gap-2 text-xs text-[#55716e]"><span className="material-symbols-outlined text-[17px]">lock</span>Usaré solo las fuentes confirmadas de este cliente.</div>
 
-        <section data-tour="sociochat-chat" className="sovereign-card !p-0 overflow-hidden flex flex-col">
-          <div className="px-6 py-4 bg-[#f1f4f6]/60 border-b border-black/5 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-              <span className="text-xs uppercase tracking-[0.15em] text-slate-500 font-bold">Sesión activa</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void handleLinkToWorkpaper()}
-                className="text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-full bg-white border border-black/10 text-slate-600"
-              >
-                Vincular a papel
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleExportCriterion()}
-                className="text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-full text-white bg-[#041627]"
-              >
-                Exportar criterio
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-white to-[#f8fbff]">
+          {showThread && messages.length > 0 ? <section data-tour="sociochat-chat" className="mt-6 max-h-[330px] overflow-y-auto rounded-[18px] border border-[#c9bca6]/80 bg-[#fffdf8]/85 p-5 shadow-[0_12px_30px_rgba(37,45,43,0.07)]">
+            <div className="space-y-5">
             {messages.length === 0 ? (
               <div className="rounded-2xl border border-[#041627]/10 bg-white p-5 text-sm text-slate-600">
-                Socio AI listo. Escribe una consulta técnica (NIA/NIIF, procedimientos, hallazgos o conclusión) y te
-                responderé con criterio y fuentes.
+                <p className="font-headline text-2xl text-[#041627]">Empecemos por tu tarea, no por el módulo.</p>
+                <p className="mt-2">Cuéntame qué cuenta, procedimiento, riesgo o decisión estás analizando. Mientras más contexto compartas, mejor podré guiarte.</p>
+                <div className="mt-4 flex flex-wrap gap-2">{QUICK_PROMPTS.map((prompt) => <button key={prompt} type="button" onClick={() => setInput(prompt)} className="rounded-full border border-[#177e82]/25 bg-[#edfafa] px-3 py-2 text-xs text-[#155e63] hover:bg-[#d9f3f3]">{prompt}</button>)}</div>
               </div>
             ) : null}
             {messages.map((msg) => (
@@ -404,7 +320,7 @@ export default function SocioChatPage() {
                   {msg.role === "assistant" ? (
                     <p className="text-[10px] uppercase tracking-[0.16em] text-teal-700 font-bold mb-2">Criterio Socio AI</p>
                   ) : null}
-                  <p className="text-sm leading-relaxed text-slate-800 whitespace-pre-wrap">{msg.text}</p>
+                  <div className="text-sm leading-relaxed text-slate-800"><ReactMarkdown compact>{msg.text}</ReactMarkdown></div>
                   {msg.role === "assistant" && (msg.mode_used || "").includes("fallback") ? (
                     <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
                       Modo respaldo activo. Para respuesta generativa completa, configura la API key del LLM.
@@ -478,87 +394,41 @@ export default function SocioChatPage() {
                 </div>
               </div>
             ))}
-          </div>
-
-          <div data-tour="sociochat-input" className="p-5 bg-[#f1f4f6]/35 border-t border-black/5">
-            {actionMsg ? <p className="text-xs text-slate-600 mb-3">{actionMsg}</p> : null}
-            <div className="flex gap-2 mb-3 overflow-x-auto">
-              {QUICK_PROMPTS.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  onClick={() => setInput(q)}
-                  className="shrink-0 px-3 py-2 rounded-xl bg-white border border-black/10 text-xs text-slate-600 hover:border-teal-500"
-                >
-                  {q}
-                </button>
-              ))}
             </div>
-            <form onSubmit={handleSend} className="flex items-end gap-2 bg-white rounded-2xl p-2 border border-[#041627]/10 shadow-sm">
+          </section> : null}
+
+          <div data-tour="sociochat-input" className="mt-6">
+            <form onSubmit={handleSend} className="mentor-composer flex items-end gap-3 rounded-[16px] border border-[#bcae96] bg-[#fffefa]/90 p-3 shadow-[0_16px_36px_rgba(45,44,36,0.08)]">
+              <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#55716e] hover:bg-[#eee7da]" aria-label="Adjuntar fuente"><span className="material-symbols-outlined">attach_file</span></button>
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                className="w-full min-h-[54px] max-h-32 resize-none border-none focus:ring-0 outline-none px-2 py-2 text-sm"
-                placeholder="Escribe tu consulta técnica aquí..."
+                className="w-full min-h-[88px] max-h-40 resize-none border-none bg-transparent px-2 py-3 text-sm outline-none focus:ring-0"
+                placeholder="Cuéntame tu situación, pregunta o el criterio que quieres aplicar…"
               />
               <button
                 type="submit"
                 disabled={sending || !input.trim()}
-                className="p-3 rounded-xl text-white bg-[#041627] disabled:opacity-50"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2f8582] text-white shadow-sm transition hover:bg-[#246f6d] disabled:opacity-40"
               >
                 <span className="material-symbols-outlined">send</span>
               </button>
             </form>
           </div>
-        </section>
 
-        <aside className="space-y-6 overflow-y-auto pr-1">
-          <article className="rounded-editorial p-6 text-white" style={{ background: "linear-gradient(135deg, #041627 0%, #1a2b3c 100%)" }}>
-            <h3 className="text-xs uppercase tracking-[0.18em] text-[#89d3d4] font-bold">Contexto</h3>
-            <p className="font-headline text-2xl mt-3">{dashboard.nombre_cliente}</p>
-            <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-slate-300 text-[10px] uppercase tracking-[0.14em]">Materialidad</p>
-                <p className="font-headline text-xl">${(dashboard.materialidad_global / 1000000).toFixed(1)}M</p>
-              </div>
-              <div>
-                <p className="text-slate-300 text-[10px] uppercase tracking-[0.14em]">Riesgo Global</p>
-                <p className="font-headline text-xl text-[#a5eff0]">{dashboard.riesgo_global}</p>
-              </div>
-            </div>
-          </article>
-
-          <article data-tour="sociochat-referencias" className="sovereign-card">
-            <h4 className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-bold mb-4">Alertas de riesgo</h4>
-            <div className="space-y-3">
-              {openRisks.map((risk) => (
-                <div key={risk.area_id} className="p-3 rounded-xl bg-[#f8fafc] border border-black/10">
-                  <p className="text-sm font-semibold text-[#041627]">{risk.area_nombre}</p>
-                  <p className="text-[11px] text-slate-500 mt-1">Score: {risk.score.toFixed(2)} · {risk.nivel}</p>
-                </div>
-              ))}
-              {openRisks.length === 0 ? <p className="text-sm text-slate-500">Sin alertas abiertas.</p> : null}
-            </div>
-          </article>
-
-          <article className="sovereign-card">
-            <h4 className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-bold mb-4">Referencias técnicas</h4>
-            <ul className="space-y-2">
-              {references.map((ref) => (
-                <li key={ref.source} className="p-3 rounded-xl bg-white border border-black/10 text-xs text-slate-700">
-                  <p className="font-semibold">{ref.label}</p>
-                  <p className="text-[10px] text-slate-500 mt-1">{ref.source}</p>
-                </li>
-              ))}
-              {references.length === 0 ? (
-                <li className="p-3 rounded-xl bg-white border border-black/10 text-xs text-slate-500">
-                  Sin referencias técnicas en la última respuesta.
-                </li>
-              ) : null}
-            </ul>
-          </article>
-        </aside>
-      </div>
-    </div>
+          <div className="mt-10 grid gap-8 border-t border-[#c9bca6]/70 pt-6 md:grid-cols-2">
+            <article>
+              <div className="flex items-center justify-between"><h2 className="mentor-kicker">Conversación reciente</h2><button type="button" onClick={() => void handleNewConversation()} className="text-xs text-[#2b7774] hover:underline">Nueva conversación</button></div>
+              {recentConversation ? <div className="group mt-4 flex items-start gap-3"><span className="material-symbols-outlined mt-0.5 text-[20px] text-[#9a7b52]">chat_bubble</span><button type="button" onClick={() => { setActiveConversationId(recentConversation.id); setShowThread(true); }} className="min-w-0 flex-1 text-left"><p className="truncate font-headline text-lg">{recentConversation.title}</p><p className="mt-1 text-xs text-[#7a8388]">Actualizada {new Date(recentConversation.updated_at).toLocaleDateString()}</p></button><button type="button" onClick={() => void handleRenameConversation(recentConversation)} className="opacity-0 transition group-hover:opacity-100" aria-label="Renombrar conversación"><span className="material-symbols-outlined text-[18px]">edit</span></button><button type="button" onClick={() => void handleDeleteConversation(recentConversation)} className="opacity-0 transition group-hover:opacity-100" aria-label="Eliminar conversación"><span className="material-symbols-outlined text-[18px]">delete</span></button></div> : <p className="mt-4 text-sm text-[#7a8388]">Aún no hay conversaciones.</p>}
+            </article>
+            <article>
+              <h2 className="mentor-kicker">Área sugerida</h2>
+              <button type="button" onClick={() => suggestedRisk && setInput(`Ayúdame a comprender el riesgo de ${suggestedRisk.area_nombre}.`)} className="mt-4 flex w-full items-start gap-3 text-left"><span className="material-symbols-outlined mt-0.5 text-[20px] text-[#2f8582]">track_changes</span><span><span className="block font-headline text-lg">{suggestedRisk?.area_nombre || "Comprensión del cliente"}</span><span className="mt-1 block text-xs text-[#7a8388]">{suggestedRisk ? `Prioridad ${suggestedRisk.nivel.toLowerCase()} · úsala como punto de partida, no como conclusión.` : "Empieza por una cuenta, procedimiento o decisión concreta."}</span></span></button>
+            </article>
+          </div>
+          {role === "junior" || role === "socio" ? <p className="mt-6 text-[11px] text-[#7d8587]">Vista adaptada al nivel {role === "junior" ? "Junior" : "Socio"}; el nivel cambia la forma de acompañarte, no tus permisos ni el criterio requerido.</p> : null}
+        </div>
+      </section>
+    </main>
   );
 }

@@ -271,7 +271,7 @@ export async function authFetchBlob(path: string, init?: RequestInit): Promise<R
   }
 }
 
-export async function postChat(clienteId: string, payload: ChatRequest): Promise<ApiEnvelope<ChatResponse>> {
+export async function postChat(clienteId: string, payload: ChatRequest & { conversation_id?: string }): Promise<ApiEnvelope<ChatResponse & { conversation_id?: string }>> {
   return apiFetch<ApiEnvelope<ChatResponse>>(`/chat/${clienteId}`, {
     method: "POST",
     body: JSON.stringify(payload),
@@ -308,8 +308,28 @@ export type ChatHistoryItem = {
 
 export async function getChatHistory(
   clienteId: string,
+  conversationId?: string,
 ): Promise<ApiEnvelope<{ messages: ChatHistoryItem[] }>> {
-  return apiFetch<ApiEnvelope<{ messages: ChatHistoryItem[] }>>(`/chat/${clienteId}/history`);
+  const query = conversationId ? `?conversation_id=${encodeURIComponent(conversationId)}` : "";
+  return apiFetch<ApiEnvelope<{ messages: ChatHistoryItem[] }>>(`/chat/${clienteId}/history${query}`);
+}
+
+export type ChatConversation = { id: string; title: string; created_at: string; updated_at: string };
+
+export async function getChatConversations(clienteId: string): Promise<ApiEnvelope<{ conversations: ChatConversation[] }>> {
+  return apiFetch<ApiEnvelope<{ conversations: ChatConversation[] }>>(`/chat/${clienteId}/conversations`);
+}
+
+export async function createChatConversation(clienteId: string): Promise<ApiEnvelope<{ conversation: ChatConversation }>> {
+  return apiFetch<ApiEnvelope<{ conversation: ChatConversation }>>(`/chat/${clienteId}/conversations`, { method: "POST", body: JSON.stringify({ title: "Nueva conversación" }) });
+}
+
+export async function renameChatConversation(clienteId: string, conversationId: string, title: string): Promise<ApiEnvelope<{ conversation: ChatConversation }>> {
+  return apiFetch<ApiEnvelope<{ conversation: ChatConversation }>>(`/chat/${clienteId}/conversations/${conversationId}`, { method: "PATCH", body: JSON.stringify({ title }) });
+}
+
+export async function deleteChatConversation(clienteId: string, conversationId: string): Promise<ApiEnvelope<{ deleted: boolean }>> {
+  return apiFetch<ApiEnvelope<{ deleted: boolean }>>(`/chat/${clienteId}/conversations/${conversationId}`, { method: "DELETE" });
 }
 
 export type NormativeCatalogEntry = {

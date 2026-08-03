@@ -118,7 +118,7 @@ def _compress_to_summary(messages: list[dict[str, Any]]) -> str:
 # API pública
 # ---------------------------------------------------------------------------
 
-def build_memory_context(cliente_id: str) -> tuple[str, list[dict[str, str]]]:
+def build_memory_context(cliente_id: str, *, conversation_id: str = "") -> tuple[str, list[dict[str, str]]]:
     """
     Construye el contexto de memoria para inyectar en el LLM.
 
@@ -134,6 +134,11 @@ def build_memory_context(cliente_id: str) -> tuple[str, list[dict[str, str]]]:
 
     history = read_chat_history(cliente_id)
     summaries = read_chat_memory(cliente_id)
+    if conversation_id:
+        history = [item for item in history if item.get("conversation_id") == conversation_id]
+        # Los resúmenes heredados no tienen conversación y no deben contaminar
+        # un hilo nuevo.
+        summaries = []
 
     # ---- Mensajes recientes (verbatim) ------------------------------------
     recent_raw = history[-RECENT_WINDOW:] if history else []

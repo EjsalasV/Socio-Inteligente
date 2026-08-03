@@ -15,8 +15,20 @@ import Sidebar from "./Sidebar";
 export default function ClientModuleShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { clienteId, moduleKey } = useAuditContext();
+  const immersiveMentor = moduleKey === "socio-chat" || moduleKey === "entity-profile";
   const [ready, setReady] = useState<boolean>(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+
+  useEffect(() => {
+    const syncSidebar = (event?: Event) => {
+      const detail = (event as CustomEvent<{ collapsed?: boolean }> | undefined)?.detail;
+      setSidebarCollapsed(detail?.collapsed ?? window.localStorage.getItem("socioai-sidebar-collapsed") === "1");
+    };
+    syncSidebar();
+    window.addEventListener("socio-sidebar-change", syncSidebar);
+    return () => window.removeEventListener("socio-sidebar-change", syncSidebar);
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -72,7 +84,7 @@ export default function ClientModuleShell({ children }: { children: React.ReactN
   useEffect(() => {
     if (!ready || !isAuthenticated) return;
     if (!clienteId) return;
-    const exemptModules = new Set(["perfil", "trial-balance", "mayor", "configuracion"]);
+    const exemptModules = new Set(["perfil", "entity-profile", "trial-balance", "mayor", "configuracion"]);
     if (exemptModules.has(moduleKey)) return;
 
     let cancelled = false;
@@ -103,13 +115,13 @@ export default function ClientModuleShell({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-screen bg-surface">
-      <Sidebar />
+    <div className={immersiveMentor ? "min-h-screen bg-[#f5f0e7]" : "min-h-screen bg-surface"}>
+      <Sidebar immersive={immersiveMentor} />
       <ClienteRealtimeProvider>
-        <div className="lg:ml-72">
-          <Header />
-          <OnboardingGuideBanner />
-          <div className="px-4 md:px-8 pb-8">{children}</div>
+        <div className={`${sidebarCollapsed ? "lg:ml-20" : immersiveMentor ? "lg:ml-[286px]" : "lg:ml-72"} transition-[margin] duration-200`}>
+          {immersiveMentor ? null : <Header />}
+          {immersiveMentor ? null : <OnboardingGuideBanner />}
+          <div className={immersiveMentor ? "" : "px-4 md:px-8 pb-8"}>{children}</div>
         </div>
       </ClienteRealtimeProvider>
     </div>

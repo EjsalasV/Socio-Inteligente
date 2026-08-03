@@ -30,6 +30,21 @@ export type UserPreferencesPatch = Partial<{
   preferences_version: string;
 }>;
 
+export type LearningProgress = {
+  total_practices: number;
+  competencies: Array<{
+    id: string;
+    label: string;
+    practice_count: number;
+    positive_count: number;
+    progress_pct: number;
+    last_practiced_at?: string;
+  }>;
+  frequent_resources: Array<{ code: string; count: number }>;
+  updated_at?: string;
+  privacy: string;
+};
+
 const DEFAULT_PREFERENCES: UserPreferences = {
   learning_role: "semi",
   tour_completed_modules: [],
@@ -124,3 +139,12 @@ export function defaultUserPreferences(): UserPreferences {
   };
 }
 
+export async function getLearningProgress(): Promise<LearningProgress> {
+  const response = await authFetchJson<ApiEnvelope<LearningProgress>>("/api/user/learning-progress");
+  return response.data;
+}
+
+export async function clearLearningProgress(): Promise<boolean> {
+  const response = await authFetchJson<ApiEnvelope<{ deleted: boolean }>>("/api/user/learning-progress", { method: "DELETE" });
+  return Boolean(response.data.deleted);
+}
