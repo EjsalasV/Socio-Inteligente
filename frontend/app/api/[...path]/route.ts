@@ -15,10 +15,49 @@ function stripTrailingSlash(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
+function shouldPreserveApiPrefix(path: string[]): boolean {
+  const [first = "", second = "", third = ""] = path;
+
+  if (!first) return true;
+  if (first === "health") return false;
+
+  if (first === "reportes") {
+    if (second === "papeles-trabajo") return true;
+    if (third === "export") return true;
+    return false;
+  }
+
+  if (first === "papeles-trabajo") {
+    if (path.length <= 2) return false;
+    if (third === "tasks") return false;
+    return true;
+  }
+
+  if (
+    first === "auth" ||
+    first === "perfil" ||
+    first === "dashboard" ||
+    first === "risk-engine" ||
+    first === "areas" ||
+    first === "chat" ||
+    first === "metodologia" ||
+    first === "workflow"
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 function buildTargetUrl(path: string[], search: string): string {
   const base = stripTrailingSlash(API_BASE.trim());
-  const cleanPath = path.map((p) => encodeURIComponent(p)).join("/");
-  return `${base}/${cleanPath}${search}`;
+  const cleanPath = path
+    .flatMap((segment) => String(segment || "").split("/"))
+    .filter(Boolean)
+    .map((p) => encodeURIComponent(p))
+    .join("/");
+  const targetBase = shouldPreserveApiPrefix(path) ? `${base}/api` : base;
+  return cleanPath ? `${targetBase}/${cleanPath}${search}` : `${targetBase}${search}`;
 }
 
 function copyHeaders(req: NextRequest): Headers {

@@ -23,9 +23,20 @@ function isLocalBrowserHost(): boolean {
   return host === "localhost" || host === "127.0.0.1";
 }
 
+function shouldUseLocalProxy(configured: string): boolean {
+  if (!configured || isRelativePath(configured)) return false;
+  if (!isLocalBrowserHost()) return false;
+  return isLoopbackHost(configured);
+}
+
 export function getApiBase(): string {
   if (typeof window !== "undefined") {
     const configured = PUBLIC_API_BASE.trim();
+    // In local browser sessions, route loopback URLs through the Next.js proxy
+    // so the browser does not depend on reaching a separate localhost origin.
+    if (shouldUseLocalProxy(configured)) {
+      return "/api";
+    }
     // Absolute URL configured (e.g., http://localhost:8000)
     if (configured && !isRelativePath(configured)) {
       return stripTrailingSlash(configured);
