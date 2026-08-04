@@ -329,7 +329,7 @@ export default function EntityProfilePage() {
           <details className="rounded-2xl border border-[#c9bca6]/70 bg-[#fffdf8]/70 p-5">
             <summary className="cursor-pointer font-headline text-xl">Fuentes utilizadas <span className="ml-2 font-body text-xs text-[#7a8388]">{draft.sources.filter((source) => source.available).length} disponibles</span></summary>
             <div className="mt-4 space-y-3">
-              {draft.sources.map((source, index) => (
+              {draft.sources.length ? draft.sources.map((source, index) => (
                 <div key={`${source.type}-${index}`} className="rounded-xl border border-black/10 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div><p className="text-sm font-semibold">{source.label}</p><p className="text-xs text-slate-500">{source.name ?? source.authority}{source.period ? ` · ${source.period}` : ""}</p></div>
@@ -338,7 +338,7 @@ export default function EntityProfilePage() {
                     </span>
                   </div>
                 </div>
-              ))}
+              )) : <p className="text-sm text-[#69767b]">No se identificaron fuentes anteriores.</p>}
             </div>
           </details>
         </section>
@@ -375,6 +375,8 @@ export default function EntityProfilePage() {
             <div className="rounded-xl border border-[#c9bca6] bg-white/60 p-4"><p className="mentor-kicker">Fuentes</p><p className="mt-2 font-headline text-2xl">{analysis.sources.length}</p></div>
             <div className="rounded-xl border border-[#c9bca6] bg-white/60 p-4"><p className="mentor-kicker">Pendientes</p><p className="mt-2 font-headline text-2xl">{draft.pending_confirmations.length}</p></div>
           </div>
+          {!analysis.sources.length ? <p className="mt-4 rounded-xl border border-dashed border-[#c9bca6] bg-white/50 p-4 text-sm text-[#69767b]">No se identificaron fuentes anteriores.</p> : null}
+          {!analysis.risk_hypotheses.length ? <p className="mt-3 rounded-xl border border-dashed border-[#c9bca6] bg-white/50 p-4 text-sm text-[#69767b]">{"No se identificaron hip\u00f3tesis por validar."}</p> : null}
 
           <article className="mt-6 rounded-[22px] border border-[#baa98e] bg-[#fffdf8]/90 p-6 shadow-[0_16px_40px_rgba(50,45,34,0.07)] md:p-8">
             <div className="flex items-start gap-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#12374a] text-[#79d7d1]"><span className="material-symbols-outlined">domain</span></span><div><p className="mentor-kicker">Resumen propuesto</p><h2 className="mt-2 font-headline text-3xl">Lo que SocioAI entendió</h2></div></div>
@@ -478,7 +480,7 @@ export default function EntityProfilePage() {
                         <Evidence item={item} />
                         <ReviewControls item={item} />
                       </article>
-                    )) : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No se propusieron riesgos con la información disponible.</p>}
+                    )) : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No se identificaron hipótesis por validar.</p>}
                   </div>
                 </div>
                 <div>

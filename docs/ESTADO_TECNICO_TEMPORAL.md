@@ -1,6 +1,6 @@
 # Estado tecnico temporal
 
-Fecha de ejecucion: 2026-08-03
+Fecha de ejecucion: 2026-08-04
 
 Este documento registra una linea base tecnica reproducible para SocioAI, sin modificar comportamiento.
 
@@ -258,6 +258,50 @@ Durante esta tarea se respetaron los cambios existentes en el arbol de trabajo y
 |---|---|---|---|---|
 | La salida estructurada del analisis de perfil depende de un contrato JSON muy especifico | El prompt exige una forma exacta y el servicio sanitiza listas, referencias y confianza. | `backend/services/entity_profile_analysis_service.py` | Un cambio de formato del LLM puede degradar silenciosamente la calidad de la evidencia o vaciar campos. | Mantener validacion de esquema y pruebas de contrato sobre el JSON esperado. |
 | Las decisiones del perfil quedan acopladas al borrador analitico | Las hipotesis se guardan y reaplican desde el mismo archivo del borrador. | `backend/services/entity_profile_service.py`, `backend/services/entity_profile_analysis_service.py` | Es practico hoy, pero mezcla conocimiento preliminar, analisis y decisiones en un solo artefacto. | Documentar claramente el contrato y considerar separacion futura si crece el flujo. |
+
+## Medicion de carga del Mentor
+
+### Contexto de la medicion
+
+- Frontend local: `http://localhost:3000`.
+- Backend local: `http://127.0.0.1:8000`.
+- Cliente medido: `2025_01`, porque ese expediente ya tiene Trial Balance y Mayor cargados.
+- Sesion usada: cookie `socio-auth` + `localStorage` con token valido.
+- Ruta medida: `/socio-chat/2025_01`.
+
+### Tiempos observados
+
+- `DOMContentLoaded`: `1.15 s`.
+- `load`: `1.19 s`.
+- `first-paint` y `first-contentful-paint`: `0.92 s`.
+- Hero del Mentor visible: `6.23 s`.
+- Compositor de mensaje visible: `6.24 s`.
+
+### Solicitudes observadas
+
+- `GET /api/auth/me` x2.
+- `GET /api/user/preferences`.
+- `GET /api/chat/2025_01/conversations` x2.
+- `GET /api/trial-balance/2025_01/status`.
+- `GET /api/clientes` x2.
+- `GET /api/workflow/2025_01` x2.
+- `GET /api/dashboard/2025_01?areas_page=1&areas_page_size=8`.
+- `GET /api/chat/2025_01/history?conversation_id=1129e26554cd411a9d98`.
+- `GET /api/risk-engine/2025_01` x2.
+
+### Lectura tecnica
+
+- La solicitud que realmente desbloquea el shell del Mentor es `GET /api/dashboard/2025_01?areas_page=1&areas_page_size=8`; el hero y el compositor aparecen alrededor de `6.2 s`.
+- `auth/me` se solicita dos veces por la validacion inicial de sesion y por la inicializacion de los hooks de la pagina.
+- `clientes`, `workflow`, `risk-engine` y `chat/conversations` se repiten una vez cada uno, lo que sugiere consultas paralelas desde componentes distintos sin deduplicacion compartida.
+- `chat/history` entra despues de resolver la conversacion reciente seleccionada.
+- El `first contentful paint` ocurre antes del Mentor visible, asi que el primer render del layout no es el cuello de botella principal; el punto critico es la carga de datos del shell editorial.
+
+### Oportunidades de mejora
+
+- Compartir cache o coalescencia para `auth/me`, `clientes`, `workflow`, `risk-engine` y `chat/conversations`.
+- Diferir `chat/history` hasta que la conversacion se abra o realmente se necesite.
+- Revisar si el shell del Mentor puede mostrar una version parcial mientras termina de resolver el dashboard.
 
 ### Decisiones de producto o arquitectura a reservar
 

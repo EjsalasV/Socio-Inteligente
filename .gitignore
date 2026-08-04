@@ -55,6 +55,22 @@ data/clientes/**/reportes_historial.json
 data/clientes/**/documentos_registro.json
 data/clientes/**/document_section_links.json
 
+# Local test and verification artifacts
+.playwright-mcp/
+frontend/test-results/
+frontend/playwright-report/
+frontend/tmp/
+tmp/
+design-qa.md
+landing-verify.png
+login-verify.png
+mentor-expediente-vivo.png
+mentor-expediente-vivo-v2.png
+mentor-expediente-vivo-final.png
+entity-profile-review-final.png
+entity-questionnaire-expediente.png
+entity-questionnaire-expediente-final.png
+
 # IDE / OS
 .vscode/
 .idea/

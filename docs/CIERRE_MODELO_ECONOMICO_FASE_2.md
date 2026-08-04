@@ -225,3 +225,168 @@ El bloque fue contrastado con el plan y reforzado antes de integrarse.
 - ESLint: 0 errores y 34 advertencias preexistentes fuera de este alcance.
 - Build de produccion: aprobado.
 - Consumo externo: las pruebas usan mocks y overrides locales; no invocan IA, no consumen tokens y no utilizan datos reales de clientes.
+
+## Tarea 17
+
+### Resultado
+Se ajustaron los estados vacios para que el Mentor no quede silencioso cuando no hay alertas y para que el perfil de entidad muestre mensajes explicitos cuando no existen fuentes previas ni hipotesis. Tambien se agrego cobertura E2E para la Biblioteca, los Procedimientos y el perfil vacio.
+
+### Archivos modificados
+- `frontend/components/dashboard/AlertsBanner.tsx`
+- `frontend/components/dashboard/views/DashboardEditorial.tsx`
+- `frontend/app/entity-profile/[clienteId]/page.tsx`
+- `frontend/tests/e2e/empty-states.spec.ts`
+- `docs/CIERRE_MODELO_ECONOMICO_FASE_2.md`
+
+### Archivos creados
+- `frontend/tests/e2e/empty-states.spec.ts`
+
+### Pruebas ejecutadas
+- `npx playwright test tests/e2e/empty-states.spec.ts` en `frontend`: 4 pruebas aprobadas, 0 fallidas.
+- `npm run lint` en `frontend`: exitoso, con 34 advertencias preexistentes.
+- `npm run build` en `frontend`: aprobado.
+
+### Problemas corregidos
+- Estado vacio silencioso en alertas del Mentor: ahora se muestra un mensaje explicito.
+- Falta de feedback en el perfil de entidad sin fuentes previas o hipotesis: ahora se ven mensajes claros.
+- Cobertura faltante para esos flujos: se agregaron verificaciones E2E.
+
+### Problemas pendientes
+- Ninguno detectado en esta tarea.
+
+### Cambios que requieren revision
+- Ninguno fuera del alcance de la tarea. No se alteraron prompts, reglas de riesgo, materialidad, arquitectura de IA ni datos de clientes.
+
+### Posibles cambios accidentales
+- Ninguno identificado en esta tarea.
+
+### Recomendacion de integracion
+- Aceptar los estados vacios y la cobertura E2E como mejora de claridad operativa.
+
+## Tarea 18
+
+### Resultado
+Se reforzo `.gitignore` para excluir salidas temporales y de verificacion, incluyendo artefactos de Playwright y archivos de QA, sin ocultar los directorios de evidencia que ya estaban en uso.
+
+### Archivos modificados
+- `.gitignore`
+- `docs/CIERRE_MODELO_ECONOMICO_FASE_2.md`
+
+### Archivos creados
+- Ninguno.
+
+### Pruebas ejecutadas
+- `git check-ignore -v` sobre rutas representativas: resultado positivo para los patrones nuevos.
+
+### Problemas corregidos
+- Rastreo accidental de archivos temporales y salidas de pruebas: ahora quedan ignorados de forma mas precisa.
+
+### Problemas pendientes
+- Los directorios de evidencia `analysis/mentor-audit/`, `analysis/visual-audit/` y `artifacts/` se conservan visibles por requerimiento de revision.
+
+### Cambios que requieren revision
+- Ninguno fuera del alcance de la tarea.
+
+### Posibles cambios accidentales
+- Ninguno identificado en esta tarea.
+
+### Recomendacion de integracion
+- Aceptar la exclusion de temporales sin perder evidencia util para revision manual.
+
+## Tarea 19
+
+### Resultado
+Se midio el estado tecnico temporal del flujo de Mentor y se documento en `docs/ESTADO_TECNICO_TEMPORAL.md` sin modificar logica de producto.
+
+### Archivos modificados
+- `docs/ESTADO_TECNICO_TEMPORAL.md`
+- `docs/CIERRE_MODELO_ECONOMICO_FASE_2.md`
+
+### Archivos creados
+- Ninguno.
+
+### Pruebas ejecutadas
+- Inspeccion del trafico de red y del timeline en el navegador local: mediciones registradas.
+
+### Problemas corregidos
+- Falta de referencia temporal objetiva para el flujo del Mentor: ahora existe una base documental para comparar cambios futuros.
+
+### Problemas pendientes
+- El flujo sigue mostrando varias solicitudes duplicadas y carga perceptible antes de pintar el contenido principal.
+
+### Cambios que requieren revision
+- La documentacion incluye tiempos observados y solicitudes concretas; no altera producto, pero conviene revisarla si se renueva la medicion.
+
+### Posibles cambios accidentales
+- Ninguno identificado en esta tarea.
+
+### Recomendacion de integracion
+- Aceptar la medicion como linea base tecnica y usarla para seguimiento posterior.
+
+## Tarea 20
+
+### Resultado
+Se hizo un cierre tecnico de dependencias y deprecaciones sin actualizar paquetes, para dejar claro el estado real de riesgo y mantenimiento del proyecto.
+
+### Archivos modificados
+- `docs/CIERRE_MODELO_ECONOMICO_FASE_2.md`
+
+### Archivos creados
+- Ninguno.
+
+### Pruebas ejecutadas
+- `npm outdated --long --json` en `frontend`: completado.
+- `npm audit --json` en `frontend`: completado.
+- `python -m pip list --outdated --format=json`: completado.
+- `python -m pytest tests -q`: 263 pruebas aprobadas, 0 fallidas, 73 warnings.
+
+### Problemas corregidos
+- Ninguno; esta tarea fue de inspeccion y cierre tecnico.
+
+### Problemas pendientes
+- Frontend: 19 dependencias directas desactualizadas.
+- Backend: 14 dependencias directas desactualizadas.
+- No se cuenta con `pip-audit` instalado, asi que el barrido de vulnerabilidades Python queda pendiente por herramienta.
+
+### Cambios que requieren revision
+- `next` y `postcss` muestran vulnerabilidades directas con mitigacion disponible.
+- `eslint` presenta una vulnerabilidad via dependencia transitoria.
+- Persisten deprecaciones de `@app.on_event("startup")`, `datetime.utcnow()`, `session.query`, `Query.get()` y avisos del stack de pruebas.
+
+### Posibles cambios accidentales
+- Ninguno en codigo funcional; solo se agrego esta documentacion de cierre.
+
+### Recomendacion de integracion
+- Aceptar el inventario y priorizar `next`, `postcss` y la migracion fuera de APIs deprecadas como trabajo futuro del modelo principal.
+
+### Inventario tecnico revisado
+
+Consulta realizada el 4 de agosto de 2026. No se actualizaron paquetes.
+
+**Frontend directo con version posterior disponible:** `framer-motion` 12.38.0→12.43.0, `next` 16.2.1→16.3.0, `react` y `react-dom` 19.2.0→19.2.8, `react-joyride` 3.0.2→3.2.0, `@eslint/js` 9.25.1→10.0.1, `@next/eslint-plugin-next` y `eslint-config-next` 16.2.1→16.3.0, `@types/node` 22.10.1→26.1.2, `@types/react` 19.2.2→19.2.18, `@types/react-dom` 19.2.2→19.2.4, `@typescript-eslint/eslint-plugin` y `parser` 8.57.2→8.66.0, `autoprefixer` 10.4.20→10.5.4, `eslint` 9.25.1→10.8.0, `eslint-plugin-react-hooks` 5.2.0→7.1.1, `openapi-typescript` 7.4.4→7.13.0, `postcss` 8.4.49→8.5.25, `tailwindcss` 3.4.16→4.3.3 y `typescript` 5.7.2→7.0.2. `@playwright/test` 1.62.1 y `eslint-plugin-react` 7.37.5 estaban al dia.
+
+**Backend directo con version posterior disponible:** `fastapi` 0.135.2→0.141.1, `uvicorn` 0.42.0→0.52.1, `websockets` 16.0→17.0.1, `pydantic` 2.12.5→2.13.4, `PyJWT` 2.12.1→2.13.0, `slowapi` 0.1.9→0.1.10, `pandas` 2.3.3→3.0.5, `python-multipart` 0.0.22→0.0.32, `openai` 2.29.0→2.53.0, `requests` 2.32.5→2.34.2, `redis` 7.4.0→8.1.0, `tavily-python` 0.7.23→0.7.27, `weasyprint` 68.1→69.0 y `SQLAlchemy` 2.0.49→2.0.51.
+
+**Vulnerabilidades npm:** 9 paquetes afectados: 5 de severidad alta, 1 moderada y 3 bajas. Los directos son `next` (alta), `postcss` (alta) y `eslint` (baja); los restantes son transitivos (`sharp`, `brace-expansion`, `js-yaml`, `@redocly/openapi-core`, `@babel/core` y `@eslint/plugin-kit`). `npm audit` indica correccion disponible. La auditoria Python queda pendiente porque `pip-audit` no esta instalado; `pip list --outdated` no equivale a un analisis de vulnerabilidades.
+
+### Clasificacion para decidir actualizaciones
+
+| Tipo | Paquetes o APIs | Impacto | Dificultad | Decision sugerida |
+|---|---|---|---|---|
+| Actualizacion segura prioritaria | `next` dentro de 16.x, `postcss` dentro de 8.x y transitivos corregibles sin salto mayor | Seguridad web; incluye bypass, SSRF, DoS y lectura de archivos reportados localmente | Media | Crear cambio aislado, actualizar lockfile y ejecutar E2E, build y pruebas de proxy/autenticacion |
+| Mantenimiento compatible | Parches/minores de FastAPI, Pydantic, PyJWT, SQLAlchemy, OpenAI y Requests | Reduce deuda sin redefinir arquitectura | Baja-media | Hacer grupos pequenos con pruebas de contrato |
+| Migracion | ESLint 10, Tailwind 4, TypeScript 7, pandas 3, Redis 8, WebSockets 17 y WeasyPrint 69 | Puede romper configuracion, tipos, CSS, serializacion o reportes | Alta | No mezclar; preparar una migracion por tecnologia |
+| Deprecacion de codigo | `@app.on_event`, `datetime.utcnow()`, `session.query`, `Query.get()`, cookies por request y constante HTTP 422 obsoleta | Compatibilidad futura con FastAPI, Starlette, SQLAlchemy y Python | Media | Sustituir cada familia con su propia regresion |
+| Arquitectura | Cache/deduplicacion del Mentor y persistencia mutable en archivos | Rendimiento y concurrencia; no es una actualizacion de paquetes | Alta | Mantener separado de seguridad y validar con mediciones antes de redisenar |
+
+## Revision de integracion · tareas 17–20 · 2026-08-04
+
+- Se corrigio el estado de fuentes vacias para que tambien sea visible en el resultado confirmado del perfil.
+- La prueba de procedimientos ahora espera que el catalogo termine de cargar antes de aplicar el filtro.
+- La auditoria de dependencias se amplio con inventario, severidad, impacto, dificultad y tipo de intervencion.
+- No se actualizaron dependencias ni se modificaron prompts, reglas de riesgo o servicios LLM.
+- E2E de estados vacios: 4 aprobadas, 0 fallidas, con autenticacion y solicitudes auxiliares completamente simuladas.
+- Backend completo (`tests` y `backend/tests`): 297 aprobadas, 0 fallidas; incluye 8 pruebas paralelas de calidad normativa presentes en el arbol de trabajo, pero no integradas en este commit.
+- Pruebas unitarias de frontend: 5 aprobadas, 0 fallidas.
+- ESLint: 0 errores y 34 advertencias preexistentes.
+- Build de produccion: aprobado.

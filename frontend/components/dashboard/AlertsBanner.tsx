@@ -86,7 +86,15 @@ export function AlertsBanner() {
   }
 
   if (alertas.length === 0 && !error) {
-    return null; // No mostrar nada si no hay alertas
+    return (
+      <section className="rounded-editorial border border-dashed border-[#041627]/12 bg-[#fbfaf6] p-4" role="status" aria-live="polite">
+        <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500 font-semibold">Alertas de riesgo</p>
+        <h3 className="mt-1 font-headline text-xl text-[#041627]">Sin alertas activas</h3>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          No hay alertas abiertas para este cliente. Cuando aparezcan, se mostrarán aquí sin bloquear la navegación.
+        </p>
+      </section>
+    );
   }
 
   // Mostrar banner rojo si hay críticos

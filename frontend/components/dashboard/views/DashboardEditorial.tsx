@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { AlertsBanner } from "../AlertsBanner";
 import { formatMoney } from "../../../lib/formatters";
 import type { DashboardData } from "../../../types/dashboard";
 
@@ -318,6 +319,8 @@ export default function DashboardEditorial({ data, clienteId, roleLabel }: Props
           </div>
         </article>
       </section>
+
+      <AlertsBanner />
     </div>
   );
 }
