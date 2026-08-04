@@ -35,3 +35,18 @@ def test_socratic_session_is_isolated_and_not_audit_evidence(tmp_path: Path, mon
     assert session["memory_classification"] == "educational_dialogue_not_audit_evidence"
     assert get_mentor_session("demo", result["session_id"], "otro") is None
     assert "recommended_resources" in result["turn"]["mentor"]
+
+
+def test_empty_auditor_response_is_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    clients = tmp_path / "clientes"
+    (clients / "demo").mkdir(parents=True)
+    monkeypatch.setattr(repo, "data_clientes", clients)
+
+    with pytest.raises(ValueError, match="Escribe tu razonamiento"):
+        reply_to_mentor(
+            "demo",
+            account_context={"account_name": "Ventas"},
+            auditor_response="   ",
+            learning_role="semi",
+            user_id="ana",
+        )

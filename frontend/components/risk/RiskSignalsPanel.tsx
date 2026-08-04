@@ -20,7 +20,7 @@ function sourceTone(source: "industry" | "mayor" | "mixed" | "base"): string {
 }
 
 export default function RiskSignalsPanel({ areas }: Props) {
-  const { withIndustry, withMayor, withAnyBoost, totalIndustryBoost, totalMayorBoost } = summarizeRiskSignals(areas);
+  const { withIndustry, withAnyBoost, totalIndustryBoost, totalMayorBoost } = summarizeRiskSignals(areas);
   const highlights = withAnyBoost.sort((a, b) => b.totalBoost - a.totalBoost).slice(0, 4);
 
   return (

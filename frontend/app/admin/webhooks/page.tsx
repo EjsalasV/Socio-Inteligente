@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuditContext } from '@/lib/hooks/useAuditContext';
 
 interface Webhook {
@@ -14,13 +14,20 @@ interface Webhook {
   updated_at: string;
 }
 
+interface WebhookTestResult {
+  success?: boolean;
+  status_code?: number;
+  error?: string;
+  [key: string]: unknown;
+}
+
 export default function WebhooksPage() {
   const { clienteId } = useAuditContext();
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [testResult, setTestResult] = useState<any>(null);
+  const [testResult, setTestResult] = useState<WebhookTestResult | null>(null);
   const [formData, setFormData] = useState({
     evento: 'hallazgo_creado',
     url: '',
@@ -35,7 +42,7 @@ export default function WebhooksPage() {
     'gate_fallido',
   ];
 
-  const loadWebhooks = async () => {
+  const loadWebhooks = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/webhooks/${clienteId || 'default'}`, {
@@ -50,11 +57,11 @@ export default function WebhooksPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [clienteId]);
 
   useEffect(() => {
-    loadWebhooks();
-  }, [clienteId]);
+    void loadWebhooks();
+  }, [loadWebhooks]);
 
   const handleSave = async () => {
     if (!formData.url.trim()) {

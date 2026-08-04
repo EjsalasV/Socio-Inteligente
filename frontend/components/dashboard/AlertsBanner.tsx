@@ -11,7 +11,7 @@ interface Alert {
   severidad: string;
   mensaje: string;
   fecha_creada: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface AlertStats {
@@ -23,7 +23,6 @@ export function AlertsBanner() {
   const { clienteId } = useAuditContext();
   const [alertas, setAlertas] = useState<Alert[]>([]);
   const [stats, setStats] = useState<AlertStats>({ total_criticos: 0, total_altos: 0 });
-  const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,36 +78,6 @@ export function AlertsBanner() {
       }
     } catch (err) {
       setError(`Error resolviendo alerta: ${String(err)}`);
-    }
-  };
-
-  const getSeverityStyles = (severidad: string) => {
-    switch (severidad) {
-      case 'CRITICO':
-        return 'bg-red-50 border-l-4 border-red-500';
-      case 'ALTO':
-        return 'bg-orange-50 border-l-4 border-orange-500';
-      case 'MEDIO':
-        return 'bg-yellow-50 border-l-4 border-yellow-500';
-      case 'BAJO':
-        return 'bg-blue-50 border-l-4 border-blue-500';
-      default:
-        return 'bg-gray-50 border-l-4 border-gray-500';
-    }
-  };
-
-  const getSeverityTextColor = (severidad: string) => {
-    switch (severidad) {
-      case 'CRITICO':
-        return 'text-red-800';
-      case 'ALTO':
-        return 'text-orange-800';
-      case 'MEDIO':
-        return 'text-yellow-800';
-      case 'BAJO':
-        return 'text-blue-800';
-      default:
-        return 'text-gray-800';
     }
   };
 

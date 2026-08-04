@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { CartaControl } from '@/components/reportes/CartaControl';
 
 export default function ReportesPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const clienteId = searchParams.get('cliente_id');
   const clienteNombre = searchParams.get('cliente_nombre');

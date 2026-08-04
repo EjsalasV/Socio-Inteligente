@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuditContext } from '@/lib/hooks/useAuditContext';
 
@@ -15,7 +15,6 @@ export default function GlobalSearch() {
   const { clienteId } = useAuditContext();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -27,6 +26,25 @@ export default function GlobalSearch() {
     setSelectedIndex(-1);
   }, [suggestions]);
 
+  const fetchSuggestions = useCallback(async (q: string) => {
+    try {
+      const params = new URLSearchParams({
+        q,
+        limit: '10',
+      });
+      if (clienteId) {
+        params.append('cliente_id', clienteId);
+      }
+
+      const res = await fetch(`/api/search/suggestions?${params}`);
+      const data = await res.json();
+      setSuggestions(data.data?.suggestions || []);
+      setShowDropdown(true);
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+    }
+  }, [clienteId]);
+
   // Fetch suggestions
   useEffect(() => {
     if (!query || query.length < 2) {
@@ -36,11 +54,11 @@ export default function GlobalSearch() {
     }
 
     const timer = setTimeout(() => {
-      fetchSuggestions(query);
+      void fetchSuggestions(query);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [fetchSuggestions, query]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -88,28 +106,6 @@ export default function GlobalSearch() {
         break;
     }
   };
-
-  async function fetchSuggestions(q: string) {
-    try {
-      setIsLoading(true);
-      const params = new URLSearchParams({
-        q,
-        limit: '10',
-      });
-      if (clienteId) {
-        params.append('cliente_id', clienteId);
-      }
-
-      const res = await fetch(`/api/search/suggestions?${params}`);
-      const data = await res.json();
-      setSuggestions(data.data?.suggestions || []);
-      setShowDropdown(true);
-    } catch (error) {
-      console.error('Error fetching suggestions:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();

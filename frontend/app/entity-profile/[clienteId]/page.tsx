@@ -16,6 +16,7 @@ import {
   type EntityProfileAnalysis,
   type EntityProfileHypothesis,
 } from "../../../lib/api/entity-profile";
+import { summarizeUiError } from "../../../lib/ui-errors";
 
 type Params = { clienteId?: string | string[] };
 
@@ -56,6 +57,7 @@ export default function EntityProfilePage() {
   const [pendingEdits, setPendingEdits] = useState<Record<string, { status: keyof typeof PENDING_STATUS_LABELS; answer: string }>>({});
   const [questionIndex, setQuestionIndex] = useState(0);
   const [reviewMode, setReviewMode] = useState(false);
+  const [loadingLabel, setLoadingLabel] = useState("Analizando las fuentes y preparando el perfil...");
 
   useEffect(() => {
     if (!hasSessionState()) {
@@ -73,7 +75,7 @@ export default function EntityProfilePage() {
         setReviewMode(value.status === "confirmed" && Boolean(value.analysis));
       })
       .catch((reason: unknown) => {
-        if (active) setError(reason instanceof Error ? reason.message : "No se pudo generar el perfil.");
+        if (active) setError(summarizeUiError(reason, "No se pudo generar el perfil.", "el perfil del cliente").detail);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -102,11 +104,12 @@ export default function EntityProfilePage() {
       setRoundStatus(updated.active_round > (draft?.active_round ?? 1) ? "new_round" : updated.unanswered_critical.length === 0 ? "complete" : "idle");
       return updated;
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "No se pudieron guardar las respuestas.");
+      setError(summarizeUiError(reason, "No se pudieron guardar las respuestas.", "las respuestas del cuestionario").detail);
       setRoundStatus("idle");
       return null;
     } finally {
       setSaving(false);
+      setLoadingLabel("Analizando las fuentes y preparando el perfil...");
     }
   }
 
@@ -126,7 +129,7 @@ export default function EntityProfilePage() {
         return next;
       });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "No se pudo actualizar el pendiente.");
+      setError(summarizeUiError(reason, "No se pudo actualizar el pendiente.", "el pendiente seleccionado").detail);
     } finally {
       setPendingSavingId("");
     }
@@ -141,9 +144,10 @@ export default function EntityProfilePage() {
       setDraft(confirmed);
       router.push(`/socio-chat/${clienteId}`);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "No se pudo confirmar el perfil.");
+      setError(summarizeUiError(reason, "No se pudo confirmar el perfil.", "la confirmación del perfil").detail);
     } finally {
       setSaving(false);
+      setLoadingLabel("Analizando las fuentes y preparando el perfil...");
     }
   }
 
@@ -155,9 +159,10 @@ export default function EntityProfilePage() {
       const result = await analyzeEntityProfile(clienteId, force);
       setAnalysis(result);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "No se pudo analizar el contexto.");
+      setError(summarizeUiError(reason, "No se pudo analizar el contexto.", "el análisis final del perfil").detail);
     } finally {
       setAnalyzing(false);
+      setLoadingLabel("Analizando las fuentes y preparando el perfil...");
     }
   }
 
@@ -175,10 +180,11 @@ export default function EntityProfilePage() {
       setReviewMode(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "No se pudo preparar el resultado del perfil.");
+      setError(summarizeUiError(reason, "No se pudo preparar el resultado del perfil.", "el resultado del perfil").detail);
       setRoundStatus("complete");
     } finally {
       setAnalyzing(false);
+      setLoadingLabel("Analizando las fuentes y preparando el perfil...");
     }
   }
 
@@ -207,7 +213,7 @@ export default function EntityProfilePage() {
       });
       setAnalysis(updated);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "No se pudo guardar la decisión.");
+      setError(summarizeUiError(reason, "No se pudo guardar la decisión.", "la decisión profesional").detail);
     } finally {
       setDecidingId("");
     }
@@ -238,10 +244,37 @@ export default function EntityProfilePage() {
   }
 
   if (loading) {
-    return <main className="min-h-screen bg-[#f4f7f8] p-8 text-slate-600">Analizando las fuentes y preparando el perfil…</main>;
+    return (
+      <main className="mentor-paper min-h-screen text-[#10283a]">
+        <div className="h-[100px] bg-[#081d2d]" aria-hidden="true" />
+        <div className="mx-auto flex min-h-[calc(100vh-100px)] max-w-[1120px] items-center justify-center px-6 py-12">
+          <div className="w-full max-w-xl rounded-[28px] border border-[#baa98e] bg-[#fffdf8]/95 p-8 text-center shadow-[0_22px_60px_rgba(50,45,34,0.09)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#62b9b4]/35 bg-[#e8f5f2] text-[#236f6c]" aria-hidden="true">
+              <span className="material-symbols-outlined animate-pulse text-3xl">progress_activity</span>
+            </div>
+            <p className="mentor-kicker mt-5 text-[#987c55]">Cargando perfil</p>
+            <h1 className="mt-4 font-headline text-4xl leading-tight text-[#0b2538]">Estamos preparando el contexto del cliente.</h1>
+            <p className="mt-4 text-sm leading-6 text-[#69767b]" role="status" aria-live="polite">
+              {loadingLabel}
+            </p>
+          </div>
+        </div>
+      </main>
+    );
   }
   if (!draft) {
-    return <main className="min-h-screen bg-[#f4f7f8] p-8 text-red-700">{error || "Perfil no disponible."}</main>;
+    return (
+      <main className="mentor-paper min-h-screen text-[#10283a]">
+        <div className="h-[100px] bg-[#081d2d]" aria-hidden="true" />
+        <div className="mx-auto flex min-h-[calc(100vh-100px)] max-w-[1120px] items-center justify-center px-6 py-12">
+          <div className="w-full max-w-xl rounded-[28px] border border-red-200 bg-red-50/90 p-8 shadow-[0_22px_60px_rgba(50,45,34,0.09)]" role="alert" aria-live="assertive">
+            <p className="mentor-kicker text-red-700">Error al abrir el perfil</p>
+            <h1 className="mt-4 font-headline text-4xl leading-tight text-red-950">No se pudo cargar el expediente vivo.</h1>
+            <p className="mt-4 text-sm leading-6 text-red-900">{error || "Perfil no disponible."}</p>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   const activeRound = draft.active_round ?? 1;
@@ -273,7 +306,12 @@ export default function EntityProfilePage() {
           {analysis ? <button type="button" onClick={() => { setReviewMode(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#65aaa6]/45 bg-[#eef8f5] px-5 py-2.5 text-xs font-semibold text-[#2c6e6b]"><span className="material-symbols-outlined text-[17px]">fact_check</span>Revisar resultado actual</button> : null}
         </section>
 
-        {error ? <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div> : null}
+        {error ? <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert" aria-live="assertive">{error}</div> : null}
+        {(saving || analyzing) && !error ? (
+          <div className="mt-5 rounded-xl border border-[#83c7c2] bg-[#eef9f6] p-4 text-sm text-[#315b59]" role="status" aria-live="polite">
+            {saving ? "Guardando respuestas y preparando la siguiente revisión…" : "Analizando fuentes para cerrar el perfil…"}
+          </div>
+        ) : null}
 
         <section className={reviewMode ? "hidden" : "mt-10 grid gap-4 md:grid-cols-2"}>
           <details className="rounded-2xl border border-[#c9bca6]/70 bg-[#fffdf8]/70 p-5">
@@ -319,8 +357,8 @@ export default function EntityProfilePage() {
             </motion.div></AnimatePresence> : <p className="py-20 text-center text-sm text-[#69767b]">No hay preguntas pendientes en esta ronda.</p>}
           </div>
           {previousQuestions.length ? <details className="mt-5 rounded-xl border border-black/10 bg-slate-50 p-4"><summary className="cursor-pointer text-sm font-semibold text-slate-600">Ver {previousQuestions.length} respuestas de rondas anteriores</summary><div className="mt-4 space-y-3">{previousQuestions.map((question) => <div key={question.id} className="rounded-lg bg-white p-4 text-sm"><p className="font-semibold">{question.text}</p><p className="mt-1 text-slate-600">{answers[question.id]}</p></div>)}</div></details> : null}
-          {roundStatus === "new_round" ? <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900" role="status"><strong>Necesito una aclaración adicional.</strong> La nueva ronda aparece porque todavía falta confirmar información concreta.</div> : null}
-          {roundStatus === "complete" ? <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900" role="status"><strong>SocioAI no necesita más preguntas por ahora.</strong> El perfil queda {draft.pending_confirmations.length ? `provisional con ${draft.pending_confirmations.length} pendientes por confirmar` : "listo para confirmar"}.</div> : null}
+          {roundStatus === "new_round" ? <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900" role="status" aria-live="polite" aria-atomic="true"><strong>Necesito una aclaración adicional.</strong> La nueva ronda aparece porque todavía falta confirmar información concreta.</div> : null}
+          {roundStatus === "complete" ? <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900" role="status" aria-live="polite" aria-atomic="true"><strong>SocioAI no necesita más preguntas por ahora.</strong> El perfil queda {draft.pending_confirmations.length ? `provisional con ${draft.pending_confirmations.length} pendientes por confirmar` : "listo para confirmar"}.</div> : null}
         </section>
 
         {reviewMode && analysis ? <section className="mx-auto max-w-[980px]">

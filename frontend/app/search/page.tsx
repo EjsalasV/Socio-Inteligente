@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useAuditContext } from '@/lib/hooks/useAuditContext';
@@ -11,7 +11,7 @@ interface SearchResult {
   id: string;
   excerpt: string;
   href: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 function SearchPageContent() {
@@ -28,13 +28,7 @@ function SearchPageContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<string>(tipo);
 
-  useEffect(() => {
-    if (query) {
-      performSearch();
-    }
-  }, [query, page, selectedType]);
-
-  async function performSearch() {
+  const performSearch = useCallback(async () => {
     if (!query) return;
 
     try {
@@ -59,7 +53,13 @@ function SearchPageContent() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [clienteId, query, selectedType]);
+
+  useEffect(() => {
+    if (query) {
+      void performSearch();
+    }
+  }, [performSearch, query, page]);
 
   function handleTypeFilter(type: string) {
     setSelectedType(selectedType === type ? '' : type);

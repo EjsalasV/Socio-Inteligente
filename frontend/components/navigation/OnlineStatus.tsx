@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useRealtimeSync, RealtimeParticipant } from '@/lib/hooks/useRealtimeSync';
+import { useRealtimeSync } from '@/lib/hooks/useRealtimeSync';
 
 interface OnlineStatusProps {
   clienteId: string;

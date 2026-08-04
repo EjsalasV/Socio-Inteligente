@@ -14,6 +14,7 @@ import { useRiskEngine } from "../../../lib/hooks/useRiskEngine";
 import { ReactMarkdown } from "../../../components/ReactMarkdown";
 import { logoutSession } from "../../../lib/auth-session";
 import { useWorkflow } from "../../../lib/hooks/useWorkflow";
+import { summarizeUiError } from "../../../lib/ui-errors";
 
 type ChatMessage = {
   id: string;
@@ -106,6 +107,12 @@ function nowLabel(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+type ChatNotice = {
+  tone: "info" | "error";
+  title: string;
+  detail: string;
+};
+
 export default function SocioChatPage() {
   const router = useRouter();
   const { clienteId } = useAuditContext();
@@ -122,10 +129,19 @@ export default function SocioChatPage() {
   const [mentorMode, setMentorMode] = useState<"teach" | "help" | "challenge">("help");
   const [profileOpen, setProfileOpen] = useState(false);
   const [showThread, setShowThread] = useState(false);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [chatNotice, setChatNotice] = useState<ChatNotice | null>(null);
 
   useEffect(() => {
     let active = true;
     async function loadConversations(): Promise<void> {
+      setLoadingConversations(true);
+      setChatNotice({
+        tone: "info",
+        title: "Cargando conversaciones",
+        detail: "Estoy recuperando el historial reciente del Mentor.",
+      });
       try {
         const response = await getChatConversations(clienteId);
         if (!active) return;
@@ -136,8 +152,23 @@ export default function SocioChatPage() {
         }
         setConversations(rows);
         setActiveConversationId(rows[0]?.id ?? "");
-      } catch {
-        if (active) setConversations([]);
+        if (active) setChatNotice(null);
+      } catch (reason) {
+        if (active) {
+          setConversations([]);
+          setActiveConversationId("");
+          setChatNotice({
+            tone: "error",
+            title: "No se pudo cargar el Mentor",
+            detail: summarizeUiError(
+              reason,
+              "No se pudo recuperar el historial de conversaciones.",
+              "las conversaciones del Mentor",
+            ).detail,
+          });
+        }
+      } finally {
+        if (active) setLoadingConversations(false);
       }
     }
     if (clienteId) void loadConversations();
@@ -147,7 +178,17 @@ export default function SocioChatPage() {
   useEffect(() => {
     let active = true;
     async function loadHistory(): Promise<void> {
-      if (!activeConversationId) { setMessages([]); return; }
+      if (!activeConversationId) {
+        setMessages([]);
+        setLoadingHistory(false);
+        return;
+      }
+      setLoadingHistory(true);
+      setChatNotice({
+        tone: "info",
+        title: "Cargando historial",
+        detail: "Estoy abriendo la conversación seleccionada.",
+      });
       try {
         const response = await getChatHistory(clienteId, activeConversationId);
         if (!active) return;
@@ -168,8 +209,21 @@ export default function SocioChatPage() {
             confidence: typeof m.confidence === "number" ? m.confidence : 0,
           }));
         setMessages(mapped.slice(-120));
-      } catch {
+        if (active) setChatNotice(null);
+      } catch (reason) {
         if (!active) return;
+        setMessages([]);
+        setChatNotice({
+          tone: "error",
+          title: "No se pudo cargar el historial",
+          detail: summarizeUiError(
+            reason,
+            "No se pudo recuperar el historial de la conversación.",
+            "el historial de la conversación",
+          ).detail,
+        });
+      } finally {
+        if (active) setLoadingHistory(false);
       }
     }
     void loadHistory();
@@ -212,8 +266,15 @@ export default function SocioChatPage() {
       setMessages((prev) => [...prev, assistantMessage]);
       const refreshed = await getChatConversations(clienteId);
       setConversations(refreshed.data?.conversations ?? []);
+      setChatNotice(null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "No se pudo consultar al asistente.";
+      const summary = summarizeUiError(err, "No se pudo consultar al asistente.", "el mensaje");
+      const message = summary.detail;
+      setChatNotice({
+        tone: "error",
+        title: summary.title,
+        detail: message,
+      });
       const assistantMessage: ChatMessage = {
         id: `a-${Date.now()}`,
         role: "assistant",
@@ -227,31 +288,54 @@ export default function SocioChatPage() {
   }
 
   async function handleNewConversation(): Promise<void> {
-    const response = await createChatConversation(clienteId);
-    const row = response.data?.conversation;
-    if (!row) return;
-    setConversations((prev) => [row, ...prev]);
-    setActiveConversationId(row.id);
-    setMessages([]);
-    setShowThread(false);
+    try {
+      setChatNotice({
+        tone: "info",
+        title: "Creando conversación",
+        detail: "Estoy preparando un nuevo hilo para este cliente.",
+      });
+      const response = await createChatConversation(clienteId);
+      const row = response.data?.conversation;
+      if (!row) return;
+      setConversations((prev) => [row, ...prev]);
+      setActiveConversationId(row.id);
+      setMessages([]);
+      setShowThread(false);
+      setChatNotice(null);
+    } catch (reason) {
+      const summary = summarizeUiError(reason, "No se pudo crear una nueva conversación.", "una conversación nueva");
+      setChatNotice({ tone: "error", title: summary.title, detail: summary.detail });
+    }
   }
 
   async function handleRenameConversation(row: ChatConversation): Promise<void> {
     const title = window.prompt("Nombre de la conversación", row.title)?.trim();
     if (!title) return;
-    const response = await renameChatConversation(clienteId, row.id, title);
-    const updated = response.data?.conversation;
-    if (updated) setConversations((prev) => prev.map((item) => item.id === row.id ? updated : item));
+    try {
+      const response = await renameChatConversation(clienteId, row.id, title);
+      const updated = response.data?.conversation;
+      if (updated) setConversations((prev) => prev.map((item) => item.id === row.id ? updated : item));
+      setChatNotice(null);
+    } catch (reason) {
+      const summary = summarizeUiError(reason, "No se pudo renombrar la conversación.", "la conversación");
+      setChatNotice({ tone: "error", title: summary.title, detail: summary.detail });
+    }
   }
 
   async function handleDeleteConversation(row: ChatConversation): Promise<void> {
     if (!window.confirm(`¿Eliminar la conversación “${row.title}”? Esta acción no se puede deshacer.`)) return;
-    await deleteChatConversation(clienteId, row.id);
-    const remaining = conversations.filter((item) => item.id !== row.id);
-    setConversations(remaining);
-    if (activeConversationId === row.id) {
-      setActiveConversationId(remaining[0]?.id ?? "");
-      setMessages([]);
+    try {
+      await deleteChatConversation(clienteId, row.id);
+      const remaining = conversations.filter((item) => item.id !== row.id);
+      setConversations(remaining);
+      if (activeConversationId === row.id) {
+        setActiveConversationId(remaining[0]?.id ?? "");
+        setMessages([]);
+      }
+      setChatNotice(null);
+    } catch (reason) {
+      const summary = summarizeUiError(reason, "No se pudo eliminar la conversación.", "la conversación");
+      setChatNotice({ tone: "error", title: summary.title, detail: summary.detail });
     }
   }
 
@@ -305,7 +389,24 @@ export default function SocioChatPage() {
           </div>
           <div className="mt-4 flex items-center gap-2 text-xs text-[#55716e]"><span className="material-symbols-outlined text-[17px]">lock</span>Usaré solo las fuentes confirmadas de este cliente.</div>
 
-          {showThread && messages.length > 0 ? <section data-tour="sociochat-chat" className="mt-6 max-h-[330px] overflow-y-auto rounded-[18px] border border-[#c9bca6]/80 bg-[#fffdf8]/85 p-5 shadow-[0_12px_30px_rgba(37,45,43,0.07)]">
+          {chatNotice ? (
+            <div
+              className={`mt-6 rounded-[16px] border px-4 py-3 text-sm shadow-sm ${chatNotice.tone === "error" ? "border-red-200 bg-red-50 text-red-900" : "border-[#b9d8d4] bg-[#edf8f6] text-[#245f5d]"}`}
+              role={chatNotice.tone === "error" ? "alert" : "status"}
+              aria-live={chatNotice.tone === "error" ? "assertive" : "polite"}
+            >
+              <p className="font-semibold">{chatNotice.title}</p>
+              <p className="mt-1 leading-relaxed">{chatNotice.detail}</p>
+            </div>
+          ) : null}
+
+          {loadingHistory ? (
+            <div className="mt-6 rounded-[18px] border border-[#c9bca6]/80 bg-[#fffdf8]/85 p-4 text-sm text-[#6f624e]" role="status" aria-live="polite">
+              Cargando historial de la conversación…
+            </div>
+          ) : null}
+
+          {showThread && messages.length > 0 ? <section data-tour="sociochat-chat" aria-live="polite" aria-relevant="additions text" className="mt-6 max-h-[330px] overflow-y-auto rounded-[18px] border border-[#c9bca6]/80 bg-[#fffdf8]/85 p-5 shadow-[0_12px_30px_rgba(37,45,43,0.07)]">
             <div className="space-y-5">
             {messages.length === 0 ? (
               <div className="rounded-2xl border border-[#041627]/10 bg-white p-5 text-sm text-slate-600">
@@ -316,7 +417,7 @@ export default function SocioChatPage() {
             ) : null}
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[82%] rounded-2xl p-4 ${msg.role === "user" ? "bg-[#eef3fa] rounded-tr-none" : "bg-white border border-[#041627]/10 rounded-tl-none shadow-sm"}`}>
+                <div className={`max-w-[82%] rounded-2xl p-4 ${msg.role === "user" ? "bg-[#eef3fa] rounded-tr-none" : msg.text.startsWith("Error:") ? "rounded-tl-none border border-red-200 bg-red-50 text-red-900 shadow-sm" : "bg-white border border-[#041627]/10 rounded-tl-none shadow-sm"}`}>
                   {msg.role === "assistant" ? (
                     <p className="text-[10px] uppercase tracking-[0.16em] text-teal-700 font-bold mb-2">Criterio Socio AI</p>
                   ) : null}
@@ -401,6 +502,7 @@ export default function SocioChatPage() {
             <form onSubmit={handleSend} className="mentor-composer flex items-end gap-3 rounded-[16px] border border-[#bcae96] bg-[#fffefa]/90 p-3 shadow-[0_16px_36px_rgba(45,44,36,0.08)]">
               <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#55716e] hover:bg-[#eee7da]" aria-label="Adjuntar fuente"><span className="material-symbols-outlined">attach_file</span></button>
               <textarea
+                aria-label="Mensaje para Socio AI"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 className="w-full min-h-[88px] max-h-40 resize-none border-none bg-transparent px-2 py-3 text-sm outline-none focus:ring-0"
@@ -414,11 +516,17 @@ export default function SocioChatPage() {
                 <span className="material-symbols-outlined">send</span>
               </button>
             </form>
+            {sending ? (
+              <p className="mt-3 text-xs uppercase tracking-[0.12em] text-[#6f624e]" role="status" aria-live="polite">
+                Enviando mensaje al Mentor…
+              </p>
+            ) : null}
           </div>
 
           <div className="mt-10 grid gap-8 border-t border-[#c9bca6]/70 pt-6 md:grid-cols-2">
             <article>
               <div className="flex items-center justify-between"><h2 className="mentor-kicker">Conversación reciente</h2><button type="button" onClick={() => void handleNewConversation()} className="text-xs text-[#2b7774] hover:underline">Nueva conversación</button></div>
+              {loadingConversations ? <p className="mt-4 text-sm text-[#7a8388]" role="status" aria-live="polite">Cargando conversaciones guardadas…</p> : null}
               {recentConversation ? <div className="group mt-4 flex items-start gap-3"><span className="material-symbols-outlined mt-0.5 text-[20px] text-[#9a7b52]">chat_bubble</span><button type="button" onClick={() => { setActiveConversationId(recentConversation.id); setShowThread(true); }} className="min-w-0 flex-1 text-left"><p className="truncate font-headline text-lg">{recentConversation.title}</p><p className="mt-1 text-xs text-[#7a8388]">Actualizada {new Date(recentConversation.updated_at).toLocaleDateString()}</p></button><button type="button" onClick={() => void handleRenameConversation(recentConversation)} className="opacity-0 transition group-hover:opacity-100" aria-label="Renombrar conversación"><span className="material-symbols-outlined text-[18px]">edit</span></button><button type="button" onClick={() => void handleDeleteConversation(recentConversation)} className="opacity-0 transition group-hover:opacity-100" aria-label="Eliminar conversación"><span className="material-symbols-outlined text-[18px]">delete</span></button></div> : <p className="mt-4 text-sm text-[#7a8388]">Aún no hay conversaciones.</p>}
             </article>
             <article>

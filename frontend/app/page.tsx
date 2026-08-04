@@ -263,7 +263,11 @@ export default function LoginPage() {
                   </div>
 
                   {error ? (
-                    <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-4 py-3 text-sm text-[#93000a]">
+                    <div
+                      className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-4 py-3 text-sm text-[#93000a]"
+                      role="alert"
+                      aria-live="assertive"
+                    >
                       {error}
                     </div>
                   ) : null}

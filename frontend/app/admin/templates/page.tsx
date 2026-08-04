@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuditContext } from '@/lib/hooks/useAuditContext';
 
 interface ReportTemplate {
@@ -9,7 +9,7 @@ interface ReportTemplate {
   nombre: string;
   descripcion?: string;
   report_type: string;
-  estructura: Record<string, any>;
+  estructura: Record<string, unknown>;
   activo: boolean;
   created_at: string;
   updated_at: string;
@@ -28,7 +28,7 @@ export default function TemplatesPage() {
     estructura: '{"template": "<h2>{{ cliente_nombre }}</h2>"}',
   });
 
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/templates/${clienteId || 'default'}`, {
@@ -43,11 +43,11 @@ export default function TemplatesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [clienteId]);
 
   useEffect(() => {
-    loadTemplates();
-  }, [clienteId]);
+    void loadTemplates();
+  }, [loadTemplates]);
 
   const handleSave = async () => {
     if (!formData.nombre.trim()) {
