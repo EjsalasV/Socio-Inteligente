@@ -62,8 +62,10 @@ export default function OnboardingClientePage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loadRetryCount, setLoadRetryCount] = useState(0);
 
   const [nombreLegal, setNombreLegal] = useState("");
   const [sector, setSector] = useState("Holding");
@@ -117,9 +119,13 @@ export default function OnboardingClientePage() {
 
     let active = true;
     async function load(): Promise<void> {
+      setLoading(true);
+      setLoadError("");
       if (!clienteId) {
-        setError("Cliente invalido.");
-        setLoading(false);
+        if (active) {
+          setLoadError("Cliente invalido.");
+          setLoading(false);
+        }
         return;
       }
       try {
@@ -185,8 +191,9 @@ export default function OnboardingClientePage() {
           estimaciones_complejas: toBool(cuestionario.estimaciones_complejas),
           erp_implementado: toBool(cuestionario.erp_implementado),
         });
-      } catch {
+      } catch (err) {
         if (!active) return;
+        setLoadError(err instanceof Error ? err.message : "No se pudo cargar el onboarding.");
       } finally {
         if (active) setLoading(false);
       }
@@ -196,11 +203,17 @@ export default function OnboardingClientePage() {
     return () => {
       active = false;
     };
-  }, [clienteId, router]);
+  }, [clienteId, router, loadRetryCount]);
+
+  function retryLoad(): void {
+    setLoadError("");
+    setLoadRetryCount((count) => count + 1);
+  }
 
   async function handleSave(): Promise<void> {
     if (!clienteId) return;
-    setError("");
+    setLoadError("");
+    setSaveError("");
     setSuccess("");
     setSaving(true);
 
@@ -298,7 +311,7 @@ export default function OnboardingClientePage() {
       router.push(`/entity-profile/${clienteId}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "No se pudo guardar el onboarding.";
-      setError(message);
+      setSaveError(message);
     } finally {
       setSaving(false);
     }
@@ -308,6 +321,44 @@ export default function OnboardingClientePage() {
     return (
       <div className="min-h-screen bg-surface px-6 py-10">
         <div className="sovereign-card h-24 animate-pulse bg-[#edf2f7]" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-[#f7fafc]">
+        <nav className="fixed top-0 w-full z-40 bg-white border-b border-black/5 px-6 md:px-10 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="font-headline text-3xl text-[#041627]">Onboarding de Cliente</h1>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">{clienteId}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => router.push("/clientes")}
+              className="sovereign-card !p-2 !px-3 text-[11px] uppercase tracking-[0.14em] text-slate-500"
+            >
+              Volver a clientes
+            </button>
+          </div>
+        </nav>
+        <main className="pt-28 px-6 md:px-10 pb-12 max-w-[1440px] mx-auto">
+          <section role="alert" aria-live="assertive" className="sovereign-card max-w-2xl">
+            <p className="text-xs uppercase tracking-[0.14em] text-red-700 font-bold">Error de carga</p>
+            <h2 className="mt-2 font-headline text-3xl text-[#041627]">No se pudo cargar el onboarding.</h2>
+            <p className="mt-3 text-sm text-slate-700">{loadError}</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={retryLoad}
+                className="rounded-xl bg-[#041627] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+              >
+                Reintentar
+              </button>
+            </div>
+          </section>
+        </main>
       </div>
     );
   }
@@ -361,7 +412,7 @@ export default function OnboardingClientePage() {
       </nav>
 
       <main className="pt-28 px-6 md:px-10 pb-12 max-w-[1440px] mx-auto space-y-8">
-        {error ? <div className="sovereign-card text-sm text-[#93000a] bg-[#ffdad6] border border-[#ba1a1a]/20">{error}</div> : null}
+        {saveError ? <div role="alert" aria-live="polite" className="sovereign-card text-sm text-[#93000a] bg-[#ffdad6] border border-[#ba1a1a]/20">{saveError}</div> : null}
         {success ? <div className="sovereign-card text-sm text-[#065f46] bg-[#ecfdf5] border border-[#047857]/20">{success}</div> : null}
 
         <section className="grid grid-cols-1 xl:grid-cols-12 gap-8">
