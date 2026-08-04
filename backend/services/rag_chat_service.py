@@ -17,6 +17,14 @@ from backend.services.expert_criteria_service import get_expert_criteria_by_area
 from backend.services.grupo_criteria_service import build_grupo_context_block, resolve_grupo
 from backend.services.rag_cache_service import build_rag_cache_key, get_cached_chunks, set_cached_chunks
 from backend.services.normativa_monitor_service import get_pending_normative_changes
+from backend.services.normative_quality_service import (
+    INDEX_VERSION,
+    active_markdown_files,
+    apply_quality_gate,
+    backup_file_count,
+    is_citation_eligible,
+    source_signature,
+)
 from backend.services.prompt_service import render_prompt, validate_minimum_output
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -33,6 +41,15 @@ METADATA_FILTER_KEYS = {
     "etapas",
     "temas",
     "ultima_actualizacion",
+    "tipo_contenido",
+    "estado_revision",
+    "autoridad",
+    "version",
+    "vigente_desde",
+    "vigente_hasta",
+    "jurisdiccion",
+    "url_oficial",
+    "localizador",
 }
 
 # Web search fallback thresholds
@@ -182,7 +199,11 @@ def _normalize_metadata(relative_source: str, file_path: Path, raw_meta: dict[st
     if not isinstance(raw_meta, dict):
         raw_meta = {}
 
-    for key in ["norma", "tipo", "marco", "ultima_actualizacion"]:
+    for key in [
+        "norma", "tipo", "marco", "ultima_actualizacion", "tipo_contenido",
+        "estado_revision", "autoridad", "version", "edicion", "vigente_desde",
+        "vigente_hasta", "jurisdiccion", "url_oficial", "localizador",
+    ]:
         value = str(raw_meta.get(key, "")).strip()
         if value:
             meta[key] = value
@@ -193,16 +214,14 @@ def _normalize_metadata(relative_source: str, file_path: Path, raw_meta: dict[st
 
     source_name = Path(relative_source).name
     meta["fuente"] = f"{source_name} | {meta.get('norma', source_name)}"
-    return meta
+    return apply_quality_gate(meta, relative_source)
 
 
 def _load_markdown_sources() -> list[tuple[str, str, dict[str, Any], bool]]:
     out: list[tuple[str, str, dict[str, Any], bool]] = []
     if not KNOWLEDGE_ROOT.exists():
         return out
-    for path in KNOWLEDGE_ROOT.rglob("*.md"):
-        if "_backup" in str(path):
-            continue
+    for path in active_markdown_files(KNOWLEDGE_ROOT):
         try:
             raw_text = path.read_text(encoding="utf-8")
         except Exception:
@@ -336,26 +355,40 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, Any]
 def _split_chunks(source: str, text: str, metadata: dict[str, Any]) -> list[tuple[str, str, dict[str, Any]]]:
     chunks: list[tuple[str, str, dict[str, Any]]] = []
     parts = re.split(r"\n\s*\n", text)
-    for part in parts:
+    for index, part in enumerate(parts, start=1):
         cleaned = part.strip()
         if len(cleaned) < 40:
             continue
         if len(cleaned) > 1100:
             cleaned = cleaned[:1100]
-        chunks.append((source, cleaned, metadata))
+        chunk_metadata = dict(metadata)
+        # File-level diagnostics live in the quality report, not in every chunk.
+        chunk_metadata.pop("quality_issues", None)
+        chunk_metadata["chunk_id"] = f"{source}#fragmento-{index}"
+        chunks.append((source, cleaned, chunk_metadata))
     return chunks
 
 
 def _build_normative_index(*, force: bool = False) -> dict[str, Any]:
+    current_signature = source_signature(KNOWLEDGE_ROOT)
     if RAG_INDEX_PATH.exists() and not force:
         try:
-            return json.loads(RAG_INDEX_PATH.read_text(encoding="utf-8"))
+            existing = json.loads(RAG_INDEX_PATH.read_text(encoding="utf-8"))
+            if (
+                existing.get("index_version") == INDEX_VERSION
+                and existing.get("source_signature") == current_signature
+            ):
+                return existing
         except Exception:
             pass
 
     indexed_files = 0
     skipped_files = 0
     warnings = 0
+    verified_files = 0
+    citation_eligible_files = 0
+    pending_files = 0
+    quality_issues: dict[str, list[str]] = {}
     chunks: list[dict[str, Any]] = []
 
     for source, text, metadata, has_valid_frontmatter in _load_markdown_sources():
@@ -366,6 +399,15 @@ def _build_normative_index(*, force: bool = False) -> dict[str, Any]:
             print(f"[SKIP] {source} (activo=false)")
             continue
         indexed_files += 1
+        if str(metadata.get("estado_revision") or "") == "verificado":
+            verified_files += 1
+        else:
+            pending_files += 1
+        if is_citation_eligible(metadata):
+            citation_eligible_files += 1
+        issues = metadata.get("quality_issues")
+        if isinstance(issues, list) and issues:
+            quality_issues[source] = [str(issue) for issue in issues]
         print(f"[INDEX] {source}")
         for chunk_source, chunk, chunk_meta in _split_chunks(source, text, metadata):
             chunks.append(
@@ -379,14 +421,24 @@ def _build_normative_index(*, force: bool = False) -> dict[str, Any]:
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "index_version": "v2_metadata_filters",
+        "index_version": INDEX_VERSION,
+        "source_signature": current_signature,
         "indexed_files": indexed_files,
         "skipped_files": skipped_files,
         "warnings": warnings,
+        "quality": {
+            "verified_files": verified_files,
+            "pending_files": pending_files,
+            "citation_eligible_files": citation_eligible_files,
+            "excluded_backup_files": backup_file_count(KNOWLEDGE_ROOT),
+            "issues_by_source": quality_issues,
+        },
         "chunks": chunks,
     }
     RAG_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
-    RAG_INDEX_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary_path = RAG_INDEX_PATH.with_suffix(f"{RAG_INDEX_PATH.suffix}.tmp")
+    temporary_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    os.replace(temporary_path, RAG_INDEX_PATH)
     print(
         f"[OK] Índice normativo generado en {RAG_INDEX_PATH} | "
         f"files indexados={indexed_files}, saltados={skipped_files}, warnings={warnings}, chunks={len(chunks)}"
@@ -460,6 +512,63 @@ def _needs_web_search(chunks: list[RetrievedChunk]) -> bool:
     if not chunks or len(chunks) < _WEB_SEARCH_MIN_CHUNKS:
         return True
     return max(c.score for c in chunks) < _WEB_SEARCH_SCORE_THRESHOLD
+
+
+def _web_fallback_enabled() -> bool:
+    return _as_bool(os.getenv("ENABLE_AUDIT_WEB_FALLBACK"), default=False)
+
+
+def build_verified_citations(chunks: list[RetrievedChunk] | list[dict[str, Any]], *, limit: int = 8) -> list[dict[str, str]]:
+    citations: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in chunks:
+        if isinstance(item, RetrievedChunk):
+            source, excerpt, meta = item.source, item.excerpt, item.metadata or {}
+        elif isinstance(item, dict):
+            source = str(item.get("source") or item.get("referencia") or "")
+            excerpt = str(item.get("excerpt") or item.get("texto") or "")
+            meta = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+        else:
+            continue
+        if not is_citation_eligible(meta):
+            continue
+        locator = str(meta.get("localizador") or "")
+        identity = f"{source}|{locator}"
+        if not source or identity in seen:
+            continue
+        seen.add(identity)
+        citations.append(
+            {
+                "source": source,
+                "excerpt": excerpt[:220],
+                "norma": str(meta.get("norma") or ""),
+                "version": str(meta.get("version") or ""),
+                "vigente_desde": str(meta.get("vigente_desde") or ""),
+                "ultima_actualizacion": str(meta.get("ultima_actualizacion") or ""),
+                "jurisdiccion": str(meta.get("jurisdiccion") or ""),
+                "autoridad": str(meta.get("autoridad") or ""),
+                "url_oficial": str(meta.get("url_oficial") or ""),
+                "localizador": locator,
+                "estado_revision": str(meta.get("estado_revision") or ""),
+                "tipo_contenido": str(meta.get("tipo_contenido") or ""),
+            }
+        )
+        if len(citations) >= limit:
+            break
+    return citations
+
+
+def _citations_used_in_answer(answer: str, chunks: list[RetrievedChunk]) -> list[dict[str, str]]:
+    referenced_indexes = {
+        int(match)
+        for match in re.findall(r"\[FUENTE\s+(\d+)\]", str(answer or ""), flags=re.IGNORECASE)
+    }
+    referenced_chunks = [
+        chunk
+        for index, chunk in enumerate(chunks[:6], start=1)
+        if index in referenced_indexes
+    ]
+    return build_verified_citations(referenced_chunks)
 
 
 def _retrieve_chunks(
@@ -1370,7 +1479,22 @@ def _build_pending_review_warning(chunks: list[RetrievedChunk]) -> str:
 def _append_staleness_warning(answer: str, chunks: list[RetrievedChunk]) -> str:
     warning = _build_staleness_warning(chunks)
     pending_warning = _build_pending_review_warning(chunks)
-    all_warnings = "\n".join([w for w in [warning, pending_warning] if w.strip()]).strip()
+    pending_quality_sources = {
+        chunk.source
+        for chunk in chunks
+        if "conocimiento_normativo" in chunk.source.replace("\\", "/")
+        and not is_citation_eligible(chunk.metadata)
+    }
+    quality_warning = ""
+    if pending_quality_sources:
+        quality_warning = (
+            "Aviso de calidad: el contexto incluye "
+            f"{len(pending_quality_sources)} fuente(s) interna(s) pendiente(s) de verificacion. "
+            "Se usan solo como orientacion y no se presentan como citas normativas."
+        )
+    all_warnings = "\n".join(
+        [w for w in [warning, pending_warning, quality_warning] if w.strip()]
+    ).strip()
     if not all_warnings:
         return answer
     return f"{answer.rstrip()}\n\n{all_warnings}"
@@ -1388,19 +1512,6 @@ def _fallback_answer(
     sources = [c.source for c in chunks]
     first_context = chunks[0].excerpt[:240] if chunks else "Sin contexto recuperado."
     citations: list[dict[str, str]] = []
-    for c in chunks:
-        meta = c.metadata or {}
-        citations.append(
-            {
-                "source": c.source,
-                "excerpt": c.excerpt[:220],
-                "norma": str(meta.get("norma") or ""),
-                "version": str(meta.get("version") or ""),
-                "vigente_desde": str(meta.get("vigente_desde") or ""),
-                "ultima_actualizacion": str(meta.get("ultima_actualizacion") or ""),
-                "jurisdiccion": str(meta.get("jurisdiccion") or ""),
-            }
-        )
     if mode == "chat":
         if _is_greeting(query):
             snapshot = _client_snapshot(cliente_id)
@@ -1497,10 +1608,12 @@ def _llm_answer(
 
     joined_context = "\n\n".join(
         [
+            f"[{'FUENTE' if is_citation_eligible(c.metadata) else 'ORIENTACION'} {index}] "
             f"[{c.source}] ({(c.metadata or {}).get('norma', 'N/A')} | "
+            f"calidad: {'CITA VERIFICADA' if is_citation_eligible(c.metadata) else 'ORIENTACION NO VERIFICADA'} | "
             f"vigente: {(c.metadata or {}).get('vigente_desde', 'N/D')} | "
             f"actualizacion: {(c.metadata or {}).get('ultima_actualizacion', 'N/D')}) {c.excerpt}"
-            for c in chunks[:6]
+            for index, c in enumerate(chunks[:6], start=1)
         ]
     )
     snapshot = _client_snapshot(cliente_id) if cliente_id else ""
@@ -1561,7 +1674,9 @@ def _llm_answer(
         f"Consulta:\n{query}\n\n"
         "Responde de forma conversacional, concreta y accionable para un auditor. Limita la respuesta a 650 palabras y ciérrala completa. "
         "No inventes modelos de facturación, composición de cuentas, uso de controles, porcentajes de enfoque ni procedimientos ya ejecutados. "
-        "Un ranking cuantitativo prioriza revisión, pero no confirma riesgo ni reemplaza el juicio. Formula las recomendaciones condicionalmente cuando falte evidencia."
+        "Un ranking cuantitativo prioriza revisión, pero no confirma riesgo ni reemplaza el juicio. Formula las recomendaciones condicionalmente cuando falte evidencia. "
+        "No atribuyas una afirmacion a una norma si su contexto esta marcado ORIENTACION NO VERIFICADA; en ese caso declara que requiere validacion contra la fuente oficial. "
+        "Cuando uses una fuente verificada, coloca su identificador exacto [FUENTE n] inmediatamente despues de la afirmacion que respalda."
         + reasoning_hint
         + learning_role_instruction
         if mode == "chat"
@@ -1606,28 +1721,7 @@ def _llm_answer(
             f"({', '.join(missing)})."
         )
 
-    citations: list[dict[str, str]] = []
-    for c in chunks:
-        meta = c.metadata or {}
-        citations.append(
-            {
-                "source": c.source,
-                "excerpt": c.excerpt[:220],
-                "norma": str(meta.get("norma") or ""),
-                "version": str(meta.get("version") or ""),
-                "vigente_desde": str(meta.get("vigente_desde") or ""),
-                "ultima_actualizacion": str(meta.get("ultima_actualizacion") or ""),
-                "jurisdiccion": str(meta.get("jurisdiccion") or ""),
-            }
-        )
-
-    web_citations: list[dict[str, str]] = []
-    if web_results:
-        web_citations = [
-            {"source": r["url"], "excerpt": r["content"][:220], "norma": "Web", "title": r["title"],
-             "version": "", "vigente_desde": "", "ultima_actualizacion": "", "jurisdiccion": ""}
-            for r in web_results
-        ]
+    citations = _citations_used_in_answer(text, chunks)
 
     confidence = (
         0.72 if chunks and not web_results
@@ -1638,7 +1732,7 @@ def _llm_answer(
 
     return {
         "answer": _append_staleness_warning(text.strip(), chunks),
-        "citations": citations + web_citations,
+        "citations": citations,
         "context_sources": [c.source for c in chunks] + [r["url"] for r in (web_results or [])],
         "confidence": confidence,
         "web_search_used": bool(web_results),
@@ -1748,7 +1842,7 @@ def generate_chat_response(
 
     # Web search fallback: si los chunks locales son insuficientes, buscar en la web
     web_results: list[dict[str, str]] = []
-    if _needs_web_search(chunks):
+    if _web_fallback_enabled() and _needs_web_search(chunks):
         try:
             from backend.services.web_search_service import search_web
             web_results = search_web(query, max_results=3)

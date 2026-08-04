@@ -1,9 +1,63 @@
 # SocioAI — Guía maestra del producto
 
-**Versión:** 1.0  
-**Fecha:** 3 de agosto de 2026  
-**Estado:** Dirección de producto acordada  
+**Versión:** 2.0
+**Fecha:** 4 de agosto de 2026
+**Estado:** CONSTITUCIÓN DE PRODUCTO BLOQUEADA
 **Propósito:** servir como referencia antes de diseñar, desarrollar o aprobar cualquier funcionalidad nueva.
+
+---
+
+## 0. Constitución bloqueada
+
+### Definición fija
+
+> **SocioAI es un mentor de auditoría con memoria persistente que ayuda a aplicar la normativa y la metodología al trabajo real, conserva la historia y el razonamiento del encargo, y permite que los equipos aprendan mientras auditan.**
+
+SocioAI no reemplaza el juicio profesional, no administra formalmente el expediente de auditoría y no pretende convertirse en otra suite como Caseware.
+
+### Cinco pilares no negociables
+
+1. **Auditoría guiada:** comprender, relacionar, evaluar, responder y concluir.
+2. **Memoria persistente:** conservar qué ocurrió, quién participó, qué se decidió, por qué y qué quedó pendiente.
+3. **Biblioteca verificada:** distinguir norma oficial, regulación local, metodología, criterio práctico, fuentes del cliente e inferencias de IA.
+4. **Trazabilidad y transparencia:** para SocioAI, lo que no está documentado no existe como contexto del encargo.
+5. **Aprendizaje por nivel:** adaptar preguntas, profundidad, explicaciones y desafíos a junior, semi senior, senior, gerente y socio.
+
+### Método universal de cinco pasos
+
+1. **Comprender:** entidad, transacción, proceso y hechos.
+2. **Relacionar:** cuenta, aseveración y norma aplicable.
+3. **Evaluar:** qué podría salir mal, por qué y con qué impacto.
+4. **Responder:** procedimiento y evidencia necesaria.
+5. **Concluir:** evaluar lo obtenido y documentar la decisión humana.
+
+### Alcance sellado del piloto
+
+El piloto se limita al ciclo conectado de **Ingresos y Cuentas por Cobrar** para empresas comerciales y de servicios:
+
+> comprensión del negocio → generación y reconocimiento del ingreso → facturación → cuenta por cobrar → recaudo → deterioro → conclusión humana.
+
+No se incorporarán otras áreas hasta medir utilidad, calidad, aprendizaje, reducción de revisión y disposición de pago en este ciclo.
+
+### No alcance permanente del núcleo
+
+SocioAI no será un CRM, control de horas, asignador de personal, gestor documental, sistema de firmas, archivo oficial, revisor completo de papeles de trabajo, editor autónomo de Excel ni generador de opiniones de auditoría.
+
+PDF, PDF escaneado, imágenes, Word, Excel, balances, mayores y audios cargados se usan como **fuentes de contexto**. Poder leer un archivo no significa revisar formalmente el papel de trabajo.
+
+Los módulos existentes que se aproximan a una suite integral quedan **congelados y fuera de la navegación MVP**. No se eliminan antes del piloto; tampoco reciben desarrollo nuevo salvo correcciones de seguridad o reutilización directa en el núcleo.
+
+### Control de cambios
+
+Esta constitución no cambia por opiniones aisladas, nuevas herramientas o ideas no validadas. Solo puede modificarse por una de estas causas documentadas:
+
+- evidencia repetida de pilotos reales;
+- cambio normativo o regulatorio aplicable;
+- riesgo de seguridad, privacidad o responsabilidad profesional;
+- limitación técnica comprobada;
+- evidencia económica que invalide el modelo.
+
+Toda modificación debe registrar fecha, evidencia, decisión, impacto y responsable. Las funcionalidades nuevas deben adaptarse a esta constitución; no redefinirla.
 
 ---
 
@@ -471,6 +525,11 @@ Una mejora no está terminada solo porque compila. Debe tener:
 | 2026-08-03 | Crear el perfil con fuentes y preguntas adaptativas | Cada entidad y sector requiere contexto diferente |
 | 2026-08-03 | El trial balance no será la pantalla principal | El centro es el Mentor y la tarea del auditor |
 | 2026-08-03 | La IA propone hipótesis transparentes | El juicio permanece en el auditor |
+| 2026-08-04 | Se bloquea la constitución del producto y sus cinco pilares | Evitar nuevos giros sin evidencia concreta |
+| 2026-08-04 | El piloto se limita a Ingresos y Cuentas por Cobrar | Validar un ciclo conectado antes de ampliar áreas |
+| 2026-08-04 | La memoria conserva historial completo, diarios y eventos durables | Mantener continuidad sin saturar el contexto del modelo |
+| 2026-08-04 | Los módulos tipo suite quedan congelados, no eliminados | Mantener piezas reutilizables sin desviar el MVP |
+| 2026-08-04 | La biblioteca debe distinguir contenido oficial, resumen y metodología | No presentar criterio práctico como norma oficial |
 
 ---
 

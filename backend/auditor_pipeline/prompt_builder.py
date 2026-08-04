@@ -101,7 +101,10 @@ def format_rag_chunks(chunks_rag: list[dict[str, Any]]) -> str:
         ref = str(c.get("referencia") or c.get("source") or "N/D")
         txt = str(c.get("texto") or c.get("excerpt") or "").strip()
         score = c.get("score")
-        blocks.append(f"[CHUNK {i}] {ref} (score: {score})\n{txt[:700]}")
+        meta = c.get("metadata") if isinstance(c.get("metadata"), dict) else {}
+        citation_eligible = meta.get("citation_eligible") is True or str(meta.get("citation_eligible") or "").lower() == "true"
+        quality = "CITA VERIFICADA" if citation_eligible else "ORIENTACION NO VERIFICADA"
+        blocks.append(f"[CHUNK {i}] {ref} (score: {score}; calidad: {quality})\n{txt[:700]}")
     return "NORMATIVA RAG:\n" + "\n\n".join(blocks)
 
 
@@ -133,6 +136,7 @@ def build_user_prompt(
         "=== INSTRUCCION ===",
         f"MODO: {modo}",
         instruction_for_mode(modo),
+        "No atribuyas afirmaciones a una norma marcada ORIENTACION NO VERIFICADA; indica que requiere validacion oficial.",
     ]
     if consulta_adicional.strip():
         parts.extend(["", "=== CONSULTA DEL AUDITOR ===", consulta_adicional.strip()])

@@ -1,6 +1,8 @@
 # 📊 SocioAI Analytics
 ## Business Plan - Versión Final
 
+> **Nota de control de producto (4 de agosto de 2026):** este documento conserva hipótesis comerciales y financieras históricas. La definición, los pilares, el alcance del piloto y las reglas de no alcance vigentes se encuentran exclusivamente en `docs/PRODUCTO_SOCIOAI_GUI_MAESTRA.md`. En caso de conflicto, prevalece la guía maestra.
+
 **Fecha:** Junio 2026  
 **Estado:** MVP Validation Ready  
 **Confidencial**

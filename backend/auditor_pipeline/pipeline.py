@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from backend.services.rag_chat_service import retrieve_context_chunks
+from backend.services.rag_chat_service import build_verified_citations, retrieve_context_chunks
 
 from .llm_client import call_llm
 from .post_check import run_post_check
@@ -95,20 +95,7 @@ def execute_pipeline(
     else:
         answer = analisis
 
-    citations: list[dict[str, str]] = []
-    for chunk in normalized_chunks[:8]:
-        meta = chunk.get("metadata") if isinstance(chunk.get("metadata"), dict) else {}
-        citations.append(
-            {
-                "source": str(chunk.get("source") or ""),
-                "excerpt": str(chunk.get("excerpt") or "")[:220],
-                "norma": str(meta.get("norma") or ""),
-                "version": str(meta.get("version") or ""),
-                "vigente_desde": str(meta.get("vigente_desde") or ""),
-                "ultima_actualizacion": str(meta.get("ultima_actualizacion") or ""),
-                "jurisdiccion": str(meta.get("jurisdiccion") or ""),
-            }
-        )
+    citations = build_verified_citations(normalized_chunks)
 
     flags = post_checked.get("flags") if isinstance(post_checked.get("flags"), list) else []
     confidence = _choose_confidence(post_checked, len(normalized_chunks))
