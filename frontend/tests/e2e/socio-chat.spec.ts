@@ -516,4 +516,49 @@ test.describe("Socio Chat E2E", () => {
     await expect(page.getByText("Error interno del servidor")).toBeVisible();
     await expect(page.getByText("El servidor tuvo un problema interno. Inténtalo de nuevo en unos minutos.").first()).toBeVisible();
   });
+
+  test("expone las acciones de conversación al enfocar y permite renombrar o eliminar", async ({ page }) => {
+    await prepareSocioChat(page);
+    await page.addInitScript(() => {
+      window.prompt = () => "Cierre de mes actualizado";
+      window.confirm = () => true;
+    });
+    await openSocioChat(page);
+
+    const rowButton = page.getByRole("button", { name: "Cierre de mes" });
+    const renameButton = page.getByRole("button", { name: "Renombrar conversación" });
+    const deleteButton = page.getByRole("button", { name: "Eliminar conversación" });
+
+    await expect(renameButton).toHaveCSS("opacity", "0");
+    await rowButton.focus();
+    await expect(renameButton).toHaveCSS("opacity", "1");
+    await page.keyboard.press("Tab");
+    await expect(renameButton).toBeFocused();
+    await page.keyboard.press("Enter");
+    const updatedRowButton = page.getByRole("button", { name: "Cierre de mes actualizado" });
+    await expect(updatedRowButton).toBeVisible();
+
+    await updatedRowButton.focus();
+    await page.keyboard.press("Tab");
+    await expect(renameButton).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(deleteButton).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByText("Aún no hay conversaciones.")).toBeVisible();
+  });
+
+  test.describe("en pantallas táctiles", () => {
+    test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
+
+    test("muestra las acciones de conversación sin depender del hover", async ({ page }) => {
+      await prepareSocioChat(page);
+      await openSocioChat(page);
+
+      const renameButton = page.getByRole("button", { name: "Renombrar conversación" });
+      const deleteButton = page.getByRole("button", { name: "Eliminar conversación" });
+
+      await expect(renameButton).toHaveCSS("opacity", "1");
+      await expect(deleteButton).toHaveCSS("opacity", "1");
+    });
+  });
 });

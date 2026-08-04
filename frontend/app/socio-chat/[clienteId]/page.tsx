@@ -132,6 +132,7 @@ export default function SocioChatPage() {
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [chatNotice, setChatNotice] = useState<ChatNotice | null>(null);
+  const [showConversationActionsAlways, setShowConversationActionsAlways] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -230,7 +231,25 @@ export default function SocioChatPage() {
     return () => { active = false; };
   }, [clienteId, activeConversationId]);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(hover: none), (pointer: coarse)");
+    const update = () => setShowConversationActionsAlways(mediaQuery.matches);
+
+    update();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", update);
+      return () => mediaQuery.removeEventListener("change", update);
+    }
+
+    mediaQuery.addListener(update);
+    return () => mediaQuery.removeListener(update);
+  }, []);
+
   const openRisks = useMemo(() => riskData?.areas_criticas?.slice(0, 2) ?? [], [riskData]);
+  const conversationActionClass = showConversationActionsAlways
+    ? "opacity-100 transition"
+    : "opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100";
   async function handleSend(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const modeInstruction = mentorMode === "teach" ? "Enséñame: " : mentorMode === "challenge" ? "Desafía mi criterio: " : "Ayúdame: ";
@@ -527,7 +546,7 @@ export default function SocioChatPage() {
             <article>
               <div className="flex items-center justify-between"><h2 className="mentor-kicker">Conversación reciente</h2><button type="button" onClick={() => void handleNewConversation()} className="text-xs text-[#2b7774] hover:underline">Nueva conversación</button></div>
               {loadingConversations ? <p className="mt-4 text-sm text-[#7a8388]" role="status" aria-live="polite">Cargando conversaciones guardadas…</p> : null}
-              {recentConversation ? <div className="group mt-4 flex items-start gap-3"><span className="material-symbols-outlined mt-0.5 text-[20px] text-[#9a7b52]">chat_bubble</span><button type="button" onClick={() => { setActiveConversationId(recentConversation.id); setShowThread(true); }} className="min-w-0 flex-1 text-left"><p className="truncate font-headline text-lg">{recentConversation.title}</p><p className="mt-1 text-xs text-[#7a8388]">Actualizada {new Date(recentConversation.updated_at).toLocaleDateString()}</p></button><button type="button" onClick={() => void handleRenameConversation(recentConversation)} className="opacity-0 transition group-hover:opacity-100" aria-label="Renombrar conversación"><span className="material-symbols-outlined text-[18px]">edit</span></button><button type="button" onClick={() => void handleDeleteConversation(recentConversation)} className="opacity-0 transition group-hover:opacity-100" aria-label="Eliminar conversación"><span className="material-symbols-outlined text-[18px]">delete</span></button></div> : <p className="mt-4 text-sm text-[#7a8388]">Aún no hay conversaciones.</p>}
+              {recentConversation ? <div className="group mt-4 flex items-start gap-3"><span className="material-symbols-outlined mt-0.5 text-[20px] text-[#9a7b52]">chat_bubble</span><button type="button" onClick={() => { setActiveConversationId(recentConversation.id); setShowThread(true); }} className="min-w-0 flex-1 text-left"><p className="truncate font-headline text-lg">{recentConversation.title}</p><p className="mt-1 text-xs text-[#7a8388]">Actualizada {new Date(recentConversation.updated_at).toLocaleDateString()}</p></button><button type="button" onClick={() => void handleRenameConversation(recentConversation)} className={conversationActionClass} aria-label="Renombrar conversación"><span className="material-symbols-outlined text-[18px]">edit</span></button><button type="button" onClick={() => void handleDeleteConversation(recentConversation)} className={conversationActionClass} aria-label="Eliminar conversación"><span className="material-symbols-outlined text-[18px]">delete</span></button></div> : <p className="mt-4 text-sm text-[#7a8388]">Aún no hay conversaciones.</p>}
             </article>
             <article>
               <h2 className="mentor-kicker">Área sugerida</h2>
