@@ -1,8 +1,28 @@
 # Roadmap bloqueado de SocioAI
 
-**Fecha:** 4 de agosto de 2026
+**Fecha:** 5 de agosto de 2026
+**Estado:** PLAN CERRADO PARA EJECUCIÓN
 **Fuente de verdad:** `docs/PRODUCTO_SOCIOAI_GUI_MAESTRA.md`
 **Regla:** el orden puede ajustarse por dependencias técnicas; la definición, los cinco pilares y el alcance del piloto no cambian sin evidencia admitida por el control de cambios.
+
+## Primer paso siguiente
+
+### Curar el corpus mínimo del piloto
+
+Antes de desarrollar nuevas pantallas, memoria adicional o el verificador semántico, se debe completar un **Lote Normativo 1** para Ingresos y Cuentas por Cobrar:
+
+- NIA 240, 315, 330 y 500;
+- NIIF 15 y NIIF 9;
+- NIIF para las PYMES, secciones 23 y 11;
+- regulación ecuatoriana que determine adopción, presentación o aplicación local para el piloto.
+
+Para cada fuente se debe registrar autoridad, nombre oficial, edición, jurisdicción, vigencia desde/hasta, periodos aplicables, URL oficial, localizador, licencia o derecho de uso, fecha de revisión y revisor. Los resúmenes internos deben enlazar cada afirmación relevante con el pasaje que la respalda.
+
+**Criterio de salida:** el lote no termina por estar cargado. Termina cuando otra persona puede abrir cada cita, llegar al pasaje exacto y confirmar autoridad, versión, vigencia y sentido sin depender de la IA.
+
+**Entregable:** manifiesto del corpus, fuentes habilitadas para citar, fuentes pendientes o retiradas y un conjunto inicial de preguntas con respuestas esperadas y casos de abstención.
+
+Este es el único primer paso activo. Las fases siguientes permanecen cerradas hasta cumplir su criterio de salida.
 
 ## Fase 0 - Alineación
 
@@ -22,6 +42,28 @@
 - Mantener versiones simultáneas cuando la vigencia dependa del periodo o adopción local.
 - Validar manualmente las normas prioritarias para Ingresos y Cuentas por Cobrar.
 - Probar recuperación, citas y abstención cuando no exista fuente suficiente.
+
+### Fase 1B - Verificador Normativo Bloqueante V2
+
+Esta fase inicia únicamente cuando el Lote Normativo 1 tenga fuentes aptas para citar.
+
+- Dividir la respuesta en afirmaciones normativas identificables.
+- Exigir que cada afirmación normativa apunte a uno o más pasajes del corpus autorizado.
+- Comprobar existencia, metadatos, vigencia, jurisdicción y correspondencia semántica entre afirmación y pasaje.
+- Bloquear citas inexistentes, ambiguas, desactualizadas o que no respalden lo afirmado.
+- Reformular con fuentes válidas o declarar **“el corpus disponible no permite sustentar esta afirmación”**.
+- Separar visualmente fuente verificada, orientación no verificada y limitación de cobertura.
+- Registrar qué control pasó, cuál falló y por qué, sin exponer razonamiento interno del modelo.
+- Mantener búsqueda web desactivada por defecto; una fuente web no entra al corpus por haber sido encontrada.
+
+**Criterios de salida del Verificador V2:**
+
+- cero citas inventadas en el conjunto controlado del piloto;
+- toda cita abre la fuente y el localizador correctos;
+- pruebas negativas bloquean fuentes inexistentes, versiones incorrectas y pasajes que no sustentan la afirmación;
+- el sistema declara falta de cobertura en vez de completar por estimación;
+- un auditor puede revisar la trazabilidad afirmación → pasaje → fuente → versión;
+- la frase pública **“Diseñado para no inventar”** permanece deshabilitada hasta documentar estos resultados.
 
 ## Fase 2 - Memoria estructurada
 
@@ -75,3 +117,15 @@
 - Agentes que controlen el computador.
 - Bots para reuniones.
 - Nuevas áreas antes de validar Ingresos y Cuentas por Cobrar.
+
+## Orden cerrado de ejecución
+
+1. Curar y aprobar el Lote Normativo 1.
+2. Construir y validar el Verificador Normativo Bloqueante V2.
+3. Completar la memoria estructurada necesaria para el ciclo piloto.
+4. Implementar el recorrido Ingresos y Cuentas por Cobrar con el método de cinco pasos.
+5. Adaptar Enséñame, Ayúdame y Desafíame por nivel profesional.
+6. Ejecutar casos controlados y pilotos con datos anonimizados.
+7. Incorporar audio como fuente después de validar el núcleo.
+
+No se adelantan fases por conveniencia visual o entusiasmo tecnológico. Seguridad y correcciones críticas pueden ejecutarse en cualquier momento, pero no alteran este orden de producto.

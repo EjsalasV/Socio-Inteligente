@@ -1,7 +1,7 @@
 # SocioAI — Guía maestra del producto
 
-**Versión:** 2.0
-**Fecha:** 4 de agosto de 2026
+**Versión:** 2.1
+**Fecha:** 5 de agosto de 2026
 **Estado:** CONSTITUCIÓN DE PRODUCTO BLOQUEADA
 **Propósito:** servir como referencia antes de diseñar, desarrollar o aprobar cualquier funcionalidad nueva.
 
@@ -19,7 +19,7 @@ SocioAI no reemplaza el juicio profesional, no administra formalmente el expedie
 
 1. **Auditoría guiada:** comprender, relacionar, evaluar, responder y concluir.
 2. **Memoria persistente:** conservar qué ocurrió, quién participó, qué se decidió, por qué y qué quedó pendiente.
-3. **Biblioteca verificada:** distinguir norma oficial, regulación local, metodología, criterio práctico, fuentes del cliente e inferencias de IA.
+3. **Biblioteca verificada:** distinguir norma oficial, regulación local, metodología, criterio práctico, fuentes del cliente e inferencias de IA; ninguna afirmación normativa se publica como sustentada si su cita no supera el control de calidad aplicable.
 4. **Trazabilidad y transparencia:** para SocioAI, lo que no está documentado no existe como contexto del encargo.
 5. **Aprendizaje por nivel:** adaptar preguntas, profundidad, explicaciones y desafíos a junior, semi senior, senior, gerente y socio.
 
@@ -81,6 +81,12 @@ SocioAI **no reemplaza al auditor**, no emite conclusiones por él y no conviert
 ### Frase rectora
 
 > SocioAI acompaña al auditor a pensar mejor, aprender mientras trabaja y tomar decisiones mejor sustentadas.
+
+### Compromiso de confianza
+
+> **Diseñado para no presentar como norma lo que no puede verificar.** Fuentes controladas, límites visibles y juicio profesional del auditor.
+
+La expresión **“Diseñado para no inventar”** solo podrá utilizarse públicamente cuando el Verificador Normativo Bloqueante cumpla los criterios de salida definidos en el roadmap. Hasta entonces, SocioAI debe describir con precisión lo que sí controla: elegibilidad de fuentes, citas verificadas y límites declarados.
 
 ---
 
@@ -314,6 +320,20 @@ Reglas:
 - toda recomendación importante señala su evidencia o su ausencia;
 - el auditor puede aceptar, modificar, rechazar o dejar pendiente una hipótesis.
 
+### Verificador Normativo Bloqueante
+
+Cuando una respuesta atribuya una afirmación a una norma, el sistema debe comprobar antes de publicarla:
+
+1. que la fuente pertenece al corpus autorizado;
+2. que autoridad, edición, jurisdicción, vigencia y localizador están identificados;
+3. que el pasaje citado existe y corresponde a la fuente indicada;
+4. que el pasaje respalda semánticamente la afirmación realizada;
+5. que la fuente aplica al periodo y marco del encargo cuando esa información esté disponible.
+
+Si una comprobación falla, SocioAI no debe mostrar la afirmación como sustentada. Debe reformular usando únicamente fuentes verificadas o declarar de forma visible que el corpus no alcanza. La respuesta puede continuar como orientación educativa si distingue claramente su límite; nunca debe fabricar una cita para completarla.
+
+Este control no decide el tratamiento contable, el riesgo de auditoría ni la conclusión del encargo. **El criterio, la decisión y la documentación final siguen siendo responsabilidad del auditor.**
+
 ---
 
 ## 10. Memoria y uso de tokens
@@ -530,6 +550,8 @@ Una mejora no está terminada solo porque compila. Debe tener:
 | 2026-08-04 | La memoria conserva historial completo, diarios y eventos durables | Mantener continuidad sin saturar el contexto del modelo |
 | 2026-08-04 | Los módulos tipo suite quedan congelados, no eliminados | Mantener piezas reutilizables sin desviar el MVP |
 | 2026-08-04 | La biblioteca debe distinguir contenido oficial, resumen y metodología | No presentar criterio práctico como norma oficial |
+| 2026-08-05 | Incorporar un Verificador Normativo Bloqueante después de curar el corpus mínimo del piloto | Impedir que una cita existente pero irrelevante aparente sustentar una afirmación |
+| 2026-08-05 | Mantener como mensaje actual “no presentar como norma lo que no puede verificar” | No prometer ausencia total de invenciones antes de validar técnicamente el bloqueo semántico |
 
 ---
 
