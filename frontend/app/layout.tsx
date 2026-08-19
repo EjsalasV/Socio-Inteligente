@@ -6,6 +6,7 @@ import ConditionalLegalFooter from "../components/navigation/ConditionalLegalFoo
 import AppStateProvider from "../components/providers/AppStateProvider";
 import UserPreferencesProvider from "../components/providers/UserPreferencesProvider";
 import TourProvider from "../components/tour/TourProvider";
+import AlphaBanner from "../components/navigation/AlphaBanner";
 
 export const metadata: Metadata = {
   title: "Socio AI — Plataforma de Auditoría Inteligente",
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <AlphaBanner />
         <AppStateProvider>
           <UserPreferencesProvider>
             <TourProvider>

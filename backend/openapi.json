@@ -191,6 +191,32 @@
         ]
       }
     },
+    "/api/clientes/progress": {
+      "get": {
+        "tags": [
+          "clientes"
+        ],
+        "summary": "Listar Progreso Clientes",
+        "operationId": "listar_progreso_clientes_api_clientes_progress_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/clientes/{cliente_id}": {
       "get": {
         "tags": [
@@ -215,6 +241,165 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "clientes"
+        ],
+        "summary": "Actualizar Cliente",
+        "description": "Actualiza metadatos base del cliente para onboarding y configuración.",
+        "operationId": "actualizar_cliente_api_clientes__cliente_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClienteUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "clientes"
+        ],
+        "summary": "Archivar Cliente",
+        "description": "Archivado lógico de un cliente.\n\nNo elimina datos: marca el cliente como ARCHIVADO y deja de mostrarse\nen la cartera. Los datos del encargo se conservan.",
+        "operationId": "archivar_cliente_api_clientes__cliente_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clientes/{cliente_id}/permanent": {
+      "delete": {
+        "tags": [
+          "clientes"
+        ],
+        "summary": "Borrar Cliente Permanentemente",
+        "operationId": "borrar_cliente_permanentemente_api_clientes__cliente_id__permanent_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermanentDeleteRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -444,6 +629,427 @@
         }
       }
     },
+    "/api/configuracion/tipos-entidad": {
+      "get": {
+        "tags": [
+          "configuracion"
+        ],
+        "summary": "Listar Tipos Entidad",
+        "description": "Lista todos los tipos de entidad disponibles con sus preguntas",
+        "operationId": "listar_tipos_entidad_api_configuracion_tipos_entidad_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/configuracion/{tipo_entidad}/preguntas": {
+      "get": {
+        "tags": [
+          "configuracion"
+        ],
+        "summary": "Obtener Preguntas Dinámicas",
+        "description": "Obtiene preguntas dinámicas para un tipo de entidad\n\nParámetros:\n- tipo_entidad: BANCO, RETAIL, SERVICIOS, MANUFACTURA, HOLDING, SALUD, EDUCACION",
+        "operationId": "obtener_preguntas_dinámicas_api_configuracion__tipo_entidad__preguntas_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tipo_entidad",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tipo Entidad"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configuracion/{cliente_id}/guardar": {
+      "post": {
+        "tags": [
+          "configuracion"
+        ],
+        "summary": "Guardar Configuracion",
+        "description": "Guarda la configuración (respuestas a preguntas) de un cliente\n\nBody:\n- tipo_entidad: Tipo de entidad (BANCO, RETAIL, etc)\n- respuestas: Dict con respuestas (JSON)",
+        "operationId": "guardar_configuracion_api_configuracion__cliente_id__guardar_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuardarConfiguracionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configuracion/{cliente_id}/obtener": {
+      "get": {
+        "tags": [
+          "configuracion"
+        ],
+        "summary": "Obtener Configuracion",
+        "description": "Obtiene la configuración guardada de un cliente",
+        "operationId": "obtener_configuracion_api_configuracion__cliente_id__obtener_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/context-documents/types": {
+      "get": {
+        "tags": [
+          "context-documents"
+        ],
+        "summary": "Get Document Types",
+        "operationId": "get_document_types_api_context_documents_types_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/context-documents/{cliente_id}": {
+      "get": {
+        "tags": [
+          "context-documents"
+        ],
+        "summary": "Get Documents",
+        "operationId": "get_documents_api_context_documents__cliente_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "context-documents"
+        ],
+        "summary": "Upload Document",
+        "operationId": "upload_document_api_context_documents__cliente_id__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_api_context_documents__cliente_id__post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/context-documents/{cliente_id}/{document_id}": {
+      "delete": {
+        "tags": [
+          "context-documents"
+        ],
+        "summary": "Remove Document",
+        "operationId": "remove_document_api_context_documents__cliente_id___document_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/context-documents/{cliente_id}/{document_id}/reprocess": {
+      "post": {
+        "tags": [
+          "context-documents"
+        ],
+        "summary": "Reprocess Context Document",
+        "operationId": "reprocess_context_document_api_context_documents__cliente_id___document_id__reprocess_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/perfil/{cliente_id}": {
       "get": {
         "tags": [
@@ -601,6 +1207,507 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity-profile/{cliente_id}/draft": {
+      "get": {
+        "tags": [
+          "entity-profile"
+        ],
+        "summary": "Get Profile Draft",
+        "operationId": "get_profile_draft_api_entity_profile__cliente_id__draft_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity-profile/{cliente_id}/answers": {
+      "put": {
+        "tags": [
+          "entity-profile"
+        ],
+        "summary": "Put Profile Answers",
+        "operationId": "put_profile_answers_api_entity_profile__cliente_id__answers_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileAnswersRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity-profile/{cliente_id}/confirm": {
+      "post": {
+        "tags": [
+          "entity-profile"
+        ],
+        "summary": "Post Confirm Profile",
+        "operationId": "post_confirm_profile_api_entity_profile__cliente_id__confirm_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity-profile/{cliente_id}/pending/{question_id}": {
+      "put": {
+        "tags": [
+          "entity-profile"
+        ],
+        "summary": "Put Pending Item",
+        "operationId": "put_pending_item_api_entity_profile__cliente_id__pending__question_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PendingItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity-profile/{cliente_id}/analyze": {
+      "post": {
+        "tags": [
+          "entity-profile"
+        ],
+        "summary": "Post Analyze Profile",
+        "operationId": "post_analyze_profile_api_entity_profile__cliente_id__analyze_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileAnalysisRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity-profile/{cliente_id}/analysis/decision": {
+      "put": {
+        "tags": [
+          "entity-profile"
+        ],
+        "summary": "Put Analysis Decision",
+        "operationId": "put_analysis_decision_api_entity_profile__cliente_id__analysis_decision_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mentor/{cliente_id}/account": {
+      "post": {
+        "tags": [
+          "mentor"
+        ],
+        "summary": "Account Mentor",
+        "operationId": "account_mentor_api_mentor__cliente_id__account_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountMentorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mentor/{cliente_id}/reply": {
+      "post": {
+        "tags": [
+          "mentor"
+        ],
+        "summary": "Mentor Reply",
+        "operationId": "mentor_reply_api_mentor__cliente_id__reply_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MentorReplyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mentor/{cliente_id}/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "mentor"
+        ],
+        "summary": "Mentor Session",
+        "operationId": "mentor_session_api_mentor__cliente_id__sessions__session_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
                 }
               }
             }
@@ -1007,6 +2114,446 @@
               "type": "string",
               "title": "Cliente Id"
             }
+          },
+          {
+            "name": "conversation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/{cliente_id}/quality-trace": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Get Quality Trace",
+        "operationId": "get_quality_trace_chat__cliente_id__quality_trace_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/{cliente_id}/feedback": {
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Post Chat Feedback",
+        "operationId": "post_chat_feedback_chat__cliente_id__feedback_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatFeedbackRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/{cliente_id}/pilot-metrics": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Get Pilot Metrics",
+        "operationId": "get_pilot_metrics_chat__cliente_id__pilot_metrics_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/{cliente_id}/pilot-survey": {
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Post Pilot Survey",
+        "operationId": "post_pilot_survey_chat__cliente_id__pilot_survey_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PilotSurveyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/{cliente_id}/conversations": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Get Conversations",
+        "operationId": "get_conversations_chat__cliente_id__conversations_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Post Conversation",
+        "operationId": "post_conversation_chat__cliente_id__conversations_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/{cliente_id}/conversations/{conversation_id}": {
+      "patch": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Patch Conversation",
+        "operationId": "patch_conversation_chat__cliente_id__conversations__conversation_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationRenameRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Remove Conversation",
+        "operationId": "remove_conversation_chat__cliente_id__conversations__conversation_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
           }
         ],
         "responses": {
@@ -1176,6 +2723,325 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChatExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/feedback/{cliente_id}": {
+      "get": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "Get Feedback",
+        "description": "Obtiene feedback inteligente sobre el progreso de auditoría.\n\nRetorna:\n- Porcentaje de completitud\n- Áreas con problemas\n- Recomendaciones específicas\n- Gaps de cobertura",
+        "operationId": "get_feedback_api_feedback__cliente_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/feedback/{cliente_id}/progress": {
+      "get": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "Get Progress Summary",
+        "description": "Resumen rápido del progreso (para dashboard).",
+        "operationId": "get_progress_summary_api_feedback__cliente_id__progress_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit-analysis/{cliente_id}/analyze": {
+      "post": {
+        "tags": [
+          "audit-analysis"
+        ],
+        "summary": "Analyze Client Audit",
+        "description": "Analiza datos financieros y detecta anomalías automáticamente\nCon RAG para evitar repetir hallazgos anteriores\n\nInput:\n- balance_trial: dict con cuentas y saldos\n- income_statement: dict con ingresos/gastos\n- additional_data: otros datos relevantes\n\nOutput:\n- Lista de hallazgos detectados\n- Cada uno con norma, riesgo, procedimientos\n- Plus: histórico de análisis anteriores",
+        "operationId": "analyze_client_audit_api_audit_analysis__cliente_id__analyze_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinancialDataRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit-analysis/{cliente_id}/history": {
+      "get": {
+        "tags": [
+          "audit-analysis"
+        ],
+        "summary": "Get Analysis History",
+        "description": "Obtiene histórico de análisis anteriores para un cliente\nÚtil para ver evolución de hallazgos",
+        "operationId": "get_analysis_history_api_audit_analysis__cliente_id__history_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit-analysis/{cliente_id}/procedures/{hallazgo_id}": {
+      "get": {
+        "tags": [
+          "audit-analysis"
+        ],
+        "summary": "Get Hallazgo Procedures",
+        "description": "Obtiene procedimientos detallados para un hallazgo específico\n\nTODO: Implementar almacenamiento de hallazgos para poder recuperarlos",
+        "operationId": "get_hallazgo_procedures_api_audit_analysis__cliente_id__procedures__hallazgo_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "hallazgo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hallazgo Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit-analysis/{cliente_id}/save-findings": {
+      "post": {
+        "tags": [
+          "audit-analysis"
+        ],
+        "summary": "Save Audit Findings",
+        "description": "Guarda hallazgos detectados para auditoría posterior\n\nConecta con módulo de hallazgos existente",
+        "operationId": "save_audit_findings_api_audit_analysis__cliente_id__save_findings_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Request"
               }
             }
           }
@@ -3452,6 +5318,56 @@
         ]
       }
     },
+    "/api/user/learning-progress": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Get Learning Progress",
+        "operationId": "get_learning_progress_api_user_learning_progress_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Clear Learning Progress",
+        "operationId": "clear_learning_progress_api_user_learning_progress_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/admin/users": {
       "get": {
         "tags": [
@@ -4368,6 +6284,79 @@
         ]
       }
     },
+    "/api/expert-criteria/grupos": {
+      "get": {
+        "tags": [
+          "expert-criteria"
+        ],
+        "summary": "Get Grupos Mapa",
+        "operationId": "get_grupos_mapa_api_expert_criteria_grupos_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/expert-criteria/grupo/{grupo}": {
+      "get": {
+        "tags": [
+          "expert-criteria"
+        ],
+        "summary": "Get Grupo",
+        "operationId": "get_grupo_api_expert_criteria_grupo__grupo__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "grupo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Grupo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/expert-criteria/{path}": {
       "post": {
         "tags": [
@@ -5124,6 +7113,102 @@
         }
       }
     },
+    "/api/trial-balance/{cliente_id}/data-simple": {
+      "get": {
+        "tags": [
+          "trial-balance"
+        ],
+        "summary": "Get Tb Data Simple",
+        "description": "Obtener datos REALES del Trial Balance del cliente",
+        "operationId": "get_tb_data_simple_api_trial_balance__cliente_id__data_simple_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trial-balance/{cliente_id}/data": {
+      "get": {
+        "tags": [
+          "trial-balance"
+        ],
+        "summary": "Get Tb Data",
+        "description": "Obtener datos del Trial Balance en formato JSON",
+        "operationId": "get_tb_data_api_trial_balance__cliente_id__data_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/mayor/{cliente_id}/movimientos": {
       "get": {
         "tags": [
@@ -5587,6 +7672,118 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/validaciones/{cliente_id}/avanzadas": {
+      "get": {
+        "tags": [
+          "validaciones"
+        ],
+        "summary": "Get Validaciones Avanzadas",
+        "description": "Ejecuta validaciones AVANZADAS de mayor\n\nIncluye:\n- Secuencial de asientos (detecta gaps)\n- Cuentas nuevas/eliminadas (comparativo 2024 vs 2025)\n- Mismatch período\n- Fechas anómalas\n- Mayor cuadra\n- Asientos anulados\n- Meses sin transacciones\n\nParámetros:\n- cliente_id: ID del cliente\n- fecha_cierre: Fecha de cierre (YYYY-MM-DD) para validaciones",
+        "operationId": "get_validaciones_avanzadas_api_validaciones__cliente_id__avanzadas_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          },
+          {
+            "name": "fecha_cierre",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fecha Cierre"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/validaciones/{cliente_id}/resumen-validaciones": {
+      "get": {
+        "tags": [
+          "validaciones"
+        ],
+        "summary": "Get Resumen Validaciones",
+        "description": "Obtiene resumen ejecutivo de validaciones\n\nRetorna:\n- Status general (OK, WARNING, ERROR)\n- Problemas críticos encontrados\n- Recomendaciones",
+        "operationId": "get_resumen_validaciones_api_validaciones__cliente_id__resumen_validaciones_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cliente_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cliente Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
               }
             }
           },
@@ -6143,6 +8340,76 @@
   },
   "components": {
     "schemas": {
+      "AccountMentorRequest": {
+        "properties": {
+          "area_code": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Area Code"
+          },
+          "area_name": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Area Name"
+          },
+          "account_code": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Account Code"
+          },
+          "account_name": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Account Name"
+          },
+          "current_balance": {
+            "type": "number",
+            "title": "Current Balance"
+          },
+          "prior_balance": {
+            "type": "number",
+            "title": "Prior Balance"
+          },
+          "variation_pct": {
+            "type": "number",
+            "title": "Variation Pct"
+          },
+          "area_assertions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Area Assertions"
+          },
+          "area_accounts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "maxItems": 250,
+            "title": "Area Accounts"
+          },
+          "force": {
+            "type": "boolean",
+            "title": "Force",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "area_code",
+          "area_name",
+          "account_code",
+          "account_name",
+          "current_balance",
+          "prior_balance",
+          "variation_pct"
+        ],
+        "title": "AccountMentorRequest"
+      },
       "AdminUserAssignClientesRequest": {
         "properties": {
           "cliente_ids": {
@@ -6622,6 +8889,40 @@
         "type": "object",
         "title": "Body_create_period_snapshot_api_clientes__cliente_id__create_period_snapshot_post"
       },
+      "Body_upload_document_api_context_documents__cliente_id__post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "document_type": {
+            "type": "string",
+            "title": "Document Type"
+          },
+          "period": {
+            "type": "string",
+            "title": "Period",
+            "default": ""
+          },
+          "document_role": {
+            "type": "string",
+            "title": "Document Role",
+            "default": "other"
+          },
+          "cutoff_date": {
+            "type": "string",
+            "title": "Cutoff Date",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "document_type"
+        ],
+        "title": "Body_upload_document_api_context_documents__cliente_id__post"
+      },
       "Body_upload_trial_balance_api_trial_balance__cliente_id__upload_post": {
         "properties": {
           "file": {
@@ -6762,11 +9063,65 @@
         ],
         "title": "ChatExportRequest"
       },
+      "ChatFeedbackRequest": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Trace Id"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "helpful",
+              "incorrect"
+            ],
+            "title": "Outcome"
+          },
+          "issue_type": {
+            "type": "string",
+            "enum": [
+              "",
+              "fact",
+              "normative",
+              "procedure",
+              "clarity",
+              "other"
+            ],
+            "title": "Issue Type",
+            "default": ""
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Comment",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "trace_id",
+          "outcome"
+        ],
+        "title": "ChatFeedbackRequest"
+      },
       "ChatRequest": {
         "properties": {
           "message": {
             "type": "string",
             "title": "Message"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
           }
         },
         "type": "object",
@@ -6802,6 +9157,33 @@
               }
             ],
             "title": "Sector"
+          },
+          "tipo_entidad": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Entidad"
+          },
+          "tamano": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tamano"
+          },
+          "normativa": {
+            "type": "string",
+            "title": "Normativa",
+            "default": "NIIF"
           }
         },
         "type": "object",
@@ -6809,6 +9191,91 @@
           "nombre"
         ],
         "title": "ClienteCreateRequest"
+      },
+      "ClienteUpdateRequest": {
+        "properties": {
+          "nombre": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nombre"
+          },
+          "sector": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector"
+          },
+          "tipo_entidad": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Entidad"
+          },
+          "tamano": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tamano"
+          },
+          "normativa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normativa"
+          }
+        },
+        "type": "object",
+        "title": "ClienteUpdateRequest"
+      },
+      "ConversationCreateRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "default": "Nueva conversación"
+          }
+        },
+        "type": "object",
+        "title": "ConversationCreateRequest"
+      },
+      "ConversationRenameRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "ConversationRenameRequest"
       },
       "CriterionSummary": {
         "properties": {
@@ -7114,6 +9581,79 @@
         ],
         "title": "ExpertCriteriaUpdateRequest"
       },
+      "FinancialDataRequest": {
+        "properties": {
+          "sector": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector"
+          },
+          "tamaño": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tamaño"
+          },
+          "marco_referencial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marco Referencial",
+            "default": "NIIF Completas"
+          },
+          "balance_trial": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Balance Trial"
+          },
+          "income_statement": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Income Statement"
+          },
+          "additional_data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additional Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "balance_trial"
+        ],
+        "title": "FinancialDataRequest",
+        "description": "Request body para análisis de datos financieros"
+      },
       "FrameworkOverview": {
         "properties": {
           "framework": {
@@ -7150,6 +9690,31 @@
         ],
         "title": "FrameworkOverview",
         "description": "Visión general de un framework"
+      },
+      "GuardarConfiguracionRequest": {
+        "properties": {
+          "tipo_entidad": {
+            "type": "string",
+            "title": "Tipo Entidad"
+          },
+          "respuestas": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Respuestas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tipo_entidad"
+        ],
+        "title": "GuardarConfiguracionRequest"
       },
       "HTTPValidationError": {
         "properties": {
@@ -7539,6 +10104,32 @@
         ],
         "title": "LoginRequest"
       },
+      "MentorReplyRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Session Id",
+            "default": ""
+          },
+          "auditor_response": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Auditor Response"
+          },
+          "account_context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Account Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "auditor_response"
+        ],
+        "title": "MentorReplyRequest"
+      },
       "MetodoRequest": {
         "properties": {
           "area": {
@@ -7619,6 +10210,141 @@
         ],
         "title": "OwnershipLinkRequest",
         "description": "Relación de propiedad entre entidades"
+      },
+      "PendingItemRequest": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 3,
+            "title": "Status"
+          },
+          "answer": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Answer",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "PendingItemRequest"
+      },
+      "PermanentDeleteRequest": {
+        "properties": {
+          "confirmation": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Confirmation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "confirmation"
+        ],
+        "title": "PermanentDeleteRequest"
+      },
+      "PilotSurveyRequest": {
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Conversation Id",
+            "default": ""
+          },
+          "time_saved_minutes": {
+            "type": "integer",
+            "maximum": 480.0,
+            "minimum": 0.0,
+            "title": "Time Saved Minutes"
+          },
+          "understanding_before": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Understanding Before"
+          },
+          "understanding_after": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Understanding After"
+          },
+          "would_reuse": {
+            "type": "boolean",
+            "title": "Would Reuse"
+          },
+          "willing_to_pay": {
+            "type": "boolean",
+            "title": "Willing To Pay"
+          }
+        },
+        "type": "object",
+        "required": [
+          "time_saved_minutes",
+          "understanding_before",
+          "understanding_after",
+          "would_reuse",
+          "willing_to_pay"
+        ],
+        "title": "PilotSurveyRequest"
+      },
+      "ProfileAnalysisRequest": {
+        "properties": {
+          "force": {
+            "type": "boolean",
+            "title": "Force",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ProfileAnalysisRequest"
+      },
+      "ProfileAnswersRequest": {
+        "properties": {
+          "answers": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Answers"
+          }
+        },
+        "type": "object",
+        "title": "ProfileAnswersRequest"
+      },
+      "ProfileDecisionRequest": {
+        "properties": {
+          "hypothesis_id": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 3,
+            "title": "Hypothesis Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "edited_title": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Edited Title",
+            "default": ""
+          },
+          "edited_reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Edited Reason",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "hypothesis_id",
+          "status"
+        ],
+        "title": "ProfileDecisionRequest"
       },
       "ProgresoEncargo": {
         "properties": {

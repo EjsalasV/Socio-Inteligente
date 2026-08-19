@@ -184,3 +184,13 @@ Esta política cumple:
 - ✓ RGPD (si procesa datos de EU)
 
 **Última revisión:** 16 de mayo de 2026
+# AVISO ALPHA CERRADA - PRIVACIDAD
+
+- La Alpha debe utilizar datos ficticios o anonimizados.
+- SocioAI no usa expedientes, documentos, conversaciones, respuestas ni auditorias cerradas para entrenar modelos de IA.
+- Los datos de un cliente no se reutilizan para construir criterio compartido, enriquecer respuestas de otros clientes ni crear productos derivados.
+- Cuando un proveedor de IA sea necesario para responder, el tratamiento se limita a generar la respuesta solicitada bajo la configuracion del encargo; no constituye autorizacion para entrenamiento posterior por SocioAI.
+- Las metricas del piloto guardan eventos, categorias, tiempos y hashes tecnicos; no duplican el contenido del expediente.
+- El tester no debe incluir nombres, saldos, RUC u otra informacion identificable en comentarios de feedback.
+
+---

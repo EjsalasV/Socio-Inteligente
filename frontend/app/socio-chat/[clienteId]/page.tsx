@@ -1,12 +1,12 @@
 ﻿"use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import DashboardSkeleton from "../../../components/dashboard/DashboardSkeleton";
 import ErrorMessage from "../../../components/dashboard/ErrorMessage";
-import { createChatConversation, deleteChatConversation, getChatConversations, getChatHistory, postChat, renameChatConversation, type ChatConversation } from "../../../lib/api";
+import { createChatConversation, deleteChatConversation, getChatConversations, getChatHistory, postChat, postChatFeedback, postPilotSurvey, renameChatConversation, type ChatConversation } from "../../../lib/api";
 import { useAuditContext } from "../../../lib/hooks/useAuditContext";
 import { useDashboard } from "../../../lib/hooks/useDashboard";
 import { useLearningRole } from "../../../lib/hooks/useLearningRole";
@@ -15,6 +15,7 @@ import { ReactMarkdown } from "../../../components/ReactMarkdown";
 import { logoutSession } from "../../../lib/auth-session";
 import { useWorkflow } from "../../../lib/hooks/useWorkflow";
 import { summarizeUiError } from "../../../lib/ui-errors";
+import { uploadClienteDocumento } from "../../../lib/api/clientes";
 
 type ChatMessage = {
   id: string;
@@ -35,6 +36,16 @@ type ChatMessage = {
   mode_used?: string;
   web_search_used?: boolean;
   expert_criteria_used?: boolean;
+  quality_control?: {
+    publication?: "published" | "withheld" | string;
+    normative?: string;
+    grounding?: string;
+    quality_repair_used?: boolean;
+    normative_redaction_used?: boolean;
+    grounding_redaction_used?: boolean;
+    trace_id?: string;
+    trace_status?: string;
+  };
 };
 
 type HistoryMessage = {
@@ -43,6 +54,8 @@ type HistoryMessage = {
   timestamp?: string;
   citations?: ChatMessage["citations"];
   confidence?: number;
+  mode_used?: string;
+  quality_control?: ChatMessage["quality_control"];
 };
 
 const QUICK_PROMPTS = [
@@ -133,6 +146,9 @@ export default function SocioChatPage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [chatNotice, setChatNotice] = useState<ChatNotice | null>(null);
   const [showConversationActionsAlways, setShowConversationActionsAlways] = useState(false);
+  const [uploadingSource, setUploadingSource] = useState(false);
+  const [attachedSourceName, setAttachedSourceName] = useState("");
+  const sourceInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -208,6 +224,8 @@ export default function SocioChatPage() {
             timestamp: m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : nowLabel(),
             citations: Array.isArray(m.citations) ? (m.citations as ChatMessage["citations"]) : [],
             confidence: typeof m.confidence === "number" ? m.confidence : 0,
+            mode_used: m.mode_used,
+            quality_control: m.quality_control,
           }));
         setMessages(mapped.slice(-120));
         if (active) setChatNotice(null);
@@ -281,6 +299,7 @@ export default function SocioChatPage() {
         mode_used: response?.data?.mode_used ?? "chat",
         web_search_used: response?.data?.web_search_used === true,
         expert_criteria_used: response?.data?.expert_criteria_used === true,
+        quality_control: response?.data?.quality_control as ChatMessage["quality_control"],
       };
       setMessages((prev) => [...prev, assistantMessage]);
       const refreshed = await getChatConversations(clienteId);
@@ -303,6 +322,62 @@ export default function SocioChatPage() {
       setMessages((prev) => [...prev, assistantMessage]);
     } finally {
       setSending(false);
+    }
+  }
+
+  async function handleResponseFeedback(message: ChatMessage, outcome: "helpful" | "incorrect"): Promise<void> {
+    const traceId = message.quality_control?.trace_id;
+    if (!traceId) return;
+    let comment = "";
+    if (outcome === "incorrect") {
+      const entered = window.prompt(
+        "Describe brevemente el problema sin incluir nombres, saldos, RUC ni datos identificables del cliente.",
+        "",
+      );
+      if (entered === null) return;
+      comment = entered.trim().slice(0, 500);
+    }
+    try {
+      await postChatFeedback(clienteId, {
+        trace_id: traceId,
+        outcome,
+        issue_type: outcome === "incorrect" ? "other" : "",
+        comment,
+      });
+      setChatNotice({
+        tone: "info",
+        title: outcome === "helpful" ? "Respuesta marcada como útil" : "Problema registrado",
+        detail: "El feedback quedó vinculado a la traza de calidad, no al entrenamiento del modelo.",
+      });
+    } catch (reason) {
+      const summary = summarizeUiError(reason, "No se pudo registrar el feedback.", "la evaluación de la respuesta");
+      setChatNotice({ tone: "error", title: summary.title, detail: summary.detail });
+    }
+  }
+
+  async function handleSessionEvaluation(): Promise<void> {
+    const timeRaw = window.prompt("¿Cuántos minutos aproximados te ahorró esta sesión?", "0");
+    if (timeRaw === null) return;
+    const beforeRaw = window.prompt("Comprensión antes de usar SocioAI (1 a 5)", "3");
+    if (beforeRaw === null) return;
+    const afterRaw = window.prompt("Comprensión después de usar SocioAI (1 a 5)", "4");
+    if (afterRaw === null) return;
+    const timeSaved = Math.max(0, Math.min(480, Number.parseInt(timeRaw, 10) || 0));
+    const before = Math.max(1, Math.min(5, Number.parseInt(beforeRaw, 10) || 3));
+    const after = Math.max(1, Math.min(5, Number.parseInt(afterRaw, 10) || 3));
+    try {
+      await postPilotSurvey(clienteId, {
+        conversation_id: activeConversationId,
+        time_saved_minutes: timeSaved,
+        understanding_before: before,
+        understanding_after: after,
+        would_reuse: window.confirm("¿Volverías a usar SocioAI en otro encargo?"),
+        willing_to_pay: window.confirm("Si mantiene esta utilidad, ¿considerarías pagar por SocioAI?"),
+      });
+      setChatNotice({ tone: "info", title: "Evaluación Alpha registrada", detail: "Gracias. Estas métricas no entrenan al modelo ni incorporan datos del cliente." });
+    } catch (reason) {
+      const summary = summarizeUiError(reason, "No se pudo registrar la evaluación.", "la evaluación Alpha");
+      setChatNotice({ tone: "error", title: summary.title, detail: summary.detail });
     }
   }
 
@@ -358,6 +433,36 @@ export default function SocioChatPage() {
     }
   }
 
+  async function handleSourceSelected(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || uploadingSource) return;
+
+    setUploadingSource(true);
+    setChatNotice({
+      tone: "info",
+      title: "Procesando fuente",
+      detail: `SocioAI está incorporando ${file.name} al contexto del cliente.`,
+    });
+    try {
+      const document = await uploadClienteDocumento(clienteId, file, "other");
+      setAttachedSourceName(document.name);
+      const indexed = document.ingestion?.indexed === true;
+      setChatNotice({
+        tone: indexed ? "info" : "error",
+        title: indexed ? "Fuente disponible para el Mentor" : "Fuente guardada con advertencias",
+        detail: indexed
+          ? `${document.name} quedó indexado y podrá respaldar las próximas respuestas.`
+          : `${document.name} se conservó, pero no pudo indexarse completamente. Revísalo en Fuentes del cliente.`,
+      });
+    } catch (reason) {
+      const summary = summarizeUiError(reason, "No se pudo adjuntar la fuente.", "el archivo seleccionado");
+      setChatNotice({ tone: "error", title: summary.title, detail: summary.detail });
+    } finally {
+      setUploadingSource(false);
+    }
+  }
+
   if (dashboardLoading) return <DashboardSkeleton />;
   if (dashboardError) return <ErrorMessage message={dashboardError} />;
   if (!dashboard) return <ErrorMessage message="No hay contexto del cliente para Socio Chat." />;
@@ -365,6 +470,9 @@ export default function SocioChatPage() {
   const phaseLabel = workflow?.current_phase === "informe" ? "Informe" : workflow?.current_phase === "ejecucion" ? "Visita final" : "Planificación";
   const recentConversation = conversations[0];
   const suggestedRisk = openRisks[0];
+  const suggestedAreaHref = suggestedRisk?.area_id
+    ? `/areas/${encodeURIComponent(clienteId)}/${encodeURIComponent(suggestedRisk.area_id)}`
+    : `/entity-profile/${encodeURIComponent(clienteId)}`;
 
   return (
     <main className="mentor-paper min-h-screen text-[#10283a]">
@@ -446,6 +554,54 @@ export default function SocioChatPage() {
                       Modo respaldo activo. Para respuesta generativa completa, configura la API key del LLM.
                     </div>
                   ) : null}
+                  {msg.role === "assistant" && msg.quality_control ? (() => {
+                    const withheld = msg.quality_control?.publication === "withheld";
+                    const adjusted = Boolean(
+                      msg.quality_control?.quality_repair_used
+                      || msg.quality_control?.normative_redaction_used
+                      || msg.quality_control?.grounding_redaction_used,
+                    );
+                    const traceFailed = msg.quality_control?.trace_status === "failed";
+                    const label = traceFailed
+                      ? "Trazabilidad no registrada"
+                      : withheld
+                        ? "Respuesta retenida por control"
+                        : adjusted
+                          ? "Verificada con ajustes"
+                          : "Control de calidad registrado";
+                    const tone = traceFailed
+                      ? "border-red-200 bg-red-50 text-red-800"
+                      : withheld
+                        ? "border-amber-200 bg-amber-50 text-amber-800"
+                        : "border-teal-200 bg-teal-50 text-teal-800";
+                    return (
+                      <div
+                        className={`mt-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${tone}`}
+                        title={msg.quality_control.trace_id ? `Traza ${msg.quality_control.trace_id}` : undefined}
+                      >
+                        <span className="material-symbols-outlined text-[13px]">verified_user</span>
+                        {label}
+                      </div>
+                    );
+                  })() : null}
+                  {msg.role === "assistant" && msg.quality_control?.trace_id ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleResponseFeedback(msg, "helpful")}
+                        className="rounded-full border border-teal-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-teal-800 hover:bg-teal-50"
+                      >
+                        Útil
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleResponseFeedback(msg, "incorrect")}
+                        className="rounded-full border border-rose-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-rose-700 hover:bg-rose-50"
+                      >
+                        Reportar respuesta incorrecta
+                      </button>
+                    </div>
+                  ) : null}
                   {msg.role === "assistant" && msg.citations && msg.citations.length > 0 ? (() => {
                     const niaCitations = uniqueCitations(msg.citations).filter(c => c.norma !== "Web");
                     const webCitations = uniqueCitations(msg.citations).filter(c => c.norma === "Web");
@@ -519,7 +675,24 @@ export default function SocioChatPage() {
 
           <div data-tour="sociochat-input" className="mt-6">
             <form onSubmit={handleSend} className="mentor-composer flex items-end gap-3 rounded-[16px] border border-[#bcae96] bg-[#fffefa]/90 p-3 shadow-[0_16px_36px_rgba(45,44,36,0.08)]">
-              <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#55716e] hover:bg-[#eee7da]" aria-label="Adjuntar fuente"><span className="material-symbols-outlined">attach_file</span></button>
+              <input
+                ref={sourceInputRef}
+                type="file"
+                accept=".pdf,.docx,.xlsx,.txt,.md,.csv"
+                className="sr-only"
+                onChange={(event) => void handleSourceSelected(event)}
+                aria-label="Seleccionar fuente para el Mentor"
+              />
+              <button
+                type="button"
+                disabled={uploadingSource}
+                onClick={() => sourceInputRef.current?.click()}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#55716e] hover:bg-[#eee7da] disabled:opacity-40"
+                aria-label={uploadingSource ? "Procesando fuente" : "Adjuntar fuente"}
+                title="Adjuntar PDF, DOCX, XLSX, TXT, MD o CSV como fuente de contexto"
+              >
+                <span className="material-symbols-outlined">{uploadingSource ? "progress_activity" : "attach_file"}</span>
+              </button>
               <textarea
                 aria-label="Mensaje para Socio AI"
                 value={input}
@@ -535,10 +708,21 @@ export default function SocioChatPage() {
                 <span className="material-symbols-outlined">send</span>
               </button>
             </form>
+            {attachedSourceName ? (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-[#2b7774]" role="status">
+                <span className="material-symbols-outlined text-[15px]">description</span>
+                Fuente incorporada: {attachedSourceName}
+              </p>
+            ) : null}
             {sending ? (
               <p className="mt-3 text-xs uppercase tracking-[0.12em] text-[#6f624e]" role="status" aria-live="polite">
                 Enviando mensaje al Mentor…
               </p>
+            ) : null}
+            {messages.some((message) => message.role === "assistant") ? (
+              <button type="button" onClick={() => void handleSessionEvaluation()} className="mt-3 text-xs font-semibold text-[#2b7774] underline underline-offset-4">
+                Cerrar y evaluar esta sesión Alpha
+              </button>
             ) : null}
           </div>
 
@@ -550,7 +734,7 @@ export default function SocioChatPage() {
             </article>
             <article>
               <h2 className="mentor-kicker">Área sugerida</h2>
-              <button type="button" onClick={() => suggestedRisk && setInput(`Ayúdame a comprender el riesgo de ${suggestedRisk.area_nombre}.`)} className="mt-4 flex w-full items-start gap-3 text-left"><span className="material-symbols-outlined mt-0.5 text-[20px] text-[#2f8582]">track_changes</span><span><span className="block font-headline text-lg">{suggestedRisk?.area_nombre || "Comprensión del cliente"}</span><span className="mt-1 block text-xs text-[#7a8388]">{suggestedRisk ? `Prioridad ${suggestedRisk.nivel.toLowerCase()} · úsala como punto de partida, no como conclusión.` : "Empieza por una cuenta, procedimiento o decisión concreta."}</span></span></button>
+              <Link href={suggestedAreaHref} className="mt-4 flex w-full items-start gap-3 text-left"><span className="material-symbols-outlined mt-0.5 text-[20px] text-[#2f8582]">track_changes</span><span><span className="block font-headline text-lg">{suggestedRisk?.area_nombre || "Comprensión del cliente"}</span><span className="mt-1 block text-xs text-[#7a8388]">{suggestedRisk ? `Prioridad ${suggestedRisk.nivel.toLowerCase()} · abrir área para revisarla.` : "Abre el perfil y empieza por una cuenta, procedimiento o decisión concreta."}</span></span></Link>
             </article>
           </div>
           {role === "junior" || role === "socio" ? <p className="mt-6 text-[11px] text-[#7d8587]">Vista adaptada al nivel {role === "junior" ? "Junior" : "Socio"}; el nivel cambia la forma de acompañarte, no tus permisos ni el criterio requerido.</p> : null}

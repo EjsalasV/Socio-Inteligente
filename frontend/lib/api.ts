@@ -278,6 +278,26 @@ export async function postChat(clienteId: string, payload: ChatRequest & { conve
   });
 }
 
+export async function postChatFeedback(
+  clienteId: string,
+  payload: { trace_id: string; outcome: "helpful" | "incorrect"; issue_type?: "fact" | "normative" | "procedure" | "clarity" | "other" | ""; comment?: string },
+): Promise<ApiEnvelope<{ recorded: boolean; feedback_id: string }>> {
+  return apiFetch<ApiEnvelope<{ recorded: boolean; feedback_id: string }>>(`/chat/${clienteId}/feedback`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function postPilotSurvey(
+  clienteId: string,
+  payload: { conversation_id?: string; time_saved_minutes: number; understanding_before: number; understanding_after: number; would_reuse: boolean; willing_to_pay: boolean },
+): Promise<ApiEnvelope<{ recorded: boolean; feedback_id: string }>> {
+  return apiFetch<ApiEnvelope<{ recorded: boolean; feedback_id: string }>>(`/chat/${clienteId}/pilot-survey`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function postMetodologia(
   clienteId: string,
   payload: MetodoRequest,

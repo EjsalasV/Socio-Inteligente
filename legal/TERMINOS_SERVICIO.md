@@ -174,3 +174,9 @@ Para reclamos o dudas:
 - Teléfono: +593 [número futuro]
 
 **Este documento debe ser aceptado al crear cuenta en SocioAI.**
+
+---
+
+## 11. CONDICIONES DE LA ALPHA CERRADA
+
+SocioAI se entrega para evaluacion controlada y no es un producto final. El tester acepta usar datos ficticios o anonimizados, validar toda recomendacion y reportar respuestas incorrectas. SocioAI no reutilizara informacion de clientes, auditorias terminadas o conversaciones para entrenar modelos ni para mejorar criterio compartido entre entidades.

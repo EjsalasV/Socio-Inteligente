@@ -33,6 +33,7 @@ export default function RegistroPage() {
   const handleLegalAccept = () => {
     setShowLegal(false)
     localStorage.setItem('legal_accepted_date', new Date().toISOString())
+    localStorage.setItem('alpha_rules_accepted_version', '2026-08-09')
   }
 
   const handleLegalDecline = () => {
@@ -58,6 +59,8 @@ export default function RegistroPage() {
         body: JSON.stringify({
           ...formData,
           legal_accepted: true,
+          alpha_rules_accepted: true,
+          alpha_rules_version: '2026-08-09',
           accepted_at: new Date().toISOString(),
         }),
       })

@@ -22,7 +22,17 @@ type DraftPayload = {
   answers: Record<string, string>;
   unanswered_critical: string[];
   pending_confirmations: string[];
-  pending_items: Array<Record<string, never>>;
+  pending_items: Array<{
+    question_id: string;
+    question: string;
+    reason: string;
+    area: string;
+    impact: string;
+    answer: string;
+    status: "pending" | "requested" | "received" | "confirmed" | "not_applicable";
+    created_at: string;
+    updated_at: string;
+  }>;
   limitations: string[];
   transparency_note: string;
   analysis: AnalysisPayload;
@@ -62,6 +72,7 @@ type AnalysisPayload = {
 type MockOptions = {
   failDecisionStatus?: DecisionStatus;
   failConfirmOnce?: boolean;
+  initialStatus?: DraftPayload["status"];
 };
 
 const FIXED_NOW = "2026-08-04T12:30:00.000Z";
@@ -155,10 +166,10 @@ function baseAnalysis(): AnalysisPayload {
   };
 }
 
-function buildDraft(): DraftPayload {
+function buildDraft(status: DraftPayload["status"] = "confirmed"): DraftPayload {
   return {
     cliente_id: CLIENTE_ID,
-    status: "confirmed",
+    status,
     generated_at: FIXED_NOW,
     facts: [
       { key: "legal_name", label: "Nombre legal", value: "Cliente Demo SA", source: "onboarding", status: "confirmed" },
@@ -263,12 +274,12 @@ async function prepareEntityProfile(page: Page, options: MockOptions = {}): Prom
     }
 
     if (logicalPath === `/entity-profile/${CLIENTE_ID}/draft` && method === "GET") {
-      await fulfillJson(route, envelope(buildDraft()));
+      await fulfillJson(route, envelope(buildDraft(options.initialStatus)));
       return;
     }
 
     if (logicalPath === `/entity-profile/${CLIENTE_ID}/answers` && method === "PUT") {
-      await fulfillJson(route, envelope(buildDraft()));
+      await fulfillJson(route, envelope(buildDraft(options.initialStatus)));
       return;
     }
 
@@ -299,7 +310,7 @@ async function prepareEntityProfile(page: Page, options: MockOptions = {}): Prom
         }, 422);
         return;
       }
-      await fulfillJson(route, envelope(buildDraft()));
+      await fulfillJson(route, envelope(buildDraft("confirmed")));
       return;
     }
 
@@ -469,7 +480,7 @@ test.describe("Resultado del perfil", () => {
     const riskCard = page.locator("details").filter({ hasText: "Riesgo de reconocimiento de ingresos" }).first();
     await riskCard.locator("summary").press("Enter");
     await riskCard.getByRole("button", { name: "Descartar" }).click();
-    await expect(page.locator("main [role='alert']").first()).toContainText("La información enviada no pasó la validación.");
+    await expect(page.locator("main [role='alert']").first()).toContainText("La decisión no cumple la validación mínima.");
 
     await riskCard.getByRole("button", { name: "Descartar" }).click();
 
@@ -493,10 +504,20 @@ test.describe("Resultado del perfil", () => {
     await expect(page.getByRole("heading", { name: /Ya tengo una primera comprensión de la entidad/ })).toBeVisible();
 
     await page.getByRole("button", { name: "Confirmar perfil y entrar al Mentor" }).click();
-    await expect(page.locator("main [role='alert']").first()).toContainText("La información enviada no pasó la validación.");
+    await expect(page.locator("main [role='alert']").first()).toContainText("Aún faltan respuestas por confirmar.");
     await expect(page).toHaveURL(/\/entity-profile\/demo$/);
 
     await page.getByRole("button", { name: "Confirmar perfil y entrar al Mentor" }).click();
     await expect(page).toHaveURL(/\/socio-chat\/demo$/);
   });
+
+  test("restaura el resultado analizado cuando el perfil es provisional", async ({ page }) => {
+    await prepareEntityProfile(page, { initialStatus: "provisional" });
+
+    await page.goto(`/entity-profile/${CLIENTE_ID}`);
+
+    await expect(page.getByRole("heading", { name: /Ya tengo una primera comprensión de la entidad/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Evaluar esta ronda" })).toHaveCount(0);
+  });
+
 });

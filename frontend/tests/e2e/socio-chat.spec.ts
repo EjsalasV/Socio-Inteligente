@@ -249,6 +249,41 @@ async function prepareSocioChat(page: Page, options: MockOptions = {}): Promise<
       return;
     }
 
+    if (logicalPath === `/areas/${CLIENTE_ID}/410` && method === "GET") {
+      await fulfillJson(route, envelope({
+        encabezado: {
+          area_code: "410",
+          nombre: "Ingresos",
+          responsable: "Sin asignar",
+          estatus: "pendiente",
+          actual_year: "2025",
+          anterior_year: "2024",
+        },
+        cuentas: [],
+        aseveraciones: [],
+        briefing_context: {
+          cliente_id: CLIENTE_ID,
+          area_codigo: "410",
+          area_nombre: "Ingresos",
+          riesgo: "alto",
+          etapa: "ejecucion",
+        },
+      }));
+      return;
+    }
+
+    if (logicalPath === "/areas/410/procedimientos" && method === "GET") {
+      await fulfillJson(route, envelope({
+        area_codigo: "410",
+        area_nombre: "Ingresos",
+        procedimientos: [],
+        riesgos_tipicos: [],
+        alertas_tributarias: [],
+        requerimientos: [],
+      }));
+      return;
+    }
+
     if (logicalPath.startsWith("/workflow/") && method === "GET") {
       await fulfillJson(route, envelope({
         cliente_id: CLIENTE_ID,
@@ -270,6 +305,26 @@ async function prepareSocioChat(page: Page, options: MockOptions = {}): Promise<
         has_tb_cache: true,
         tb_size_bytes: 1024,
         tb_mtime_ns: 1234567890,
+      }));
+      return;
+    }
+
+    if (logicalPath === `/context-documents/${CLIENTE_ID}` && method === "POST") {
+      await fulfillJson(route, envelope({
+        document: {
+          id: "doc-chat-1",
+          name: "contrato.pdf",
+          document_type: "other",
+          document_label: "Otro documento de contexto",
+          period: "",
+          status: "available",
+          size_bytes: 24,
+          uploaded_at: FIXED_NOW,
+          ingestion: { indexed: true, text_chars: 120 },
+          document_role: "other",
+          document_role_label: "Otro",
+          cutoff_date: "",
+        },
       }));
       return;
     }
@@ -438,6 +493,28 @@ test.describe("Socio Chat E2E", () => {
     await submit.click({ force: true });
     await expect.poll(() => chatBodies.length).toBe(3);
     expect(chatBodies[2]).toBe("Ayúdame: ordena el siguiente paso");
+  });
+
+  test("adjunta una fuente de contexto desde el compositor", async ({ page }) => {
+    await prepareSocioChat(page);
+    await openSocioChat(page);
+
+    await page.getByLabel("Seleccionar fuente para el Mentor").setInputFiles({
+      name: "contrato.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("fuente de prueba"),
+    });
+
+    await expect(page.getByText("Fuente incorporada: contrato.pdf")).toBeVisible();
+    await expect(page.getByText("Fuente disponible para el Mentor")).toBeVisible();
+  });
+
+  test("abre el área sugerida", async ({ page }) => {
+    await prepareSocioChat(page);
+    await openSocioChat(page);
+
+    await page.getByRole("link", { name: /Ingresos.*abrir área/i }).click();
+    await expect(page).toHaveURL(`/areas/${CLIENTE_ID}/410`);
   });
 
   test("no muestra la conversación hasta abrirla y el menú de perfil se abre y se cierra", async ({ page }) => {

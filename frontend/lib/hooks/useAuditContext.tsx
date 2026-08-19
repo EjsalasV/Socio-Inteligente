@@ -3,6 +3,8 @@
 import { createContext, useContext, useMemo } from "react";
 import { usePathname } from "next/navigation";
 
+import { normalizeClienteId } from "../client-id";
+
 export type AuditModule =
   | "dashboard"
   | "risk-engine"
@@ -34,7 +36,7 @@ const AuditContext = createContext<AuditContextValue | null>(null);
 function parseFromPath(pathname: string): AuditContextValue {
   const chunks = pathname.split("/").filter(Boolean);
   const first = chunks[0] ?? "dashboard";
-  const second = chunks[1] ?? "";
+  const second = normalizeClienteId(chunks[1] ?? "");
 
   let moduleKey: AuditModule = "dashboard";
   if (first === "risk-engine") moduleKey = "risk-engine";

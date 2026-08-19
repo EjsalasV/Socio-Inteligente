@@ -17,6 +17,8 @@ import {
   type EntityProfileHypothesis,
 } from "../../../lib/api/entity-profile";
 import { summarizeUiError } from "../../../lib/ui-errors";
+import { normalizeClienteId } from "../../../lib/client-id";
+import { answerStillNeedsConfirmation } from "../../../lib/entity-profile-follow-up";
 
 type Params = { clienteId?: string | string[] };
 
@@ -39,10 +41,11 @@ const PENDING_STATUS_LABELS = {
 export default function EntityProfilePage() {
   const params = useParams<Params>();
   const router = useRouter();
-  const clienteId = useMemo(
+  const clienteIdParam = useMemo(
     () => (Array.isArray(params?.clienteId) ? params.clienteId[0] ?? "" : params?.clienteId ?? ""),
     [params],
   );
+  const clienteId = useMemo(() => normalizeClienteId(clienteIdParam), [clienteIdParam]);
   const [draft, setDraft] = useState<EntityProfileDraft | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -60,6 +63,12 @@ export default function EntityProfilePage() {
   const [loadingLabel, setLoadingLabel] = useState("Analizando las fuentes y preparando el perfil...");
 
   useEffect(() => {
+    if (clienteId && clienteId !== clienteIdParam) {
+      router.replace(`/entity-profile/${encodeURIComponent(clienteId)}`);
+    }
+  }, [clienteId, clienteIdParam, router]);
+
+  useEffect(() => {
     if (!hasSessionState()) {
       router.replace("/");
       return;
@@ -72,7 +81,7 @@ export default function EntityProfilePage() {
         setDraft(value);
         setAnswers(value.answers ?? {});
         setAnalysis(value.analysis);
-        setReviewMode(value.status === "confirmed" && Boolean(value.analysis));
+        setReviewMode(value.status !== "needs_answers" && Boolean(value.analysis));
       })
       .catch((reason: unknown) => {
         if (active) setError(summarizeUiError(reason, "No se pudo generar el perfil.", "el perfil del cliente").detail);
@@ -287,6 +296,8 @@ export default function EntityProfilePage() {
   const entityName = String(draft.facts.find((fact) => fact.key === "legal_name")?.value ?? draft.facts.find((fact) => fact.label.toLowerCase().includes("nombre"))?.value ?? "Cliente");
   const period = String(draft.facts.find((fact) => fact.key === "period")?.value ?? draft.facts.find((fact) => fact.label.toLowerCase().includes("periodo"))?.value ?? "Actual");
   const framework = String(draft.facts.find((fact) => fact.key === "accounting_framework")?.value ?? draft.facts.find((fact) => fact.label.toLowerCase().includes("marco"))?.value ?? "Por confirmar");
+  const openPendingItems = draft.pending_items.filter((item) => item.status !== "confirmed" && item.status !== "not_applicable");
+  const resolvedPendingItems = draft.pending_items.filter((item) => item.status === "confirmed" || item.status === "not_applicable");
 
   return (
     <main className="mentor-paper min-h-screen text-[#10283a]">
@@ -404,14 +415,14 @@ export default function EntityProfilePage() {
                 <h2 className="mt-1 font-headline text-3xl">Pendientes por confirmar</h2>
                 <p className="mt-2 max-w-3xl text-sm text-slate-600">Completa la información cuando esté disponible. SocioAI conserva el origen y el efecto del pendiente sin convertirlo en un hecho.</p>
               </div>
-              <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-900">{draft.pending_confirmations.length} abiertos</span>
+              <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-900">{openPendingItems.length} abiertos</span>
             </div>
-            <div className="mt-6 space-y-4">
-              {draft.pending_items.map((item) => {
+            {openPendingItems.length ? <div className="mt-6 space-y-4">
+              {openPendingItems.map((item) => {
                 const edit = pendingEdits[item.question_id] ?? { status: item.status, answer: item.answer };
-                const closed = item.status === "confirmed" || item.status === "not_applicable";
+                const confirmationBlocked = edit.status === "confirmed" && answerStillNeedsConfirmation(edit.answer);
                 return (
-                  <article key={item.question_id} className={`rounded-xl border p-5 ${closed ? "border-emerald-200 bg-emerald-50/40" : "border-amber-200 bg-amber-50/40"}`}>
+                  <article key={item.question_id} className="rounded-xl border border-amber-200 bg-amber-50/40 p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="max-w-3xl"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">{item.area}</p><h3 className="mt-1 text-sm font-semibold">{item.question}</h3><p className="mt-2 text-xs leading-5 text-slate-600"><strong>Efecto:</strong> {item.impact}</p></div>
                       <select aria-label={`Estado de ${item.question}`} value={edit.status} onChange={(event) => setPendingEdits((current) => ({ ...current, [item.question_id]: { ...edit, status: event.target.value as keyof typeof PENDING_STATUS_LABELS } }))} className="rounded-lg border border-black/15 bg-white px-3 py-2 text-xs">
@@ -419,11 +430,16 @@ export default function EntityProfilePage() {
                       </select>
                     </div>
                     <textarea aria-label={`Respuesta para ${item.question}`} value={edit.answer} onChange={(event) => setPendingEdits((current) => ({ ...current, [item.question_id]: { ...edit, answer: event.target.value } }))} rows={3} className="mt-4 w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#177e82]" placeholder="Actualiza la respuesta cuando recibas información…" />
-                    <div className="mt-3 flex items-center justify-between gap-3"><p className="text-[11px] text-slate-500">Estado actual: {PENDING_STATUS_LABELS[item.status]}</p><button type="button" disabled={pendingSavingId === item.question_id} onClick={() => void savePendingItem(item.question_id)} className="rounded-lg bg-[#177e82] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{pendingSavingId === item.question_id ? "Guardando…" : "Guardar pendiente"}</button></div>
+                    {confirmationBlocked ? <p className="mt-2 rounded-lg border border-amber-300 bg-amber-100/70 px-3 py-2 text-xs leading-5 text-amber-950">Para marcarlo como confirmado, reemplaza la parte que indica que falta confirmar por el responsable o hecho finalmente verificado. Si todavía no tienes esa evidencia, usa “Pendiente” o “Solicitado al cliente”.</p> : null}
+                    <div className="mt-3 flex items-center justify-between gap-3"><p className="text-[11px] text-slate-500">Estado guardado: {PENDING_STATUS_LABELS[item.status]}</p><button type="button" disabled={pendingSavingId === item.question_id || confirmationBlocked} onClick={() => void savePendingItem(item.question_id)} className="rounded-lg bg-[#177e82] px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{pendingSavingId === item.question_id ? "Guardando…" : "Guardar seguimiento"}</button></div>
                   </article>
                 );
               })}
-            </div>
+            </div> : <p className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">No hay asuntos abiertos por confirmar.</p>}
+            {resolvedPendingItems.length ? <details className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-emerald-900">Ver seguimiento resuelto ({resolvedPendingItems.length})</summary>
+              <div className="mt-4 space-y-3">{resolvedPendingItems.map((item) => <article key={item.question_id} className="rounded-lg border border-emerald-200 bg-white/70 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">{item.area}</p><span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">{PENDING_STATUS_LABELS[item.status]}</span></div><h3 className="mt-2 text-sm font-semibold">{item.question}</h3><p className="mt-2 text-sm leading-6 text-slate-700">{item.answer || "Sin respuesta adicional."}</p></article>)}</div>
+            </details> : null}
           </section>
         ) : null}
 

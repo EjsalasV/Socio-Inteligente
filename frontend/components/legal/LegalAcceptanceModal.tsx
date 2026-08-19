@@ -23,6 +23,7 @@ export default function LegalAcceptanceModal({
     terms: false,
     privacy: false,
     responsibility: false,
+    alphaData: false,
   })
 
   const allChecked = Object.values(checked).every(Boolean)
@@ -136,6 +137,24 @@ export default function LegalAcceptanceModal({
               >
                 Leer documento de responsabilidad →
               </Link>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-4">
+            <input
+              type="checkbox"
+              id="alphaData"
+              checked={checked.alphaData}
+              onChange={(e) => setChecked({ ...checked, alphaData: e.target.checked })}
+              className="mt-1 h-5 w-5 accent-amber-600"
+            />
+            <div className="flex-1">
+              <label htmlFor="alphaData" className="cursor-pointer font-semibold text-gray-900">
+                Entiendo las reglas de la Alpha cerrada
+              </label>
+              <p className="mt-1 text-sm text-gray-600">
+                Usaré datos ficticios o anonimizados. SocioAI no reutiliza expedientes ni auditorías cerradas para entrenar modelos o mejorar criterio compartido.
+              </p>
             </div>
           </div>
 

@@ -20,6 +20,7 @@ import { getPerfil, savePerfil } from "../../../lib/api/perfil";
 import { authFetchJson } from "../../../lib/api";
 import { useAppState } from "../../../components/providers/AppStateProvider";
 import { SECTOR_OPTIONS } from "../../../lib/sectorCatalog";
+import { normalizeClienteId } from "../../../lib/client-id";
 import type { PerfilPayload } from "../../../types/perfil";
 
 type Params = {
@@ -58,7 +59,11 @@ export default function OnboardingClientePage() {
   const router = useRouter();
   const { resetClientState } = useAppState();
   const params = useParams<Params>();
-  const clienteId = useMemo(() => (Array.isArray(params?.clienteId) ? params?.clienteId[0] ?? "" : params?.clienteId ?? ""), [params]);
+  const clienteIdParam = useMemo(
+    () => (Array.isArray(params?.clienteId) ? params?.clienteId[0] ?? "" : params?.clienteId ?? ""),
+    [params],
+  );
+  const clienteId = useMemo(() => normalizeClienteId(clienteIdParam), [clienteIdParam]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -110,6 +115,12 @@ export default function OnboardingClientePage() {
     estimaciones_complejas: false,
     erp_implementado: false,
   });
+
+  useEffect(() => {
+    if (clienteId && clienteId !== clienteIdParam) {
+      router.replace(`/onboarding/${encodeURIComponent(clienteId)}`);
+    }
+  }, [clienteId, clienteIdParam, router]);
 
   useEffect(() => {
     if (!hasSessionState()) {

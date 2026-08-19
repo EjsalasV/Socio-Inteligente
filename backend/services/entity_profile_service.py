@@ -56,10 +56,20 @@ def _answered(answers: dict[str, Any], question_ids: list[str]) -> bool:
 
 def _is_pending_answer(value: Any) -> bool:
     normalized = str(value or "").strip().lower()
-    return any(marker in normalized for marker in (
+    if not normalized:
+        return False
+    exact_markers = {
         "pendiente", "por confirmar", "aún no", "aun no", "no disponible",
         "se evaluará", "se evaluara", "no definido", "por definir",
-    ))
+    }
+    if normalized.strip(" .;:") in exact_markers:
+        return True
+    uncertainty_markers = (
+        "falta confirmar", "falta por confirmar", "debo confirmar", "debemos confirmar",
+        "aún no se conoce", "aun no se conoce", "aún no tengo", "aun no tengo",
+        "información no disponible", "informacion no disponible", "queda por definir",
+    )
+    return any(marker in normalized for marker in uncertainty_markers)
 
 
 PENDING_STATUSES = {"pending", "requested", "received", "confirmed", "not_applicable"}

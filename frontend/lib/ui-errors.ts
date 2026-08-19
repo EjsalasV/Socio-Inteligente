@@ -58,7 +58,7 @@ export function summarizeUiError(error: unknown, fallback: string, context = "es
     return {
       status,
       title: "Validación rechazada",
-      detail: "La información enviada no pasó la validación. Revisa los datos y vuelve a intentarlo.",
+      detail: extractMessage(text) || "La información enviada no pasó la validación. Revisa los datos y vuelve a intentarlo.",
     };
   }
 

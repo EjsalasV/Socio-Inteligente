@@ -19,6 +19,7 @@ export type ChatResponse = {
   mode_used?: string;
   web_search_used?: boolean;
   expert_criteria_used?: boolean;
+  quality_control?: Record<string, unknown>;
   [key: string]: unknown;
 };
 
