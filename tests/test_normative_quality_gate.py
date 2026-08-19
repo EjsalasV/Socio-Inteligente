@@ -8,6 +8,8 @@ from backend.services.normative_quality_service import (
     active_markdown_files,
     apply_quality_gate,
     source_signature,
+    redact_unsupported_normative_units,
+    validate_normative_output,
 )
 
 
@@ -21,6 +23,13 @@ def _verified_metadata() -> dict[str, str]:
         "vigente_desde": "2021-12-15",
         "url_oficial": "https://www.iaasb.org/publications/example",
         "localizador": "parrafos 25-26",
+        "licencia": "permiso_otorgado_para_ia para el corpus de prueba",
+        "aplicacion_local": "Aplicable en Ecuador para el periodo de prueba",
+        "revisado_por": "Profesional de prueba",
+        "rol_revisor": "Socio de auditoria",
+        "fecha_revision": "2026-08-09",
+        "alcance_revision": "Autoridad, version, vigencia, aplicacion y localizador",
+        "evidencia_revision": "TEST-REVIEW-001",
     }
 
 
@@ -33,11 +42,138 @@ def test_incomplete_normative_source_is_orientation_only() -> None:
     assert "version_no_identificable" in metadata["quality_issues"]
 
 
+def test_unverified_normative_obligation_is_blocked() -> None:
+    pending = apply_quality_gate({"norma": "NIA 240"}, "data/conocimiento_normativo/nias/nia_240.md")
+
+    validation = validate_normative_output(
+        "Fraude (NIA 240): la presuncion sobre ingresos es obligatoria.",
+        [pending],
+    )
+
+    assert validation.allowed is False
+    assert any(issue.startswith("atribucion_sin_fuente") for issue in validation.issues)
+
+
+def test_unsupported_quantitative_selection_is_blocked() -> None:
+    validation = validate_normative_output(
+        "Revisa las ultimas 10 facturas de diciembre y las primeras 10 facturas de enero.",
+        [],
+    )
+
+    assert validation.allowed is False
+    assert "seleccion_cuantitativa_sin_base" in validation.issues
+
+
+def test_redaction_removes_only_unsupported_normative_unit() -> None:
+    answer = "Solicita el auxiliar de cartera. La NIA 240 exige revisar fraude. Documenta la conclusion humana."
+    validation = validate_normative_output(answer, [])
+
+    redacted = redact_unsupported_normative_units(answer, validation.issues)
+
+    assert "Solicita el auxiliar" in redacted
+    assert "NIA 240" not in redacted
+    assert "Documenta la conclusion" in redacted
+    assert validate_normative_output(redacted, []).allowed is True
+
+
 def test_complete_verified_source_is_citation_eligible() -> None:
     metadata = apply_quality_gate(_verified_metadata(), "data/conocimiento_normativo/nias/nia_315.md")
 
     assert metadata["citation_eligible"] is True
     assert metadata["quality_issues"] == []
+
+
+def test_verified_label_without_review_evidence_does_not_enable_citations() -> None:
+    raw = _verified_metadata()
+    for field in ("revisado_por", "rol_revisor", "fecha_revision", "alcance_revision", "evidencia_revision"):
+        raw.pop(field)
+
+    metadata = apply_quality_gate(raw, "data/conocimiento_normativo/nias/nia_315.md")
+
+    assert metadata["citation_eligible"] is False
+    assert "falta_revisado_por" in metadata["quality_issues"]
+    assert "falta_evidencia_revision" in metadata["quality_issues"]
+
+
+def test_restricted_source_without_safe_ingestion_mode_is_flagged() -> None:
+    metadata = apply_quality_gate(
+        {
+            "licencia": "Copyright IFAC; permiso escrito pendiente",
+            "modo_ingesta": "full_text",
+        },
+        "data/conocimiento_normativo/nias/nia_240.md",
+    )
+
+    assert "ingesta_restringida_sin_metadata_only" in metadata["quality_issues"]
+
+
+def test_metadata_only_ingestion_excludes_protected_body() -> None:
+    metadata = {
+        "norma": "NIA 240",
+        "autoridad": "IAASB",
+        "version": "Manual 2025",
+        "vigente_desde": "2009-12-15",
+        "aplicacion_local": "Ecuador bajo SCVS",
+        "url_oficial": "https://www.iaasb.org/example",
+        "licencia": "Copyright IFAC; permiso escrito pendiente",
+        "modo_ingesta": "metadata_only",
+        "temas": ["fraude", "ingresos"],
+    }
+
+    text = rag_chat_service._ingestion_text(metadata, "TEXTO PROTEGIDO QUE NO DEBE INDEXARSE")
+
+    assert "TEXTO PROTEGIDO" not in text
+    assert "NIA 240" in text
+    assert "excluido del indice" in text
+
+
+def test_legacy_international_source_is_safe_by_default() -> None:
+    metadata = {
+        "norma": "NIA 200",
+        "autoridad": "IAASB",
+        "version": "no declarada",
+        "licencia": "",
+    }
+
+    text = rag_chat_service._ingestion_text(
+        metadata,
+        "CUERPO INTERNACIONAL HEREDADO",
+        "data/conocimiento_normativo/nias/nia_200.md",
+    )
+
+    assert metadata["modo_ingesta"] == "metadata_only"
+    assert "CUERPO INTERNACIONAL HEREDADO" not in text
+
+
+def test_internal_professional_interpretation_is_retrievable_but_not_citable() -> None:
+    raw = {
+        "norma": "NIA 315",
+        "autoridad": "IAASB",
+        "version": "NIA 315 Revisada 2019",
+        "jurisdiccion": "internacional",
+        "vigente_desde": "2021-12-15",
+        "url_oficial": "https://www.iaasb.org/example",
+        "licencia": "Copyright IFAC; permiso pendiente",
+        "aplicacion_local": "Ecuador bajo SCVS",
+        "modo_ingesta": "interpretacion_profesional",
+        "origen_contenido": "interpretacion_profesional_interna",
+    }
+    metadata = apply_quality_gate(raw, "data/conocimiento_normativo/nias/nia_315.md")
+    text = rag_chat_service._ingestion_text(
+        metadata,
+        "Nuestra guia practica relaciona alertas, riesgos y aseveraciones.",
+        "data/conocimiento_normativo/nias/nia_315.md",
+    )
+
+    assert "Nuestra guia practica" in text
+    assert "INTERPRETACION PROFESIONAL INTERNA" in text
+    assert metadata["citation_eligible"] is False
+    assert "ingesta_restringida_sin_metadata_only" not in metadata["quality_issues"]
+    assert "ingesta_internacional_no_restringida" not in metadata["quality_issues"]
+
+    chunks = rag_chat_service._split_chunks("nia_315.md", text, metadata)
+    assert chunks
+    assert all("INTERPRETACION PROFESIONAL INTERNA" in excerpt for _, excerpt, _ in chunks)
 
 
 def test_active_files_exclude_backup_directories(tmp_path: Path) -> None:

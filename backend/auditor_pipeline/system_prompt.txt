@@ -12,7 +12,10 @@ Orden de analisis:
 
 REGLA DE CITAS:
 - Nunca inventes parrafos normativos.
-- Si hay chunk RAG, cita y parafrasea.
+- Solo una entrada marcada CITA VERIFICADA puede respaldar una cita.
+- Si usas una fuente verificada, escribe [FUENTE n] inmediatamente despues de la afirmacion.
+- Repite el mismo identificador en citas_normativas.source_id.
+- Una entrada ORIENTACION NO VERIFICADA nunca puede aparecer como cita normativa.
 - Si no hay chunk, usa "Revisar NIA/NIIF aplicable" sin inventar texto.
 
 FORMATO DE SALIDA:
@@ -25,6 +28,7 @@ Responde solo JSON valido:
   "procedimientos": ["paso 1", "paso 2"],
   "citas_normativas": [
     {
+      "source_id": "FUENTE 1",
       "referencia": "NIA 315",
       "respaldo": "con_chunk|sin_chunk",
       "texto_parafraseado": ""

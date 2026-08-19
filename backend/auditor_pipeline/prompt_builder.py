@@ -97,14 +97,15 @@ def format_rag_chunks(chunks_rag: list[dict[str, Any]]) -> str:
     if not chunks_rag:
         return "NORMATIVA RAG: Sin chunks recuperados."
     blocks: list[str] = []
-    for i, c in enumerate(chunks_rag[:8], start=1):
+    for i, c in enumerate(chunks_rag[:6], start=1):
         ref = str(c.get("referencia") or c.get("source") or "N/D")
         txt = str(c.get("texto") or c.get("excerpt") or "").strip()
         score = c.get("score")
         meta = c.get("metadata") if isinstance(c.get("metadata"), dict) else {}
         citation_eligible = meta.get("citation_eligible") is True or str(meta.get("citation_eligible") or "").lower() == "true"
         quality = "CITA VERIFICADA" if citation_eligible else "ORIENTACION NO VERIFICADA"
-        blocks.append(f"[CHUNK {i}] {ref} (score: {score}; calidad: {quality})\n{txt[:700]}")
+        identifier = "FUENTE" if citation_eligible else "ORIENTACION"
+        blocks.append(f"[{identifier} {i}] {ref} (score: {score}; calidad: {quality})\n{txt[:700]}")
     return "NORMATIVA RAG:\n" + "\n\n".join(blocks)
 
 
@@ -137,6 +138,7 @@ def build_user_prompt(
         f"MODO: {modo}",
         instruction_for_mode(modo),
         "No atribuyas afirmaciones a una norma marcada ORIENTACION NO VERIFICADA; indica que requiere validacion oficial.",
+        "Toda atribucion normativa verificada debe incluir [FUENTE n] inmediatamente despues de la afirmacion y repetir ese identificador en citas_normativas.source_id.",
     ]
     if consulta_adicional.strip():
         parts.extend(["", "=== CONSULTA DEL AUDITOR ===", consulta_adicional.strip()])

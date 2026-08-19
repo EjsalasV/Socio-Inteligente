@@ -25,6 +25,8 @@ Variables minimas recomendadas para pruebas E2E:
 - `DEEPSEEK_API_KEY=<opcional-si-usas-deepseek>`
 - `DEEPSEEK_CHAT_MODEL=<opcional>`
 - `DEEPSEEK_BASE_URL=https://api.deepseek.com`
+- `LLM_TIMEOUT_SECONDS=45` (timeout por llamada conversacional)
+- `LLM_CHAT_MAX_TOKENS=1000` (limite de salida para controlar costo y latencia)
 - `SUPABASE_URL=<opcional>`
 - `SUPABASE_ANON_KEY=<opcional>`
 - `SUPABASE_SERVICE_ROLE_KEY=<opcional>`

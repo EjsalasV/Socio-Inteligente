@@ -398,6 +398,44 @@ class FileRepository:
         p = cdir / "chat_history.json"
         p.write_text(json.dumps(messages[-200:], ensure_ascii=False, indent=2), encoding="utf-8")
 
+    def read_quality_trace(self, cliente_id: str) -> list[dict[str, Any]]:
+        p = self._resolve_cliente_dir(cliente_id) / "quality_trace.json"
+        if not p.exists():
+            return []
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+        return [row for row in data if isinstance(row, dict)][-1000:] if isinstance(data, list) else []
+
+    def append_quality_trace(self, cliente_id: str, event: dict[str, Any]) -> None:
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
+        cdir.mkdir(parents=True, exist_ok=True)
+        events = self.read_quality_trace(cliente_id)
+        events.append(dict(event))
+        p = cdir / "quality_trace.json"
+        p.write_text(json.dumps(events[-1000:], ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def read_pilot_feedback(self, cliente_id: str) -> list[dict[str, Any]]:
+        p = self._resolve_cliente_dir(cliente_id) / "pilot_feedback.json"
+        if not p.exists():
+            return []
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+        return [row for row in data if isinstance(row, dict)][-1000:] if isinstance(data, list) else []
+
+    def append_pilot_feedback(self, cliente_id: str, event: dict[str, Any]) -> None:
+        cdir = self._resolve_cliente_dir(cliente_id, for_write=True)
+        cdir.mkdir(parents=True, exist_ok=True)
+        events = self.read_pilot_feedback(cliente_id)
+        events.append(dict(event))
+        (cdir / "pilot_feedback.json").write_text(
+            json.dumps(events[-1000:], ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
     def read_chat_memory(self, cliente_id: str) -> list[dict[str, Any]]:
         """Lee los resúmenes de memoria comprimida del encargo."""
         p = self._resolve_cliente_dir(cliente_id) / "chat_memory.json"
@@ -981,6 +1019,22 @@ def append_chat_message(cliente_id: str, message: dict[str, Any]) -> None:
     repo.append_chat_message(cliente_id, message)
 
 
+def read_quality_trace(cliente_id: str) -> list[dict[str, Any]]:
+    return repo.read_quality_trace(cliente_id)
+
+
+def append_quality_trace(cliente_id: str, event: dict[str, Any]) -> None:
+    repo.append_quality_trace(cliente_id, event)
+
+
+def read_pilot_feedback(cliente_id: str) -> list[dict[str, Any]]:
+    return repo.read_pilot_feedback(cliente_id)
+
+
+def append_pilot_feedback(cliente_id: str, event: dict[str, Any]) -> None:
+    repo.append_pilot_feedback(cliente_id, event)
+
+
 def list_documentos(cliente_id: str) -> list[dict[str, Any]]:
     return repo.list_documentos(cliente_id)
 
@@ -1082,4 +1136,3 @@ def read_chat_memory(cliente_id: str) -> list[dict[str, Any]]:
 
 def write_chat_memory(cliente_id: str, summaries: list[dict[str, Any]]) -> None:
     repo.write_chat_memory(cliente_id, summaries)
-

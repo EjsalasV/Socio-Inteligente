@@ -13,17 +13,22 @@ import yaml
 from backend.repositories.file_repository import list_documentos, read_hallazgos, read_perfil, read_workflow
 from backend.services.area_procedures_service import get_procedures_by_area, list_areas_with_procedure_count
 from backend.services.chat_response_cache_service import build_response_cache_key, get_cached_response, set_cached_response
+from backend.services.claim_grounding_service import redact_unsupported_claim_units, validate_client_grounding
 from backend.services.expert_criteria_service import get_expert_criteria_by_area, get_expert_criteria_by_sector
 from backend.services.grupo_criteria_service import build_grupo_context_block, resolve_grupo
 from backend.services.rag_cache_service import build_rag_cache_key, get_cached_chunks, set_cached_chunks
 from backend.services.normativa_monitor_service import get_pending_normative_changes
+from backend.services.normative_version_service import build_profile_version_context, should_include_version_context
 from backend.services.normative_quality_service import (
     INDEX_VERSION,
     active_markdown_files,
     apply_quality_gate,
     backup_file_count,
+    evaluate_normative_request,
     is_citation_eligible,
+    redact_unsupported_normative_units,
     source_signature,
+    validate_normative_output,
 )
 from backend.services.prompt_service import render_prompt, validate_minimum_output
 
@@ -50,6 +55,8 @@ METADATA_FILTER_KEYS = {
     "jurisdiccion",
     "url_oficial",
     "localizador",
+    "licencia",
+    "aplicacion_local",
 }
 
 # Web search fallback thresholds
@@ -202,7 +209,10 @@ def _normalize_metadata(relative_source: str, file_path: Path, raw_meta: dict[st
     for key in [
         "norma", "tipo", "marco", "ultima_actualizacion", "tipo_contenido",
         "estado_revision", "autoridad", "version", "edicion", "vigente_desde",
-        "vigente_hasta", "jurisdiccion", "url_oficial", "localizador",
+        "vigente_hasta", "jurisdiccion", "url_oficial", "localizador", "licencia",
+        "aplicacion_local", "modo_ingesta", "origen_contenido", "regla_uso",
+        "autor_interpretacion", "revisado_por", "rol_revisor",
+        "fecha_revision", "alcance_revision", "evidencia_revision",
     ]:
         value = str(raw_meta.get(key, "")).strip()
         if value:
@@ -215,6 +225,56 @@ def _normalize_metadata(relative_source: str, file_path: Path, raw_meta: dict[st
     source_name = Path(relative_source).name
     meta["fuente"] = f"{source_name} | {meta.get('norma', source_name)}"
     return apply_quality_gate(meta, relative_source)
+
+
+def _metadata_only_text(metadata: dict[str, Any]) -> str:
+    topics = ", ".join(_as_str_list(metadata.get("temas"))) or "sin temas declarados"
+    return (
+        f"Referencia normativa: {metadata.get('norma', 'sin identificar')}. "
+        f"Autoridad: {metadata.get('autoridad', 'no declarada')}. "
+        f"Version: {metadata.get('version', 'no declarada')}. "
+        f"Vigente desde: {metadata.get('vigente_desde', 'no declarado')}. "
+        f"Aplicacion local: {metadata.get('aplicacion_local', 'no confirmada')}. "
+        f"Temas: {topics}. URL oficial: {metadata.get('url_oficial', 'no declarada')}. "
+        "El cuerpo del documento fue excluido del indice por restricciones de licencia."
+    )
+
+
+def _ingestion_text(metadata: dict[str, Any], body: str, relative_source: str = "") -> str:
+    mode = str(metadata.get("modo_ingesta") or "").strip().lower()
+    content_origin = str(metadata.get("origen_contenido") or "").strip().lower()
+    license_text = str(metadata.get("licencia") or "").strip().lower()
+    restricted_without_permission = any(
+        marker in license_text
+        for marker in ("pendiente", "permiso escrito", "licencia comercial", "copyright ifac", "copyright ifrs")
+    )
+    normalized_source = relative_source.lower().replace("\\", "/")
+    international_standard_source = any(
+        folder in normalized_source
+        for folder in ("/nias/", "/niif_completas/", "/niif_pymes/")
+    )
+    explicit_ai_permission = any(
+        marker in license_text
+        for marker in ("permiso_otorgado_para_ia", "licensed_for_ai_product", "licencia_producto_otorgada")
+    )
+    professional_interpretation = (
+        mode == "interpretacion_profesional"
+        and content_origin == "interpretacion_profesional_interna"
+    )
+    if professional_interpretation:
+        metadata["modo_ingesta"] = "interpretacion_profesional"
+        return (
+            "[INTERPRETACION PROFESIONAL INTERNA - ORIENTACION, NO CITA NORMATIVA]\n"
+            "Recomendar siempre el cotejo con la norma oficial vigente antes de concluir.\n\n"
+            f"{body}"
+        )
+    if mode == "metadata_only" or restricted_without_permission or (
+        international_standard_source and not explicit_ai_permission
+    ):
+        metadata["modo_ingesta"] = "metadata_only"
+        return _metadata_only_text(metadata)
+    metadata["modo_ingesta"] = mode or "full_text"
+    return body
 
 
 def _load_markdown_sources() -> list[tuple[str, str, dict[str, Any], bool]]:
@@ -233,6 +293,7 @@ def _load_markdown_sources() -> list[tuple[str, str, dict[str, Any], bool]]:
             continue
         rel = str(path.relative_to(ROOT))
         metadata = _normalize_metadata(rel, path, raw_meta)
+        text = _ingestion_text(metadata, text, rel)
         has_valid_frontmatter = bool(raw_meta)
         if not has_valid_frontmatter:
             print(f"[WARN] Frontmatter inválido o ausente: {rel}. Se indexará sin filtros avanzados.")
@@ -246,6 +307,7 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, Any]
     hallazgos_path = CLIENTES_ROOT / cliente_id / "hallazgos.md"
     docs_text_dir = CLIENTES_ROOT / cliente_id / "documentos_text"
     entity_profile_path = CLIENTES_ROOT / cliente_id / "entity_profile_draft.json"
+    active_year = ""
 
     base_meta: dict[str, Any] = {
         "norma": "Contexto cliente",
@@ -262,6 +324,8 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, Any]
     if perfil_path.exists():
         try:
             data = yaml.safe_load(perfil_path.read_text(encoding="utf-8")) or {}
+            engagement = data.get("encargo", {}) if isinstance(data.get("encargo"), dict) else {}
+            active_year = str(engagement.get("anio_activo") or "").strip()
             rel = str(perfil_path.relative_to(ROOT))
             meta = dict(base_meta)
             meta["ultima_actualizacion"] = datetime.fromtimestamp(perfil_path.stat().st_mtime, tz=timezone.utc).date().isoformat()
@@ -336,6 +400,7 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, Any]
         except Exception:
             pass
     if docs_text_dir.exists():
+        seen_documents: set[str] = set()
         for path in sorted(docs_text_dir.glob("*.md")):
             try:
                 text = path.read_text(encoding="utf-8").strip()
@@ -343,12 +408,40 @@ def _load_client_context(cliente_id: str) -> list[tuple[str, str, dict[str, Any]
                 continue
             if not text:
                 continue
+            header_fields = {
+                key: (match.group(1).strip() if match else "")
+                for key in ("document_type", "document_label", "document_period", "original_name")
+                for match in [re.search(rf"(?mi)^{key}:\s*(.+)$", text)]
+            }
+            identity = "|".join(
+                header_fields.get(key, "").lower()
+                for key in ("document_type", "document_period", "original_name")
+            )
+            if identity.strip("|") and identity in seen_documents:
+                continue
+            if identity.strip("|"):
+                seen_documents.add(identity)
+
+            document_period = header_fields.get("document_period", "")
+            temporal_status = (
+                "periodo_actual"
+                if active_year and document_period == active_year
+                else "antecedente_periodo_anterior"
+                if active_year and document_period and document_period != active_year
+                else "periodo_no_confirmado"
+            )
+            temporal_marker = (
+                f"[DOCUMENTO CLIENTE | PERIODO {document_period or 'NO CONFIRMADO'} | {temporal_status.upper()}]"
+            )
             rel = str(path.relative_to(ROOT))
             meta = dict(base_meta)
             meta["norma"] = "Documentacion cliente"
             meta["ultima_actualizacion"] = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).date().isoformat()
             meta["fuente"] = f"{path.name} | Documentacion cliente"
-            out.append((rel, text, meta))
+            meta["document_period"] = document_period
+            meta["temporal_status"] = temporal_status
+            meta["document_type"] = header_fields.get("document_type", "")
+            out.append((rel, f"{temporal_marker}\n{text}", meta))
     return out
 
 
@@ -359,6 +452,17 @@ def _split_chunks(source: str, text: str, metadata: dict[str, Any]) -> list[tupl
         cleaned = part.strip()
         if len(cleaned) < 40:
             continue
+        if str(metadata.get("tipo") or "").upper() == "CLIENTE" and metadata.get("temporal_status"):
+            temporal_marker = (
+                f"[DOCUMENTO CLIENTE | PERIODO {metadata.get('document_period') or 'NO CONFIRMADO'} | "
+                f"{str(metadata.get('temporal_status')).upper()}]"
+            )
+            if temporal_marker not in cleaned:
+                cleaned = f"{temporal_marker}\n{cleaned}"
+        if str(metadata.get("modo_ingesta") or "").lower() == "interpretacion_profesional":
+            marker = "[INTERPRETACION PROFESIONAL INTERNA - ORIENTACION, NO CITA NORMATIVA]"
+            if marker not in cleaned:
+                cleaned = f"{marker}\n{cleaned}"
         if len(cleaned) > 1100:
             cleaned = cleaned[:1100]
         chunk_metadata = dict(metadata)
@@ -558,7 +662,10 @@ def build_verified_citations(chunks: list[RetrievedChunk] | list[dict[str, Any]]
     return citations
 
 
-def _citations_used_in_answer(answer: str, chunks: list[RetrievedChunk]) -> list[dict[str, str]]:
+def build_citations_used_in_answer(
+    answer: str,
+    chunks: list[RetrievedChunk] | list[dict[str, Any]],
+) -> list[dict[str, str]]:
     referenced_indexes = {
         int(match)
         for match in re.findall(r"\[FUENTE\s+(\d+)\]", str(answer or ""), flags=re.IGNORECASE)
@@ -569,6 +676,91 @@ def _citations_used_in_answer(answer: str, chunks: list[RetrievedChunk]) -> list
         if index in referenced_indexes
     ]
     return build_verified_citations(referenced_chunks)
+
+
+def _citations_used_in_answer(answer: str, chunks: list[RetrievedChunk]) -> list[dict[str, str]]:
+    return build_citations_used_in_answer(answer, chunks)
+
+
+def _source_key(chunk: RetrievedChunk) -> str:
+    return str(chunk.source or "").replace("/", "\\").lower()
+
+
+def _diversify_chunks(candidates: list[RetrievedChunk], limit: int) -> list[RetrievedChunk]:
+    """Prioritize distinct documents, then fill any remaining context slots."""
+    if limit <= 0:
+        return []
+
+    selected: list[RetrievedChunk] = []
+    seen_sources: set[str] = set()
+    for chunk in candidates:
+        source = _source_key(chunk)
+        if source in seen_sources:
+            continue
+        selected.append(chunk)
+        seen_sources.add(source)
+        if len(selected) >= limit:
+            return selected
+
+    for chunk in candidates:
+        if chunk in selected:
+            continue
+        selected.append(chunk)
+        if len(selected) >= limit:
+            break
+    return selected
+
+
+def _pilot_source_patterns(cliente_id: str, query: str) -> list[str]:
+    normalized = unicodedata.normalize("NFKD", str(query or "").lower())
+    normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+    has_income = any(term in normalized for term in ("ingreso", "venta", "facturacion"))
+    has_receivables = any(term in normalized for term in ("cuentas por cobrar", "cxc", "cartera", "deudor"))
+    if not has_income and not has_receivables:
+        return []
+
+    framework = ""
+    try:
+        profile = read_perfil(cliente_id) or {}
+        engagement = profile.get("encargo", {}) if isinstance(profile.get("encargo"), dict) else {}
+        framework = str(
+            engagement.get("marco_referencial")
+            or engagement.get("marco_informacion_financiera")
+            or profile.get("marco_referencial")
+            or ""
+        ).lower()
+    except Exception:
+        framework = ""
+    is_sme = "pyme" in framework
+
+    patterns: list[str] = []
+    if has_income:
+        patterns.extend(("nia_240.md", "nia_315.md", "seccion_23.md" if is_sme else "niif_15.md"))
+    if has_receivables:
+        if "nia_315.md" not in patterns:
+            patterns.append("nia_315.md")
+        patterns.append("seccion_11.md" if is_sme else "niif_9.md")
+    return patterns
+
+
+def _select_pilot_coverage(
+    candidates: list[RetrievedChunk],
+    *,
+    cliente_id: str,
+    query: str,
+    limit: int,
+) -> list[RetrievedChunk]:
+    selected: list[RetrievedChunk] = []
+    for pattern in _pilot_source_patterns(cliente_id, query):
+        match = next(
+            (chunk for chunk in candidates if pattern in _source_key(chunk) and chunk not in selected),
+            None,
+        )
+        if match is not None:
+            selected.append(match)
+        if len(selected) >= limit:
+            break
+    return selected
 
 
 def _retrieve_chunks(
@@ -634,9 +826,23 @@ def _retrieve_chunks(
         # desplaza los hechos confirmados y el modelo rellena vacios con
         # generalizaciones sectoriales.
         client_candidates = [c for c in candidates if str((c.metadata or {}).get("tipo") or "").upper() == "CLIENTE"]
-        reserved = client_candidates[: min(3, top_k)]
-        remaining = [c for c in candidates if c not in reserved]
-        mixed = reserved + remaining[: max(0, top_k - len(reserved))]
+        client_slots = min(2, max(1, top_k // 4))
+        reserved = _diversify_chunks(client_candidates, min(client_slots, top_k))
+        normative_candidates = [
+            c
+            for c in candidates
+            if str((c.metadata or {}).get("tipo") or "").upper() != "CLIENTE"
+        ]
+        normative_slots = max(0, top_k - len(reserved))
+        pilot_coverage = _select_pilot_coverage(
+            normative_candidates,
+            cliente_id=cliente_id,
+            query=query,
+            limit=normative_slots,
+        )
+        remaining = [c for c in normative_candidates if c not in pilot_coverage]
+        selected_normative = _diversify_chunks(pilot_coverage + remaining, normative_slots)
+        mixed = reserved + selected_normative
         return mixed[:top_k]
 
     strict_candidates = [
@@ -807,6 +1013,17 @@ def _current_provider_label() -> str:
 def _query_normalized(text: str) -> str:
     value = unicodedata.normalize("NFD", str(text or "").strip().lower())
     return "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
+
+
+def _strip_repair_preamble(text: str) -> str:
+    value = str(text or "").strip()
+    return re.sub(
+        r"^(?:claro[,.:]?\s*)?(?:aquí|aqui)\s+tienes\s+(?:la\s+)?respuesta\s+reescrita\s*:\s*",
+        "",
+        value,
+        count=1,
+        flags=re.IGNORECASE,
+    ).strip()
 
 
 def _is_client_attention_question(query: str) -> bool:
@@ -999,8 +1216,6 @@ def _is_data_inventory_question(query: str) -> bool:
         "que informacion tienes",
         "que sabes",
         "que info tienes",
-        "que informacion",
-        "que datos",
         "informacion tienes",
         "datos tienes",
         "what data",
@@ -1026,6 +1241,16 @@ def _is_risk_question(query: str) -> bool:
         "nivel de riesgo",
     ]
     return any(h in q for h in risk_hints)
+
+
+def _is_pilot_area_guidance_question(query: str) -> bool:
+    q = _query_normalized(query)
+    pilot_area = any(term in q for term in ("ingreso", "venta", "cuentas por cobrar", "cxc", "cartera"))
+    guidance = any(
+        term in q
+        for term in ("riesgo", "aseveracion", "informacion", "evidencia", "documentar", "procedimiento")
+    )
+    return pilot_area and guidance
 
 
 def _is_risk_why_question(query: str) -> bool:
@@ -1206,6 +1431,56 @@ def _risk_answer(cliente_id: str, query: str = "") -> dict[str, Any]:
     }
 
 
+def _pilot_area_guidance_answer(cliente_id: str, query: str) -> dict[str, Any]:
+    perfil = read_perfil(cliente_id) or {}
+    cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
+    encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
+    cliente_nombre = str(cliente.get("nombre_legal") or cliente_id)
+    sector = str(cliente.get("sector") or "no confirmado")
+    framework = str(encargo.get("marco_referencial") or "no confirmado")
+    period = str(encargo.get("fecha_inicio_periodo") or encargo.get("anio_activo") or "no confirmado")
+
+    answer = (
+        f"Para `{cliente_nombre}` no registraria todavia un riesgo como conclusion. Partiria de estos hechos: "
+        f"sector `{sector}`, marco `{framework}` y periodo iniciado `{period}`.\n\n"
+        "**Riesgos candidatos que debes contrastar**\n"
+        "1. Ingresos registrados sin que el servicio se haya prestado o sin soporte suficiente. Aseveraciones: ocurrencia y exactitud.\n"
+        "2. Ingresos o notas de credito registrados en un periodo incorrecto. Aseveracion: corte.\n"
+        "3. Servicios prestados pendientes de facturar o registrar. Aseveracion: integridad.\n"
+        "4. Cuentas por cobrar inexistentes, discutidas o sin derecho exigible. Aseveraciones: existencia y derechos.\n"
+        "5. Cartera cuyo deterioro no refleja mora, disputas, cobros posteriores o capacidad de pago. Aseveracion: valuacion.\n\n"
+        "**Informacion que pediria**\n"
+        "- Contratos, cartas de encargo y condiciones de facturacion.\n"
+        "- Detalle de facturas, notas de credito y cobros alrededor del cierre.\n"
+        "- Reportes de horas, entregables, hitos o evidencia de prestacion del servicio.\n"
+        "- Auxiliar de cartera conciliado con mayor, antiguedad, cobros posteriores y saldos en disputa.\n"
+        "- Politica contable aplicada y explicacion de cambios o excepciones.\n\n"
+        "**Como documentar el razonamiento**\n"
+        "Registra la cadena `hecho -> alerta -> riesgo candidato -> aseveracion -> evidencia requerida -> procedimiento -> resultado -> conclusion del responsable`. "
+        "Si falta un eslabon, no presentes el riesgo ni el tratamiento como definitivo.\n\n"
+        "**Preguntas para decidir**\n"
+        "- Que hecho concreto aumenta la probabilidad de incorreccion y que magnitud podria tener?\n"
+        "- Es una alerta general o afecta una aseveracion y poblacion identificables?\n"
+        "- Que evidencia podria confirmar o contradecir la hipotesis?\n"
+        "- Quien revisara y aprobara la conclusion?\n\n"
+        "Limite actual: la biblioteca recupera interpretacion profesional propia, no el texto oficial. Coteja siempre la NIA o NIIF vigente antes de aprobar la conclusion."
+    )
+    return {
+        "answer": answer,
+        "citations": [],
+        "context_sources": [
+            f"data/clientes/{cliente_id}/perfil.yaml",
+            "data/conocimiento_normativo/metodologia/aseveraciones.md",
+        ],
+        "confidence": 0.84,
+        "provider": "deterministic",
+        "model": "pilot_guidance_v1",
+        "prompt_meta": {"prompt_id": "pilot_area_guidance", "prompt_version": "v1"},
+        "mode_used": "pilot_area_guidance",
+        "expert_criteria_used": True,
+    }
+
+
 def _next_steps_answer(cliente_id: str) -> dict[str, Any]:
     perfil = read_perfil(cliente_id) or {}
     cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
@@ -1356,6 +1631,11 @@ def _client_snapshot(cliente_id: str) -> str:
     docs = list_documentos(cliente_id) or []
     cliente = perfil.get("cliente", {}) if isinstance(perfil.get("cliente"), dict) else {}
     encargo = perfil.get("encargo", {}) if isinstance(perfil.get("encargo"), dict) else {}
+    questionnaire = (
+        perfil.get("cuestionario_auditoria", {})
+        if isinstance(perfil.get("cuestionario_auditoria"), dict)
+        else {}
+    )
     docs_names = [str(d.get("name") or "") for d in docs if isinstance(d, dict)]
     has_tb = "tb.xlsx" in docs_names
     has_mayor = "mayor.xlsx" in docs_names
@@ -1364,10 +1644,15 @@ def _client_snapshot(cliente_id: str) -> str:
         f"Cliente: {str(cliente.get('nombre_legal') or cliente_id)} | "
         f"Sector: {str(cliente.get('sector') or 'N/D')} | "
         f"Marco: {str(encargo.get('marco_referencial') or 'N/D')} | "
+        f"Periodo activo: {str(encargo.get('anio_activo') or 'N/D')} | "
+        f"Cierre: {str(encargo.get('fecha_cierre_periodo') or 'N/D')} | "
         f"Fase configurada por el auditor: {str(encargo.get('fase_actual') or workflow.get('current_phase') or 'no configurada')} | "
         f"TB: {'si' if has_tb else 'no'} | Mayor: {'si' if has_mayor else 'no'} | "
         f"Docs extra: {len([x for x in docs_names if x not in {'tb.xlsx', 'mayor.xlsx'}])} | "
-        f"Hallazgos: {hallazgos_count}"
+        f"Hallazgos: {hallazgos_count} | "
+        f"Presion por resultados confirmada: {'si' if questionnaire.get('presion_resultados') is True else 'no'} | "
+        f"Partes relacionadas confirmadas: {'si' if questionnaire.get('partes_relacionadas') is True else 'no'} | "
+        f"Ingresos complejos confirmados: {'si' if questionnaire.get('ingresos_complejos') is True else 'no'}"
     )
 
 
@@ -1485,6 +1770,8 @@ def _append_staleness_warning(answer: str, chunks: list[RetrievedChunk]) -> str:
         if "conocimiento_normativo" in chunk.source.replace("\\", "/")
         and not is_citation_eligible(chunk.metadata)
     }
+
+
     quality_warning = ""
     if pending_quality_sources:
         quality_warning = (
@@ -1498,6 +1785,93 @@ def _append_staleness_warning(answer: str, chunks: list[RetrievedChunk]) -> str:
     if not all_warnings:
         return answer
     return f"{answer.rstrip()}\n\n{all_warnings}"
+
+
+def _normative_guard_response(
+    action: str,
+    reason: str,
+    chunks: list[RetrievedChunk],
+) -> dict[str, Any]:
+    if action == "block_unverified_citation":
+        answer = (
+            "Cita normativa bloqueada. No puedo proporcionar ni atribuir el parrafo, articulo o referencia "
+            "solicitada porque la fuente recuperada aun no esta verificada para citas. "
+            "Puedo orientar el analisis y senalar que texto oficial debe cotejarse, pero no inventar el localizador."
+        )
+    else:
+        answer = (
+            "Conclusion automatica bloqueada. No ejecutare esa instruccion como un veredicto de auditoria. "
+            "Puedo convertirla en una hipotesis, identificar la evidencia que falta y explicar los factores "
+            "que el auditor responsable debe documentar antes de concluir."
+        )
+    return {
+        "answer": _append_staleness_warning(f"{answer}\n\nMotivo: {reason}", chunks),
+        "citations": [],
+        "context_sources": [chunk.source for chunk in chunks],
+        "confidence": 0.98,
+        "prompt_meta": {"prompt_id": "normative_guard", "prompt_version": "v1"},
+        "mode_used": action,
+        "expert_criteria_used": False,
+    }
+
+
+def _blocked_normative_output(
+    issues: tuple[str, ...],
+    chunks: list[RetrievedChunk],
+    *,
+    provider: str,
+    model: str,
+    mode: str,
+    expert_criteria_used: bool,
+) -> dict[str, Any]:
+    answer = (
+        "Respuesta normativa bloqueada. La salida generada contenia una atribucion normativa "
+        "sin una fuente verificada e identificada inmediatamente despues de la afirmacion. "
+        "No se mostrara ese contenido ni se intentara completar el localizador. Puedes reformular "
+        "la consulta como orientacion o esperar a que la fuente correspondiente sea validada."
+    )
+    return {
+        "answer": _append_staleness_warning(answer, chunks),
+        "citations": [],
+        "context_sources": [chunk.source for chunk in chunks],
+        "confidence": 0.98,
+        "web_search_used": False,
+        "provider": provider,
+        "model": model,
+        "prompt_meta": {"prompt_id": "normative_output_guard", "prompt_version": "v1"},
+        "mode_used": f"{mode}_output_blocked",
+        "expert_criteria_used": expert_criteria_used,
+        "quality_flags": list(issues),
+    }
+
+
+def _blocked_grounding_output(
+    issues: tuple[str, ...],
+    chunks: list[RetrievedChunk],
+    *,
+    provider: str,
+    model: str,
+    mode: str,
+    expert_criteria_used: bool,
+) -> dict[str, Any]:
+    answer = (
+        "Respuesta retenida por el verificador de hechos. El borrador mezclaba hechos confirmados, "
+        "antecedentes o supuestos no documentados en el expediente. El contenido inseguro no se mostrara. "
+        "Puedes volver a consultar: SocioAI mantendra los supuestos como hipotesis pendientes de validacion."
+    )
+    return {
+        "answer": _append_staleness_warning(answer, chunks),
+        "citations": [],
+        "context_sources": [chunk.source for chunk in chunks],
+        "confidence": 0.98,
+        "web_search_used": False,
+        "provider": provider,
+        "model": model,
+        "prompt_meta": {"prompt_id": "claim_grounding_guard", "prompt_version": "v1"},
+        "mode_used": f"{mode}_grounding_blocked",
+        "expert_criteria_used": expert_criteria_used,
+        "quality_flags": list(issues),
+    }
 
 
 def _fallback_answer(
@@ -1591,26 +1965,30 @@ def _llm_answer(
 ) -> dict[str, Any]:
     provider, api_key = _resolved_provider()
     from openai import OpenAI
-    timeout_seconds_raw = float(os.getenv("LLM_TIMEOUT_SECONDS", "12"))
-    timeout_seconds = max(5.0, min(timeout_seconds_raw, 60.0))
+    timeout_seconds_raw = float(os.getenv("LLM_TIMEOUT_SECONDS", "45"))
+    timeout_seconds = max(10.0, min(timeout_seconds_raw, 120.0))
+    max_tokens_raw = int(os.getenv("LLM_CHAT_MAX_TOKENS", "1000"))
+    max_tokens = max(300, min(max_tokens_raw, 1600))
 
     if provider == "deepseek":
         if not api_key:
             raise RuntimeError("DEEPSEEK_API_KEY no configurada")
         model = os.getenv("DEEPSEEK_CHAT_MODEL", "deepseek-chat").strip() or "deepseek-chat"
         base_url = (os.getenv("DEEPSEEK_BASE_URL") or "https://api.deepseek.com").strip()
-        client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout_seconds)
+        client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout_seconds, max_retries=0)
     else:
         if not api_key:
             raise RuntimeError("OPENAI_API_KEY no configurada")
         model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
-        client = OpenAI(api_key=api_key, timeout=timeout_seconds)
+        client = OpenAI(api_key=api_key, timeout=timeout_seconds, max_retries=0)
 
     joined_context = "\n\n".join(
         [
             f"[{'FUENTE' if is_citation_eligible(c.metadata) else 'ORIENTACION'} {index}] "
             f"[{c.source}] ({(c.metadata or {}).get('norma', 'N/A')} | "
             f"calidad: {'CITA VERIFICADA' if is_citation_eligible(c.metadata) else 'ORIENTACION NO VERIFICADA'} | "
+            f"periodo documento: {(c.metadata or {}).get('document_period', 'N/D')} | "
+            f"estado temporal: {(c.metadata or {}).get('temporal_status', 'N/D')} | "
             f"vigente: {(c.metadata or {}).get('vigente_desde', 'N/D')} | "
             f"actualizacion: {(c.metadata or {}).get('ultima_actualizacion', 'N/D')}) {c.excerpt}"
             for index, c in enumerate(chunks[:6], start=1)
@@ -1624,6 +2002,12 @@ def _llm_answer(
         joined_context = f"{joined_context}\n\n[SNAPSHOT RIESGO]\n{risk_snapshot}".strip()
     if area_context:
         joined_context = f"{joined_context}\n\n{area_context}".strip()
+    if cliente_id and should_include_version_context(query):
+        try:
+            version_context = build_profile_version_context(read_perfil(cliente_id) or {})
+            joined_context = f"{joined_context}\n\n{version_context}".strip()
+        except Exception:
+            pass
     if web_results:
         web_block = "\n\n".join(
             f"[WEB: {r['title']}] {r['url']}\n{r['content']}"
@@ -1633,7 +2017,16 @@ def _llm_answer(
     instruction, prompt_meta = render_prompt(mode, query=query, context=joined_context)
 
     reasoning_hint = ""
-    if _is_risk_why_question(query):
+    if _is_criterion_challenge(query):
+        reasoning_hint = (
+            "\nEsta consulta está en modo desafío. No digas que estás reescribiendo la respuesta y no entregues "
+            "una conclusión cerrada como primera reacción. Identifica la afirmación o supuesto del auditor, separa "
+            "cuenta contable de riesgo de incorrección material y cuestiona causa, aseveración, evidencia y explicación "
+            "alternativa. Si el auditor no expuso todavía su razonamiento, formula preguntas guiadas y pídele que proponga "
+            "su hipótesis antes de evaluarla. Solo califica una respuesta cuando el auditor haya aportado una respuesta "
+            "propia; en ese caso indica qué está bien, qué falta y cuál sería el siguiente paso para fortalecerla."
+        )
+    elif _is_risk_why_question(query):
         reasoning_hint = (
             "\nAdemas: explica explicitamente por que ese nivel de riesgo es razonable, "
             "incluyendo causa, impacto y que evidencia faltaria para subir o bajar el nivel."
@@ -1647,7 +2040,7 @@ def _llm_answer(
     learning_role_instruction = ""
     if learning_role == "junior":
         learning_role_instruction = (
-            "\n\nOTA SOBRE TU NIVEL (Junior): Explica PASO A PASO. "
+            "\n\nNOTA SOBRE TU NIVEL (Junior): Explica PASO A PASO. "
             "Incluye el PORQUÉ de cada cosa, no solo el QUÉ. "
             "Define términos técnicos. Sugiere dónde aprender más."
         )
@@ -1670,19 +2063,48 @@ def _llm_answer(
             "Criterio estratégico, no procedimientos."
         )
 
+    orientation_only_rules = ""
+    if not any(is_citation_eligible(chunk.metadata) for chunk in chunks[:6]):
+        orientation_only_rules = (
+            "Todas las fichas normativas recuperadas son orientacion interna no habilitada para citas. No uses [FUENTE n] ni frases como "
+            "'segun la NIA', 'la NIA establece', 'la NIIF exige' o equivalentes. Si necesitas identificar la base, usa la formula "
+            "'la interpretacion profesional interna asociada a [norma] orienta a considerar...' y aclara que debe cotejarse con el texto oficial. "
+        )
+
+    common_output_rules = (
+        "Cierra la respuesta completa y prioriza completitud sobre detalle. "
+        "Separa siempre hechos documentados de hipotesis: redacta causas no confirmadas con 'podria' o 'debe investigarse'. "
+        "No afirmes presion por resultados, metas, intencion de la gerencia, partes relacionadas, reversiones ni fallas de control si el contexto no las confirma. "
+        "No describas los ingresos como complejos si el perfil indica que esa condicion no esta confirmada. "
+        "En ese caso tampoco escribas que el corte o el reconocimiento de ingresos es 'inherentemente complejo'; limita la respuesta a decir que debe comprenderse y probarse. "
+        "Una ficha que enumera factores de riesgo aporta candidatos generales, no demuestra que existan en este cliente. "
+        "Un documento marcado ANTECEDENTE_PERIODO_ANTERIOR solo permite formular seguimiento; no presentes sus importes ni hallazgos como hechos del periodo activo. "
+        "Para pruebas de corte usa exclusivamente el periodo activo y la fecha de cierre del snapshot del cliente. "
+        "No concluyas que una provision es suficiente solo porque hubo cobros posteriores, ni que debe aumentarse solo porque no los hubo; "
+        "presenta los cobros como una evidencia que debe evaluarse junto con antiguedad, disputas, historial y demas datos disponibles. "
+        "No inventes tamanos de muestra, cantidades a seleccionar, porcentajes ni umbrales: indicalos como decisiones pendientes "
+        "hasta conocer poblacion, materialidad y objetivo del procedimiento. "
+        "Esta prohibido escribir cantidades como 'ultimas 10 facturas', 'primeras 10', 'muestra de 5' o cualquier numero de elementos a revisar. "
+        "Limita el analisis al ciclo de Ingresos y Cuentas por cobrar solicitado; no agregues asuntos tributarios, de consolidacion "
+        "u otras areas salvo que la consulta los pida y el contexto recuperado los sustente. "
+        "No atribuyas una afirmacion a una norma si su contexto esta marcado ORIENTACION NO VERIFICADA; presentala como "
+        "interpretacion profesional interna y recomienda cotejarla con la fuente oficial. "
+        "Cuando uses una fuente verificada, coloca su identificador exacto [FUENTE n] inmediatamente despues de la afirmacion que respalda."
+        + orientation_only_rules
+    )
     user_content = (
         f"Consulta:\n{query}\n\n"
-        "Responde de forma conversacional, concreta y accionable para un auditor. Limita la respuesta a 650 palabras y ciérrala completa. "
+        "Responde de forma conversacional, concreta y accionable para un auditor, en un maximo de 450 palabras. "
         "No inventes modelos de facturación, composición de cuentas, uso de controles, porcentajes de enfoque ni procedimientos ya ejecutados. "
         "Un ranking cuantitativo prioriza revisión, pero no confirma riesgo ni reemplaza el juicio. Formula las recomendaciones condicionalmente cuando falte evidencia. "
-        "No atribuyas una afirmacion a una norma si su contexto esta marcado ORIENTACION NO VERIFICADA; en ese caso declara que requiere validacion contra la fuente oficial. "
-        "Cuando uses una fuente verificada, coloca su identificador exacto [FUENTE n] inmediatamente despues de la afirmacion que respalda."
+        + common_output_rules
         + reasoning_hint
         + learning_role_instruction
         if mode == "chat"
         else (
             f"Consulta:\n{query}\n\n"
-            "Devuelve recomendacion accionable con criterio, pasos y evidencia."
+            "Devuelve recomendacion accionable con criterio, pasos y evidencia. "
+            + common_output_rules
             + learning_role_instruction
         )
     )
@@ -1703,8 +2125,8 @@ def _llm_answer(
     response = client.chat.completions.create(
         model=model,
         messages=messages_for_llm,
-        temperature=0.35 if mode == "chat" else 0.2,
-        max_tokens=1400,
+        temperature=0.2,
+        max_tokens=max_tokens,
     )
 
     text = ""
@@ -1712,6 +2134,107 @@ def _llm_answer(
         text = str(response.choices[0].message.content or "").strip()
     if not text.strip():
         text = "No se obtuvo respuesta del modelo."
+
+    normative_metadata = [chunk.metadata for chunk in chunks[:6]]
+    output_validation = validate_normative_output(text, normative_metadata)
+    try:
+        grounding_profile = read_perfil(cliente_id) or {} if cliente_id else {}
+    except Exception:
+        grounding_profile = {}
+    grounding_validation = validate_client_grounding(text, grounding_profile, chunks[:6])
+    quality_repair_used = False
+    if not output_validation.allowed or not grounding_validation.allowed:
+        repair_issues = [f"normativa:{issue}" for issue in output_validation.issues]
+        repair_issues.extend(f"hechos:{issue}" for issue in grounding_validation.issues)
+        repair_messages = messages_for_llm + [
+            {"role": "assistant", "content": text},
+            {
+                "role": "user",
+                "content": (
+                    "Reescribe la respuesta completa porque los verificadores detectaron estos problemas: "
+                    f"{', '.join(repair_issues)}. "
+                    "No repitas el borrador. Conserva como hechos solo lo confirmado por el expediente; marca el resto como hipotesis "
+                    "en la misma oracion y etiqueta todo dato de un periodo anterior como antecedente. No inventes procesos del cliente. "
+                    "No atribuyas obligaciones a NIA o NIIF ni uses [FUENTE n] cuando la orientacion no esta verificada; identifica cualquier "
+                    "base solo como interpretacion profesional interna que debe cotejarse con el texto oficial. Entrega directamente la respuesta "
+                    "final: no menciones el borrador, los verificadores, la correccion ni que estas reescribiendo."
+                ),
+            },
+        ]
+        repaired_response = client.chat.completions.create(
+            model=model,
+            messages=repair_messages,
+            temperature=0.1,
+            max_tokens=max_tokens,
+        )
+        repaired_text = ""
+        if repaired_response.choices and repaired_response.choices[0].message:
+            repaired_text = _strip_repair_preamble(repaired_response.choices[0].message.content or "")
+        repaired_normative_validation = validate_normative_output(repaired_text, normative_metadata)
+        normative_redaction_used = False
+        if not repaired_normative_validation.allowed:
+            redacted_text = redact_unsupported_normative_units(
+                repaired_text,
+                repaired_normative_validation.issues,
+            )
+            redacted_validation = validate_normative_output(redacted_text, normative_metadata)
+            if not redacted_text or not redacted_validation.allowed:
+                return _blocked_normative_output(
+                    repaired_normative_validation.issues,
+                    chunks,
+                    provider=provider,
+                    model=model,
+                    mode=mode,
+                    expert_criteria_used=expert_criteria_used,
+                )
+            repaired_text = (
+                f"{redacted_text}\n\n"
+                "Nota de control: se retiro una atribucion normativa que no podia respaldarse como cita verificada."
+            )
+            normative_redaction_used = True
+        repaired_grounding_validation = validate_client_grounding(
+            repaired_text,
+            grounding_profile,
+            chunks[:6],
+        )
+        grounding_redaction_used = False
+        if not repaired_text or not repaired_grounding_validation.allowed:
+            claim_redacted_text = redact_unsupported_claim_units(
+                repaired_text,
+                repaired_grounding_validation.issues,
+            )
+            claim_redacted_validation = validate_client_grounding(
+                claim_redacted_text,
+                grounding_profile,
+                chunks[:6],
+            )
+            claim_redacted_normative_validation = validate_normative_output(
+                claim_redacted_text,
+                normative_metadata,
+            )
+            if (
+                not claim_redacted_text
+                or not claim_redacted_validation.allowed
+                or not claim_redacted_normative_validation.allowed
+            ):
+                return _blocked_grounding_output(
+                    repaired_grounding_validation.issues or grounding_validation.issues,
+                    chunks,
+                    provider=provider,
+                    model=model,
+                    mode=mode,
+                    expert_criteria_used=expert_criteria_used,
+                )
+            repaired_text = (
+                f"{claim_redacted_text}\n\n"
+                "Nota de control: se retiro una afirmacion sobre el cliente que no estaba respaldada por el expediente."
+            )
+            grounding_redaction_used = True
+        text = repaired_text
+        quality_repair_used = True
+    else:
+        normative_redaction_used = False
+        grounding_redaction_used = False
 
     ok_min_output, missing = validate_minimum_output(text, mode=mode)
     if not ok_min_output:
@@ -1741,6 +2264,11 @@ def _llm_answer(
         "prompt_meta": prompt_meta,
         "mode_used": mode,
         "expert_criteria_used": expert_criteria_used,
+        "quality_repair_used": quality_repair_used,
+        "normative_repair_used": quality_repair_used and not output_validation.allowed,
+        "grounding_repair_used": quality_repair_used and not grounding_validation.allowed,
+        "normative_redaction_used": normative_redaction_used,
+        "grounding_redaction_used": grounding_redaction_used,
     }
 
 
@@ -1808,6 +2336,16 @@ def generate_chat_response(
     if area_code:
         area_context = _enrich_context_with_area_procedures(area_code, "")
 
+    normative_decision = evaluate_normative_request(query, [chunk.metadata for chunk in chunks])
+    if normative_decision.blocked:
+        result = _normative_guard_response(
+            normative_decision.action,
+            normative_decision.reason,
+            chunks,
+        )
+        set_cached_response(response_cache_key, result)
+        return result
+
     sector = ""
     try:
         perfil = read_perfil(cliente_id) or {}
@@ -1850,7 +2388,9 @@ def generate_chat_response(
             pass
 
     if not _has_llm_credentials():
-        if _is_risk_question(query):
+        if _is_pilot_area_guidance_question(query):
+            result = _pilot_area_guidance_answer(cliente_id, query)
+        elif _is_risk_question(query):
             result = _risk_answer(cliente_id, query)
             result["expert_criteria_used"] = expert_criteria_used
         else:
@@ -1866,24 +2406,16 @@ def generate_chat_response(
         return result
 
     try:
-        if _is_risk_question(query):
-            result = _llm_answer(
-                query, chunks, mode="judgement_risk", cliente_id=cliente_id,
-                memory_summary=memory_summary, recent_history=recent_history,
-                web_results=web_results or None,
-                area_context=area_context,
-                expert_criteria_used=expert_criteria_used,
-                learning_role=learning_role,
-            )
-        else:
-            result = _llm_answer(
-                query, chunks, mode="chat", cliente_id=cliente_id,
-                memory_summary=memory_summary, recent_history=recent_history,
-                web_results=web_results or None,
-                area_context=area_context,
-                expert_criteria_used=expert_criteria_used,
-                learning_role=learning_role,
-            )
+        # El chat del mentor explica el razonamiento de riesgo en lenguaje natural.
+        # El JSON de judgement_risk queda reservado para generate_judgement_response.
+        result = _llm_answer(
+            query, chunks, mode="chat", cliente_id=cliente_id,
+            memory_summary=memory_summary, recent_history=recent_history,
+            web_results=web_results or None,
+            area_context=area_context,
+            expert_criteria_used=expert_criteria_used,
+            learning_role=learning_role,
+        )
         set_cached_response(response_cache_key, result)
         return result
     except Exception:

@@ -21,7 +21,7 @@ except Exception:  # pragma: no cover
     redis = None  # type: ignore
 
 
-_NAMESPACE = "rag:responses:v3_client_first"
+_NAMESPACE = "rag:responses:v19_safe_claim_redaction"
 
 
 def _as_bool(value: str | None, default: bool) -> bool:

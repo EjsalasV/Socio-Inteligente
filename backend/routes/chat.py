@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime, timezone
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
@@ -13,17 +15,23 @@ from backend.repositories.file_repository import (
     append_audit_log,
     append_chat_message,
     append_hallazgo,
+    append_pilot_feedback,
     list_area_codes,
     read_chat_history,
+    read_quality_trace,
+    read_pilot_feedback,
 )
 from backend.repositories.identity_repository import store as identity_store
+from backend.repositories.metrics_repository import record_metric_event
 from backend.services.memory_service import compress_old_messages_if_needed
 from backend.services.chat_conversation_service import (
     create_conversation, delete_conversation, ensure_conversation,
     list_conversations, rename_conversation,
 )
-from backend.schemas import ApiResponse, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse, UserContext
+from backend.schemas import ApiResponse, ChatFeedbackRequest, ChatRequest, ChatResponse, MetodoRequest, MetodoResponse, PilotSurveyRequest, UserContext
 from backend.services.rag_chat_service import generate_chat_response, generate_metodologia_response
+from backend.services.quality_trace_service import record_quality_trace, summarize_quality_controls
+from backend.utils.api_errors import raise_api_error
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 LOGGER = logging.getLogger("socio_ai.chat")
@@ -134,6 +142,29 @@ def post_chat(
         learning_role=learning_role,
         conversation_id=str(conversation["id"]),
     )
+    quality_control = summarize_quality_controls(rag)
+    try:
+        trace_event = record_quality_trace(
+            cliente_id=cliente_id,
+            conversation_id=str(conversation["id"]),
+            query=payload.message,
+            result=rag,
+            user_id=user.sub,
+        )
+        quality_control = {**quality_control, "trace_id": trace_event["trace_id"], "trace_status": "recorded"}
+    except Exception:
+        LOGGER.exception("No se pudo registrar trazabilidad de calidad para %s", cliente_id)
+        rag = {
+            **rag,
+            "answer": (
+                "Respuesta retenida porque no se pudo registrar su trazabilidad de calidad. "
+                "No se publicara contenido sin dejar evidencia del control aplicado."
+            ),
+            "citations": [],
+            "confidence": 0.98,
+            "mode_used": "chat_trace_blocked",
+        }
+        quality_control = {**quality_control, "publication": "withheld", "trace_status": "failed"}
     append_chat_message(
         cliente_id,
         {
@@ -163,6 +194,7 @@ def post_chat(
         prompt_version=str((rag.get("prompt_meta") or {}).get("prompt_version") or ""),
         mode_used=str(rag.get("mode_used") or "chat"),
         expert_criteria_used=bool(rag.get("expert_criteria_used", False)),
+        quality_control=quality_control,
     )
     append_chat_message(
         cliente_id,
@@ -175,6 +207,8 @@ def post_chat(
             "prompt_version": data.prompt_version,
             "user_id": user.sub,
             "conversation_id": conversation["id"],
+            "mode_used": data.mode_used,
+            "quality_control": data.quality_control,
         },
     )
     # Comprimir historial si supera el umbral (no bloquea la respuesta)
@@ -203,9 +237,114 @@ def get_chat_history(cliente_id: str, conversation_id: str = "", user: UserConte
                 "timestamp": str(row.get("timestamp") or ""),
                 "citations": row.get("citations") if isinstance(row.get("citations"), list) else [],
                 "confidence": float(row.get("confidence") or 0.0) if row.get("confidence") is not None else 0.0,
+                "mode_used": str(row.get("mode_used") or ""),
+                "quality_control": row.get("quality_control") if isinstance(row.get("quality_control"), dict) else {},
             }
         )
     return ApiResponse(data={"messages": safe_rows})
+
+
+@router.get("/{cliente_id}/quality-trace", response_model=ApiResponse)
+def get_quality_trace(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    rows = read_quality_trace(cliente_id)
+    return ApiResponse(data={"events": rows[-200:]})
+
+
+@router.post("/{cliente_id}/feedback", response_model=ApiResponse)
+def post_chat_feedback(
+    cliente_id: str,
+    payload: ChatFeedbackRequest,
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    trace_ids = {str(row.get("trace_id") or "") for row in read_quality_trace(cliente_id)}
+    if payload.trace_id not in trace_ids:
+        raise_api_error(
+            status_code=404,
+            code="QUALITY_TRACE_NOT_FOUND",
+            message="No se encontro la respuesta que deseas calificar.",
+            action_hint="Recarga la conversacion y vuelve a intentarlo.",
+            retryable=False,
+        )
+    event = {
+        "feedback_id": str(uuid4()),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "trace_id": payload.trace_id,
+        "user_id": user.sub,
+        "outcome": payload.outcome,
+        "issue_type": payload.issue_type,
+        "comment": payload.comment.strip(),
+    }
+    append_pilot_feedback(cliente_id, event)
+    record_metric_event(
+        "alpha_chat_feedback",
+        cliente_id=cliente_id,
+        area_codigo="ingresos_cxc",
+        payload={"outcome": payload.outcome, "issue_type": payload.issue_type},
+    )
+    return ApiResponse(data={"recorded": True, "feedback_id": event["feedback_id"]})
+
+
+@router.get("/{cliente_id}/pilot-metrics", response_model=ApiResponse)
+def get_pilot_metrics(cliente_id: str, user: UserContext = Depends(get_current_user)) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    traces = read_quality_trace(cliente_id)
+    feedback = read_pilot_feedback(cliente_id)
+    published = sum(1 for row in traces if (row.get("controls") or {}).get("publication") == "published")
+    adjusted = sum(
+        1
+        for row in traces
+        if any((row.get("controls") or {}).get(key) for key in ("quality_repair_used", "normative_redaction_used", "grounding_redaction_used"))
+    )
+    helpful = sum(1 for row in feedback if row.get("outcome") == "helpful")
+    incorrect = sum(1 for row in feedback if row.get("outcome") == "incorrect")
+    surveys = [row for row in feedback if row.get("outcome") == "session_survey"]
+    time_saved = [int(row.get("time_saved_minutes") or 0) for row in surveys]
+    learning_deltas = [
+        int(row.get("understanding_after") or 0) - int(row.get("understanding_before") or 0)
+        for row in surveys
+    ]
+    return ApiResponse(
+        data={
+            "responses_total": len(traces),
+            "published_total": published,
+            "withheld_total": len(traces) - published,
+            "adjusted_total": adjusted,
+            "feedback_total": len(feedback),
+            "helpful_total": helpful,
+            "incorrect_total": incorrect,
+            "helpful_rate_pct": round((helpful / len(feedback)) * 100, 2) if feedback else 0.0,
+            "session_surveys_total": len(surveys),
+            "average_time_saved_minutes": round(sum(time_saved) / len(time_saved), 2) if time_saved else 0.0,
+            "average_learning_delta": round(sum(learning_deltas) / len(learning_deltas), 2) if learning_deltas else 0.0,
+            "would_reuse_rate_pct": round(sum(1 for row in surveys if row.get("would_reuse")) / len(surveys) * 100, 2) if surveys else 0.0,
+            "willing_to_pay_rate_pct": round(sum(1 for row in surveys if row.get("willing_to_pay")) / len(surveys) * 100, 2) if surveys else 0.0,
+        }
+    )
+
+
+@router.post("/{cliente_id}/pilot-survey", response_model=ApiResponse)
+def post_pilot_survey(
+    cliente_id: str,
+    payload: PilotSurveyRequest,
+    user: UserContext = Depends(get_current_user),
+) -> ApiResponse:
+    authorize_cliente_access(cliente_id, user)
+    event = {
+        "feedback_id": str(uuid4()),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "conversation_id": payload.conversation_id,
+        "user_id": user.sub,
+        "outcome": "session_survey",
+        "time_saved_minutes": payload.time_saved_minutes,
+        "understanding_before": payload.understanding_before,
+        "understanding_after": payload.understanding_after,
+        "would_reuse": payload.would_reuse,
+        "willing_to_pay": payload.willing_to_pay,
+    }
+    append_pilot_feedback(cliente_id, event)
+    return ApiResponse(data={"recorded": True, "feedback_id": event["feedback_id"]})
 
 
 @router.get("/{cliente_id}/conversations", response_model=ApiResponse)

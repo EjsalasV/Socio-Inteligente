@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from backend.services.rag_chat_service import build_verified_citations, retrieve_context_chunks
+from backend.services.normative_quality_service import validate_normative_output
+from backend.services.rag_chat_service import build_citations_used_in_answer, retrieve_context_chunks
 
 from .llm_client import call_llm
 from .post_check import run_post_check
@@ -38,6 +39,15 @@ def _choose_confidence(post_checked: dict[str, Any], chunks_count: int) -> float
     if flags:
         return 0.48 if chunks_count else 0.32
     return 0.82 if chunks_count else 0.64
+
+
+def _has_blocking_normative_flag(flags: list[str]) -> bool:
+    blocking_prefixes = (
+        "CITA_NO_VERIFICADA",
+        "CITA_INVENTADA_SIN_CHUNK",
+        "CITA_SIN_IDENTIFICADOR",
+    )
+    return any(str(flag).startswith(blocking_prefixes) for flag in flags)
 
 
 def execute_pipeline(
@@ -95,9 +105,23 @@ def execute_pipeline(
     else:
         answer = analisis
 
-    citations = build_verified_citations(normalized_chunks)
-
     flags = post_checked.get("flags") if isinstance(post_checked.get("flags"), list) else []
+    output_validation = validate_normative_output(
+        answer,
+        [chunk.get("metadata") for chunk in normalized_chunks[:6]],
+    )
+    flags.extend(output_validation.issues)
+    output_blocked = not output_validation.allowed or _has_blocking_normative_flag(flags)
+    if output_blocked:
+        answer = (
+            "Respuesta normativa bloqueada. El pipeline genero una atribucion o cita que no esta "
+            "respaldada por una fuente verificada e identificada. El contenido inseguro no se mostrara; "
+            "puedes continuar como orientacion sin cita o validar primero la fuente oficial."
+        )
+        citations: list[dict[str, str]] = []
+    else:
+        citations = build_citations_used_in_answer(answer, normalized_chunks)
+
     confidence = _choose_confidence(post_checked, len(normalized_chunks))
 
     return {
@@ -106,13 +130,14 @@ def execute_pipeline(
         "citations": citations,
         "confidence": confidence,
         "prompt_meta": {"prompt_id": "auditor_pipeline_json", "prompt_version": "v1.1"},
+        "mode_used": f"{modo}_output_blocked" if output_blocked else f"{modo}_pipeline",
         "provider": str(llm_meta.get("provider") or ""),
         "model": str(llm_meta.get("model") or ""),
         "pipeline": {
             "mode": modo,
             "area_code": codigo_area,
             "flags": [str(f) for f in flags],
-            "raw": str(raw_text or ""),
+            "raw": "" if output_blocked else str(raw_text or ""),
         },
     }
 

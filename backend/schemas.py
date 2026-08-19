@@ -452,6 +452,23 @@ class ChatResponse(BaseModel):
     prompt_version: str = ""
     mode_used: str = "chat"
     expert_criteria_used: bool = False
+    quality_control: dict[str, Any] = Field(default_factory=dict)
+
+
+class ChatFeedbackRequest(BaseModel):
+    trace_id: str = Field(min_length=1, max_length=80)
+    outcome: Literal["helpful", "incorrect"]
+    issue_type: Literal["", "fact", "normative", "procedure", "clarity", "other"] = ""
+    comment: str = Field(default="", max_length=500)
+
+
+class PilotSurveyRequest(BaseModel):
+    conversation_id: str = Field(default="", max_length=80)
+    time_saved_minutes: int = Field(ge=0, le=480)
+    understanding_before: int = Field(ge=1, le=5)
+    understanding_after: int = Field(ge=1, le=5)
+    would_reuse: bool
+    willing_to_pay: bool
 
 
 class MetodoRequest(BaseModel):

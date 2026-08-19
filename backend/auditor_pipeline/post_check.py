@@ -4,10 +4,13 @@ import json
 import re
 from typing import Any
 
+from backend.services.normative_quality_service import is_citation_eligible
+
 FLAG_FORMATO_INVALIDO = "FORMATO_INVALIDO"
 FLAG_RIESGO_INCONSISTENTE = "RIESGO_INCONSISTENTE"
 FLAG_CITA_NO_VERIFICADA = "CITA_NO_VERIFICADA"
 FLAG_CITA_INVENTADA = "CITA_INVENTADA_SIN_CHUNK"
+FLAG_CITA_SIN_IDENTIFICADOR = "CITA_SIN_IDENTIFICADOR"
 FLAG_MATERIALIDAD_IGNORADA = "MATERIALIDAD_NO_REFERENCIADA"
 FLAG_CONFIDENCE_INFLADO = "CONFIDENCE_INFLADO"
 FLAG_AFIRMACION_SIN_COBERTURA = "AFIRMACION_SIN_COBERTURA"
@@ -41,16 +44,25 @@ def check_risk_consistency(response: dict[str, Any], area_yaml: dict[str, Any]) 
 
 def check_citations(response: dict[str, Any], chunks_rag: list[dict[str, Any]]) -> list[str]:
     flags: list[str] = []
-    refs = [str(c.get("referencia") or c.get("source") or "").lower() for c in chunks_rag]
     for c in response.get("citas_normativas", []) or []:
         if not isinstance(c, dict):
             continue
         ref = str(c.get("referencia") or "").strip()
+        source_id = str(c.get("source_id") or "").strip()
         respaldo = str(c.get("respaldo") or "").strip().lower()
         para = str(c.get("texto_parafraseado") or "").strip()
         if respaldo == "con_chunk":
-            if not any(ref.lower() in r for r in refs):
+            match = re.fullmatch(r"FUENTE\s+(\d+)", source_id, flags=re.IGNORECASE)
+            if not match:
+                flags.append(f"{FLAG_CITA_SIN_IDENTIFICADOR}: {ref or 'N/D'}")
+                continue
+            index = int(match.group(1))
+            if index < 1 or index > len(chunks_rag):
                 flags.append(f"{FLAG_CITA_NO_VERIFICADA}: {ref}")
+                continue
+            metadata = chunks_rag[index - 1].get("metadata")
+            if not isinstance(metadata, dict) or not is_citation_eligible(metadata):
+                flags.append(f"{FLAG_CITA_NO_VERIFICADA}: {source_id}")
         if respaldo == "sin_chunk" and para:
             flags.append(f"{FLAG_CITA_INVENTADA}: {ref}")
     return flags
