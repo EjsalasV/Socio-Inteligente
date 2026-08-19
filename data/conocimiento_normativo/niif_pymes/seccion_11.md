@@ -2,99 +2,105 @@
 norma: NIIF_PYMES_SECCION_11
 titulo: Seccion 11 - Instrumentos financieros basicos
 tipo: NIIF_PYMES
+tipo_contenido: pendiente_revision
+estado_revision: pendiente
+autoridad: IASB - IFRS Foundation
 seccion: 11
-version: 2015
+version: NIIF para las PYMES segunda edicion 2015
 vigente_desde: 2017-01-01
 vigente_hasta: null
+jurisdiccion: internacional
+aplicacion_local: Ecuador bajo SCVS adopta NIIF para las PYMES por referencia; edicion 2015 hasta 2026 y edicion 2025 desde 2027 salvo adopcion anticipada documentada
+url_oficial: https://www.ifrs.org/content/dam/ifrs/publications/ifrs-for-smes/english/2015/ifrs-for-smes-standard-part-a.pdf
+url_vigencia: https://www.ifrs.org/news-and-events/news/2015/05/iasb-completes-ifrs-for-smes-review/
+localizador: null
+licencia: Copyright IFRS Foundation; licencia comercial para integracion en producto pendiente
+modo_ingesta: interpretacion_profesional
+origen_contenido: interpretacion_profesional_interna
+autor_interpretacion: equipo_socioai
+regla_uso: orientacion_no_cita_y_cotejo_obligatorio_con_norma_oficial
 activo: true
-ultima_actualizacion: 2024-01-01
-areas_aplicables: []
-afirmaciones_relacionadas: []
+ultima_actualizacion: 2026-08-08
+contenido_completo: false
+areas_aplicables:
+  - cuentas_por_cobrar
+afirmaciones_relacionadas:
+  - existencia
+  - derechos_y_obligaciones
+  - integridad
+  - exactitud
+  - valuacion
+  - clasificacion
+  - presentacion
 marco: niif_pymes
-temas: []
-referencias_cruzadas: []
+temas:
+  - instrumentos_financieros_basicos
+  - cuentas_por_cobrar
+  - costo_amortizado
+  - tasa_de_interes_efectiva
+  - deterioro_por_perdida_incurrida
+  - baja_en_cuentas
+referencias_cruzadas:
+  - Seccion 12
+  - Seccion 23
+  - NIA 315
+  - NIA 330
+  - NIA 500
 etapas:
-- planificacion
-- ejecucion
-- cierre
-contenido_completo: true
+  - planificacion
+  - ejecucion
+  - cierre
+version_futura:
+  nombre: NIIF para las PYMES tercera edicion 2025, Seccion 11 Instrumentos Financieros
+  vigente_desde: 2027-01-01
+  aplicacion_anticipada: permitida
+  url_oficial: https://www.ifrs.org/issued-standards/ifrs-for-smes/
+  url_material_apoyo: https://www.ifrs.org/supporting-implementation/2025-ifrs-for-smes-supporting-materials/
 ---
 
----
-norma: NIIF PYMES
-version: v1
-vigente_desde: 2020-01-01
-ultima_actualizacion: 2026-03-29
-reemplaza_a: ''
-jurisdiccion: Internacional
----
+# Seccion 11 - Instrumentos financieros y cuentas por cobrar
 
-﻿# Secci3n 11 " Instrumentos Financieros Bsicos (NIIF para PYMES)
+> Resumen interno pendiente de cotejo por parrafo. No esta habilitado como cita normativa ni reproduce el texto oficial.
 
-## Alcance
-Aplica a instrumentos financieros bsicos:
-- Efectivo
-- Dep3sitos bancarios
-- Cuentas por cobrar y pagar comerciales
-- Prstamos simples
-- Inversiones en instrumentos de deuda no complejos
-- Inversiones en acciones preferentes no convertibles
+## Estado de las versiones
 
-## Reconocimiento Inicial
-Reconocer cuando la entidad se convierta en parte del contrato.
-Medir al **precio de la transacci3n** (incluidos costos de transacci3n
-para partidas no medidas a valor razonable con cambios en resultados).
+- La segunda edicion de 2015, con modificaciones obligatorias desde el 1 de enero de 2017, puede continuar aplicandose hasta la entrada obligatoria de la tercera edicion.
+- La tercera edicion fue emitida en febrero de 2025 y es obligatoria internacionalmente para periodos iniciados el 1 de enero de 2027 o despues; permite aplicacion anticipada.
+- La tercera edicion combina la anterior Seccion 11 y la Seccion 12 en una sola Seccion 11 dividida en instrumentos basicos y otros instrumentos.
+- Faltan localizadores cotejados, licencia comercial y validacion de aplicacion en Ecuador.
 
-## Medici3n Posterior
+## Resumen conceptual de la edicion 2015
 
-### Activos Financieros al Costo Amortizado
-- Cuentas por cobrar comerciales a corto plazo (sin inters significativo)
-- Prstamos otorgados
-- Inversiones en instrumentos de deuda
+- Las cuentas por cobrar comerciales normalmente son instrumentos financieros basicos.
+- El reconocimiento inicial y la medicion posterior dependen de los terminos contractuales, de si existe una transaccion de financiacion y del metodo aplicable.
+- Los instrumentos de deuda basicos pueden medirse posteriormente al costo amortizado utilizando el metodo del interes efectivo, sujeto a las simplificaciones correspondientes.
+- El deterioro de activos medidos al costo o costo amortizado se reconoce cuando existe evidencia objetiva de una perdida incurrida.
+- La antiguedad de cartera es evidencia util, pero no establece por si sola porcentajes normativos de deterioro.
 
-**Mtodo**: Tasa de inters efectiva
+## Cambios relevantes de la edicion 2025 futura
 
-### Activos Financieros al Valor Razonable
-- Inversiones en acciones ordinarias cotizadas
-- Cuando el valor razonable puede medirse con fiabilidad
+- Mantiene el modelo de perdida incurrida para el deterioro de activos financieros medidos al costo amortizado.
+- No convierte la cartera de PYMES al modelo general de perdidas crediticias esperadas de NIIF 9.
+- Elimina la opcion de aplicar los requerimientos de reconocimiento y medicion de IAS 39.
+- Incorpora revelaciones adicionales, incluido un analisis de antiguedad por fecha de vencimiento para cuentas comerciales y otros activos financieros.
+- No debe aplicarse antes de 2027 salvo adopcion anticipada documentada y permitida localmente.
 
-## Deterioro de Activos Financieros
+## Aplicacion preliminar a Cuentas por Cobrar
 
-### Evaluaci3n de Deterioro
-Al cierre de cada perodo, evaluar si existe evidencia objetiva de deterioro:
-- Dificultades financieras del deudor
-- Incumplimientos o moras
-- Quiebra probable del deudor
-- Reorganizaci3n financiera del deudor
+- Confirmar version, periodo, marco y politica contable aplicados por la entidad.
+- Conciliar el auxiliar con contabilidad y estados financieros.
+- Revisar condiciones de credito, componente de financiacion, mora, cobros posteriores, disputas, renegociaciones y castigos.
+- Evaluar evidencia objetiva de deterioro individual y por grupos con caracteristicas de riesgo similares.
+- Comprobar los datos y supuestos usados por la entidad sin introducir porcentajes genericos.
 
-### Clculo del Deterioro
-Prdida por deterioro = Valor en libros - Valor presente de
-flujos futuros esperados
+## Limites del mentor
 
-### Cuentas por Cobrar Comerciales
-Para carteras homogneas, puede usarse anlisis de antig14edad:
-
-| Antig14edad | Porcentaje de Deterioro Referencial |
-|------------|-------------------------------------|
-| Al corriente | 0-2% |
-| 30-90 das | 5-15% |
-| 91-180 das | 20-40% |
-| 181-360 das | 50-75% |
-| Ms de 360 das | 80-100% |
-
-*Los porcentajes deben basarse en experiencia hist3rica de la entidad.*
-
-## Baja en Cuentas
-Dar de baja cuando:
-- Los derechos contractuales expiran
-- Se transfieren los riesgos y beneficios sustancialmente
-
-## Alertas de Auditora
-- Verificar aplicaci3n del mtodo de inters efectivo
-- Evaluar suficiencia de la provisi3n por deterioro
-- Revisar poltica de castigos y su consistencia
-- Confirmar revelaciones requeridas sobre concentraci3n de riesgo
+- No copiar el modelo de perdidas crediticias esperadas de NIIF 9 a una PYME.
+- No usar tablas universales de porcentajes por antiguedad.
+- No concluir que toda cartera vencida esta totalmente deteriorada ni que toda cartera corriente carece de deterioro.
+- No asumir adopcion anticipada de la tercera edicion.
+- No aprobar la estimacion ni la conclusion final.
 
 ---
-*Fuente: IASB " NIIF para las PYMES (2015/2019)*
 
+*Resumen tecnico para recuperacion RAG. Requiere validacion humana contra el texto oficial, licencia y regulacion local antes de citarse.*

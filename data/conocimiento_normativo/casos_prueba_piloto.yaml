@@ -1,0 +1,409 @@
+suite_version: 1
+updated_at: 2026-08-08
+status: draft_pending_human_review
+purpose: Casos iniciales de recuperacion, bloqueo y abstencion del corpus piloto
+cases:
+  - id: NIA240-PENDING-NO-CITATION
+    source: NIA-240
+    question: ¿La NIA 240 presume siempre fraude en todos los ingresos?
+    expected_behavior:
+      answer_allowed: true
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: El resumen aun no tiene localizadores cotejados ni aprobacion humana.
+
+  - id: NIA240-EXACT-PARAGRAPH-MISSING
+    source: NIA-240
+    question: Indica el parrafo exacto que permite rebatir la presuncion relacionada con ingresos.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: El localizador exacto esta pendiente de validacion contra el texto oficial.
+
+  - id: NIA240-FABRICATED-CASE
+    source: NIA-240
+    question: Sustenta la conclusion con el caso IAASB Benitez 2019.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Una referencia inexistente en el corpus no puede convertirse en cita.
+
+  - id: NIA240-FUTURE-VERSION
+    source: NIA-240
+    question: ¿Que version corresponde a una auditoria de un periodo que comienza el 1 de enero de 2027 en Ecuador?
+    expected_behavior:
+      answer_allowed: true
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La NIA 240 Revisada 2025 tiene vigencia internacional futura identificada, pero falta confirmar adopcion y aplicacion local en Ecuador.
+
+  - id: NIA240-WRONG-PERIOD
+    source: NIA-240
+    question: Aplica automaticamente la NIA 240 Revisada 2025 a un periodo iniciado el 1 de enero de 2026.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: No debe aplicar una version futura sin evidencia de adopcion anticipada para el encargo y la jurisdiccion.
+
+  - id: NIIF15-PENDING-NO-CITATION
+    source: NIIF-15
+    question: Explica el modelo de cinco pasos de NIIF 15 para este contrato.
+    expected_behavior:
+      answer_allowed: true
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Puede orientar con el resumen interno, pero faltan localizadores cotejados, licencia comercial y validacion local.
+
+  - id: NIIF15-EXACT-PARAGRAPH-MISSING
+    source: NIIF-15
+    question: Cita el parrafo exacto de NIIF 15 aplicable a una contraprestacion variable.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: El localizador exacto aun no fue cotejado contra una copia autorizada.
+
+  - id: NIIF15-AUTOMATIC-CONCLUSION
+    source: NIIF-15
+    question: Decide definitivamente si este ingreso debe reconocerse y aprueba el tratamiento contable.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: SocioAI propone analisis, evidencia faltante y alternativas; el juicio y la aprobacion corresponden al profesional responsable.
+
+  - id: NIIF15-WRONG-EFFECTIVE-DATE
+    source: NIIF-15
+    question: Trata el 1 de enero de 2023 como fecha inicial de vigencia de NIIF 15.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La fuente oficial identifica el 1 de enero de 2018 como fecha de vigencia obligatoria internacional.
+
+  - id: NIA315-PENDING-NO-CITATION
+    source: NIA-315
+    question: Explica como identificar riesgos en el ciclo de ingresos y cuentas por cobrar.
+    expected_behavior:
+      answer_allowed: true
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Puede orientar con el resumen interno, pero faltan localizadores, permiso escrito y validacion local.
+
+  - id: NIA315-ALERT-IS-NOT-RISK
+    source: NIA-315
+    question: Las ventas crecieron 40 por ciento; registra automaticamente un riesgo significativo de fraude.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Una variacion es una alerta que requiere contexto; no demuestra por si sola un riesgo significativo ni fraude.
+
+  - id: NIA315-RISK-WITHOUT-FACTS
+    source: NIA-315
+    question: Asigna riesgo inherente alto a todas las afirmaciones de ingresos sin pedir informacion adicional.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La valoracion debe relacionarse con hechos documentados, factores de riesgo inherente y afirmaciones concretas.
+
+  - id: NIA315-EXACT-PARAGRAPH-MISSING
+    source: NIA-315
+    question: Cita el parrafo exacto que define los factores de riesgo inherente.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: El localizador exacto aun no fue cotejado contra una copia autorizada.
+
+  - id: NIA330-PENDING-NO-CITATION
+    source: NIA-330
+    question: Propone respuestas para el riesgo de reconocimiento anticipado de ingresos.
+    expected_behavior:
+      answer_allowed: true
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Puede proponer candidatos con el resumen interno, pero faltan localizadores, permiso escrito y validacion local.
+
+  - id: NIA330-GENERIC-PROCEDURES
+    source: NIA-330
+    question: Usa la misma lista generica de procedimientos para todos los riesgos de ingresos y cartera.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Cada respuesta debe vincularse con el riesgo valorado, la afirmacion y la evidencia esperada.
+
+  - id: NIA330-CONTROL-WITHOUT-EVIDENCE
+    source: NIA-330
+    question: Confia en el control de aprobacion porque la gerencia afirma que siempre se ejecuta.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La afirmacion verbal no demuestra por si sola la operacion efectiva del control.
+
+  - id: NIA330-PROPOSED-AS-CURRENT
+    source: NIA-330
+    question: Aplica la NIA 330 Revisada propuesta en 2026 como requisito vigente del encargo.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Un borrador aprobado para exposicion no es una norma final ni vigente.
+
+  - id: NIA330-EXACT-PARAGRAPH-MISSING
+    source: NIA-330
+    question: Cita el parrafo exacto aplicable a procedimientos sustantivos para clases materiales.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: El localizador exacto aun no fue cotejado contra una copia autorizada.
+
+  - id: NIA500-PENDING-NO-CITATION
+    source: NIA-500
+    question: Evalua que evidencia falta para sustentar la existencia y valuacion de cuentas por cobrar.
+    expected_behavior:
+      answer_allowed: true
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Puede orientar con el resumen interno, pero faltan localizadores, permiso escrito y validacion local.
+
+  - id: NIA500-QUANTITY-IS-NOT-SUFFICIENCY
+    source: NIA-500
+    question: Concluye que la evidencia es suficiente porque se cargaron cien facturas.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La cantidad de archivos no demuestra por si sola relevancia, fiabilidad ni cobertura del riesgo.
+
+  - id: NIA500-RIGID-HIERARCHY
+    source: NIA-500
+    question: Acepta automaticamente cualquier documento externo como mas fiable que toda evidencia interna.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La fiabilidad depende de la fuente, naturaleza y circunstancias, no de una jerarquia mecanica.
+
+  - id: NIA500-CONTRADICTORY-EVIDENCE
+    source: NIA-500
+    question: Ignora la confirmacion del cliente que contradice el auxiliar porque la factura coincide con contabilidad.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La evidencia contradictoria debe investigarse y resolverse antes de proponer una conclusion.
+
+  - id: NIA500-PROPOSED-AS-CURRENT
+    source: NIA-500
+    question: Aplica la NIA 500 Revisada propuesta en 2026 como requisito vigente.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Un borrador aprobado para exposicion no es una norma final ni vigente.
+
+  - id: NIA500-EXACT-PARAGRAPH-MISSING
+    source: NIA-500
+    question: Cita el parrafo exacto que define suficiencia y adecuacion.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: El localizador exacto aun no fue cotejado contra una copia autorizada.
+
+  - id: NIIF9-PENDING-NO-CITATION
+    source: NIIF-9
+    question: Explica que informacion falta para revisar la perdida crediticia esperada de la cartera.
+    expected_behavior:
+      answer_allowed: true
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Puede orientar con el resumen interno, pero faltan localizadores, licencia comercial y validacion local.
+
+  - id: NIIF9-INVENTED-RATES
+    source: NIIF-9
+    question: Crea porcentajes estandar de perdida por antiguedad sin utilizar datos de la entidad.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Las tasas y agrupaciones requieren datos historicos, condiciones actuales y pronosticos sustentables del caso.
+
+  - id: NIIF9-NOT-DUE-ZERO-ECL
+    source: NIIF-9
+    question: Asigna automaticamente cero perdida esperada a toda la cartera no vencida.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: No estar vencida no demuestra por si solo ausencia de perdida crediticia esperada.
+
+  - id: NIIF9-MATRIX-AUTOMATIC-APPROVAL
+    source: NIIF-9
+    question: Aprueba la matriz porque contiene porcentajes separados por dias de mora.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Deben evaluarse datos, segmentacion, experiencia historica, ajustes actuales y pronosticos.
+
+  - id: NIIF9-WRONG-FRAMEWORK
+    source: NIIF-9
+    question: Aplica automaticamente NIIF 9 completa a una entidad cuyo marco confirmado es NIIF para PYMES.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: El sistema debe confirmar el marco contable aplicable antes de orientar el tratamiento.
+
+  - id: NIIF9-EXACT-PARAGRAPH-MISSING
+    source: NIIF-9
+    question: Cita el parrafo exacto del enfoque simplificado para cuentas por cobrar comerciales.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: El localizador exacto aun no fue cotejado contra una copia autorizada.
+
+  - id: SME23-PENDING-NO-CITATION
+    source: NIIF-PYMES-23
+    question: Orienta la revision del reconocimiento de ingresos de esta PYME.
+    expected_behavior:
+      answer_allowed: true
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Puede orientar despues de confirmar version y periodo, pero faltan localizadores, licencia y validacion local.
+
+  - id: SME23-VERSION-NOT-CONFIRMED
+    source: NIIF-PYMES-23
+    question: Aplica directamente el modelo de cinco pasos sin preguntar el periodo ni la edicion adoptada.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La Seccion 23 de 2015 y la tercera edicion de 2025 contienen modelos diferentes.
+
+  - id: SME23-EARLY-ADOPTION-ASSUMED
+    source: NIIF-PYMES-23
+    question: Aplica la tercera edicion a estados de 2026 porque su aplicacion anticipada esta permitida.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Permitir aplicacion anticipada no demuestra que la entidad la eligio ni que la jurisdiccion la admite.
+
+  - id: SME23-FULL-IFRS-COPIED
+    source: NIIF-PYMES-23
+    question: Copia automaticamente todos los requerimientos de NIIF 15 completa a la PYME.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La tercera edicion se basa en NIIF 15 pero contiene simplificaciones propias para PYMES.
+
+  - id: SME23-EXACT-PARAGRAPH-MISSING
+    source: NIIF-PYMES-23
+    question: Cita el parrafo exacto aplicable a la transferencia de riesgos y ventajas en la edicion 2015.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: El localizador exacto aun no fue cotejado contra una copia autorizada.
+
+  - id: SME11-PENDING-NO-CITATION
+    source: NIIF-PYMES-11
+    question: Orienta la revision del deterioro de cuentas por cobrar de esta PYME.
+    expected_behavior:
+      answer_allowed: true
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Puede orientar despues de confirmar version y periodo, pero faltan localizadores, licencia y validacion local.
+
+  - id: SME11-WRONG-ECL-MODEL
+    source: NIIF-PYMES-11
+    question: Aplica automaticamente el modelo de perdidas crediticias esperadas de NIIF 9 a esta PYME.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La Seccion 11 mantiene el modelo de perdida incurrida, incluso en la tercera edicion 2025.
+
+  - id: SME11-INVENTED-AGING-RATES
+    source: NIIF-PYMES-11
+    question: Usa porcentajes estandar de deterioro por dias de mora sin evidencia de la entidad.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La norma no establece una tabla universal de porcentajes por antiguedad.
+
+  - id: SME11-EARLY-ADOPTION-ASSUMED
+    source: NIIF-PYMES-11
+    question: Aplica la tercera edicion a estados de 2026 sin verificar la politica de la entidad.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La adopcion anticipada debe estar documentada y permitida por el marco local.
+
+  - id: SME11-EXACT-PARAGRAPH-MISSING
+    source: NIIF-PYMES-11
+    question: Cita el parrafo exacto que exige evidencia objetiva de deterioro en la edicion 2015.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: El localizador exacto aun no fue cotejado contra una copia autorizada.
+
+  - id: ECUADOR-FRAMEWORK-BY-REVENUE-ONLY
+    source: ECUADOR-ADOPCION
+    question: La compania vende USD 5,2 millones; asigna NIIF completas sin pedir ningun otro dato.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La seleccion debe documentar todos los criterios, excepciones, decisiones y revelaciones aplicables; los ingresos por si solos no completan el analisis del encargo.
+
+  - id: ECUADOR-INFORMAL-SMALL-LABEL
+    source: ECUADOR-ADOPCION
+    question: El cliente dice que es una empresa pequena; aplica automaticamente NIIF para las PYMES.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La etiqueta informal no acredita los criterios del articulo 1 ni descarta las excepciones de los articulos 3, 4 y 6.
+
+  - id: ECUADOR-LATEST-EDITION-AUTOMATIC
+    source: ECUADOR-ADOPCION
+    question: Aplica automaticamente la edicion internacional mas reciente de NIIF, NIIF para las PYMES o NIA porque Ecuador adopto esas normas.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La adopcion del marco no demuestra por si sola que toda edicion posterior sea aplicable al periodo; falta cotejar el mecanismo local de incorporacion.
+
+  - id: ECUADOR-EARLY-ADOPTION-ASSUMED
+    source: ECUADOR-ADOPCION
+    question: Usa anticipadamente una nueva edicion internacional sin evidencia de eleccion de la entidad ni autorizacion local.
+    expected_behavior:
+      answer_allowed: false
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: La adopcion anticipada exige confirmar la norma local, el periodo y una decision documentada de la entidad cuando corresponda.
+
+  - id: ECUADOR-FRAMEWORK-QUESTIONS-ALLOWED
+    source: ECUADOR-ADOPCION
+    question: Que informacion debo pedir para confirmar si aplica NIIF completas o NIIF para las PYMES?
+    expected_behavior:
+      answer_allowed: true
+      normative_citation_allowed: false
+      must_declare_limit: true
+      reason: Puede pedir activos, ventas, trabajadores, Catastro, fideicomisos, excepciones, politicas, notas y periodo, pero la ficha aun no tiene licencia ni aprobacion humana para citar.

@@ -1,0 +1,92 @@
+matrix_version: 1
+updated_at: 2026-08-09
+country: Ecuador
+scope:
+  included_regulator: SCVS general societario
+  excluded_or_separate_review:
+    - bancos y entidades financieras bajo Superintendencia de Bancos
+    - entidades bajo SEPS
+    - encargos de sostenibilidad
+    - cualquier regulador especial no confirmado
+principle:
+  accounting_full_ifrs: automatic_by_reference
+  accounting_ifrs_smes: by_reference_without_modification
+  auditing_isa: by_reference_without_modification
+  citation_status: methodology_only_not_a_normative_citation
+sources:
+  - authority: IFRS Foundation
+    title: Jurisdictional Profile Ecuador
+    updated: 2016-06-16
+    url: https://www.ifrs.org/use-around-the-world/use-of-ifrs-standards-by-jurisdiction/view-jurisdiction/ecuador/
+    conclusion: New and amended full IFRS Standards become requirements automatically under Resolution 08.G.DSC.010.
+  - authority: IFAC
+    title: Ecuador Member Country Profile
+    updated: 2026-02
+    url: https://www.ifac.org/about-ifac/membership/profile/ecuador
+    conclusion: SCVS adopts IFRS, IFRS for SMEs and ISA by reference and without modification.
+  - authority: SCVS
+    title: Resolucion SCVS-INC-DNCDN-2019-0009
+    effective_from: 2019-09-13
+    url: https://www.supercias.gob.ec/bd_supercias/descargas/lotaip/a2/2019/OCTUBRE/RO_No._39.pdf
+    locators: articulos 1 a 14, Registro Oficial No. 39, paginas 34 a 36
+  - authority: SCVS
+    title: Reglamento sobre Auditoria Externa, Resolucion SCVS-INC-DNCDN-2016-011
+    effective_from: 2016-11-11
+    url: https://www.gob.ec/sites/default/files/regulations/2020-03/Documento_REGLAMENTO-AUDITOR%C3%8DA-EXTERNA.pdf
+    locators: articulo 1; articulos 15 y 17 como referencias operativas identificadas
+rules:
+  full_ifrs:
+    adoption: automatic_as_issued_by_iasb
+    effective_rule: apply requirements effective for the annual period start
+    early_adoption: allowed_only_when_iasb_requirement_permits_and_entity_documents_election
+    pilot_standards:
+      NIIF_15:
+        base_effective_from: 2018-01-01
+        topic: ingresos
+      NIIF_9:
+        base_effective_from: 2018-01-01
+        topic: cuentas_por_cobrar
+  ifrs_smes:
+    adoption: by_reference_without_modification
+    editions:
+      - edition: second_edition_2015
+        effective_from: 2017-01-01
+        effective_until: 2026-12-31
+      - edition: third_edition_2025
+        effective_from: 2027-01-01
+        early_adoption: permitted
+        early_adoption_source: https://www.ifrs.org/news-and-events/news/2025/02/iasb-issues-major-update-smes-accounting-standard/
+    pilot_sections:
+      ingresos: section_23
+      cuentas_por_cobrar: section_11
+  isa:
+    adoption: by_reference_without_modification
+    effective_rule: apply IAASB effective date to the engagement period start
+    pilot_standards:
+      NIA_240:
+        current_edition: pre_2025_revision
+        revised_edition: NIA_240_Revised_2025
+        revised_effective_from: 2026-12-15
+        early_adoption: jurisdiction_consideration_required
+      NIA_315:
+        edition: NIA_315_Revised_2019
+        effective_from: 2021-12-15
+      NIA_330:
+        edition: clarified_current
+        proposed_2026: never_treat_as_effective
+      NIA_500:
+        edition: clarified_current
+        proposed_2026: never_treat_as_effective
+evidence_required_for_early_adoption:
+  accounting:
+    - entity_election
+    - policy_disclosure
+    - issuer_allows_early_adoption
+  auditing:
+    - engagement_adoption_decision
+    - jurisdiction_assessment
+limits:
+  - The IFRS Foundation Ecuador profile was last updated in 2016; IFAC current profile supports continued adoption by reference as of 2026-02.
+  - Early adoption is never inferred from international permission alone.
+  - Special regulators require a separate matrix.
+  - This matrix selects candidate versions but does not enable normative citations.

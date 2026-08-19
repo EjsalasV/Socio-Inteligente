@@ -1,0 +1,256 @@
+manifest_version: 2
+updated_at: 2026-08-09
+pilot: Ingresos y Cuentas por Cobrar
+status: pending_curation
+license_registry: data/conocimiento_normativo/licencias_piloto.yaml
+rules:
+  citation_default: false
+  human_approval_required: true
+  official_source_required: true
+  exact_locator_required: true
+  license_review_required: true
+sources:
+  - id: NIA-240
+    priority: 1
+    path: data/conocimiento_normativo/nias/nia_240.md
+    purpose: Fraude y presuncion de riesgo en reconocimiento de ingresos
+    review_status: official_sources_identified
+    current_version:
+      edition: Manual IAASB 2023-2024
+      official_url: https://www.iaasb.org/publications/manual-de-pronunciamientos-internacionales-sobre-gestion-de-calidad-auditoria-revision-otros-tipos
+      effective_from: 2009-12-15
+      effective_date_source: https://www.iaasb.org/consultations-projects/clarity-iaasb-standards
+      local_adoption: by_reference_without_modification_under_scvs_period_matrix
+      locator_review: pending
+      reproduction_rights: prior_written_permission_required_for_ai_processing
+      ai_processing_rule: prior_written_permission_required
+      content_model: internal_professional_interpretation_not_normative_text
+      permission_portal: https://apps.ifac.org/opri/
+      permission_rule: IFAC account required to request translation or reproduction permission
+    future_version:
+      edition: NIA 240 Revisada 2025
+      official_spanish_url: https://www.iaasb.org/publications/responsabilidades-del-auditor-en-la-auditoria-de-estados-financieros-con-respecto-al-fraude
+      effective_from: 2026-12-15
+      effective_rule: periodos que comiencen en o despues de esta fecha
+      early_adoption: jurisdiction_consideration_encouraged_by_iaasb
+      local_adoption: effective_from_2026-12-15_unless_documented_early_adoption
+  - id: NIIF-15
+    priority: 2
+    path: data/conocimiento_normativo/niif_completas/niif_15.md
+    purpose: Reconocimiento de ingresos de contratos con clientes
+    review_status: official_sources_identified
+    current_version:
+      edition: IFRS Accounting Standards Required 2026
+      official_url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-15-revenue-from-contracts-with-customers/
+      official_2026_catalog: https://www.ifrs.org/news-and-events/news/2026/01/now-available-ifrs-accounting-standards-required-2026-two-editions/
+      issued: 2014-05-28
+      effective_from: 2018-01-01
+      effective_rule: periodos anuales que comiencen en o despues de esta fecha
+      effective_date_source: https://www.ifrs.org/supporting-implementation/supporting-materials-by-ifrs-standards/ifrs-15/
+      local_adoption: automatic_as_issued_by_iasb_under_scvs_period_matrix
+      locator_review: pending
+      reproduction_rights: commercial_license_required
+      licensing_source: https://www.ifrs.org/use-around-the-world/adoption-and-copyright/
+      storage_model: internal_professional_interpretation_and_official_links
+  - id: NIA-315
+    priority: 3
+    path: data/conocimiento_normativo/nias/nia_315.md
+    purpose: Identificacion y valoracion de riesgos
+    review_status: official_sources_identified
+    current_version:
+      edition: NIA 315 Revisada 2019
+      official_spanish_url: https://www.iaasb.org/publications/norma-internacional-de-auditoria-315-revisada-2019-y-modificaciones-de-concordancia-y-en
+      translation: Spanish-Latin America
+      translated_by: Instituto Mexicano de Contadores Publicos A.C.
+      translation_published: 2022-03-17
+      issued: 2019-12-19
+      effective_from: 2021-12-15
+      effective_rule: auditorias de periodos que comiencen en o despues de esta fecha
+      effective_date_source: https://www.iaasb.org/news-events/2019-12/iaasb-enhances-and-modernizes-isa-315-more-robust-risk-assessment
+      local_adoption: by_reference_without_modification_under_scvs_period_matrix
+      locator_review: pending
+      reproduction_rights: written_permission_required_for_software
+      licensing_source: https://www.ifac.org/ifac-intellectual-property
+      permission_portal: https://apps.ifac.org/opri/
+      storage_model: internal_professional_interpretation_and_official_links
+  - id: NIA-330
+    priority: 4
+    path: data/conocimiento_normativo/nias/nia_330.md
+    purpose: Respuestas a los riesgos valorados
+    review_status: official_sources_identified
+    current_version:
+      edition: NIA 330 clarificada incluida en Manual IAASB 2025
+      official_url: https://www.iaasb.org/publications/2025-handbook-international-quality-management-auditing-review-other-assurance-and-related-services
+      effective_from: 2009-12-15
+      effective_rule: auditorias de periodos que comiencen en o despues de esta fecha
+      effective_date_source: https://www.iaasb.org/consultations-projects/clarity-iaasb-standards
+      spanish_reference_edition: Manual IAASB 2023-2024 Spanish-Latin America
+      local_adoption: by_reference_without_modification_under_scvs_period_matrix
+      locator_review: pending
+      reproduction_rights: written_permission_required_for_software
+      licensing_source: https://www.ifac.org/ifac-intellectual-property
+      permission_portal: https://apps.ifac.org/opri/
+      storage_model: internal_professional_interpretation_and_official_links
+    proposed_version:
+      edition: Proposed ISA 330 Revised
+      status: exposure_draft_approved_not_effective
+      approved_for_exposure: 2026-06
+      official_project: https://www.iaasb.org/consultations-projects/audit-evidence-and-risk-response-isa-330-isa-500-isa-520
+      application_rule: never_treat_as_current_requirement
+  - id: NIA-500
+    priority: 5
+    path: data/conocimiento_normativo/nias/nia_500.md
+    purpose: Suficiencia y adecuacion de evidencia
+    review_status: official_sources_identified
+    current_version:
+      edition: NIA 500 clarificada incluida en Manual IAASB 2025
+      official_url: https://www.iaasb.org/publications/2025-handbook-international-quality-management-auditing-review-other-assurance-and-related-services
+      effective_from: 2009-12-15
+      effective_rule: auditorias de periodos que comiencen en o despues de esta fecha
+      effective_date_source: https://www.iaasb.org/consultations-projects/clarity-iaasb-standards
+      spanish_reference_edition: Manual IAASB 2023-2024 Spanish-Latin America
+      local_adoption: by_reference_without_modification_under_scvs_period_matrix
+      locator_review: pending
+      reproduction_rights: written_permission_required_for_software
+      licensing_source: https://www.ifac.org/ifac-intellectual-property
+      permission_portal: https://apps.ifac.org/opri/
+      storage_model: internal_professional_interpretation_and_official_links
+    proposed_version:
+      edition: Proposed ISA 500 Revised
+      status: exposure_draft_approved_not_effective
+      approved_for_exposure: 2026-06
+      official_project: https://www.iaasb.org/consultations-projects/audit-evidence-and-risk-response-isa-330-isa-500-isa-520
+      application_rule: never_treat_as_current_requirement
+  - id: NIIF-9
+    priority: 6
+    path: data/conocimiento_normativo/niif_completas/niif_9.md
+    purpose: Deterioro de cuentas por cobrar y perdidas crediticias esperadas
+    review_status: official_sources_identified
+    current_version:
+      edition: IFRS Accounting Standards Required 2026
+      official_url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-9-financial-instruments/
+      official_2026_catalog: https://www.ifrs.org/news-and-events/news/2026/01/now-available-ifrs-accounting-standards-required-2026-two-editions/
+      completed_standard_issued: 2014-07-24
+      effective_from: 2018-01-01
+      effective_rule: periodos anuales que comiencen en o despues de esta fecha
+      effective_date_source: https://www.ifrs.org/supporting-implementation/supporting-materials-by-ifrs-standards/ifrs-9/
+      amendments_effective_2026: included
+      local_adoption: automatic_as_issued_by_iasb_under_scvs_period_matrix
+      locator_review: pending
+      reproduction_rights: commercial_license_required
+      licensing_source: https://www.ifrs.org/use-around-the-world/adoption-and-copyright/
+      storage_model: internal_professional_interpretation_and_official_links
+  - id: NIIF-PYMES-23
+    priority: 7
+    path: data/conocimiento_normativo/niif_pymes/seccion_23.md
+    purpose: Ingresos de actividades ordinarias para PYMES
+    review_status: official_sources_identified
+    current_version:
+      edition: NIIF para las PYMES segunda edicion 2015
+      official_url: https://www.ifrs.org/content/dam/ifrs/publications/ifrs-for-smes/english/2015/ifrs-for-smes-standard-part-a.pdf
+      effective_from: 2017-01-01
+      effective_rule: periodos anuales que comiencen en o despues de esta fecha
+      effective_date_source: https://www.ifrs.org/news-and-events/news/2015/05/iasb-completes-ifrs-for-smes-review/
+      local_adoption: second_edition_2015_through_2026_under_scvs_period_matrix
+      locator_review: pending
+      reproduction_rights: commercial_license_required
+      licensing_source: https://www.ifrs.org/use-around-the-world/adoption-and-copyright/
+      storage_model: internal_professional_interpretation_and_official_links
+    future_version:
+      edition: NIIF para las PYMES tercera edicion 2025
+      section: Seccion 23 Ingresos de Actividades Ordinarias Procedentes de Contratos con Clientes
+      official_url: https://www.ifrs.org/issued-standards/ifrs-for-smes/
+      issued: 2025-02
+      effective_from: 2027-01-01
+      early_adoption: permitted_subject_to_local_framework
+      local_adoption: third_edition_2025_from_2027_or_documented_early_adoption
+      application_rule: confirm_period_and_early_adoption_before_use
+  - id: NIIF-PYMES-11
+    priority: 8
+    path: data/conocimiento_normativo/niif_pymes/seccion_11.md
+    purpose: Instrumentos financieros basicos y cuentas por cobrar para PYMES
+    review_status: official_sources_identified
+    current_version:
+      edition: NIIF para las PYMES segunda edicion 2015
+      official_url: https://www.ifrs.org/content/dam/ifrs/publications/ifrs-for-smes/english/2015/ifrs-for-smes-standard-part-a.pdf
+      effective_from: 2017-01-01
+      effective_rule: periodos anuales que comiencen en o despues de esta fecha
+      effective_date_source: https://www.ifrs.org/news-and-events/news/2015/05/iasb-completes-ifrs-for-smes-review/
+      impairment_model: incurred_loss
+      local_adoption: second_edition_2015_through_2026_under_scvs_period_matrix
+      locator_review: pending
+      reproduction_rights: commercial_license_required
+      licensing_source: https://www.ifrs.org/use-around-the-world/adoption-and-copyright/
+      storage_model: internal_professional_interpretation_and_official_links
+    future_version:
+      edition: NIIF para las PYMES tercera edicion 2025
+      section: Seccion 11 Instrumentos Financieros
+      official_url: https://www.ifrs.org/issued-standards/ifrs-for-smes/
+      issued: 2025-02
+      effective_from: 2027-01-01
+      early_adoption: permitted_subject_to_local_framework
+      impairment_model: incurred_loss_retained
+      structural_change: combines_former_sections_11_and_12
+      ias_39_fallback: removed
+      local_adoption: third_edition_2025_from_2027_or_documented_early_adoption
+      application_rule: confirm_period_and_early_adoption_before_use
+  - id: ECUADOR-ADOPCION
+    priority: 9
+    path: data/conocimiento_normativo/supercias/reglamento_auditoria_externa.md
+    purpose: Seleccion del marco contable y regulacion de auditoria externa para el piloto
+    review_status: official_sources_identified
+    accounting_framework:
+      resolution: SCVS-INC-DNCDN-2019-0009
+      issued: 2019-08-16
+      effective_from: 2019-09-13
+      effective_rule: vigente desde su publicacion segun articulo 14
+      registry: Registro Oficial No. 39 de 2019-09-13
+      official_registry_page: https://www.registroficial.gob.ec/registro-oficial-no-39-13/
+      official_text: https://www.supercias.gob.ec/bd_supercias/descargas/lotaip/a2/2019/OCTUBRE/RO_No._39.pdf
+      locators: articulos 1 a 14, paginas 34 a 36
+      sme_definition:
+        rule: deben cumplirse conjuntamente las tres condiciones del articulo 1
+        assets: inferior a USD 4000000
+        gross_annual_sales: hasta USD 5000000
+        employees: menos de 200, promedio anual ponderado
+      full_ifrs_exceptions:
+        - inscripcion en Catastro Publico del Mercado de Valores
+        - constituyente u originador de fideicomiso mercantil
+        - participantes del sector seguros indicados en el articulo 3
+      predecessor_repealed: SC.ICI.CPAIFRS.G.11.010 de 2011
+      later_amendments_review: pending
+      adoption_sources:
+        - authority: IFRS Foundation
+          profile_updated: 2016-06-16
+          official_url: https://www.ifrs.org/use-around-the-world/use-of-ifrs-standards-by-jurisdiction/view-jurisdiction/ecuador/
+          conclusion: full_ifrs_new_and_amended_standards_automatic_under_resolution_08_G_DSC_010
+        - authority: IFAC
+          profile_updated: 2026-02
+          official_url: https://www.ifac.org/about-ifac/membership/profile/ecuador
+          conclusion: scvs_adopts_ifrs_and_ifrs_for_smes_by_reference_without_modification
+      international_edition_incorporation:
+        full_ifrs: automatic_as_issued_by_iasb
+        ifrs_smes: by_reference_without_modification
+      early_adoption_rule: conditional_on_issuer_permission_entity_election_and_policy_disclosure
+      reproduction_rights: official_text_not_copyright_protected_under_codigo_ingenios_article_107
+      rights_source: https://www.derechosintelectuales.gob.ec/wp-content/uploads/downloads/2021/enero/a_2_16_codigo_ingenios_enero_2021.pdf
+    audit_framework:
+      resolution: SCVS-INC-DNCDN-2016-011
+      registry: Registro Oficial No. 879 de 2016-11-11
+      official_text: https://www.gob.ec/sites/default/files/regulations/2020-03/Documento_REGLAMENTO-AUDITOR%C3%8DA-EXTERNA.pdf
+      operative_locators: articulo 1; articulos 15 y 17 como referencias operativas
+      identified_amendments:
+        - resolution: SCVS-INC-DNCDN-2019-0014
+          registry: Registro Oficial No. 71 de 2019-10-30
+        - resolution: SCVS-INC-DNCDN-2021-0012
+          portal_status: vigente
+          official_pdf: https://www.supercias.gob.ec/portalscvs/doc/normativa/REFORMA+Resoluci%C3%B3n+No++SCVS-INC-DNCDN-2021-0012+%282%29+REGLAMENTO+SOBRE+AUDITORIA+EXTERNA.pdf?MOD=AJPERES&CACHEID=8f2cb01e-5baa-45a0-8687-bf0433705a0b
+      official_catalog: https://www.supercias.gob.ec/portalscvs/Normativa/Resoluciones.php?seccion=normativas
+      consolidated_text_review: pending
+      adoption_source:
+        authority: IFAC
+        profile_updated: 2026-02
+        official_url: https://www.ifac.org/about-ifac/membership/profile/ecuador
+        conclusion: scvs_adopts_isa_by_reference_without_modification
+      international_edition_incorporation: by_reference_without_modification
+      early_adoption_rule: conditional_on_documented_engagement_decision_and_jurisdiction_assessment

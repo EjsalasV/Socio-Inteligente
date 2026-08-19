@@ -1,0 +1,15 @@
+review_record_version: 1
+matrix_file: data/conocimiento_normativo/supercias/matriz_versiones_ecuador.yaml
+matrix_version: 1
+matrix_sha256: 2b9732834c35309697e6a79a16b0005a5a1931dc3528a4a1ae2afd49b83f49e2
+status: pending
+reviewer_name: ""
+reviewer_role: ""
+review_date: ""
+scope: ""
+conclusion: ""
+evidence_reference: ""
+comments:
+  - La revision debe ser realizada por un profesional con conocimiento del marco ecuatoriano aplicable.
+  - Cambiar la matriz invalida automaticamente este registro por diferencia de hash.
+  - Aprobar esta matriz no habilita citas; licencias, localizadores y revision de cada fuente siguen siendo requisitos separados.

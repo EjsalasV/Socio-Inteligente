@@ -1,0 +1,59 @@
+registry_version: 1
+updated_at: 2026-08-09
+scope: corpus piloto de Ingresos y Cuentas por Cobrar
+default_rule: metadata_only_until_permission_is_documented
+providers:
+  IFAC_IAASB:
+    status: prior_written_permission_required
+    applies_to:
+      - NIA-240
+      - NIA-315
+      - NIA-330
+      - NIA-500
+    ai_rule: IFAC materials may not be uploaded, ingested, processed, embedded or used as AI reference material without prior permission.
+    allowed_before_permission:
+      - official metadata and links
+      - original analysis that does not reproduce or process IFAC material
+    prohibited_before_permission:
+      - normative text or extracts in RAG
+      - close paraphrases derived by AI from IFAC material
+      - embeddings, prompts, datasets or automated summaries containing IFAC material
+    official_policy: https://www.ifac.org/who-we-are/code-conduct
+    intellectual_property: https://www.ifac.org/ifac-intellectual-property
+    request_portal: https://apps.ifac.org/opri/
+    contact: Permissions@ifac.org
+  IFRS_Foundation:
+    status: product_license_required
+    applies_to:
+      - NIIF-15
+      - NIIF-9
+      - NIIF-PYMES-23
+      - NIIF-PYMES-11
+    product_rule: Ongoing use of IFRS Foundation material within a product or service requires a licence agreement.
+    allowed_before_license:
+      - official metadata and links
+      - private or professional reference without reproduction
+      - independent practical methodology that does not reproduce the Standards
+    prohibited_before_license:
+      - normative text or extracts in RAG
+      - reproduction, editing, translation or distribution
+      - product content that substitutes for access to the Standards
+    official_policy: https://www.ifrs.org/legal/intellectual-property/
+    adoption_and_copyright: https://www.ifrs.org/use-around-the-world/adoption-and-copyright/
+    action: complete_licensee_questionnaire
+  ECUADOR_OFFICIAL_TEXTS:
+    status: official_text_not_copyright_protected
+    applies_to:
+      - ECUADOR-ADOPCION
+    legal_basis: Codigo Ingenios articulo 107
+    rule: Official legal, regulatory, administrative and judicial texts are not protected by copyright.
+    safeguards:
+      - use the official source
+      - preserve integrity and exact locator
+      - identify authority and current version
+      - require documented human review before citation
+    official_source: https://www.derechosintelectuales.gob.ec/wp-content/uploads/downloads/2021/enero/a_2_16_codigo_ingenios_enero_2021.pdf
+controls:
+  - A permission or licence must be recorded before changing an international source away from metadata_only.
+  - A licence does not replace locator, applicability or human-review controls.
+  - Source access by an individual user does not automatically grant SocioAI product-integration rights.
